@@ -217,3 +217,17 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
     db.add(comment)
     db.commit()
     return RedirectResponse("/", status_code=302)
+@app.get("/search", response_class=HTMLResponse)
+def search(request: Request, q: str = "", db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    results = []
+    if q:
+        results = db.query(models.User).filter(
+            models.User.username.ilike(f"%{q}%") |
+            models.User.name.ilike(f"%{q}%")
+        ).limit(20).all()
+    return templates.TemplateResponse(request, "search.html", {
+        "user": user,
+        "results": results,
+        "q": q
+    })
