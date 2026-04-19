@@ -29,6 +29,7 @@ class Post(Base):
 
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
+    comments = relationship("Comment", back_populates="post")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -48,6 +49,19 @@ class Like(Base):
     post_id = Column(Integer, ForeignKey("posts.id"))
 
     post = relationship("Post", back_populates="likes")
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("posts.id"))
+
+    author = relationship("User")
+    post = relationship("Post", back_populates="comments")
+
 class Message(Base):
     __tablename__ = "messages"
 

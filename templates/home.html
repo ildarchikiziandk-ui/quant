@@ -18,13 +18,32 @@
 
 {% for post in posts %}
 <div class="card">
-   <div class="post-author"><a href="/profile/{{ post.author.username }}" style="text-decoration: none; color: #1a1a1a;">{{ post.author.username }}</a></div>
+    <div class="post-author">
+        <a href="/profile/{{ post.author.username }}" style="text-decoration: none; color: #1a1a1a;">{{ post.author.username }}</a>
+    </div>
     <div class="post-content">{{ post.content }}</div>
     <div class="post-footer">
         <form method="post" action="/like/{{ post.id }}">
             <button class="like-btn">❤️ {{ post.likes|length }}</button>
         </form>
         <span>{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+    </div>
+
+    <!-- Комментарии -->
+    <div style="margin-top: 12px; border-top: 1px solid #f0f0f0; padding-top: 12px;">
+        {% for comment in post.comments %}
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <a href="/profile/{{ comment.author.username }}" style="font-weight: bold; font-size: 13px; text-decoration: none; color: #1a1a1a;">{{ comment.author.username }}</a>
+            <span style="font-size: 13px; color: #333;">{{ comment.content }}</span>
+        </div>
+        {% endfor %}
+
+        {% if user %}
+        <form method="post" action="/comment/{{ post.id }}" style="display: flex; gap: 8px; margin-top: 8px;">
+            <input type="text" name="content" placeholder="Написать комментарий..." required style="margin-bottom: 0; flex: 1; padding: 6px 10px; font-size: 13px;">
+            <button class="btn" style="padding: 6px 14px; font-size: 13px;">OK</button>
+        </form>
+        {% endif %}
     </div>
 </div>
 {% endfor %}

@@ -181,3 +181,12 @@ def send_message(username: str, request: Request, content: str = Form(...), db: 
     db.add(msg)
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
+@app.post("/comment/{post_id}")
+def add_comment(post_id: int, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    comment = models.Comment(content=content, user_id=user.id, post_id=post_id)
+    db.add(comment)
+    db.commit()
+    return RedirectResponse("/", status_code=302)
