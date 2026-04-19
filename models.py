@@ -17,6 +17,8 @@ class User(Base):
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
     following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
     notifications = relationship("Notification", foreign_keys="Notification.user_id", back_populates="user")
+is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
 
 class Post(Base):
     __tablename__ = "posts"
@@ -77,3 +79,9 @@ class Notification(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="notifications")
     from_user = relationship("User", foreign_keys=[from_user_id])
     post = relationship("Post")
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(String)
+    is_read = Column(Boolean, default=False)
