@@ -40,6 +40,11 @@
                 <span class="post-username">@{{ post.author.username }}</span>
                 <span style="color: #ccc;">·</span>
                 <span style="color: #888; font-size: 13px;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
+                {% if user and user.id == post.author.id %}
+                <form method="post" action="/delete/{{ post.id }}" style="margin-left: auto;" onsubmit="return confirm('Удалить пост?')">
+                    <button style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+                </form>
+                {% endif %}
             </div>
             <div class="post-content">{{ post.content }}</div>
             <div class="post-footer">

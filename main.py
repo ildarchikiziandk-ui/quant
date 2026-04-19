@@ -270,3 +270,15 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
     user.password = auth.hash_password(new_password)
     db.commit()
     return templates.TemplateResponse(request, "settings.html", {"user": user, "success": "Пароль успешно изменён"})
+@app.post("/delete/{post_id}")
+def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
+    if post:
+        db.query(models.Like).filter(models.Like.post_id == post_id).delete()
+        db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
+        db.delete(post)
+        db.commit()
+    return RedirectResponse("/", status_code=302)
