@@ -1,17 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card" style="max-width: 400px; margin: 40px auto;">
-    <h2 style="margin-bottom: 20px;">Регистрация</h2>
+    <h2 style="margin-bottom: 6px;">Регистрация</h2>
+    <p style="color: #888; font-size: 14px; margin-bottom: 20px;">Создай свой аккаунт в Quant</p>
     {% if error %}
-        <p class="error">{{ error }}</p>
+        <div style="background: #fff0f0; border: 1px solid #ffcccc; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; color: #cc0000; font-size: 14px;">
+            ⚠️ {{ error }}
+        </div>
     {% endif %}
     <form method="post" action="/register">
-        <input type="text" name="username" placeholder="Имя пользователя" required>
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="password" name="password" placeholder="Пароль" required>
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
+        <input type="text" name="name" placeholder="Например: Ильдар" required>
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
+        <input type="text" name="username" placeholder="Например: ildar_99" required>
+        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Email</label>
+        <input type="email" name="email" placeholder="example@mail.ru" required>
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Пароль</label>
+        <input type="password" name="password" placeholder="Минимум 8 символов" required>
+        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 16px;">Минимум 8 символов, хотя бы одна буква и одна цифра.</p>
         <button class="btn" style="width: 100%;">Зарегистрироваться</button>
     </form>
-    <p style="margin-top: 16px; font-size: 14px; color: #555;">
+    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">
         Уже есть аккаунт? <a href="/login">Войти</a>
     </p>
 </div>

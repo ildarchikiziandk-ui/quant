@@ -6,12 +6,36 @@ from sqlalchemy.orm import Session
 from database import engine, get_db, Base
 import models
 import auth
+import re
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+def validate_username(username: str):
+    if len(username) < 3:
+        return "Никнейм должен быть не короче 3 символов"
+    if len(username) > 30:
+        return "Никнейм должен быть не длиннее 30 символов"
+    if not re.match(r'^[\w\.\-]+$', username, re.UNICODE):
+        return "Никнейм может содержать только буквы, цифры, точку, дефис и подчёркивание"
+    return None
+
+def validate_password(password: str):
+    if len(password) < 8:
+        return "Пароль должен быть не короче 8 символов"
+    if len(password) > 64:
+        return "Пароль должен быть не длиннее 64 символов"
+    if not re.search(r'[A-Za-zА-Яа-яЁё]', password):
+        return "Пароль должен содержать хотя бы одну букву"
+    if not re.search(r'\d', password):
+        return "Пароль должен содержать хотя бы одну цифру"
+    simple = ["12345678", "password", "qwerty123", "11111111", "00000000", "123456789"]
+    if password.lower() in simple:
+        return "Пароль слишком простой, придумай другой"
+    return None
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
@@ -24,20 +48,24 @@ def register_page(request: Request):
     return templates.TemplateResponse(request, "register.html", {})
 
 @app.post("/register")
-def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    try:
-        existing = db.query(models.User).filter(models.User.username == username).first()
-        if existing:
-            return templates.TemplateResponse(request, "register.html", {"error": "Пользователь уже существует"})
-        user = models.User(username=username, email=email, password=auth.hash_password(password))
-        db.add(user)
-        db.commit()
-        token = auth.create_token({"sub": username})
-        response = RedirectResponse("/", status_code=302)
-        response.set_cookie("token", token)
-        return response
-    except Exception as e:
-        return templates.TemplateResponse(request, "register.html", {"error": str(e)})
+def register(request: Request, name: str = Form(...), username: str = Form(...), email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    error = validate_username(username)
+    if error:
+        return templates.TemplateResponse(request, "register.html", {"error": error})
+    error = validate_password(password)
+    if error:
+        return templates.TemplateResponse(request, "register.html", {"error": error})
+    if db.query(models.User).filter(models.User.username == username).first():
+        return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят, попробуй другой"})
+    if db.query(models.User).filter(models.User.email == email).first():
+        return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
+    user = models.User(name=name, username=username, email=email, password=auth.hash_password(password))
+    db.add(user)
+    db.commit()
+    token = auth.create_token({"sub": username})
+    response = RedirectResponse("/", status_code=302)
+    response.set_cookie("token", token)
+    return response
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -47,7 +75,7 @@ def login_page(request: Request):
 def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user or not auth.verify_password(password, user.password):
-        return templates.TemplateResponse(request, "login.html", {"error": "Неверный логин или пароль"})
+        return templates.TemplateResponse(request, "login.html", {"error": "Неверный никнейм или пароль"})
     token = auth.create_token({"sub": username})
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
@@ -82,18 +110,7 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.add(like)
     db.commit()
     return RedirectResponse("/", status_code=302)
-@app.post("/delete/{post_id}")
-def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    # Ищем пост в базе
-    post = db.query(models.Post).filter(models.Post.id == post_id).first()
-    
-    # Проверяем: существует ли пост и принадлежит ли он тебе?
-    if post and post.user_id == user.id:
-        db.delete(post)
-        db.commit()
-    
-    return RedirectResponse("/", status_code=302)
+
 @app.get("/profile/{username}", response_class=HTMLResponse)
 def profile(username: str, request: Request, db: Session = Depends(get_db)):
     current_user = auth.get_current_user(request, db)
@@ -133,6 +150,7 @@ def follow(username: str, request: Request, db: Session = Depends(get_db)):
         db.add(follow)
     db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
+
 @app.get("/messages", response_class=HTMLResponse)
 def messages_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -181,6 +199,7 @@ def send_message(username: str, request: Request, content: str = Form(...), db: 
     db.add(msg)
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
+
 @app.post("/comment/{post_id}")
 def add_comment(post_id: int, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
