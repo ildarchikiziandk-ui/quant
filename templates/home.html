@@ -51,10 +51,10 @@
                         {% endif %}
                     {% endfor %}
                 {% endif %}
-                <form method="post" action="/like/{{ post.id }}">
-                    <button class="like-btn {% if user_liked %}liked{% endif %}">
-                        {% if user_liked %}❤️{% else %}🤍{% endif %}
-                        {{ post.likes|length }}
+                <form method="post" action="/like/{{ post.id }}" class="like-form">
+                    <button type="submit" class="like-btn {% if user_liked %}liked{% endif %}">
+                        <span class="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
+                        <span class="like-count">{{ post.likes|length }}</span>
                     </button>
                 </form>
                 <span style="color: #ccc;">·</span>
@@ -98,4 +98,26 @@
     Пока нет постов. Будь первым!
 </div>
 {% endif %}
+
+<script>
+document.querySelectorAll('.like-form').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('.like-btn');
+        const icon = btn.querySelector('.like-icon');
+        const count = btn.querySelector('.like-count');
+        const liked = btn.classList.contains('liked');
+        await fetch(this.action, {method: 'POST'});
+        if (liked) {
+            btn.classList.remove('liked');
+            icon.textContent = '🤍';
+            count.textContent = parseInt(count.textContent) - 1;
+        } else {
+            btn.classList.add('liked');
+            icon.textContent = '❤️';
+            count.textContent = parseInt(count.textContent) + 1;
+        }
+    });
+});
+</script>
 {% endblock %}
