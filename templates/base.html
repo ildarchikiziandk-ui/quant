@@ -30,7 +30,8 @@
         <a href="/">⚡ Quant</a>
         <div class="nav-links">
             {% if user %}
-                <a href="/">Лента</a>
+               <a href="/">Лента</a>
+<a href="/messages">Сообщения</a>
                 <a href="/logout">Выйти ({{ user.username }})</a>
             {% else %}
                 <a href="/login">Войти</a>

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+    <div style="width: 48px; height: 48px; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: bold;">
+        {{ other.username[0].upper() }}
+    </div>
+    <div>
+        <a href="/profile/{{ other.username }}" style="text-decoration: none; color: #1a1a1a; font-weight: bold; font-size: 18px;">{{ other.username }}</a>
+    </div>
+</div>
+
+<div class="card" style="min-height: 400px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+    {% if messages %}
+        {% for msg in messages %}
+        <div style="display: flex; {% if msg.sender_id == user.id %}justify-content: flex-end{% endif %}">
+            <div style="max-width: 70%; padding: 10px 14px; border-radius: 12px; {% if msg.sender_id == user.id %}background: #1a1a1a; color: white;{% else %}background: #f0f2f5; color: #1a1a1a;{% endif %}">
+                <div>{{ msg.content }}</div>
+                <div style="font-size: 11px; margin-top: 4px; opacity: 0.6;">{{ msg.created_at.strftime("%H:%M") }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; color: #888; margin: auto;">Начни диалог!</div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <form method="post" action="/messages/{{ other.username }}" style="display: flex; gap: 10px;">
+        <input type="text" name="content" placeholder="Написать сообщение..." required style="margin-bottom: 0; flex: 1;">
+        <button class="btn">Отправить</button>
+    </form>
+</div>
+{% endblock %}

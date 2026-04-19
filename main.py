@@ -133,3 +133,51 @@ def follow(username: str, request: Request, db: Session = Depends(get_db)):
         db.add(follow)
     db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
+@app.get("/messages", response_class=HTMLResponse)
+def messages_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    conversations = db.query(models.User).join(
+        models.Message,
+        (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)
+    ).filter(models.User.id != user.id).distinct().all()
+    return templates.TemplateResponse(request, "messages.html", {
+        "user": user,
+        "conversations": conversations
+    })
+
+@app.get("/messages/{username}", response_class=HTMLResponse)
+def conversation(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return RedirectResponse("/messages", status_code=302)
+    msgs = db.query(models.Message).filter(
+        ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
+        ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))
+    ).order_by(models.Message.created_at).all()
+    for msg in msgs:
+        if msg.receiver_id == user.id and not msg.is_read:
+            msg.is_read = True
+    db.commit()
+    return templates.TemplateResponse(request, "conversation.html", {
+        "user": user,
+        "other": other,
+        "messages": msgs
+    })
+
+@app.post("/messages/{username}")
+def send_message(username: str, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return RedirectResponse("/messages", status_code=302)
+    msg = models.Message(sender_id=user.id, receiver_id=other.id, content=content)
+    db.add(msg)
+    db.commit()
+    return RedirectResponse(f"/messages/{username}", status_code=302)

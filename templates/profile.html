@@ -14,15 +14,18 @@
             </p>
         </div>
         <div style="margin-left: auto;">
-            {% if user and user.username != profile_user.username %}
-                <form method="post" action="/follow/{{ profile_user.username }}">
-                    {% if is_following %}
-                        <button class="btn-outline">Отписаться</button>
-                    {% else %}
-                        <button class="btn">Подписаться</button>
-                    {% endif %}
-                </form>
+          {% if user and user.username != profile_user.username %}
+    <div style="display: flex; gap: 8px;">
+        <form method="post" action="/follow/{{ profile_user.username }}">
+            {% if is_following %}
+                <button class="btn-outline">Отписаться</button>
+            {% else %}
+                <button class="btn">Подписаться</button>
             {% endif %}
+        </form>
+        <a href="/messages/{{ profile_user.username }}"><button class="btn-outline">Написать</button></a>
+    </div>
+{% endif %}
         </div>
     </div>
 </div>
