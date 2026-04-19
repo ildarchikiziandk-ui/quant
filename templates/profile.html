@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="width: 70px; height: 70px; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: bold;">
+            {{ profile_user.username[0].upper() }}
+        </div>
+        <div>
+            <h2 style="margin-bottom: 4px;">{{ profile_user.username }}</h2>
+            <p style="color: #888; font-size: 14px;">{{ profile_user.bio or "Нет описания" }}</p>
+            <p style="color: #888; font-size: 13px; margin-top: 4px;">
+                Подписчики: <b>{{ profile_user.followers|length }}</b> &nbsp;
+                Подписки: <b>{{ profile_user.following|length }}</b>
+            </p>
+        </div>
+        <div style="margin-left: auto;">
+            {% if user and user.username != profile_user.username %}
+                <form method="post" action="/follow/{{ profile_user.username }}">
+                    {% if is_following %}
+                        <button class="btn-outline">Отписаться</button>
+                    {% else %}
+                        <button class="btn">Подписаться</button>
+                    {% endif %}
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<h3 style="margin: 16px 0 10px;">Посты</h3>
+
+{% for post in posts %}
+<div class="card">
+    <div class="post-content">{{ post.content }}</div>
+    <div class="post-footer">
+        <form method="post" action="/like/{{ post.id }}">
+            <button class="like-btn">❤️ {{ post.likes|length }}</button>
+        </form>
+        <span>{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+    </div>
+</div>
+{% endfor %}
+
+{% if not posts %}
+<div class="card" style="text-align: center; color: #888;">
+    <p>Пока нет постов.</p>
+</div>
+{% endif %}
+{% endblock %}

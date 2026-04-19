@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+{% if user %}
+<div class="card">
+    <form method="post" action="/post">
+        <textarea name="content" placeholder="Что у тебя нового, {{ user.username }}?" required></textarea>
+        <button class="btn">Опубликовать</button>
+    </form>
+</div>
+{% else %}
+<div class="card" style="text-align: center;">
+    <h2 style="margin-bottom: 10px;">Добро пожаловать в Quant ⚡</h2>
+    <p style="color: #555; margin-bottom: 16px;">Присоединяйся и общайся!</p>
+    <a href="/register"><button class="btn">Зарегистрироваться</button></a>
+    <a href="/login"><button class="btn-outline" style="margin-left: 10px;">Войти</button></a>
+</div>
+{% endif %}
+
+{% for post in posts %}
+<div class="card">
+   <div class="post-author"><a href="/profile/{{ post.author.username }}" style="text-decoration: none; color: #1a1a1a;">{{ post.author.username }}</a></div>
+    <div class="post-content">{{ post.content }}</div>
+    <div class="post-footer">
+        <form method="post" action="/like/{{ post.id }}">
+            <button class="like-btn">❤️ {{ post.likes|length }}</button>
+        </form>
+        <span>{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+    </div>
+</div>
+{% endfor %}
+
+{% if not posts %}
+<div class="card" style="text-align: center; color: #888;">
+    <p>Пока нет постов. Будь первым!</p>
+</div>
+{% endif %}
+{% endblock %}

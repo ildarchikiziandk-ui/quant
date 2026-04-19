@@ -1,0 +1,50 @@
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    password = Column(String)
+    avatar = Column(String, default="")
+    bio = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    posts = relationship("Post", back_populates="author")
+    followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
+    following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
+
+class Post(Base):
+    __tablename__ = "posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(Text)
+    image = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    author = relationship("User", back_populates="posts")
+    likes = relationship("Like", back_populates="post")
+
+class Follow(Base):
+    __tablename__ = "follows"
+
+    id = Column(Integer, primary_key=True, index=True)
+    follower_id = Column(Integer, ForeignKey("users.id"))
+    following_id = Column(Integer, ForeignKey("users.id"))
+
+    follower = relationship("User", foreign_keys=[follower_id], back_populates="following")
+    following = relationship("User", foreign_keys=[following_id], back_populates="followers")
+
+class Like(Base):
+    __tablename__ = "likes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("posts.id"))
+
+    post = relationship("Post", back_populates="likes")

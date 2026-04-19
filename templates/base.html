@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; }
+        .navbar { background: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        .navbar a { text-decoration: none; color: #1a1a1a; font-weight: bold; font-size: 22px; }
+        .nav-links a { margin-left: 16px; text-decoration: none; color: #555; font-size: 14px; }
+        .nav-links a:hover { color: #000; }
+        .container { max-width: 600px; margin: 30px auto; padding: 0 16px; }
+        .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .btn { background: #1a1a1a; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #333; }
+        .btn-outline { background: transparent; color: #1a1a1a; border: 1px solid #1a1a1a; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+        textarea { resize: vertical; min-height: 80px; }
+        .error { color: red; font-size: 13px; margin-bottom: 10px; }
+        .post-author { font-weight: bold; margin-bottom: 6px; }
+        .post-content { margin-bottom: 10px; line-height: 1.5; }
+        .post-footer { display: flex; align-items: center; gap: 12px; color: #888; font-size: 13px; }
+        .like-btn { background: none; border: none; cursor: pointer; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/">⚡ Quant</a>
+        <div class="nav-links">
+            {% if user %}
+                <a href="/">Лента</a>
+                <a href="/logout">Выйти ({{ user.username }})</a>
+            {% else %}
+                <a href="/login">Войти</a>
+                <a href="/register">Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

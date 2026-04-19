@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 40px auto;">
+    <h2 style="margin-bottom: 20px;">Регистрация</h2>
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="/register">
+        <input type="text" name="username" placeholder="Имя пользователя" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Пароль" required>
+        <button class="btn" style="width: 100%;">Зарегистрироваться</button>
+    </form>
+    <p style="margin-top: 16px; font-size: 14px; color: #555;">
+        Уже есть аккаунт? <a href="/login">Войти</a>
+    </p>
+</div>
+{% endblock %}
