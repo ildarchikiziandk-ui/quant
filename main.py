@@ -231,3 +231,42 @@ def search(request: Request, q: str = "", db: Session = Depends(get_db)):
         "results": results,
         "q": q
     })
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    return templates.TemplateResponse(request, "settings.html", {"user": user})
+
+@app.post("/settings")
+def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    error = validate_username(username)
+    if error:
+        return templates.TemplateResponse(request, "settings.html", {"user": user, "error": error})
+    existing = db.query(models.User).filter(models.User.username == username, models.User.id != user.id).first()
+    if existing:
+        return templates.TemplateResponse(request, "settings.html", {"user": user, "error": f"Никнейм @{username} уже занят"})
+    user.name = name
+    user.bio = bio
+    user.username = username
+    db.commit()
+    token = auth.create_token({"sub": username})
+    response = RedirectResponse(f"/profile/{username}", status_code=302)
+    response.set_cookie("token", token)
+    return response
+@app.post("/settings/password")
+def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if not auth.verify_password(old_password, user.password):
+        return templates.TemplateResponse(request, "settings.html", {"user": user, "error": "Старый пароль неверный"})
+    error = validate_password(new_password)
+    if error:
+        return templates.TemplateResponse(request, "settings.html", {"user": user, "error": error})
+    user.password = auth.hash_password(new_password)
+    db.commit()
+    return templates.TemplateResponse(request, "settings.html", {"user": user, "success": "Пароль успешно изменён"})

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 480px; margin: 0 auto;">
+    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.3px;">Настройки профиля</h2>
+    <p style="color: #888; font-size: 14px; margin-bottom: 24px;">Измени информацию о себе</p>
+
+    {% if error %}
+    <div class="alert-error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if success %}
+    <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; color: #276749; font-size: 14px;">
+        ✓ {{ success }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/settings">
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
+        <input type="text" name="name" value="{{ user.name or '' }}" placeholder="Твоё имя" required>
+
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
+        <input type="text" name="username" value="{{ user.username }}" required>
+        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
+
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">О себе</label>
+        <textarea name="bio" placeholder="Расскажи о себе...">{{ user.bio or '' }}</textarea>
+
+        <button class="btn" style="width: 100%;">Сохранить</button>
+    </form>
+
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Сменить пароль</h3>
+        <form method="post" action="/settings/password">
+            <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Старый пароль</label>
+            <input type="password" name="old_password" placeholder="Введи старый пароль" required>
+            <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Новый пароль</label>
+            <input type="password" name="new_password" placeholder="Минимум 8 символов" required>
+            <button class="btn-outline" style="width: 100%;">Сменить пароль</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
