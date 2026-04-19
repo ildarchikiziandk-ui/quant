@@ -1,52 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div style="width: 70px; height: 70px; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: bold;">
-            {{ profile_user.username[0].upper() }}
+<div class="card" style="padding: 24px;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 72px; height: 72px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600; flex-shrink: 0;">
+                {{ profile_user.username[0].upper() }}
+            </div>
+            <div>
+                <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">{{ profile_user.name or profile_user.username }}</h2>
+                <div style="color: #888; font-size: 14px; margin-bottom: 6px;">@{{ profile_user.username }}</div>
+                {% if profile_user.bio %}
+                <div style="font-size: 14px; color: #333; margin-bottom: 8px;">{{ profile_user.bio }}</div>
+                {% endif %}
+                <div style="display: flex; gap: 16px; font-size: 14px;">
+                    <span><b>{{ posts|length }}</b> <span style="color: #888;">постов</span></span>
+                    <span><b>{{ profile_user.followers|length }}</b> <span style="color: #888;">подписчиков</span></span>
+                    <span><b>{{ profile_user.following|length }}</b> <span style="color: #888;">подписок</span></span>
+                </div>
+            </div>
         </div>
-        <div>
-            <h2 style="margin-bottom: 4px;">{{ profile_user.username }}</h2>
-            <p style="color: #888; font-size: 14px;">{{ profile_user.bio or "Нет описания" }}</p>
-            <p style="color: #888; font-size: 13px; margin-top: 4px;">
-                Подписчики: <b>{{ profile_user.followers|length }}</b> &nbsp;
-                Подписки: <b>{{ profile_user.following|length }}</b>
-            </p>
+        {% if user and user.username != profile_user.username %}
+        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <form method="post" action="/follow/{{ profile_user.username }}">
+                {% if is_following %}
+                    <button class="btn-unfollow">Отписаться</button>
+                {% else %}
+                    <button class="btn-follow">Подписаться</button>
+                {% endif %}
+            </form>
+            <a href="/messages/{{ profile_user.username }}">
+                <button class="btn-outline" style="border-radius: 20px;">Написать</button>
+            </a>
         </div>
-        <div style="margin-left: auto;">
-          {% if user and user.username != profile_user.username %}
-    <div style="display: flex; gap: 8px;">
-        <form method="post" action="/follow/{{ profile_user.username }}">
-            {% if is_following %}
-                <button class="btn-outline">Отписаться</button>
-            {% else %}
-                <button class="btn">Подписаться</button>
+        {% endif %}
+    </div>
+</div>
+
+{% if posts %}
+    {% for post in posts %}
+    <div class="card">
+        <div class="post-content">{{ post.content }}</div>
+        <div class="post-footer">
+            {% set user_liked = false %}
+            {% if user %}
+                {% for like in post.likes %}
+                    {% if like.user_id == user.id %}
+                        {% set user_liked = true %}
+                    {% endif %}
+                {% endfor %}
             {% endif %}
-        </form>
-        <a href="/messages/{{ profile_user.username }}"><button class="btn-outline">Написать</button></a>
-    </div>
-{% endif %}
+            <form method="post" action="/like/{{ post.id }}">
+                <button class="like-btn {% if user_liked %}liked{% endif %}">
+                    {% if user_liked %}❤️{% else %}🤍{% endif %}
+                    {{ post.likes|length }}
+                </button>
+            </form>
+            <span style="color: #ccc;">·</span>
+            <span>💬 {{ post.comments|length }}</span>
+            <span style="color: #ccc;">·</span>
+            <span style="color: #888;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
         </div>
     </div>
-</div>
-
-<h3 style="margin: 16px 0 10px;">Посты</h3>
-
-{% for post in posts %}
-<div class="card">
-    <div class="post-content">{{ post.content }}</div>
-    <div class="post-footer">
-        <form method="post" action="/like/{{ post.id }}">
-            <button class="like-btn">❤️ {{ post.likes|length }}</button>
-        </form>
-        <span>{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+    {% endfor %}
+{% else %}
+    <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
+        Пока нет постов
     </div>
-</div>
-{% endfor %}
-
-{% if not posts %}
-<div class="card" style="text-align: center; color: #888;">
-    <p>Пока нет постов.</p>
-</div>
 {% endif %}
 {% endblock %}
