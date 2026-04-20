@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "badges.html" import owner_badge, verify_badge, star_badge %}
 {% block content %}
 <div class="card" style="padding: 24px;">
     <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
@@ -7,7 +8,12 @@
                 {{ profile_user.username[0].upper() }}
             </div>
             <div>
-                <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">{{ profile_user.name or profile_user.username }}</h2>
+                <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                    <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">{{ profile_user.name or profile_user.username }}</h2>
+                    {% if profile_user.is_owner %}{{ owner_badge() }}{% endif %}
+                    {% if profile_user.is_verified_badge %}{{ verify_badge() }}{% endif %}
+                    {% if profile_user.is_starred %}{{ star_badge() }}{% endif %}
+                </div>
                 <div style="color: #888; font-size: 14px; margin-bottom: 6px;">@{{ profile_user.username }}</div>
                 {% if profile_user.bio %}
                 <div style="font-size: 14px; color: #333; margin-bottom: 8px;">{{ profile_user.bio }}</div>
@@ -20,7 +26,7 @@
             </div>
         </div>
         {% if user and user.username != profile_user.username %}
-        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0;">
             <form method="post" action="/follow/{{ profile_user.username }}">
                 {% if is_following %}
                     <button class="btn-unfollow">Отписаться</button>
@@ -31,6 +37,14 @@
             <a href="/messages/{{ profile_user.username }}">
                 <button class="btn-outline" style="border-radius: 20px;">Написать</button>
             </a>
+            {% if user.is_owner %}
+            <form method="post" action="/admin/star/{{ profile_user.username }}" style="display:inline">
+                <button class="btn-outline" style="border-radius: 20px; font-size: 12px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button>
+            </form>
+            <form method="post" action="/admin/verify/{{ profile_user.username }}" style="display:inline">
+                <button class="btn-outline" style="border-radius: 20px; font-size: 12px;">{% if profile_user.is_verified_badge %}Убрать ✓{% else %}Дать ✓{% endif %}</button>
+            </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -43,18 +57,16 @@
         <div class="post-footer">
             {% set user_liked = false %}
             {% if user %}
-                {% for like in post.likes %}
-                    {% if like.user_id == user.id %}
-                        {% set user_liked = true %}
-                    {% endif %}
-                {% endfor %}
+                {% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}
             {% endif %}
             <form method="post" action="/like/{{ post.id }}">
                 <button class="like-btn {% if user_liked %}liked{% endif %}">
-                    {% if user_liked %}❤️{% else %}🤍{% endif %}
+                    <span>{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
                     {{ post.likes|length }}
                 </button>
             </form>
+            <span style="color: #ccc;">·</span>
+            <span>🐋 {{ post.whales|length }}</span>
             <span style="color: #ccc;">·</span>
             <span>💬 {{ post.comments|length }}</span>
             <span style="color: #ccc;">·</span>
@@ -63,8 +75,6 @@
     </div>
     {% endfor %}
 {% else %}
-    <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
-        Пока нет постов
-    </div>
+    <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">Пока нет постов</div>
 {% endif %}
 {% endblock %}

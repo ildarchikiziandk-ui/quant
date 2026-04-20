@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "badges.html" import owner_badge, verify_badge, star_badge %}
 {% block content %}
 {% if user %}
 <div class="card">
@@ -40,13 +41,11 @@
             </div>
         </a>
         <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
-                <a href="/profile/{{ post.author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">
-                    {{ post.author.name or post.author.username }}
-                    {% if post.author.is_owner %} 👑{% endif %}
-                    {% if post.author.is_verified_badge %} ✅{% endif %}
-                    {% if post.author.is_starred %} ⭐{% endif %}
-                </a>
+            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; flex-wrap: wrap;">
+                <a href="/profile/{{ post.author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">{{ post.author.name or post.author.username }}</a>
+                {% if post.author.is_owner %}{{ owner_badge() }}{% endif %}
+                {% if post.author.is_verified_badge %}{{ verify_badge() }}{% endif %}
+                {% if post.author.is_starred %}{{ star_badge() }}{% endif %}
                 <span style="color: #888; font-size: 13px;">@{{ post.author.username }}</span>
                 <span style="color: #ccc;">·</span>
                 <span style="color: #888; font-size: 13px;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
@@ -61,12 +60,8 @@
                 {% set user_liked = false %}
                 {% set user_whaled = false %}
                 {% if user %}
-                    {% for like in post.likes %}
-                        {% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}
-                    {% endfor %}
-                    {% for whale in post.whales %}
-                        {% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}
-                    {% endfor %}
+                    {% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}
+                    {% for whale in post.whales %}{% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}{% endfor %}
                 {% endif %}
                 <form method="post" action="/like/{{ post.id }}" class="like-form">
                     <button type="submit" class="like-btn {% if user_liked %}liked{% endif %}">
@@ -134,12 +129,12 @@ document.querySelectorAll('.like-form, .whale-form').forEach(form => {
         await fetch(this.action, {method: 'POST'});
         if (liked) {
             btn.classList.remove('liked');
-            if (icon.classList.contains('like-icon')) icon.textContent = '🤍';
-            count.textContent = parseInt(count.textContent) - 1;
+            if (icon && icon.classList.contains('like-icon')) icon.textContent = '🤍';
+            if (count) count.textContent = parseInt(count.textContent) - 1;
         } else {
             btn.classList.add('liked');
-            if (icon.classList.contains('like-icon')) icon.textContent = '❤️';
-            count.textContent = parseInt(count.textContent) + 1;
+            if (icon && icon.classList.contains('like-icon')) icon.textContent = '❤️';
+            if (count) count.textContent = parseInt(count.textContent) + 1;
         }
     });
 });
