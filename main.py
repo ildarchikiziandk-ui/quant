@@ -3,8 +3,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from database import engine, get_db, Base
 from sqlalchemy import text
+from database import engine, get_db, Base
 from datetime import datetime
 import models
 import auth
@@ -40,31 +40,6 @@ try:
             post_id INTEGER REFERENCES posts(id)
         )"""))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
-        conn.commit()
-except:
-    passusers(id),
-                from_user_id INTEGER REFERENCES users(id),
-                type VARCHAR,
-                post_id INTEGER REFERENCES posts(id),
-                is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        """))
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS verification_codes (
-                id SERIAL PRIMARY KEY,
-                email VARCHAR,
-                code VARCHAR,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        """))
-        try:
-            conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS from_user_id INTEGER REFERENCES users(id)"))
-            conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type VARCHAR"))
-            conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS post_id INTEGER REFERENCES posts(id)"))
-            conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE"))
-        except:
-            pass
         conn.commit()
 except:
     pass
@@ -139,12 +114,11 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
 
 @app.post("/verify")
 def verify(request: Request, email: str = Form(...), username: str = Form(...), name: str = Form(...), password: str = Form(...), code: str = Form(...), db: Session = Depends(get_db)):
-    from datetime import timedelta
     vc = db.query(models.VerificationCode).filter(models.VerificationCode.email == email, models.VerificationCode.code == code).first()
     if not vc:
-        return templates.TemplateResponse(request, "verify.html", {"email": email, "username": username, "name": name, "password": password, "error": "Неверный код"})
+        return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password, "error": "Неверный код"})
     if (datetime.utcnow() - vc.created_at).seconds > 600:
-        return templates.TemplateResponse(request, "verify.html", {"email": email, "username": username, "name": name, "password": password, "error": "Код истёк, зарегистрируйся заново"})
+        return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password, "error": "Код истёк, зарегистрируйся заново"})
     user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
     db.add(user)
     db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()
@@ -153,6 +127,7 @@ def verify(request: Request, email: str = Form(...), username: str = Form(...), 
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     return response
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html", {})
@@ -193,6 +168,7 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.query(models.Like).filter(models.Like.post_id == post_id).delete()
         db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
+        db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
         db.delete(post)
         db.commit()
     return RedirectResponse("/", status_code=302)
@@ -212,6 +188,20 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         if post and post.user_id != user.id:
             notif = models.Notification(user_id=post.user_id, from_user_id=user.id, type="like", post_id=post_id)
             db.add(notif)
+    db.commit()
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/whale/{post_id}")
+def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    existing = db.query(models.Whale).filter(models.Whale.user_id == user.id, models.Whale.post_id == post_id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        whale = models.Whale(user_id=user.id, post_id=post_id)
+        db.add(whale)
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -291,11 +281,7 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
         models.Notification.user_id == user.id,
         models.Notification.is_read == False
     ).count()
-    return templates.TemplateResponse(request, "messages.html", {
-        "user": user,
-        "conversations": conversations,
-        "unread": unread
-    })
+    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": unread})
 
 @app.get("/messages/{username}", response_class=HTMLResponse)
 def conversation(username: str, request: Request, db: Session = Depends(get_db)):
@@ -317,12 +303,7 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
         models.Notification.user_id == user.id,
         models.Notification.is_read == False
     ).count()
-    return templates.TemplateResponse(request, "conversation.html", {
-        "user": user,
-        "other": other,
-        "messages": msgs,
-        "unread": unread
-    })
+    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": unread})
 
 @app.post("/messages/{username}")
 def send_message(username: str, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
@@ -352,12 +333,7 @@ def search(request: Request, q: str = "", db: Session = Depends(get_db)):
             models.Notification.user_id == user.id,
             models.Notification.is_read == False
         ).count()
-    return templates.TemplateResponse(request, "search.html", {
-        "user": user,
-        "results": results,
-        "q": q,
-        "unread": unread
-    })
+    return templates.TemplateResponse(request, "search.html", {"user": user, "results": results, "q": q, "unread": unread})
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, db: Session = Depends(get_db)):
@@ -422,6 +398,7 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
     user.password = auth.hash_password(new_password)
     db.commit()
     return templates.TemplateResponse(request, "settings.html", {"user": user, "success": "Пароль успешно изменён"})
+
 @app.post("/admin/star/{username}")
 def give_star(username: str, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -443,17 +420,3 @@ def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
         target.is_verified_badge = not target.is_verified_badge
         db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
-
-@app.post("/whale/{post_id}")
-def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    existing = db.query(models.Whale).filter(models.Whale.user_id == user.id, models.Whale.post_id == post_id).first()
-    if existing:
-        db.delete(existing)
-    else:
-        whale = models.Whale(user_id=user.id, post_id=post_id)
-        db.add(whale)
-    db.commit()
-    return RedirectResponse("/", status_code=302)
