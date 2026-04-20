@@ -26,6 +26,11 @@
 </div>
 {% endif %}
 
+<div style="display: flex; border-bottom: 1px solid #e8e8e8; margin-bottom: 12px; background: #fff; border-radius: 12px 12px 0 0; overflow: hidden;">
+    <a href="/?tab=foryou" style="flex: 1; text-align: center; padding: 14px; font-size: 14px; font-weight: 600; {% if tab == 'foryou' or not tab %}border-bottom: 2px solid #0f0f0f; color: #0f0f0f;{% else %}color: #888;{% endif %}">Для вас</a>
+    <a href="/?tab=following" style="flex: 1; text-align: center; padding: 14px; font-size: 14px; font-weight: 600; {% if tab == 'following' %}border-bottom: 2px solid #0f0f0f; color: #0f0f0f;{% else %}color: #888;{% endif %}">Подписки</a>
+</div>
+
 {% for post in posts %}
 <div class="card">
     <div style="display: flex; gap: 12px;">
@@ -100,7 +105,11 @@
 
 {% if not posts %}
 <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
+    {% if tab == 'following' %}
+    Подпишись на кого-нибудь чтобы видеть их посты!
+    {% else %}
     Пока нет постов. Будь первым!
+    {% endif %}
 </div>
 {% endif %}
 

@@ -47,16 +47,20 @@ def validate_password(password: str):
     return None
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
+def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
+    if tab == "following" and user:
+        following_ids = [f.following_id for f in user.following]
+        posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
+    else:
+        posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
     unread = 0
     if user:
         unread = db.query(models.Notification).filter(
             models.Notification.user_id == user.id,
             models.Notification.is_read == False
         ).count()
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": unread})
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": unread, "tab": tab})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
