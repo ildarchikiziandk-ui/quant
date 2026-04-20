@@ -103,6 +103,34 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
         return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят"})
     if db.query(models.User).filter(models.User.email == email).first():
         return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
+    try:
+        from email_service import generate_code, send_verification_email
+        code = generate_code()
+        db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()
+        db.commit()
+        vc = models.VerificationCode(email=email, code=code)
+        db.add(vc)
+        db.commit()
+        sent = send_verification_email(email, code)
+        if not sent:
+            user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
+            db.add(user)
+            db.commit()
+            token = auth.create_token({"sub": username})
+            response = RedirectResponse("/", status_code=302)
+            response.set_cookie("token", token)
+            return response
+    except Exception as e:
+        user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
+        db.add(user)
+        db.commit()
+        token = auth.create_token({"sub": username})
+        response = RedirectResponse("/", status_code=302)
+        response.set_cookie("token", token)
+        return response
+    return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password})templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят"})
+    if db.query(models.User).filter(models.User.email == email).first():
+        return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
     from email_service import generate_code, send_verification_email
     code = generate_code()
     db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()

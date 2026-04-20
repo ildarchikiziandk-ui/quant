@@ -2,79 +2,65 @@
 {% from "badges.html" import owner_badge, verify_badge, star_badge %}
 {% block content %}
 <div class="card" style="padding: 24px;">
-    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
-        <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="width: 72px; height: 72px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600; flex-shrink: 0;">
-                {{ profile_user.username[0].upper() }}
-            </div>
-            <div>
-                <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
-                    <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">{{ profile_user.name or profile_user.username }}</h2>
-                    {% if profile_user.is_owner %}{{ owner_badge() }}{% endif %}
-                    {% if profile_user.is_verified_badge %}{{ verify_badge() }}{% endif %}
-                    {% if profile_user.is_starred %}{{ star_badge() }}{% endif %}
-                </div>
-                <div style="color: #888; font-size: 14px; margin-bottom: 6px;">@{{ profile_user.username }}</div>
-                {% if profile_user.bio %}
-                <div style="font-size: 14px; color: #333; margin-bottom: 8px;">{{ profile_user.bio }}</div>
-                {% endif %}
-                <div style="display: flex; gap: 16px; font-size: 14px;">
-                    <span><b>{{ posts|length }}</b> <span style="color: #888;">постов</span></span>
-                    <span><b>{{ profile_user.followers|length }}</b> <span style="color: #888;">подписчиков</span></span>
-                    <span><b>{{ profile_user.following|length }}</b> <span style="color: #888;">подписок</span></span>
-                </div>
-            </div>
+    <div style="display: flex; align-items: flex-start; gap: 16px;">
+        <div style="width: 72px; height: 72px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600; flex-shrink: 0;">
+            {{ profile_user.username[0].upper() }}
         </div>
-        {% if user and user.username != profile_user.username %}
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0;">
-            <form method="post" action="/follow/{{ profile_user.username }}">
-                {% if is_following %}
-                    <button class="btn-unfollow">Отписаться</button>
-                {% else %}
-                    <button class="btn-follow">Подписаться</button>
-                {% endif %}
-            </form>
-            <a href="/messages/{{ profile_user.username }}">
-                <button class="btn-outline" style="border-radius: 20px;">Написать</button>
-            </a>
+        <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 2px;">
+                <h2 style="font-size: 18px; font-weight: 700;">{{ profile_user.name or profile_user.username }}</h2>
+                {% if profile_user.is_owner %}{{ owner_badge() }}{% endif %}
+                {% if profile_user.is_verified_badge %}{{ verify_badge() }}{% endif %}
+                {% if profile_user.is_starred %}{{ star_badge() }}{% endif %}
+            </div>
+            <div style="color: #888; font-size: 14px; margin-bottom: 8px;">@{{ profile_user.username }}</div>
+            {% if profile_user.bio %}<div style="font-size: 14px; margin-bottom: 10px;">{{ profile_user.bio }}</div>{% endif %}
+            <div style="display: flex; gap: 16px; font-size: 14px; margin-bottom: 14px;">
+                <span><b>{{ posts|length }}</b> <span style="color:#888">постов</span></span>
+                <span><b>{{ profile_user.followers|length }}</b> <span style="color:#888">подписчиков</span></span>
+                <span><b>{{ profile_user.following|length }}</b> <span style="color:#888">подписок</span></span>
+            </div>
+            {% if user and user.username != profile_user.username %}
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <form method="post" action="/follow/{{ profile_user.username }}">
+                    {% if is_following %}<button class="btn-unfollow">Отписаться</button>
+                    {% else %}<button class="btn-follow">Подписаться</button>{% endif %}
+                </form>
+                <a href="/messages/{{ profile_user.username }}"><button class="btn-outline" style="border-radius:20px">✉️ Написать</button></a>
+            </div>
             {% if user.is_owner %}
-            <form method="post" action="/admin/star/{{ profile_user.username }}" style="display:inline">
-                <button class="btn-outline" style="border-radius: 20px; font-size: 12px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button>
-            </form>
-            <form method="post" action="/admin/verify/{{ profile_user.username }}" style="display:inline">
-                <button class="btn-outline" style="border-radius: 20px; font-size: 12px;">{% if profile_user.is_verified_badge %}Убрать ✓{% else %}Дать ✓{% endif %}</button>
-            </form>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0;">
+                <span style="font-size: 12px; color: #888; width: 100%; margin-bottom: 4px;">Инструменты владельца:</span>
+                <form method="post" action="/admin/star/{{ profile_user.username }}">
+                    <button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button>
+                </form>
+                <form method="post" action="/admin/verify/{{ profile_user.username }}">
+                    <button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_verified_badge %}Убрать ✓{% else %}Дать ✓{% endif %}</button>
+                </form>
+            </div>
+            {% endif %}
             {% endif %}
         </div>
-        {% endif %}
     </div>
 </div>
 
-{% if posts %}
-    {% for post in posts %}
-    <div class="card">
-        <div class="post-content">{{ post.content }}</div>
-        <div class="post-footer">
-            {% set user_liked = false %}
-            {% if user %}
-                {% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}
-            {% endif %}
-            <form method="post" action="/like/{{ post.id }}">
-                <button class="like-btn {% if user_liked %}liked{% endif %}">
-                    <span>{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
-                    {{ post.likes|length }}
-                </button>
-            </form>
-            <span style="color: #ccc;">·</span>
-            <span>🐋 {{ post.whales|length }}</span>
-            <span style="color: #ccc;">·</span>
-            <span>💬 {{ post.comments|length }}</span>
-            <span style="color: #ccc;">·</span>
-            <span style="color: #888;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
-        </div>
+{% for post in posts %}
+<div class="card">
+    <div class="post-content">{{ post.content }}</div>
+    <div class="post-footer">
+        {% set user_liked = false %}
+        {% if user %}{% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}{% endif %}
+        <form method="post" action="/like/{{ post.id }}">
+            <button class="like-btn {% if user_liked %}liked{% endif %}">{% if user_liked %}❤️{% else %}🤍{% endif %} {{ post.likes|length }}</button>
+        </form>
+        <span>🐋 {{ post.whales|length }}</span>
+        <span style="color:#ccc">·</span>
+        <span>💬 {{ post.comments|length }}</span>
+        <span style="color:#ccc">·</span>
+        <span style="color:#888">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
     </div>
-    {% endfor %}
+</div>
 {% else %}
-    <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">Пока нет постов</div>
-{% endif %}
+<div style="text-align:center;color:#888;padding:40px 0">Пока нет постов</div>
+{% endfor %}
 {% endblock %}
