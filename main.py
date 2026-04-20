@@ -16,10 +16,33 @@ try:
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE"))
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_owner BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_starred BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_badge BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("""CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            from_user_id INTEGER REFERENCES users(id),
+            type VARCHAR,
+            post_id INTEGER REFERENCES posts(id),
+            is_read BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW()
+        )"""))
+        conn.execute(text("""CREATE TABLE IF NOT EXISTS verification_codes (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR,
+            code VARCHAR,
+            created_at TIMESTAMP DEFAULT NOW()
+        )"""))
+        conn.execute(text("""CREATE TABLE IF NOT EXISTS whales (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            post_id INTEGER REFERENCES posts(id)
+        )"""))
+        conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
+        conn.commit()
+except:
+    passusers(id),
                 from_user_id INTEGER REFERENCES users(id),
                 type VARCHAR,
                 post_id INTEGER REFERENCES posts(id),
