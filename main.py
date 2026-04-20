@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import engine, get_db, Base
 from sqlalchemy import text
+from datetime import datetime
 import models
 import auth
 import re
@@ -75,17 +76,34 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
     if error:
         return templates.TemplateResponse(request, "register.html", {"error": error})
     if db.query(models.User).filter(models.User.username == username).first():
-        return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят, попробуй другой"})
+        return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят"})
     if db.query(models.User).filter(models.User.email == email).first():
         return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
-    user = models.User(name=name, username=username, email=email, password=auth.hash_password(password))
+    from email_service import generate_code, send_verification_email
+    code = generate_code()
+    db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()
+    vc = models.VerificationCode(email=email, code=code)
+    db.add(vc)
+    db.commit()
+    send_verification_email(email, code)
+    return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password})
+
+@app.post("/verify")
+def verify(request: Request, email: str = Form(...), username: str = Form(...), name: str = Form(...), password: str = Form(...), code: str = Form(...), db: Session = Depends(get_db)):
+    from datetime import timedelta
+    vc = db.query(models.VerificationCode).filter(models.VerificationCode.email == email, models.VerificationCode.code == code).first()
+    if not vc:
+        return templates.TemplateResponse(request, "verify.html", {"email": email, "username": username, "name": name, "password": password, "error": "Неверный код"})
+    if (datetime.utcnow() - vc.created_at).seconds > 600:
+        return templates.TemplateResponse(request, "verify.html", {"email": email, "username": username, "name": name, "password": password, "error": "Код истёк, зарегистрируйся заново"})
+    user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
     db.add(user)
+    db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()
     db.commit()
     token = auth.create_token({"sub": username})
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     return response
-
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html", {})

@@ -12,6 +12,7 @@ class User(Base):
     password = Column(String)
     avatar = Column(String, default="")
     bio = Column(String, default="")
+    is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -77,3 +78,10 @@ class Notification(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="notifications")
     from_user = relationship("User", foreign_keys=[from_user_id])
     post = relationship("Post")
+
+class VerificationCode(Base):
+    __tablename__ = "verification_codes"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True)
+    code = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
