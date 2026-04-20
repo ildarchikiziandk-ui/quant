@@ -13,6 +13,9 @@ class User(Base):
     avatar = Column(String, default="")
     bio = Column(String, default="")
     is_verified = Column(Boolean, default=False)
+    is_owner = Column(Boolean, default=False)
+    is_starred = Column(Boolean, default=False)
+    is_verified_badge = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -29,6 +32,7 @@ class Post(Base):
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
+    whales = relationship("Whale", back_populates="post")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -44,6 +48,13 @@ class Like(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     post_id = Column(Integer, ForeignKey("posts.id"))
     post = relationship("Post", back_populates="likes")
+
+class Whale(Base):
+    __tablename__ = "whales"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("posts.id"))
+    post = relationship("Post", back_populates="whales")
 
 class Comment(Base):
     __tablename__ = "comments"

@@ -40,9 +40,14 @@
             </div>
         </a>
         <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px;">
-                <a href="/profile/{{ post.author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">{{ post.author.name or post.author.username }}</a>
-                <span class="post-username">@{{ post.author.username }}</span>
+            <div style="display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; flex-wrap: wrap;">
+                <a href="/profile/{{ post.author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">
+                    {{ post.author.name or post.author.username }}
+                    {% if post.author.is_owner %} 👑{% endif %}
+                    {% if post.author.is_verified_badge %} ✅{% endif %}
+                    {% if post.author.is_starred %} ⭐{% endif %}
+                </a>
+                <span style="color: #888; font-size: 13px;">@{{ post.author.username }}</span>
                 <span style="color: #ccc;">·</span>
                 <span style="color: #888; font-size: 13px;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
                 {% if user and user.id == post.author.id %}
@@ -54,17 +59,25 @@
             <div class="post-content">{{ post.content }}</div>
             <div class="post-footer">
                 {% set user_liked = false %}
+                {% set user_whaled = false %}
                 {% if user %}
                     {% for like in post.likes %}
-                        {% if like.user_id == user.id %}
-                            {% set user_liked = true %}
-                        {% endif %}
+                        {% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}
+                    {% endfor %}
+                    {% for whale in post.whales %}
+                        {% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}
                     {% endfor %}
                 {% endif %}
                 <form method="post" action="/like/{{ post.id }}" class="like-form">
                     <button type="submit" class="like-btn {% if user_liked %}liked{% endif %}">
                         <span class="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
                         <span class="like-count">{{ post.likes|length }}</span>
+                    </button>
+                </form>
+                <form method="post" action="/whale/{{ post.id }}" class="whale-form">
+                    <button type="submit" class="like-btn {% if user_whaled %}liked{% endif %}">
+                        <span class="whale-icon">🐋</span>
+                        <span class="whale-count">{{ post.whales|length }}</span>
                     </button>
                 </form>
                 <span style="color: #ccc;">·</span>
@@ -105,30 +118,27 @@
 
 {% if not posts %}
 <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
-    {% if tab == 'following' %}
-    Подпишись на кого-нибудь чтобы видеть их посты!
-    {% else %}
-    Пока нет постов. Будь первым!
-    {% endif %}
+    {% if tab == 'following' %}Подпишись на кого-нибудь чтобы видеть их посты!
+    {% else %}Пока нет постов. Будь первым!{% endif %}
 </div>
 {% endif %}
 
 <script>
-document.querySelectorAll('.like-form').forEach(form => {
+document.querySelectorAll('.like-form, .whale-form').forEach(form => {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const btn = this.querySelector('.like-btn');
-        const icon = btn.querySelector('.like-icon');
-        const count = btn.querySelector('.like-count');
+        const btn = this.querySelector('button');
+        const icon = btn.querySelector('.like-icon, .whale-icon');
+        const count = btn.querySelector('.like-count, .whale-count');
         const liked = btn.classList.contains('liked');
         await fetch(this.action, {method: 'POST'});
         if (liked) {
             btn.classList.remove('liked');
-            icon.textContent = '🤍';
+            if (icon.classList.contains('like-icon')) icon.textContent = '🤍';
             count.textContent = parseInt(count.textContent) - 1;
         } else {
             btn.classList.add('liked');
-            icon.textContent = '❤️';
+            if (icon.classList.contains('like-icon')) icon.textContent = '❤️';
             count.textContent = parseInt(count.textContent) + 1;
         }
     });

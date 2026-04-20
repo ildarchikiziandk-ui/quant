@@ -399,3 +399,38 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
     user.password = auth.hash_password(new_password)
     db.commit()
     return templates.TemplateResponse(request, "settings.html", {"user": user, "success": "Пароль успешно изменён"})
+@app.post("/admin/star/{username}")
+def give_star(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if target:
+        target.is_starred = not target.is_starred
+        db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.post("/admin/verify/{username}")
+def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if target:
+        target.is_verified_badge = not target.is_verified_badge
+        db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.post("/whale/{post_id}")
+def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    existing = db.query(models.Whale).filter(models.Whale.user_id == user.id, models.Whale.post_id == post_id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        whale = models.Whale(user_id=user.id, post_id=post_id)
+        db.add(whale)
+    db.commit()
+    return RedirectResponse("/", status_code=302)
