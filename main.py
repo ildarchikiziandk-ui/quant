@@ -405,9 +405,9 @@ def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
     target = db.query(models.User).filter(models.User.username == username).first()
     if target:
         target.is_verified_badge = not target.is_verified_badge
+conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN DEFAULT FALSE"))
         db.commit()
     return
-conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN DEFAULT FALSE"))
  RedirectResponse(f"/profile/{username}", status_code=302)
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request, db: Session = Depends(get_db)):
