@@ -406,7 +406,8 @@ def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
     if target:
         target.is_verified_badge = not target.is_verified_badge
         db.commit()
-    return
+    
+ return
  RedirectResponse(f"/profile/{username}", status_code=302)
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request, db: Session = Depends(get_db)):
