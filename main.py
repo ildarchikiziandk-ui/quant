@@ -406,4 +406,21 @@ def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
     if target:
         target.is_verified_badge = not target.is_verified_badge
         db.commit()
+    return
+conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN DEFAULT FALSE"))
+ RedirectResponse(f"/profile/{username}", status_code=302)
+@app.get("/terms", response_class=HTMLResponse)
+def terms(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db)})
+
+@app.post("/admin/mod/{username}")
+def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if target:
+        target.is_moderator = not target.is_moderator
+        db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)

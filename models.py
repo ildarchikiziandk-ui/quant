@@ -16,6 +16,8 @@ class User(Base):
     is_owner = Column(Boolean, default=False)
     is_starred = Column(Boolean, default=False)
     is_verified_badge = Column(Boolean, default=False)
+is_moderator = Column(Boolean, 
+default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")

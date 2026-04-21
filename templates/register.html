@@ -3,11 +3,7 @@
 <div class="card" style="max-width: 400px; margin: 40px auto;">
     <h2 style="margin-bottom: 6px;">Регистрация</h2>
     <p style="color: #888; font-size: 14px; margin-bottom: 20px;">Создай свой аккаунт в Quant</p>
-    {% if error %}
-        <div style="background: #fff0f0; border: 1px solid #ffcccc; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; color: #cc0000; font-size: 14px;">
-            ⚠️ {{ error }}
-        </div>
-    {% endif %}
+    {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
     <form method="post" action="/register">
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
         <input type="text" name="name" placeholder="Например: Ильдар" required>
@@ -19,10 +15,12 @@
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Пароль</label>
         <input type="password" name="password" placeholder="Минимум 8 символов" required>
         <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 16px;">Минимум 8 символов, хотя бы одна буква и одна цифра.</p>
+        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; background: #f9f9f9; padding: 12px; border-radius: 8px;">
+            <input type="checkbox" name="agree" id="agree" required style="width: auto; margin: 0; margin-top: 2px; flex-shrink: 0;">
+            <label for="agree" style="font-size: 13px; color: #555; cursor: pointer;">Я прочитал(а) и соглашаюсь с <a href="/terms" target="_blank" style="color: #0f0f0f; font-weight: 600; text-decoration: underline;">Пользовательским соглашением</a> Quant</label>
+        </div>
         <button class="btn" style="width: 100%;">Зарегистрироваться</button>
     </form>
-    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">
-        Уже есть аккаунт? <a href="/login">Войти</a>
-    </p>
+    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">Уже есть аккаунт? <a href="/login" style="font-weight: 600;">Войти</a></p>
 </div>
 {% endblock %}
