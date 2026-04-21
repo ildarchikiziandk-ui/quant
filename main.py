@@ -71,6 +71,14 @@ def validate_password(password: str):
         return "Пароль слишком простой, придумай другой"
     return None
 
+def get_unread(user, db):
+    if not user:
+        return 0
+    return db.query(models.Notification).filter(
+        models.Notification.user_id == user.id,
+        models.Notification.is_read == False
+    ).count()
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -79,13 +87,7 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
     else:
         posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-    unread = 0
-    if user:
-        unread = db.query(models.Notification).filter(
-            models.Notification.user_id == user.id,
-            models.Notification.is_read == False
-        ).count()
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": unread, "tab": tab})
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "tab": tab})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -111,16 +113,9 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
         vc = models.VerificationCode(email=email, code=code)
         db.add(vc)
         db.commit()
-        sent = send_verification_email(email, code)
-        if not sent:
-            user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
-            db.add(user)
-            db.commit()
-            token = auth.create_token({"sub": username})
-            response = RedirectResponse("/", status_code=302)
-            response.set_cookie("token", token)
-            return response
-    except Exception as e:
+        send_verification_email(email, code)
+        return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password})
+    except:
         user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
         db.add(user)
         db.commit()
@@ -128,17 +123,6 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
         response = RedirectResponse("/", status_code=302)
         response.set_cookie("token", token)
         return response
-    return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password})templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят"})
-    if db.query(models.User).filter(models.User.email == email).first():
-        return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
-    from email_service import generate_code, send_verification_email
-    code = generate_code()
-    db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()
-    vc = models.VerificationCode(email=email, code=code)
-    db.add(vc)
-    db.commit()
-    send_verification_email(email, code)
-    return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password})
 
 @app.post("/verify")
 def verify(request: Request, email: str = Form(...), username: str = Form(...), name: str = Form(...), password: str = Form(...), code: str = Form(...), db: Session = Depends(get_db)):
@@ -210,12 +194,10 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     if existing:
         db.delete(existing)
     else:
-        like = models.Like(user_id=user.id, post_id=post_id)
-        db.add(like)
+        db.add(models.Like(user_id=user.id, post_id=post_id))
         post = db.query(models.Post).filter(models.Post.id == post_id).first()
         if post and post.user_id != user.id:
-            notif = models.Notification(user_id=post.user_id, from_user_id=user.id, type="like", post_id=post_id)
-            db.add(notif)
+            db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="like", post_id=post_id))
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -228,8 +210,7 @@ def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     if existing:
         db.delete(existing)
     else:
-        whale = models.Whale(user_id=user.id, post_id=post_id)
-        db.add(whale)
+        db.add(models.Whale(user_id=user.id, post_id=post_id))
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -238,12 +219,10 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    comment = models.Comment(content=content, user_id=user.id, post_id=post_id)
-    db.add(comment)
+    db.add(models.Comment(content=content, user_id=user.id, post_id=post_id))
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post and post.user_id != user.id:
-        notif = models.Notification(user_id=post.user_id, from_user_id=user.id, type="comment", post_id=post_id)
-        db.add(notif)
+        db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="comment", post_id=post_id))
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -260,18 +239,10 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
             models.Follow.follower_id == current_user.id,
             models.Follow.following_id == profile_user.id
         ).first() is not None
-    unread = 0
-    if current_user:
-        unread = db.query(models.Notification).filter(
-            models.Notification.user_id == current_user.id,
-            models.Notification.is_read == False
-        ).count()
     return templates.TemplateResponse(request, "profile.html", {
-        "user": current_user,
-        "profile_user": profile_user,
-        "posts": posts,
-        "is_following": is_following,
-        "unread": unread
+        "user": current_user, "profile_user": profile_user,
+        "posts": posts, "is_following": is_following,
+        "unread": get_unread(current_user, db)
     })
 
 @app.post("/follow/{username}")
@@ -289,10 +260,8 @@ def follow(username: str, request: Request, db: Session = Depends(get_db)):
     if existing:
         db.delete(existing)
     else:
-        f = models.Follow(follower_id=current_user.id, following_id=target.id)
-        db.add(f)
-        notif = models.Notification(user_id=target.id, from_user_id=current_user.id, type="follow")
-        db.add(notif)
+        db.add(models.Follow(follower_id=current_user.id, following_id=target.id))
+        db.add(models.Notification(user_id=target.id, from_user_id=current_user.id, type="follow"))
     db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
 
@@ -305,11 +274,9 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
         models.Message,
         (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)
     ).filter(models.User.id != user.id).distinct().all()
-    unread = db.query(models.Notification).filter(
-        models.Notification.user_id == user.id,
-        models.Notification.is_read == False
-    ).count()
-    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": unread})
+    return templates.TemplateResponse(request, "messages.html", {
+        "user": user, "conversations": conversations, "unread": get_unread(user, db)
+    })
 
 @app.get("/messages/{username}", response_class=HTMLResponse)
 def conversation(username: str, request: Request, db: Session = Depends(get_db)):
@@ -327,11 +294,9 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
         if msg.receiver_id == user.id and not msg.is_read:
             msg.is_read = True
     db.commit()
-    unread = db.query(models.Notification).filter(
-        models.Notification.user_id == user.id,
-        models.Notification.is_read == False
-    ).count()
-    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": unread})
+    return templates.TemplateResponse(request, "conversation.html", {
+        "user": user, "other": other, "messages": msgs, "unread": get_unread(user, db)
+    })
 
 @app.post("/messages/{username}")
 def send_message(username: str, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
@@ -341,8 +306,7 @@ def send_message(username: str, request: Request, content: str = Form(...), db: 
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return RedirectResponse("/messages", status_code=302)
-    msg = models.Message(sender_id=user.id, receiver_id=other.id, content=content)
-    db.add(msg)
+    db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content))
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
 
@@ -352,16 +316,11 @@ def search(request: Request, q: str = "", db: Session = Depends(get_db)):
     results = []
     if q:
         results = db.query(models.User).filter(
-            models.User.username.ilike(f"%{q}%") |
-            models.User.name.ilike(f"%{q}%")
+            models.User.username.ilike(f"%{q}%") | models.User.name.ilike(f"%{q}%")
         ).limit(20).all()
-    unread = 0
-    if user:
-        unread = db.query(models.Notification).filter(
-            models.Notification.user_id == user.id,
-            models.Notification.is_read == False
-        ).count()
-    return templates.TemplateResponse(request, "search.html", {"user": user, "results": results, "q": q, "unread": unread})
+    return templates.TemplateResponse(request, "search.html", {
+        "user": user, "results": results, "q": q, "unread": get_unread(user, db)
+    })
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, db: Session = Depends(get_db)):
@@ -371,7 +330,9 @@ def notifications_page(request: Request, db: Session = Depends(get_db)):
     notifs = db.query(models.Notification).filter(
         models.Notification.user_id == user.id
     ).order_by(models.Notification.created_at.desc()).limit(50).all()
-    return templates.TemplateResponse(request, "notifications.html", {"user": user, "notifications": notifs, "unread": 0})
+    return templates.TemplateResponse(request, "notifications.html", {
+        "user": user, "notifications": notifs, "unread": 0
+    })
 
 @app.post("/notifications/read")
 def notifications_read(request: Request, db: Session = Depends(get_db)):
@@ -387,11 +348,9 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    unread = db.query(models.Notification).filter(
-        models.Notification.user_id == user.id,
-        models.Notification.is_read == False
-    ).count()
-    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": unread})
+    return templates.TemplateResponse(request, "settings.html", {
+        "user": user, "unread": get_unread(user, db)
+    })
 
 @app.post("/settings")
 def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), db: Session = Depends(get_db)):
