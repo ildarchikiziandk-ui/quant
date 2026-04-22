@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Request, Form
+from fastapi import FastAPI, Depends, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -9,8 +9,23 @@ from datetime import datetime
 import models
 import auth
 import re
+import os
+import uuid
+from PIL import Image
+import io
 
 Base.metadata.create_all(bind=engine)
+
+# Папка для загруженных файлов
+UPLOAD_DIR = "/root/quant/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Разрешённые форматы
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime"}
+MAX_IMAGE_SIZE = 10 * 1024 * 1024    # 10 МБ
+MAX_VIDEO_SIZE = 20 * 1024 * 1024    # 20 МБ
+MAX_IMAGE_DIMENSION = 1920            # Сжимаем фото до 1920 px по большей стороне
 
 try:
     with engine.connect() as conn:
@@ -20,13 +35,16 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_starred BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_badge BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN DEFAULT FALSE"))
+        # НОВОЕ: поля для медиа в постах
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS verification_codes (id SERIAL PRIMARY KEY, email VARCHAR, code VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS whales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id))"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         conn.commit()
-except:
-    pass
+except Exception as e:
+    print(f"DB migration warning: {e}")
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -66,6 +84,109 @@ def can_moderate(user):
         return False
     return bool(user.is_owner) or bool(user.is_moderator)
 
+
+def save_media_file(upload: UploadFile):
+    """
+    Сохраняет загруженный файл.
+    Возвращает (url, media_type) или (None, error_message) если ошибка.
+    url — путь для отображения (типа /uploads/abc.jpg)
+    media_type — 'image' или 'video'
+    """
+    if not upload or not upload.filename:
+        return None, None  # файл не был прикреплён — это ОК, медиа опциональное
+
+    content_type = (upload.content_type or "").lower()
+
+    # Читаем файл целиком в память для проверки
+    contents = upload.file.read()
+    file_size = len(contents)
+
+    # Определяем тип
+    if content_type in ALLOWED_IMAGE_TYPES:
+        if file_size > MAX_IMAGE_SIZE:
+            return None, f"Фото слишком большое (макс. {MAX_IMAGE_SIZE // 1024 // 1024} МБ)"
+        media_type = "image"
+    elif content_type in ALLOWED_VIDEO_TYPES:
+        if file_size > MAX_VIDEO_SIZE:
+            return None, f"Видео слишком большое (макс. {MAX_VIDEO_SIZE // 1024 // 1024} МБ)"
+        media_type = "video"
+    else:
+        return None, "Неподдерживаемый формат. Разрешены: JPG, PNG, WEBP, MP4"
+
+    # Уникальное имя файла
+    ext = ".jpg"
+    if "png" in content_type:
+        ext = ".png"
+    elif "webp" in content_type:
+        ext = ".webp"
+    elif "mp4" in content_type:
+        ext = ".mp4"
+    elif "quicktime" in content_type:
+        ext = ".mov"
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    if media_type == "image":
+        # Сжимаем фото, чтобы не было здоровых файлов
+        try:
+            img = Image.open(io.BytesIO(contents))
+            # Поворачиваем согласно EXIF (у телефонных фоток)
+            img = _auto_rotate(img)
+            # Сжимаем если слишком большое
+            if img.width > MAX_IMAGE_DIMENSION or img.height > MAX_IMAGE_DIMENSION:
+                img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.LANCZOS)
+            # Конвертируем в RGB если PNG с прозрачностью не работает для JPG
+            if ext == ".jpg" and img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            # Сохраняем с сжатием
+            save_params = {"optimize": True}
+            if ext in (".jpg", ".jpeg"):
+                save_params["quality"] = 85
+            elif ext == ".webp":
+                save_params["quality"] = 85
+            img.save(filepath, **save_params)
+        except Exception as e:
+            print(f"Image processing error: {e}")
+            return None, "Не удалось обработать фото"
+    else:
+        # Видео сохраняем как есть
+        with open(filepath, "wb") as f:
+            f.write(contents)
+
+    return f"/uploads/{filename}", media_type
+
+
+def _auto_rotate(img):
+    """Поворачивает картинку согласно EXIF (телефонные фотки часто 'лежат на боку')."""
+    try:
+        exif = img._getexif()
+        if exif:
+            orientation = exif.get(274)  # 274 — тег Orientation
+            if orientation == 3:
+                img = img.rotate(180, expand=True)
+            elif orientation == 6:
+                img = img.rotate(270, expand=True)
+            elif orientation == 8:
+                img = img.rotate(90, expand=True)
+    except Exception:
+        pass
+    return img
+
+
+def delete_media_file(url):
+    """Удаляет файл медиа, если он существует."""
+    if not url or not url.startswith("/uploads/"):
+        return
+    filename = url.replace("/uploads/", "")
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception as e:
+        print(f"Could not delete file {filepath}: {e}")
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -92,8 +213,7 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
         return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят"})
     if db.query(models.User).filter(models.User.email == email).first():
         return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
-    # Проверка email временно отключена — письма не уходят через Timeweb.
-    # Чтобы вернуть — откатить этот коммит на GitHub.
+    # Проверка email временно отключена — письма не уходят через Timeweb
     user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
     db.add(user)
     db.commit()
@@ -139,11 +259,32 @@ def logout():
     return response
 
 @app.post("/post")
-def create_post(request: Request, content: str = Form(...), db: Session = Depends(get_db)):
+async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    post = models.Post(content=content, user_id=user.id)
+
+    if not content or not content.strip():
+        return RedirectResponse("/", status_code=302)
+
+    media_url = ""
+    media_type = ""
+
+    # Обработка прикреплённого файла
+    if media and media.filename:
+        url, type_or_error = save_media_file(media)
+        if url is None and type_or_error:
+            # Ошибка при загрузке — получаем свежий список постов
+            posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
+            return templates.TemplateResponse(request, "home.html", {
+                "user": user, "posts": posts, "unread": get_unread(user, db),
+                "tab": "foryou", "upload_error": type_or_error
+            })
+        if url:
+            media_url = url
+            media_type = type_or_error
+
+    post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type)
     db.add(post)
     db.commit()
     return RedirectResponse("/", status_code=302)
@@ -159,6 +300,9 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     else:
         post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
     if post:
+        # Удаляем файл медиа, если был
+        if post.image:
+            delete_media_file(post.image)
         db.query(models.Like).filter(models.Like.post_id == post_id).delete()
         db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
@@ -172,7 +316,6 @@ def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    # Модератор и владелец могут удалять любые комментарии; обычный пользователь — только свои
     if can_moderate(user):
         comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
     else:
