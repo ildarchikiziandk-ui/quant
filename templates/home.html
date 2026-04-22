@@ -7,14 +7,74 @@
         <div style="width: 40px; height: 40px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: 600; flex-shrink: 0;">
             {{ user.username[0].upper() }}
         </div>
-        <form method="post" action="/post" style="flex: 1;">
+        <form method="post" action="/post" enctype="multipart/form-data" style="flex: 1;" id="post-form">
             <textarea name="content" placeholder="Что происходит?" required style="border: none; padding: 8px 0; font-size: 16px; resize: none; min-height: 60px; border-bottom: 1.5px solid #e8e8e8; border-radius: 0; margin-bottom: 12px;"></textarea>
-            <div style="display: flex; justify-content: flex-end;">
+
+            <!-- Превью прикреплённого медиа -->
+            <div id="media-preview" style="display: none; position: relative; margin-bottom: 12px; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #e8e8e8;">
+                <img id="preview-img" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;">
+                <video id="preview-video" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;" controls></video>
+                <button type="button" onclick="clearMedia()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+            </div>
+
+            <input type="file" id="media-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" style="display: none;" onchange="onMediaSelected(this)">
+
+            {% if upload_error %}
+            <div class="alert-error" style="margin-bottom: 12px;">⚠️ {{ upload_error }}</div>
+            {% endif %}
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" onclick="document.getElementById('media-input').click()" style="background: none; border: none; color: #1d9bf0; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 8px; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                    📎 Прикрепить фото/видео
+                </button>
                 <button class="btn">Опубликовать</button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+function onMediaSelected(input) {
+    const file = input.files[0];
+    if (!file) { clearMedia(); return; }
+
+    const maxSize = file.type.startsWith('video/') ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert(file.type.startsWith('video/')
+            ? 'Видео слишком большое. Максимум 20 МБ.'
+            : 'Фото слишком большое. Максимум 10 МБ.');
+        input.value = '';
+        clearMedia();
+        return;
+    }
+
+    const preview = document.getElementById('media-preview');
+    const img = document.getElementById('preview-img');
+    const video = document.getElementById('preview-video');
+
+    preview.style.display = 'block';
+    const url = URL.createObjectURL(file);
+
+    if (file.type.startsWith('image/')) {
+        img.src = url;
+        img.style.display = 'block';
+        video.style.display = 'none';
+        video.removeAttribute('src');
+    } else if (file.type.startsWith('video/')) {
+        video.src = url;
+        video.style.display = 'block';
+        img.style.display = 'none';
+        img.removeAttribute('src');
+    }
+}
+
+function clearMedia() {
+    document.getElementById('media-input').value = '';
+    document.getElementById('media-preview').style.display = 'none';
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('preview-video').style.display = 'none';
+}
+</script>
 {% else %}
 <div class="card" style="text-align: center; padding: 40px 20px;">
     <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
@@ -49,13 +109,25 @@
                 <span style="color: #888; font-size: 13px;">@{{ post.author.username }}</span>
                 <span style="color: #ccc;">·</span>
                 <span style="color: #888; font-size: 13px;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
-                {% if user and user.id == post.author.id %}
+                {% if user and (user.id == post.author.id or user.is_owner or user.is_moderator) %}
                 <form method="post" action="/delete/{{ post.id }}" style="margin-left: auto;" onsubmit="return confirm('Удалить пост?')">
                     <button style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
                 </form>
                 {% endif %}
             </div>
             <div class="post-content">{{ post.content }}</div>
+
+            <!-- Показ медиа -->
+            {% if post.image %}
+            <div style="margin-bottom: 12px; border-radius: 12px; overflow: hidden; max-width: 100%; background: #000;">
+                {% if post.media_type == 'video' %}
+                <video src="{{ post.image }}" controls playsinline preload="metadata" style="display: block; max-width: 100%; max-height: 500px; width: auto; margin: 0 auto;"></video>
+                {% else %}
+                <img src="{{ post.image }}" alt="" loading="lazy" style="display: block; max-width: 100%; max-height: 500px; width: auto; margin: 0 auto; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="post-footer">
                 {% set user_liked = false %}
                 {% set user_whaled = false %}
