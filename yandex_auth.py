@@ -1,0 +1,6 @@
+YANDEX_CLIENT_ID = "77410d7811224db48de55c6c747560cb"
+YANDEX_CLIENT_SECRET = "54a378bf2d6c4a368852baa10a1d44c8"
+YANDEX_REDIRECT_URI = "https://quantru.duckdns.org/auth/yandex/callback"
+YANDEX_AUTH_URL = "https://oauth.yandex.ru/authorize"
+YANDEX_TOKEN_URL = "https://oauth.yandex.ru/token"
+YANDEX_USER_URL = "https://login.yandex.ru/info"

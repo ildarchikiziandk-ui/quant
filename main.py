@@ -509,7 +509,49 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
         target.is_moderator = not target.is_moderator
         db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
+@app.get("/auth/yandex")
+def yandex_login():
+    from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
+    url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
+    return RedirectResponse(url)
 
+@app.get("/auth/yandex/callback")
+async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
+    import httpx
+    from yandex_auth import YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, YANDEX_REDIRECT_URI, YANDEX_TOKEN_URL, YANDEX_USER_URL
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(YANDEX_TOKEN_URL, data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": YANDEX_CLIENT_ID,
+            "client_secret": YANDEX_CLIENT_SECRET,
+            "redirect_uri": YANDEX_REDIRECT_URI,
+        })
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse("/login?error=yandex", status_code=302)
+        user_resp = await client.get(YANDEX_USER_URL, headers={"Authorization": f"OAuth {access_token}"})
+        yandex_user = user_resp.json()
+    yandex_id = str(yandex_user.get("id", ""))
+    email = yandex_user.get("default_email", f"yandex_{yandex_id}@yandex.ru")
+    name = yandex_user.get("real_name") or yandex_user.get("display_name") or "Пользователь"
+    username_base = yandex_user.get("login", f"yandex_{yandex_id}")
+    username_base = re.sub(r'[^\w\.\-]', '_', username_base)[:28]
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        username = username_base
+        counter = 1
+        while db.query(models.User).filter(models.User.username == username).first():
+            username = f"{username_base}_{counter}"
+            counter += 1
+        user = models.User(name=name, username=username, email=email, password=auth.hash_password(yandex_id + "yandex"), is_verified=True)
+        db.add(user)
+        db.commit()
+    token = auth.create_token({"sub": user.username})
+    response = RedirectResponse("/", status_code=302)
+    response.set_cookie("token", token)
+    return response
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
