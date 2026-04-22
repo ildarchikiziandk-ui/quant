@@ -16,11 +16,9 @@ import io
 
 Base.metadata.create_all(bind=engine)
 
-# Папка для загруженных файлов
 UPLOAD_DIR = "/root/quant/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Разрешённые форматы
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime"}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
@@ -335,7 +333,14 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     is_following = False
     if current_user:
         is_following = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id, models.Follow.following_id == profile_user.id).first() is not None
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "unread": get_unread(current_user, db)})
+    following_ids = set(f.following_id for f in profile_user.following)
+    follower_ids = set(f.follower_id for f in profile_user.followers)
+    friend_ids = following_ids & follower_ids
+    friends = db.query(models.User).filter(models.User.id.in_(friend_ids)).all() if friend_ids else []
+    is_friend = False
+    if current_user and current_user.id != profile_user.id and is_following:
+        is_friend = db.query(models.Follow).filter(models.Follow.follower_id == profile_user.id, models.Follow.following_id == current_user.id).first() is not None
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db)})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -509,6 +514,12 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
         target.is_moderator = not target.is_moderator
         db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db)})
+
 @app.get("/auth/yandex")
 def yandex_login():
     from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
@@ -552,7 +563,3 @@ async def yandex_callback(code: str, request: Request, db: Session = Depends(get
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     return response
-@app.get("/terms", response_class=HTMLResponse)
-def terms(request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db)})
