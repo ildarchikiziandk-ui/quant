@@ -60,6 +60,12 @@ def get_unread(user, db):
         return 0
     return db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.is_read == False).count()
 
+def can_moderate(user):
+    """Возвращает True если пользователь — владелец или модератор."""
+    if not user:
+        return False
+    return bool(user.is_owner) or bool(user.is_moderator)
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -147,13 +153,32 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
+    # Модератор и владелец могут удалять любые посты; обычный пользователь — только свои
+    if can_moderate(user):
+        post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    else:
+        post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
     if post:
         db.query(models.Like).filter(models.Like.post_id == post_id).delete()
         db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
         db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
         db.delete(post)
+        db.commit()
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/delete_comment/{comment_id}")
+def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    # Модератор и владелец могут удалять любые комментарии; обычный пользователь — только свои
+    if can_moderate(user):
+        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
+    else:
+        comment = db.query(models.Comment).filter(models.Comment.id == comment_id, models.Comment.user_id == user.id).first()
+    if comment:
+        db.delete(comment)
         db.commit()
     return RedirectResponse("/", status_code=302)
 
