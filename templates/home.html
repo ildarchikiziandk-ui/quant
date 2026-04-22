@@ -4,25 +4,20 @@
 {% if user %}
 <div class="card">
     <div style="display: flex; gap: 12px;">
-        <div style="width: 40px; height: 40px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: 600; flex-shrink: 0;">
-            {{ user.username[0].upper() }}
+        <div class="avatar-circle" style="width: 40px; height: 40px;">
+            {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 15px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
         <form method="post" action="/post" enctype="multipart/form-data" style="flex: 1;" id="post-form">
             <textarea name="content" placeholder="Что происходит?" required style="border: none; padding: 8px 0; font-size: 16px; resize: none; min-height: 60px; border-bottom: 1.5px solid #e8e8e8; border-radius: 0; margin-bottom: 12px;"></textarea>
-
-            <!-- Превью прикреплённого медиа -->
             <div id="media-preview" style="display: none; position: relative; margin-bottom: 12px; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #e8e8e8;">
                 <img id="preview-img" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;">
                 <video id="preview-video" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;" controls></video>
                 <button type="button" onclick="clearMedia()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
             </div>
-
             <input type="file" id="media-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" style="display: none;" onchange="onMediaSelected(this)">
-
             {% if upload_error %}
             <div class="alert-error" style="margin-bottom: 12px;">⚠️ {{ upload_error }}</div>
             {% endif %}
-
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <button type="button" onclick="document.getElementById('media-input').click()" style="background: none; border: none; color: #1d9bf0; cursor: pointer; font-size: 14px; padding: 8px; border-radius: 8px; display: flex; align-items: center; gap: 6px; font-weight: 500;">
                     📎 Прикрепить фото/видео
@@ -32,42 +27,26 @@
         </form>
     </div>
 </div>
-
 <script>
 function onMediaSelected(input) {
     const file = input.files[0];
     if (!file) { clearMedia(); return; }
-
     const maxSize = file.type.startsWith('video/') ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
-        alert(file.type.startsWith('video/')
-            ? 'Видео слишком большое. Максимум 20 МБ.'
-            : 'Фото слишком большое. Максимум 10 МБ.');
-        input.value = '';
-        clearMedia();
-        return;
+        alert(file.type.startsWith('video/') ? 'Видео слишком большое. Максимум 20 МБ.' : 'Фото слишком большое. Максимум 10 МБ.');
+        input.value = ''; clearMedia(); return;
     }
-
     const preview = document.getElementById('media-preview');
     const img = document.getElementById('preview-img');
     const video = document.getElementById('preview-video');
-
     preview.style.display = 'block';
     const url = URL.createObjectURL(file);
-
     if (file.type.startsWith('image/')) {
-        img.src = url;
-        img.style.display = 'block';
-        video.style.display = 'none';
-        video.removeAttribute('src');
+        img.src = url; img.style.display = 'block'; video.style.display = 'none'; video.removeAttribute('src');
     } else if (file.type.startsWith('video/')) {
-        video.src = url;
-        video.style.display = 'block';
-        img.style.display = 'none';
-        img.removeAttribute('src');
+        video.src = url; video.style.display = 'block'; img.style.display = 'none'; img.removeAttribute('src');
     }
 }
-
 function clearMedia() {
     document.getElementById('media-input').value = '';
     document.getElementById('media-preview').style.display = 'none';
@@ -96,8 +75,8 @@ function clearMedia() {
 <div class="card">
     <div style="display: flex; gap: 12px;">
         <a href="/profile/{{ post.author.username }}">
-            <div style="width: 40px; height: 40px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: 600; flex-shrink: 0;">
-                {{ post.author.username[0].upper() }}
+            <div class="avatar-circle" style="width: 40px; height: 40px;">
+                {% if post.author.avatar %}<img src="{{ post.author.avatar }}">{% else %}<span style="font-size: 15px;">{{ post.author.username[0].upper() }}</span>{% endif %}
             </div>
         </a>
         <div style="flex: 1; min-width: 0;">
@@ -116,8 +95,6 @@ function clearMedia() {
                 {% endif %}
             </div>
             <div class="post-content">{{ post.content }}</div>
-
-            <!-- Показ медиа -->
             {% if post.image %}
             <div style="margin-bottom: 12px; border-radius: 12px; overflow: hidden; max-width: 100%; background: #000;">
                 {% if post.media_type == 'video' %}
@@ -127,7 +104,6 @@ function clearMedia() {
                 {% endif %}
             </div>
             {% endif %}
-
             <div class="post-footer">
                 {% set user_liked = false %}
                 {% set user_whaled = false %}
@@ -150,14 +126,13 @@ function clearMedia() {
                 <span style="color: #ccc;">·</span>
                 <span>💬 {{ post.comments|length }}</span>
             </div>
-
             {% if post.comments %}
             <div style="margin-top: 12px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
                 {% for comment in post.comments %}
                 <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start;">
                     <a href="/profile/{{ comment.author.username }}">
-                        <div style="width: 28px; height: 28px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; flex-shrink: 0;">
-                            {{ comment.author.username[0].upper() }}
+                        <div class="avatar-circle" style="width: 28px; height: 28px;">
+                            {% if comment.author.avatar %}<img src="{{ comment.author.avatar }}">{% else %}<span style="font-size: 11px;">{{ comment.author.username[0].upper() }}</span>{% endif %}
                         </div>
                     </a>
                     <div style="background: #f5f5f5; border-radius: 10px; padding: 7px 12px; flex: 1;">
@@ -168,11 +143,10 @@ function clearMedia() {
                 {% endfor %}
             </div>
             {% endif %}
-
             {% if user %}
             <form method="post" action="/comment/{{ post.id }}" style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
-                <div style="width: 28px; height: 28px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; flex-shrink: 0;">
-                    {{ user.username[0].upper() }}
+                <div class="avatar-circle" style="width: 28px; height: 28px;">
+                    {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 11px;">{{ user.username[0].upper() }}</span>{% endif %}
                 </div>
                 <input type="text" name="content" placeholder="Комментировать..." style="margin-bottom: 0; flex: 1; padding: 7px 12px; font-size: 13px; border-radius: 20px; background: #f5f5f5; border: 1px solid #e8e8e8;">
                 <button class="btn" style="padding: 7px 14px; font-size: 13px; border-radius: 20px;">→</button>
