@@ -27,7 +27,8 @@ class Post(Base):
     __tablename__ = "posts"
     id = Column(Integer, primary_key=True, index=True)
     content = Column(Text)
-    image = Column(String, default="")
+    image = Column(String, default="")           # используем это поле для ссылки на медиа-файл
+    media_type = Column(String, default="")      # НОВОЕ: "image" или "video"
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="posts")
