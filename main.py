@@ -525,7 +525,25 @@ def yandex_login():
     from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
     url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
     return RedirectResponse(url)
+@app.get("/support", response_class=HTMLResponse)
+def support_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db)})
 
+@app.post("/support")
+def support_submit(request: Request, subject: str = Form(...), message: str = Form(...), email: str = Form(""), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    from email_service import send_support_confirmation
+    user_email = user.email if user else email
+    if not user_email:
+        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "error": "Укажи email для ответа"})
+    username = user.username if user else user_email
+    owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    if owner:
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support"))
+        db.commit()
+    send_support_confirmation(user_email, subject)
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "success": True})
 @app.get("/auth/yandex/callback")
 async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
     import httpx

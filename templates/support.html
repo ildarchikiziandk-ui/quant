@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 520px; margin: 0 auto;">
+    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Поддержка</h2>
+    <p style="color: #888; font-size: 14px; margin-bottom: 24px;">Опиши проблему — мы ответим на твою почту</p>
+
+    {% if success %}
+    <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 14px; margin-bottom: 16px; color: #276749; font-size: 14px;">
+        ✔ Обращение отправлено! Ответ придёт на твою почту.
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert-error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if not success %}
+    <form method="post" action="/support">
+        {% if not user %}
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Твой email</label>
+        <input type="email" name="email" placeholder="example@mail.ru" required>
+        {% endif %}
+
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Тема</label>
+        <input type="text" name="subject" placeholder="Кратко опиши проблему" required>
+
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Сообщение</label>
+        <textarea name="message" placeholder="Подробно опиши что случилось..." style="min-height: 120px;" required></textarea>
+
+        <button class="btn" style="width: 100%;">Отправить</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
