@@ -46,13 +46,13 @@
         .right-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
         .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e8e8e8; padding: 8px 0; z-index: 100; }
         .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
-        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: #555; font-size: 10px; padding: 4px 12px; border-radius: 8px; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: #555; font-size: 10px; padding: 4px 8px; border-radius: 8px; }
         .mobile-nav-item .mn-icon { font-size: 20px; }
         .avatar-circle { border-radius: 50%; overflow: hidden; background: #0f0f0f; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .avatar-circle span { color: white; font-weight: 600; }
         @media (max-width: 900px) { .right { display: none; } .sidebar { width: 160px; } }
-        @media (max-width: 640px) { .sidebar { display: none; } .mobile-nav { display: block; } .layout { padding: 0 12px; } .main { padding: 16px 0 80px 0; } }
+        @media (max-width: 640px) { .sidebar { display: none; } .mobile-nav { display: block; } .layout { padding: 0 12px; } .main { padding: 16px 0 90px 0; } }
     </style>
 </head>
 <body>
@@ -115,6 +115,8 @@
         <a href="/notifications" class="mobile-nav-item"><span class="mn-icon">🔔</span>{% if unread > 0 %}<b style="color:#e53935">{{ unread }}</b>{% endif %}</a>
         <a href="/messages" class="mobile-nav-item"><span class="mn-icon">✉️</span>Чаты</a>
         <a href="/profile/{{ user.username }}" class="mobile-nav-item"><span class="mn-icon">👤</span>Профиль</a>
+        <a href="/settings" class="mobile-nav-item"><span class="mn-icon">⚙️</span>Настройки</a>
+        <a href="/support" class="mobile-nav-item"><span class="mn-icon">🆘</span>Помощь</a>
     </div>
 </div>
 {% endif %}
