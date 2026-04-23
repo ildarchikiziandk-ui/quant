@@ -17,6 +17,11 @@ class User(Base):
     is_starred = Column(Boolean, default=False)
     is_verified_badge = Column(Boolean, default=False)
     is_moderator = Column(Boolean, default=False)
+    is_blocked = Column(Boolean, default=False)
+    blocked_until = Column(DateTime, nullable=True)
+    is_plus = Column(Boolean, default=False)
+    plus_until = Column(DateTime, nullable=True)
+    plus_color = Column(String, default="#a855f7")
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -27,14 +32,15 @@ class Post(Base):
     __tablename__ = "posts"
     id = Column(Integer, primary_key=True, index=True)
     content = Column(Text)
-    image = Column(String, default="")           # используем это поле для ссылки на медиа-файл
-    media_type = Column(String, default="")      # НОВОЕ: "image" или "video"
+    image = Column(String, default="")
+    media_type = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
     whales = relationship("Whale", back_populates="post")
+    reactions = relationship("Reaction", back_populates="post")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -58,6 +64,14 @@ class Whale(Base):
     post_id = Column(Integer, ForeignKey("posts.id"))
     post = relationship("Post", back_populates="whales")
 
+class Reaction(Base):
+    __tablename__ = "reactions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("posts.id"))
+    emoji = Column(String, default="")
+    post = relationship("Post", back_populates="reactions")
+
 class Comment(Base):
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True, index=True)
@@ -73,7 +87,8 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"))
-    content = Column(Text)
+    content = Column(Text, default="")
+    image = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
@@ -86,6 +101,7 @@ class Notification(Base):
     from_user_id = Column(Integer, ForeignKey("users.id"))
     type = Column(String)
     post_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
+    text = Column(String, default="")
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", foreign_keys=[user_id], back_populates="notifications")
@@ -97,4 +113,12 @@ class VerificationCode(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, index=True)
     code = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Promocode(Base):
+    __tablename__ = "promocodes"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True)
+    days = Column(Integer, default=30)
+    is_used = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

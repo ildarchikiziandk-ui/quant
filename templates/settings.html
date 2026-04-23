@@ -4,19 +4,12 @@
     <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.3px;">Настройки профиля</h2>
     <p style="color: #888; font-size: 14px; margin-bottom: 24px;">Измени информацию о себе</p>
 
-    {% if error %}
-    <div class="alert-error">⚠️ {{ error }}</div>
-    {% endif %}
-
+    {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
     {% if success %}
-    <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; color: #276749; font-size: 14px;">
-        ✔ {{ success }}
-    </div>
+    <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; color: #276749; font-size: 14px;">✔ {{ success }}</div>
     {% endif %}
 
     <form method="post" action="/settings" enctype="multipart/form-data">
-
-        <!-- Аватарка -->
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
             <div id="avatar-preview-wrap" style="width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: #0f0f0f; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                 {% if user.avatar %}
@@ -27,9 +20,7 @@
                 {% endif %}
             </div>
             <div>
-                <button type="button" onclick="document.getElementById('avatar-input').click()" class="btn-outline" style="font-size: 13px; padding: 7px 14px;">
-                    Загрузить фото
-                </button>
+                <button type="button" onclick="document.getElementById('avatar-input').click()" class="btn-outline" style="font-size: 13px; padding: 7px 14px;">Загрузить фото</button>
                 <p style="font-size: 12px; color: #999; margin-top: 6px;">JPG, PNG или WEBP, до 10 МБ</p>
             </div>
             <input type="file" id="avatar-input" name="avatar" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="previewAvatar(this)">
@@ -37,16 +28,40 @@
 
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
         <input type="text" name="name" value="{{ user.name or '' }}" placeholder="Твоё имя" required>
-
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
         <input type="text" name="username" value="{{ user.username }}" required>
         <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
-
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">О себе</label>
         <textarea name="bio" placeholder="Расскажи о себе...">{{ user.bio or '' }}</textarea>
 
+        {% if is_plus %}
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🎨 Цвет значка Quant Plus</label>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <input type="color" name="plus_color" value="{{ user.plus_color or '#a855f7' }}" style="width:48px;height:36px;padding:2px;border-radius:6px;cursor:pointer;margin-bottom:0;">
+            <span style="font-size:13px;color:#888;">Выбери цвет своего значка +</span>
+        </div>
+        {% endif %}
+
         <button class="btn" style="width: 100%;">Сохранить</button>
     </form>
+
+    {% if not is_plus %}
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">✨ Quant Plus</h3>
+        <p style="font-size: 13px; color: #888; margin-bottom: 16px;">Активируй подписку промокодом — получи дополнительные реакции, значок и ранний доступ к новым функциям.</p>
+        <form method="post" action="/activate_plus" style="display:flex;gap:10px;">
+            <input type="text" name="code" placeholder="Введи промокод" style="margin-bottom:0;flex:1;">
+            <button class="btn">Активировать</button>
+        </form>
+    </div>
+    {% else %}
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
+        <div style="background: linear-gradient(135deg, #a855f7, #6366f1); border-radius: 12px; padding: 16px; color: white;">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">✨ Quant Plus активен</div>
+            <div style="font-size: 13px; opacity: 0.9;">Действует до: {{ user.plus_until.strftime("%d.%m.%Y") if user.plus_until else "бессрочно" }}</div>
+        </div>
+    </div>
+    {% endif %}
 
     <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
         <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Сменить пароль</h3>

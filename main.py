@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import engine, get_db, Base
-from datetime import datetime
+from datetime import datetime, timedelta
 import models
 import auth
 import re
@@ -33,12 +33,20 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_starred BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_badge BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_until TIMESTAMP"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_plus BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_until TIMESTAMP"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_color VARCHAR DEFAULT '#a855f7'"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
-        conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS text VARCHAR DEFAULT ''"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), text VARCHAR DEFAULT '', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS verification_codes (id SERIAL PRIMARY KEY, email VARCHAR, code VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS whales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id))"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS reactions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id), emoji VARCHAR DEFAULT '')"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS promocodes (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, days INTEGER DEFAULT 30, is_used BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         conn.commit()
 except Exception as e:
@@ -92,6 +100,24 @@ def can_moderate(user):
     if not user:
         return False
     return bool(user.is_owner) or bool(user.is_moderator)
+
+def is_user_blocked(user):
+    if not user:
+        return False
+    if not user.is_blocked:
+        return False
+    if user.blocked_until and datetime.utcnow() > user.blocked_until:
+        return False
+    return True
+
+def is_user_plus(user):
+    if not user:
+        return False
+    if not user.is_plus:
+        return False
+    if user.plus_until and datetime.utcnow() > user.plus_until:
+        return False
+    return True
 
 def save_media_file(upload: UploadFile):
     if not upload or not upload.filename:
@@ -168,6 +194,8 @@ def delete_media_file(url):
     except Exception as e:
         print(f"Could not delete file {filepath}: {e}")
 
+BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;margin:0'><div style='background:#fff;border-radius:16px;padding:40px;text-align:center;border:1px solid #e8e8e8;max-width:400px'><div style='font-size:48px;margin-bottom:16px'>🚫</div><h2 style='margin-bottom:8px'>Аккаунт заблокирован</h2><p style='color:#888;margin-bottom:24px'>Ваш аккаунт временно заблокирован администратором. Вы можете только просматривать ленту.</p><a href='/' style='background:#0f0f0f;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600'>На главную</a></div></body></html>"""
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -176,7 +204,7 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
     else:
         posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab})
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user)})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -184,7 +212,7 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
+    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -251,6 +279,8 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     if not content or not content.strip():
         return RedirectResponse("/", status_code=302)
     media_url = ""
@@ -259,7 +289,7 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
             posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error})
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user)})
         if url:
             media_url = url
             media_type = type_or_error
@@ -273,6 +303,8 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     if can_moderate(user):
         post = db.query(models.Post).filter(models.Post.id == post_id).first()
     else:
@@ -284,6 +316,7 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
         db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
+        db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
         db.delete(post)
         db.commit()
     return RedirectResponse("/", status_code=302)
@@ -293,6 +326,8 @@ def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     if can_moderate(user):
         comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
     else:
@@ -307,6 +342,8 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     existing = db.query(models.Like).filter(models.Like.user_id == user.id, models.Like.post_id == post_id).first()
     if existing:
         db.delete(existing)
@@ -323,6 +360,8 @@ def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     existing = db.query(models.Whale).filter(models.Whale.user_id == user.id, models.Whale.post_id == post_id).first()
     if existing:
         db.delete(existing)
@@ -331,11 +370,33 @@ def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
     db.commit()
     return RedirectResponse("/", status_code=302)
 
+@app.post("/react/{post_id}")
+def react_post(post_id: int, request: Request, emoji: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    if not is_user_plus(user):
+        return RedirectResponse("/", status_code=302)
+    allowed = ["🔥", "😂", "😮", "😢", "👏", "🎉"]
+    if emoji not in allowed:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.Reaction).filter(models.Reaction.user_id == user.id, models.Reaction.post_id == post_id, models.Reaction.emoji == emoji).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.Reaction(user_id=user.id, post_id=post_id, emoji=emoji))
+    db.commit()
+    return RedirectResponse("/", status_code=302)
+
 @app.post("/comment/{post_id}")
 def add_comment(post_id: int, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     db.add(models.Comment(content=content, user_id=user.id, post_id=post_id))
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post and post.user_id != user.id:
@@ -360,13 +421,18 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     is_friend = False
     if current_user and current_user.id != profile_user.id and is_following:
         is_friend = db.query(models.Follow).filter(models.Follow.follower_id == profile_user.id, models.Follow.following_id == current_user.id).first() is not None
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db)})
+    promocodes = []
+    if current_user and current_user.is_owner and current_user.username == username:
+        promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
     current_user = auth.get_current_user(request, db)
     if not current_user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(current_user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     target = db.query(models.User).filter(models.User.username == username).first()
     if not target or target.id == current_user.id:
         return RedirectResponse("/", status_code=302)
@@ -384,6 +450,8 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     conversations = db.query(models.User).join(models.Message, (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)).filter(models.User.id != user.id).distinct().all()
     unread_from = get_unread_from(user, db)
     return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "unread_from": unread_from})
@@ -393,6 +461,8 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return RedirectResponse("/messages", status_code=302)
@@ -408,6 +478,8 @@ async def send_message(username: str, request: Request, content: str = Form(""),
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return RedirectResponse("/messages", status_code=302)
@@ -452,10 +524,10 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
+    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
 
 @app.post("/settings")
-async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), avatar: UploadFile = File(None), db: Session = Depends(get_db)):
+async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), avatar: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -487,6 +559,8 @@ async def settings_save(request: Request, name: str = Form(...), bio: str = Form
         except Exception as e:
             print(f"Avatar error: {e}")
             return templates.TemplateResponse(request, "settings.html", {"user": user, "error": "Не удалось обработать фото"})
+    if is_user_plus(user) and re.match(r'^#[0-9a-fA-F]{6}$', plus_color):
+        user.plus_color = plus_color
     user.name = name
     user.bio = bio
     user.username = username
@@ -509,6 +583,54 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
     user.password = auth.hash_password(new_password)
     db.commit()
     return templates.TemplateResponse(request, "settings.html", {"user": user, "success": "Пароль успешно изменён"})
+
+@app.post("/activate_plus")
+def activate_plus(request: Request, code: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    promo = db.query(models.Promocode).filter(models.Promocode.code == code, models.Promocode.is_used == False).first()
+    if not promo:
+        return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "error": "Промокод не найден или уже использован"})
+    promo.is_used = True
+    user.is_plus = True
+    user.plus_until = datetime.utcnow() + timedelta(days=promo.days)
+    db.commit()
+    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": True, "success": f"Quant Plus активирован на {promo.days} дней!"})
+
+@app.post("/admin/block/{username}")
+def block_user(username: str, request: Request, days: int = Form(1), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if target and not target.is_owner:
+        target.is_blocked = True
+        target.blocked_until = datetime.utcnow() + timedelta(days=days)
+        db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.post("/admin/unblock/{username}")
+def unblock_user(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if target:
+        target.is_blocked = False
+        target.blocked_until = None
+        db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.post("/admin/create_promo")
+def create_promo(request: Request, days: int = Form(30), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    code = uuid.uuid4().hex[:10].upper()
+    db.add(models.Promocode(code=code, days=days))
+    db.commit()
+    return RedirectResponse(f"/profile/{user.username}", status_code=302)
 
 @app.post("/admin/star/{username}")
 def give_star(username: str, request: Request, db: Session = Depends(get_db)):
@@ -556,8 +678,9 @@ def support_submit(request: Request, subject: str = Form(...), message: str = Fo
     if not user_email:
         return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "error": "Укажи email для ответа"})
     owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    notif_text = f"От: {user.username if user else user_email} | Тема: {subject} | {message[:200]}"
     if owner:
-        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support"))
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support", text=notif_text))
         db.commit()
     send_support_confirmation(user_email, subject)
     return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "success": True})
@@ -578,13 +701,7 @@ async def yandex_callback(code: str, request: Request, db: Session = Depends(get
     import httpx
     from yandex_auth import YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, YANDEX_REDIRECT_URI, YANDEX_TOKEN_URL, YANDEX_USER_URL
     async with httpx.AsyncClient() as client:
-        token_resp = await client.post(YANDEX_TOKEN_URL, data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": YANDEX_CLIENT_ID,
-            "client_secret": YANDEX_CLIENT_SECRET,
-            "redirect_uri": YANDEX_REDIRECT_URI,
-        })
+        token_resp = await client.post(YANDEX_TOKEN_URL, data={"grant_type": "authorization_code", "code": code, "client_id": YANDEX_CLIENT_ID, "client_secret": YANDEX_CLIENT_SECRET, "redirect_uri": YANDEX_REDIRECT_URI})
         token_data = token_resp.json()
         access_token = token_data.get("access_token")
         if not access_token:
