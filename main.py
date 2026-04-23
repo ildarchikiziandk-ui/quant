@@ -35,6 +35,7 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS verification_codes (id SERIAL PRIMARY KEY, email VARCHAR, code VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS whales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id))"))
@@ -391,14 +392,21 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
     return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db)})
 
 @app.post("/messages/{username}")
-def send_message(username: str, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
+async def send_message(username: str, request: Request, content: str = Form(""), image: UploadFile = File(None), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return RedirectResponse("/messages", status_code=302)
-    db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content))
+    image_url = ""
+    if image and image.filename:
+        url, _ = save_media_file(image)
+        if url:
+            image_url = url
+    if not content.strip() and not image_url:
+        return RedirectResponse(f"/messages/{username}", status_code=302)
+    db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content, image=image_url))
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
 

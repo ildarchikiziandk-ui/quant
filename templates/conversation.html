@@ -26,10 +26,28 @@
                 <div class="avatar-circle" style="width: 26px; height: 26px; flex-shrink: 0;">
                     {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size: 10px;">{{ other.username[0].upper() }}</span>{% endif %}
                 </div>
-                <div style="max-width: 72%; padding: 10px 14px; border-radius: 18px 18px 18px 4px; background: #f0f0f0; color: #0f0f0f; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>
+                <div style="max-width: 72%;">
+                    {% if msg.image %}
+                    <div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;">
+                        <img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                    </div>
+                    {% endif %}
+                    {% if msg.content %}
+                    <div style="padding: 10px 14px; border-radius: 18px 18px 18px 4px; background: #f0f0f0; color: #0f0f0f; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>
+                    {% endif %}
+                </div>
             </div>
             {% else %}
-            <div style="max-width: 72%; padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: #0f0f0f; color: white; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>
+            <div style="max-width: 72%;">
+                {% if msg.image %}
+                <div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;">
+                    <img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                </div>
+                {% endif %}
+                {% if msg.content %}
+                <div style="padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: #0f0f0f; color: white; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>
+                {% endif %}
+            </div>
             {% endif %}
             <div style="font-size: 11px; color: #bbb; padding: 0 4px;">{{ msg.created_at.strftime("%H:%M") }}</div>
         </div>
@@ -41,20 +59,43 @@
     {% endif %}
 </div>
 
+<!-- Превью фото -->
+<div id="img-preview-wrap" style="display: none; padding: 8px 16px;">
+    <div style="position: relative; display: inline-block;">
+        <img id="img-preview" style="max-height: 120px; max-width: 200px; border-radius: 10px; border: 1px solid #e8e8e8;">
+        <button onclick="clearImage()" style="position: absolute; top: -8px; right: -8px; background: #e53935; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
+    </div>
+</div>
+
 <!-- Форма отправки -->
 <div class="card" style="padding: 12px 16px; margin-top: 8px;">
-    <form method="post" action="/messages/{{ other.username }}" style="display: flex; gap: 10px; align-items: center;">
+    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center;">
         <div class="avatar-circle" style="width: 32px; height: 32px; flex-shrink: 0;">
             {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 12px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
-        <input type="text" name="content" placeholder="Написать сообщение..." required style="margin-bottom: 0; flex: 1; padding: 10px 16px; border-radius: 24px; background: #f5f5f5; border: 1px solid #e8e8e8; font-size: 14px;">
+        <button type="button" onclick="document.getElementById('img-input').click()" style="background: none; border: none; cursor: pointer; font-size: 20px; color: #888; flex-shrink: 0;" title="Прикрепить фото">📎</button>
+        <input type="file" id="img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="previewImage(this)">
+        <input type="text" name="content" id="msg-input" placeholder="Написать сообщение..." style="margin-bottom: 0; flex: 1; padding: 10px 16px; border-radius: 24px; background: #f5f5f5; border: 1px solid #e8e8e8; font-size: 14px;">
         <button class="btn" style="border-radius: 24px; padding: 10px 20px; flex-shrink: 0;">Отправить</button>
     </form>
 </div>
 
 <script>
-    // Автоскролл вниз при открытии
     const box = document.getElementById('messages-box');
     if (box) box.scrollTop = box.scrollHeight;
+
+    function previewImage(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const wrap = document.getElementById('img-preview-wrap');
+        const img = document.getElementById('img-preview');
+        img.src = URL.createObjectURL(file);
+        wrap.style.display = 'block';
+    }
+
+    function clearImage() {
+        document.getElementById('img-input').value = '';
+        document.getElementById('img-preview-wrap').style.display = 'none';
+    }
 </script>
 {% endblock %}
