@@ -166,6 +166,14 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
     return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "tab": tab})
 
+@app.get("/post/{post_id}", response_class=HTMLResponse)
+def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if not post:
+        return RedirectResponse("/", status_code=302)
+    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db)})
+
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
     return templates.TemplateResponse(request, "register.html", {})
@@ -321,7 +329,7 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
     if post and post.user_id != user.id:
         db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="comment", post_id=post_id))
     db.commit()
-    return RedirectResponse("/", status_code=302)
+    return RedirectResponse(f"/post/{post_id}", status_code=302)
 
 @app.get("/profile/{username}", response_class=HTMLResponse)
 def profile(username: str, request: Request, db: Session = Depends(get_db)):
@@ -515,16 +523,6 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
         db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
 
-@app.get("/terms", response_class=HTMLResponse)
-def terms(request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db)})
-
-@app.get("/auth/yandex")
-def yandex_login():
-    from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
-    url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
-    return RedirectResponse(url)
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -537,13 +535,24 @@ def support_submit(request: Request, subject: str = Form(...), message: str = Fo
     user_email = user.email if user else email
     if not user_email:
         return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "error": "Укажи email для ответа"})
-    username = user.username if user else user_email
     owner = db.query(models.User).filter(models.User.username == "rubl").first()
     if owner:
         db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support"))
         db.commit()
     send_support_confirmation(user_email, subject)
     return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "success": True})
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db)})
+
+@app.get("/auth/yandex")
+def yandex_login():
+    from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
+    url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
+    return RedirectResponse(url)
+
 @app.get("/auth/yandex/callback")
 async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
     import httpx

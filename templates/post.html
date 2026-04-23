@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "badges.html" import owner_badge, verify_badge, star_badge %}
+{% block content %}
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+    <a href="/" style="color: #888; font-size: 20px; padding: 4px 8px; border-radius: 8px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">←</a>
+    <span style="font-weight: 600; font-size: 16px;">Пост</span>
+</div>
+
+<div class="card">
+    <div style="display: flex; gap: 12px;">
+        <a href="/profile/{{ post.author.username }}">
+            <div class="avatar-circle" style="width: 40px; height: 40px;">
+                {% if post.author.avatar %}<img src="{{ post.author.avatar }}">{% else %}<span style="font-size: 15px;">{{ post.author.username[0].upper() }}</span>{% endif %}
+            </div>
+        </a>
+        <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; flex-wrap: wrap;">
+                <a href="/profile/{{ post.author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">{{ post.author.name or post.author.username }}</a>
+                {% if post.author.is_owner %}{{ owner_badge() }}{% endif %}
+                {% if post.author.is_verified_badge %}{{ verify_badge() }}{% endif %}
+                {% if post.author.is_starred %}{{ star_badge() }}{% endif %}
+                <span style="color: #888; font-size: 13px;">@{{ post.author.username }}</span>
+                <span style="color: #ccc;">·</span>
+                <span style="color: #888; font-size: 13px;">{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                {% if user and (user.id == post.author.id or user.is_owner or user.is_moderator) %}
+                <form method="post" action="/delete/{{ post.id }}" style="margin-left: auto;" onsubmit="return confirm('Удалить пост?')">
+                    <button style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+                </form>
+                {% endif %}
+            </div>
+            <div style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">{{ post.content }}</div>
+            {% if post.image %}
+            <div style="margin-bottom: 16px; border-radius: 12px; overflow: hidden; max-width: 100%; background: #000;">
+                {% if post.media_type == 'video' %}
+                <video src="{{ post.image }}" controls playsinline preload="metadata" style="display: block; max-width: 100%; max-height: 500px; width: auto; margin: 0 auto;"></video>
+                {% else %}
+                <img src="{{ post.image }}" alt="" loading="lazy" style="display: block; max-width: 100%; max-height: 500px; width: auto; margin: 0 auto; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                {% endif %}
+            </div>
+            {% endif %}
+            <div class="post-footer" style="padding-bottom: 16px; border-bottom: 1px solid #f0f0f0;">
+                {% set user_liked = false %}
+                {% set user_whaled = false %}
+                {% if user %}
+                    {% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}
+                    {% for whale in post.whales %}{% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}{% endfor %}
+                {% endif %}
+                <form method="post" action="/like/{{ post.id }}">
+                    <button type="submit" class="like-btn {% if user_liked %}liked{% endif %}">
+                        {% if user_liked %}❤️{% else %}🤍{% endif %} {{ post.likes|length }}
+                    </button>
+                </form>
+                <form method="post" action="/whale/{{ post.id }}">
+                    <button type="submit" class="like-btn">🐋 {{ post.whales|length }}</button>
+                </form>
+                <span style="color: #ccc;">·</span>
+                <span>💬 {{ post.comments|length }}</span>
+                <span style="color: #ccc;">·</span>
+                <button onclick="sharePost()" style="background: none; border: none; cursor: pointer; font-size: 13px; color: #888; padding: 5px 10px; border-radius: 20px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">🔗 Поделиться</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div style="font-weight: 600; font-size: 15px; margin-bottom: 16px;">Комментарии ({{ post.comments|length }})</div>
+    {% for comment in post.comments %}
+    <div style="display: flex; gap: 10px; margin-bottom: 14px; align-items: flex-start;">
+        <a href="/profile/{{ comment.author.username }}">
+            <div class="avatar-circle" style="width: 32px; height: 32px;">
+                {% if comment.author.avatar %}<img src="{{ comment.author.avatar }}">{% else %}<span style="font-size: 12px;">{{ comment.author.username[0].upper() }}</span>{% endif %}
+            </div>
+        </a>
+        <div style="flex: 1;">
+            <div style="background: #f5f5f5; border-radius: 12px; padding: 10px 14px;">
+                <a href="/profile/{{ comment.author.username }}" style="font-weight: 600; font-size: 13px;">{{ comment.author.name or comment.author.username }}</a>
+                <span style="color: #888; font-size: 12px; margin-left: 6px;">@{{ comment.author.username }}</span>
+                <div style="font-size: 14px; margin-top: 4px;">{{ comment.content }}</div>
+            </div>
+            <div style="font-size: 11px; color: #bbb; margin-top: 3px; padding: 0 4px;">{{ comment.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align: center; color: #888; padding: 20px 0; font-size: 14px;">Пока нет комментариев</div>
+    {% endfor %}
+
+    {% if user %}
+    <form method="post" action="/comment/{{ post.id }}" style="display: flex; gap: 10px; margin-top: 16px; align-items: center;">
+        <div class="avatar-circle" style="width: 32px; height: 32px;">
+            {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 12px;">{{ user.username[0].upper() }}</span>{% endif %}
+        </div>
+        <input type="text" name="content" placeholder="Написать комментарий..." style="margin-bottom: 0; flex: 1; padding: 10px 16px; font-size: 14px; border-radius: 24px; background: #f5f5f5; border: 1px solid #e8e8e8;">
+        <button class="btn" style="padding: 10px 18px; border-radius: 24px;">→</button>
+    </form>
+    {% else %}
+    <div style="text-align: center; padding: 16px 0;">
+        <a href="/login"><button class="btn-outline">Войди чтобы комментировать</button></a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function sharePost() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Ссылка скопирована!');
+    });
+}
+</script>
+{% endblock %}
