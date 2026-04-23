@@ -77,6 +77,11 @@ def get_unread(user, db):
         return 0
     return db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.is_read == False).count()
 
+def get_unread_messages(user, db):
+    if not user:
+        return 0
+    return db.query(models.Message).filter(models.Message.receiver_id == user.id, models.Message.is_read == False).count()
+
 def can_moderate(user):
     if not user:
         return False
@@ -165,7 +170,7 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
     else:
         posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "tab": tab})
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -173,7 +178,7 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -248,7 +253,7 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
             posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "tab": "foryou", "upload_error": type_or_error})
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error})
         if url:
             media_url = url
             media_type = type_or_error
@@ -349,7 +354,7 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     is_friend = False
     if current_user and current_user.id != profile_user.id and is_following:
         is_friend = db.query(models.Follow).filter(models.Follow.follower_id == profile_user.id, models.Follow.following_id == current_user.id).first() is not None
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db)})
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db)})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -374,7 +379,7 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=302)
     conversations = db.query(models.User).join(models.Message, (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)).filter(models.User.id != user.id).distinct().all()
-    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": 0})
 
 @app.get("/messages/{username}", response_class=HTMLResponse)
 def conversation(username: str, request: Request, db: Session = Depends(get_db)):
@@ -389,7 +394,7 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
         if msg.receiver_id == user.id and not msg.is_read:
             msg.is_read = True
     db.commit()
-    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db), "unread_msg": 0})
 
 @app.post("/messages/{username}")
 async def send_message(username: str, request: Request, content: str = Form(""), image: UploadFile = File(None), db: Session = Depends(get_db)):
@@ -416,7 +421,7 @@ def search(request: Request, q: str = "", db: Session = Depends(get_db)):
     results = []
     if q:
         results = db.query(models.User).filter(models.User.username.ilike(f"%{q}%") | models.User.name.ilike(f"%{q}%")).limit(20).all()
-    return templates.TemplateResponse(request, "search.html", {"user": user, "results": results, "q": q, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "search.html", {"user": user, "results": results, "q": q, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, db: Session = Depends(get_db)):
@@ -424,7 +429,7 @@ def notifications_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=302)
     notifs = db.query(models.Notification).filter(models.Notification.user_id == user.id).order_by(models.Notification.created_at.desc()).limit(50).all()
-    return templates.TemplateResponse(request, "notifications.html", {"user": user, "notifications": notifs, "unread": 0})
+    return templates.TemplateResponse(request, "notifications.html", {"user": user, "notifications": notifs, "unread": 0, "unread_msg": get_unread_messages(user, db)})
 
 @app.post("/notifications/read")
 def notifications_read(request: Request, db: Session = Depends(get_db)):
@@ -440,7 +445,7 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
 
 @app.post("/settings")
 async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), avatar: UploadFile = File(None), db: Session = Depends(get_db)):
@@ -534,7 +539,7 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
 
 @app.post("/support")
 def support_submit(request: Request, subject: str = Form(...), message: str = Form(...), email: str = Form(""), db: Session = Depends(get_db)):
@@ -542,18 +547,18 @@ def support_submit(request: Request, subject: str = Form(...), message: str = Fo
     from email_service import send_support_confirmation
     user_email = user.email if user else email
     if not user_email:
-        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "error": "Укажи email для ответа"})
+        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "error": "Укажи email для ответа"})
     owner = db.query(models.User).filter(models.User.username == "rubl").first()
     if owner:
         db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support"))
         db.commit()
     send_support_confirmation(user_email, subject)
-    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "success": True})
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "success": True})
 
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db)})
+    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
 
 @app.get("/auth/yandex")
 def yandex_login():

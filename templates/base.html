@@ -71,7 +71,7 @@
             <a href="/" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Лента</span></a>
             <a href="/search" class="nav-item"><span class="nav-icon">🔍</span><span class="nav-label">Поиск</span></a>
             <a href="/notifications" class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Уведомления</span>{% if unread > 0 %}<span class="nav-badge">{{ unread }}</span>{% endif %}</a>
-            <a href="/messages" class="nav-item"><span class="nav-icon">✉️</span><span class="nav-label">Сообщения</span></a>
+            <a href="/messages" class="nav-item"><span class="nav-icon">✉️</span><span class="nav-label">Сообщения</span>{% if unread_msg > 0 %}<span class="nav-badge">{{ unread_msg }}</span>{% endif %}</a>
             <a href="/profile/{{ user.username }}" class="nav-item"><span class="nav-icon">👤</span><span class="nav-label">Профиль</span></a>
             <a href="/settings" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Настройки</span></a>
             <a href="/support" class="nav-item"><span class="nav-icon">🆘</span><span class="nav-label">Поддержка</span></a>
@@ -113,7 +113,7 @@
         <a href="/" class="mobile-nav-item"><span class="mn-icon">🏠</span>Лента</a>
         <a href="/search" class="mobile-nav-item"><span class="mn-icon">🔍</span>Поиск</a>
         <a href="/notifications" class="mobile-nav-item"><span class="mn-icon">🔔</span>{% if unread > 0 %}<b style="color:#e53935">{{ unread }}</b>{% endif %}</a>
-        <a href="/messages" class="mobile-nav-item"><span class="mn-icon">✉️</span>Чаты</a>
+        <a href="/messages" class="mobile-nav-item"><span class="mn-icon">✉️</span>{% if unread_msg > 0 %}<b style="color:#e53935">{{ unread_msg }}</b>{% endif %}Чаты</a>
         <a href="/profile/{{ user.username }}" class="mobile-nav-item"><span class="mn-icon">👤</span>Профиль</a>
         <a href="/settings" class="mobile-nav-item"><span class="mn-icon">⚙️</span>Настройки</a>
         <a href="/support" class="mobile-nav-item"><span class="mn-icon">🆘</span>Помощь</a>
