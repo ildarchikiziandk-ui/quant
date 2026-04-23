@@ -1,22 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom: 16px;">Сообщения</h2>
-
+<h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;">Сообщения</h2>
 {% if conversations %}
     {% for conv_user in conversations %}
     <a href="/messages/{{ conv_user.username }}" style="text-decoration: none; color: #1a1a1a;">
-        <div class="card" style="display: flex; align-items: center; gap: 16px; cursor: pointer;">
-            <div style="width: 48px; height: 48px; background: #1a1a1a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: bold;">
-                {{ conv_user.username[0].upper() }}
+        <div class="card" style="display: flex; align-items: center; gap: 16px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='#fff'">
+            <div style="position: relative;">
+                <div class="avatar-circle" style="width: 48px; height: 48px;">
+                    {% if conv_user.avatar %}<img src="{{ conv_user.avatar }}">{% else %}<span style="font-size: 18px;">{{ conv_user.username[0].upper() }}</span>{% endif %}
+                </div>
+                {% if conv_user.id in unread_from %}
+                <div style="position: absolute; top: 0; right: 0; width: 12px; height: 12px; background: #e53935; border-radius: 50%; border: 2px solid #fff;"></div>
+                {% endif %}
             </div>
             <div>
-                <div style="font-weight: bold;">{{ conv_user.username }}</div>
+                <div style="font-weight: 600; font-size: 15px;">{{ conv_user.name or conv_user.username }}</div>
+                <div style="color: #888; font-size: 13px;">@{{ conv_user.username }}</div>
             </div>
         </div>
     </a>
     {% endfor %}
 {% else %}
-    <div class="card" style="text-align: center; color: #888;">
+    <div class="card" style="text-align: center; color: #888; padding: 40px 0;">
         <p>Нет диалогов. Напиши кому-нибудь через его профиль!</p>
     </div>
 {% endif %}

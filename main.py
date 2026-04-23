@@ -82,6 +82,12 @@ def get_unread_messages(user, db):
         return 0
     return db.query(models.Message).filter(models.Message.receiver_id == user.id, models.Message.is_read == False).count()
 
+def get_unread_from(user, db):
+    if not user:
+        return set()
+    msgs = db.query(models.Message.sender_id).filter(models.Message.receiver_id == user.id, models.Message.is_read == False).distinct().all()
+    return set(m[0] for m in msgs)
+
 def can_moderate(user):
     if not user:
         return False
@@ -379,7 +385,8 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=302)
     conversations = db.query(models.User).join(models.Message, (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)).filter(models.User.id != user.id).distinct().all()
-    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": 0})
+    unread_from = get_unread_from(user, db)
+    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "unread_from": unread_from})
 
 @app.get("/messages/{username}", response_class=HTMLResponse)
 def conversation(username: str, request: Request, db: Session = Depends(get_db)):
