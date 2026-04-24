@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+
+    <!-- Верхняя панель -->
+    <div style="position: absolute; top: 0; left: 0; right: 0; padding: 16px; z-index: 10;">
+        <!-- Прогресс-бары -->
+        <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+            {% for s in all_stories %}
+            <div style="flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden;">
+                <div id="prog-{{ loop.index0 }}" style="height: 100%; background: white; width: {% if loop.index0 < current_index %}100%{% else %}0%{% endif %};"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <!-- Автор и кнопки -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <a href="/profile/{{ story.author.username }}" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+                <div class="avatar-circle" style="width: 36px; height: 36px; border: 2px solid white;">
+                    {% if story.author.avatar %}<img src="{{ story.author.avatar }}">{% else %}<span style="font-size: 13px; color: white;">{{ story.author.username[0].upper() }}</span>{% endif %}
+                </div>
+                <div>
+                    <div style="color: white; font-weight: 600; font-size: 14px;">{{ story.author.name or story.author.username }}</div>
+                    <div style="color: rgba(255,255,255,0.7); font-size: 12px;">{{ story.created_at.strftime("%H:%M") }}</div>
+                </div>
+            </a>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                {% if user and (user.id == story.user_id or user.is_owner) %}
+                <span style="color: rgba(255,255,255,0.8); font-size: 13px;">👁 {{ views_count }}</span>
+                <form method="post" action="/story/delete/{{ story.id }}" onsubmit="return confirm('Удалить историю?')">
+                    <button style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1;">🗑</button>
+                </form>
+                {% endif %}
+                <a href="/" style="color: rgba(255,255,255,0.8); font-size: 24px; text-decoration: none; padding: 4px 8px; line-height: 1;">✕</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Медиа -->
+    <div style="max-width: 500px; width: 100%; max-height: 80vh; display: flex; align-items: center; justify-content: center;">
+        {% if story.media_type == 'video' %}
+        <video id="story-video" src="{{ story.media_url }}" autoplay playsinline style="max-width: 100%; max-height: 80vh; border-radius: 12px;"></video>
+        {% else %}
+        <img src="{{ story.media_url }}" style="max-width: 100%; max-height: 80vh; border-radius: 12px; object-fit: contain;">
+        {% endif %}
+    </div>
+
+    <!-- Навигация тапами (левая/правая половина) -->
+    <div style="position: absolute; inset: 0; display: flex; z-index: 5;">
+        <div style="flex: 1; cursor: pointer;" onclick="goPrev()"></div>
+        <div style="flex: 1; cursor: pointer;" onclick="goNext()"></div>
+    </div>
+</div>
+
+<script>
+const stories = {{ all_stories | map(attribute='id') | list | tojson }};
+const currentIndex = {{ current_index }};
+const isVideo = {{ 'true' if story.media_type == 'video' else 'false' }};
+const PHOTO_DURATION = 5000;
+let progInterval = null;
+let autoTimer = null;
+
+function goPrev() {
+    clearTimers();
+    if (currentIndex > 0) {
+        window.location.href = '/story/' + stories[currentIndex - 1];
+    }
+}
+
+function goNext() {
+    clearTimers();
+    if (currentIndex < stories.length - 1) {
+        window.location.href = '/story/' + stories[currentIndex + 1];
+    } else {
+        window.location.href = '/';
+    }
+}
+
+function clearTimers() {
+    if (progInterval) clearInterval(progInterval);
+    if (autoTimer) clearTimeout(autoTimer);
+}
+
+function startProgress(duration) {
+    const bar = document.getElementById('prog-' + currentIndex);
+    if (!bar) return;
+    const startTime = Date.now();
+    progInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const pct = Math.min((elapsed / duration) * 100, 100);
+        bar.style.width = pct + '%';
+        if (pct >= 100) clearInterval(progInterval);
+    }, 50);
+    autoTimer = setTimeout(goNext, duration);
+}
+
+if (!isVideo) {
+    startProgress(PHOTO_DURATION);
+} else {
+    const vid = document.getElementById('story-video');
+    if (vid) {
+        vid.addEventListener('loadedmetadata', () => {
+            const dur = Math.round((vid.duration || 10) * 1000);
+            startProgress(dur);
+        });
+        vid.addEventListener('ended', goNext);
+    }
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') goPrev();
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goNext(); }
+    if (e.key === 'Escape') window.location.href = '/';
+});
+</script>
+{% endblock %}

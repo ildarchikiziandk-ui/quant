@@ -27,6 +27,7 @@ class User(Base):
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
     following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
     notifications = relationship("Notification", foreign_keys="Notification.user_id", back_populates="user")
+    stories = relationship("Story", back_populates="author")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -125,3 +126,20 @@ class Promocode(Base):
     uses = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Story(Base):
+    __tablename__ = "stories"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    media_url = Column(String)
+    media_type = Column(String, default="image")  # image или video
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)
+    author = relationship("User", back_populates="stories")
+
+class StoryView(Base):
+    __tablename__ = "story_views"
+    id = Column(Integer, primary_key=True, index=True)
+    story_id = Column(Integer, ForeignKey("stories.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    viewed_at = Column(DateTime, default=datetime.utcnow)

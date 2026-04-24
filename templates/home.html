@@ -75,6 +75,56 @@ function sharePost(postId) {
 </div>
 {% endif %}
 
+<!-- ИСТОРИИ -->
+{% if user %}
+<div style="background: #fff; border-radius: 12px; border: 1px solid #e8e8e8; padding: 12px 16px; margin-bottom: 12px; overflow-x: auto;">
+    <div style="display: flex; gap: 16px; align-items: flex-start; min-width: max-content;">
+
+        <!-- Кнопка добавить свою историю -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;" onclick="document.getElementById('story-upload-input').click()">
+            <div style="position: relative; width: 56px; height: 56px;">
+                {% if my_story %}
+                <div style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 3px;">
+                    <div style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; overflow: hidden; background: #0f0f0f; display: flex; align-items: center; justify-content: center;">
+                        {% if user.avatar %}<img src="{{ user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="color:white;font-size:18px;font-weight:600;">{{ user.username[0].upper() }}</span>{% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div style="position: absolute; inset: 0; border-radius: 50%; border: 2px dashed #ccc; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+                    <div class="avatar-circle" style="width: 48px; height: 48px;">
+                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 16px;">{{ user.username[0].upper() }}</span>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                <div style="position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; background: #0f0f0f; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 700; line-height: 1; z-index: 2;">+</div>
+            </div>
+            <span style="font-size: 11px; color: #555; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Моя история</span>
+        </div>
+        <form id="story-upload-form" method="post" action="/story/upload" enctype="multipart/form-data" style="display:none;">
+            <input type="file" id="story-upload-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" onchange="document.getElementById('story-upload-form').submit()">
+        </form>
+
+        <!-- Истории других пользователей -->
+        {% for item in stories_data %}
+        <a href="/story/{{ item.first_story_id }}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; padding: 3px; {% if item.seen %}background: #ccc;{% else %}background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);{% endif %}">
+                <div style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; overflow: hidden; background: #0f0f0f; display: flex; align-items: center; justify-content: center;">
+                    {% if item.user.avatar %}<img src="{{ item.user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="color:white;font-size:18px;font-weight:600;">{{ item.user.username[0].upper() }}</span>{% endif %}
+                </div>
+            </div>
+            <span style="font-size: 11px; color: #333; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.user.name or item.user.username }}</span>
+        </a>
+        {% endfor %}
+
+        {% if not stories_data and not my_story %}
+        <div style="display: flex; align-items: center; color: #bbb; font-size: 13px; padding-top: 14px;">Историй пока нет — добавь первым!</div>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+<!-- КОНЕЦ ИСТОРИЙ -->
+
 <div style="display: flex; border-bottom: 1px solid #e8e8e8; margin-bottom: 12px; background: #fff; border-radius: 12px 12px 0 0; overflow: hidden;">
     <a href="/?tab=foryou" style="flex: 1; text-align: center; padding: 14px; font-size: 14px; font-weight: 600; {% if tab == 'foryou' or not tab %}border-bottom: 2px solid #0f0f0f; color: #0f0f0f;{% else %}color: #888;{% endif %}">Для вас</a>
     <a href="/?tab=following" style="flex: 1; text-align: center; padding: 14px; font-size: 14px; font-weight: 600; {% if tab == 'following' %}border-bottom: 2px solid #0f0f0f; color: #0f0f0f;{% else %}color: #888;{% endif %}">Подписки</a>

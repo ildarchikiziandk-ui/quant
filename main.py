@@ -48,6 +48,8 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS whales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id))"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS reactions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id), emoji VARCHAR DEFAULT '')"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS promocodes (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, days INTEGER DEFAULT 30, max_uses INTEGER DEFAULT 1, uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS stories (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), media_url VARCHAR, media_type VARCHAR DEFAULT 'image', created_at TIMESTAMP DEFAULT NOW(), expires_at TIMESTAMP)"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS story_views (id SERIAL PRIMARY KEY, story_id INTEGER REFERENCES stories(id), user_id INTEGER REFERENCES users(id), viewed_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         conn.commit()
 except Exception as e:
@@ -200,6 +202,47 @@ BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;ali
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
+
+    # Удаляем просроченные истории
+    expired = db.query(models.Story).filter(models.Story.expires_at < datetime.utcnow()).all()
+    for s in expired:
+        delete_media_file(s.media_url)
+        db.query(models.StoryView).filter(models.StoryView.story_id == s.id).delete()
+        db.delete(s)
+    if expired:
+        db.commit()
+
+    # Собираем активные истории
+    active_stories = db.query(models.Story).filter(
+        models.Story.expires_at > datetime.utcnow()
+    ).order_by(models.Story.created_at.asc()).all()
+
+    seen_users = set()
+    stories_data = []
+    my_story = None
+
+    for s in active_stories:
+        if user and s.user_id == user.id:
+            if my_story is None:
+                my_story = s
+            continue
+        if s.user_id not in seen_users:
+            seen_users.add(s.user_id)
+            user_stories = [x for x in active_stories if x.user_id == s.user_id]
+            first_story = user_stories[0]
+            seen = False
+            if user:
+                view = db.query(models.StoryView).filter(
+                    models.StoryView.story_id == first_story.id,
+                    models.StoryView.user_id == user.id
+                ).first()
+                seen = view is not None
+            stories_data.append({
+                "user": s.author,
+                "first_story_id": first_story.id,
+                "seen": seen,
+            })
+
     if tab == "following" and user:
         following_ids = [f.following_id for f in user.following]
         posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
@@ -218,7 +261,17 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
             follow_bonus = 50 if post.user_id in following_ids else 0
             return freshness + likes + comments + whales + follow_bonus
         posts = sorted(posts, key=score, reverse=True)
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user)})
+
+    return templates.TemplateResponse(request, "home.html", {
+        "user": user,
+        "posts": posts,
+        "unread": get_unread(user, db),
+        "unread_msg": get_unread_messages(user, db),
+        "tab": tab,
+        "is_plus": is_user_plus(user),
+        "stories_data": stories_data,
+        "my_story": my_story,
+    })
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -303,7 +356,7 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
             posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user)})
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None})
         if url:
             media_url = url
             media_type = type_or_error
@@ -742,6 +795,7 @@ def yandex_login():
     from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
     url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
     return RedirectResponse(url)
+
 @app.get("/api/messages/{username}")
 def api_messages(username: str, request: Request, after: int = 0, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -794,3 +848,62 @@ async def yandex_callback(code: str, request: Request, db: Session = Depends(get
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     return response
+
+@app.post("/story/upload")
+async def story_upload(request: Request, media: UploadFile = File(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    url, type_or_error = save_media_file(media)
+    if url is None:
+        return RedirectResponse("/", status_code=302)
+    expires = datetime.utcnow() + timedelta(hours=24)
+    story = models.Story(user_id=user.id, media_url=url, media_type=type_or_error, expires_at=expires)
+    db.add(story)
+    db.commit()
+    return RedirectResponse("/", status_code=302)
+
+@app.get("/story/{story_id}", response_class=HTMLResponse)
+def story_view(story_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    story = db.query(models.Story).filter(models.Story.id == story_id).first()
+    if not story or story.expires_at < datetime.utcnow():
+        return RedirectResponse("/", status_code=302)
+    if user and user.id != story.user_id:
+        existing_view = db.query(models.StoryView).filter(
+            models.StoryView.story_id == story_id,
+            models.StoryView.user_id == user.id
+        ).first()
+        if not existing_view:
+            db.add(models.StoryView(story_id=story_id, user_id=user.id))
+            db.commit()
+    all_stories = db.query(models.Story).filter(
+        models.Story.user_id == story.user_id,
+        models.Story.expires_at > datetime.utcnow()
+    ).order_by(models.Story.created_at).all()
+    current_index = next((i for i, s in enumerate(all_stories) if s.id == story_id), 0)
+    views_count = db.query(models.StoryView).filter(models.StoryView.story_id == story_id).count()
+    return templates.TemplateResponse(request, "story_view.html", {
+        "user": user,
+        "story": story,
+        "all_stories": all_stories,
+        "current_index": current_index,
+        "views_count": views_count,
+        "unread": get_unread(user, db) if user else 0,
+        "unread_msg": get_unread_messages(user, db) if user else 0,
+    })
+
+@app.post("/story/delete/{story_id}")
+def story_delete(story_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    story = db.query(models.Story).filter(models.Story.id == story_id).first()
+    if story and (story.user_id == user.id or user.is_owner):
+        delete_media_file(story.media_url)
+        db.query(models.StoryView).filter(models.StoryView.story_id == story_id).delete()
+        db.delete(story)
+        db.commit()
+    return RedirectResponse("/", status_code=302)
