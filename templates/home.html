@@ -8,7 +8,10 @@
             {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 15px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
         <form method="post" action="/post" enctype="multipart/form-data" style="flex: 1;" id="post-form">
-            <textarea name="content" placeholder="Что происходит?" required style="border: none; padding: 8px 0; font-size: 16px; resize: none; min-height: 60px; border-bottom: 1.5px solid #e8e8e8; border-radius: 0; margin-bottom: 12px;"></textarea>
+            <div style="position: relative;">
+                <textarea name="content" id="post-content" placeholder="Что происходит? Используй @username для упоминаний" required style="border: none; padding: 8px 0; font-size: 16px; resize: none; min-height: 60px; border-bottom: 1.5px solid #e8e8e8; border-radius: 0; margin-bottom: 12px; width: 100%;"></textarea>
+                <div id="mention-dropdown" style="display:none; position:absolute; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.10); z-index:100; min-width:200px; overflow:hidden;"></div>
+            </div>
             <div id="media-preview" style="display: none; position: relative; margin-bottom: 12px; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #e8e8e8;">
                 <img id="preview-img" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;">
                 <video id="preview-video" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;" controls></video>
@@ -27,42 +30,6 @@
         </form>
     </div>
 </div>
-<script>
-function onMediaSelected(input) {
-    const file = input.files[0];
-    if (!file) { clearMedia(); return; }
-    const maxSize = file.type.startsWith('video/') ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-        alert(file.type.startsWith('video/') ? 'Видео слишком большое. Максимум 20 МБ.' : 'Фото слишком большое. Максимум 10 МБ.');
-        input.value = ''; clearMedia(); return;
-    }
-    const preview = document.getElementById('media-preview');
-    const img = document.getElementById('preview-img');
-    const video = document.getElementById('preview-video');
-    preview.style.display = 'block';
-    const url = URL.createObjectURL(file);
-    if (file.type.startsWith('image/')) {
-        img.src = url; img.style.display = 'block'; video.style.display = 'none'; video.removeAttribute('src');
-    } else if (file.type.startsWith('video/')) {
-        video.src = url; video.style.display = 'block'; img.style.display = 'none'; img.removeAttribute('src');
-    }
-}
-function clearMedia() {
-    document.getElementById('media-input').value = '';
-    document.getElementById('media-preview').style.display = 'none';
-    document.getElementById('preview-img').style.display = 'none';
-    document.getElementById('preview-video').style.display = 'none';
-}
-function sharePost(postId) {
-    const url = window.location.origin + '/post/' + postId;
-    navigator.clipboard.writeText(url).then(() => {
-        const btn = document.getElementById('share-btn-' + postId);
-        const orig = btn.textContent;
-        btn.textContent = '✔ Скопировано';
-        setTimeout(() => btn.textContent = orig, 2000);
-    });
-}
-</script>
 {% else %}
 <div class="card" style="text-align: center; padding: 40px 20px;">
     <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
@@ -79,8 +46,6 @@ function sharePost(postId) {
 {% if user %}
 <div style="background: #fff; border-radius: 12px; border: 1px solid #e8e8e8; padding: 12px 16px; margin-bottom: 12px; overflow-x: auto;">
     <div style="display: flex; gap: 16px; align-items: flex-start; min-width: max-content;">
-
-        <!-- Кнопка добавить свою историю -->
         <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;" onclick="document.getElementById('story-upload-input').click()">
             <div style="position: relative; width: 56px; height: 56px;">
                 {% if my_story %}
@@ -103,8 +68,6 @@ function sharePost(postId) {
         <form id="story-upload-form" method="post" action="/story/upload" enctype="multipart/form-data" style="display:none;">
             <input type="file" id="story-upload-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" onchange="document.getElementById('story-upload-form').submit()">
         </form>
-
-        <!-- Истории других пользователей -->
         {% for item in stories_data %}
         <a href="/story/{{ item.first_story_id }}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none;">
             <div style="width: 56px; height: 56px; border-radius: 50%; padding: 3px; {% if item.seen %}background: #ccc;{% else %}background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);{% endif %}">
@@ -115,11 +78,9 @@ function sharePost(postId) {
             <span style="font-size: 11px; color: #333; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.user.name or item.user.username }}</span>
         </a>
         {% endfor %}
-
         {% if not stories_data and not my_story %}
         <div style="display: flex; align-items: center; color: #bbb; font-size: 13px; padding-top: 14px;">Историй пока нет — добавь первым!</div>
         {% endif %}
-
     </div>
 </div>
 {% endif %}
@@ -153,7 +114,7 @@ function sharePost(postId) {
                 </form>
                 {% endif %}
             </div>
-            <div class="post-content">{{ post.content }}</div>
+            <div class="post-content">{{ render_mentions(post.content) | safe }}</div>
             {% if post.image %}
             <div style="margin-bottom: 12px; border-radius: 12px; overflow: hidden; max-width: 100%; background: #000;">
                 {% if post.media_type == 'video' %}
@@ -198,20 +159,23 @@ function sharePost(postId) {
                     </a>
                     <div style="background: #f5f5f5; border-radius: 10px; padding: 7px 12px; flex: 1;">
                         <span style="font-weight: 600; font-size: 13px;">{{ comment.author.name or comment.author.username }}</span>
-                        <span style="font-size: 13px; color: #333; margin-left: 6px;">{{ comment.content }}</span>
+                        <span style="font-size: 13px; color: #333; margin-left: 6px;">{{ render_mentions(comment.content) | safe }}</span>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
             {% if user %}
-            <form method="post" action="/comment/{{ post.id }}" style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
-                <div class="avatar-circle" style="width: 28px; height: 28px;">
-                    {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 11px;">{{ user.username[0].upper() }}</span>{% endif %}
-                </div>
-                <input type="text" name="content" placeholder="Комментировать..." style="margin-bottom: 0; flex: 1; padding: 7px 12px; font-size: 13px; border-radius: 20px; background: #f5f5f5; border: 1px solid #e8e8e8;">
-                <button class="btn" style="padding: 7px 14px; font-size: 13px; border-radius: 20px;">→</button>
-            </form>
+            <div style="position: relative;">
+                <form method="post" action="/comment/{{ post.id }}" class="comment-form" style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+                    <div class="avatar-circle" style="width: 28px; height: 28px;">
+                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 11px;">{{ user.username[0].upper() }}</span>{% endif %}
+                    </div>
+                    <input type="text" name="content" class="comment-input" placeholder="Комментировать... (@username для упоминания)" style="margin-bottom: 0; flex: 1; padding: 7px 12px; font-size: 13px; border-radius: 20px; background: #f5f5f5; border: 1px solid #e8e8e8;" autocomplete="off">
+                    <button class="btn" style="padding: 7px 14px; font-size: 13px; border-radius: 20px;">→</button>
+                </form>
+                <div class="comment-mention-dropdown" style="display:none; position:absolute; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.10); z-index:100; min-width:200px; overflow:hidden; bottom: 44px; left: 36px;"></div>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -226,6 +190,97 @@ function sharePost(postId) {
 {% endif %}
 
 <script>
+function onMediaSelected(input) {
+    const file = input.files[0];
+    if (!file) { clearMedia(); return; }
+    const maxSize = file.type.startsWith('video/') ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert(file.type.startsWith('video/') ? 'Видео слишком большое. Максимум 20 МБ.' : 'Фото слишком большое. Максимум 10 МБ.');
+        input.value = ''; clearMedia(); return;
+    }
+    const preview = document.getElementById('media-preview');
+    const img = document.getElementById('preview-img');
+    const video = document.getElementById('preview-video');
+    preview.style.display = 'block';
+    const url = URL.createObjectURL(file);
+    if (file.type.startsWith('image/')) {
+        img.src = url; img.style.display = 'block'; video.style.display = 'none'; video.removeAttribute('src');
+    } else if (file.type.startsWith('video/')) {
+        video.src = url; video.style.display = 'block'; img.style.display = 'none'; img.removeAttribute('src');
+    }
+}
+function clearMedia() {
+    document.getElementById('media-input').value = '';
+    document.getElementById('media-preview').style.display = 'none';
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('preview-video').style.display = 'none';
+}
+function sharePost(postId) {
+    const url = window.location.origin + '/post/' + postId;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('share-btn-' + postId);
+        const orig = btn.textContent;
+        btn.textContent = '✔ Скопировано';
+        setTimeout(() => btn.textContent = orig, 2000);
+    });
+}
+
+// Автодополнение @упоминаний
+function setupMentionAutocomplete(input, dropdown) {
+    let mentionStart = -1;
+    input.addEventListener('input', async function() {
+        const val = input.value;
+        const pos = input.selectionStart;
+        // Ищем @ перед курсором
+        let atPos = -1;
+        for (let i = pos - 1; i >= 0; i--) {
+            if (val[i] === '@') { atPos = i; break; }
+            if (/\s/.test(val[i])) break;
+        }
+        if (atPos === -1) { dropdown.style.display = 'none'; return; }
+        const query = val.slice(atPos + 1, pos);
+        if (query.length === 0) { dropdown.style.display = 'none'; return; }
+        mentionStart = atPos;
+        const res = await fetch('/api/users/search?q=' + encodeURIComponent(query));
+        const data = await res.json();
+        if (!data.users || data.users.length === 0) { dropdown.style.display = 'none'; return; }
+        dropdown.innerHTML = data.users.map(u =>
+            `<div class="mention-item" data-username="${u.username}" style="padding:10px 14px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''">
+                <span style="font-weight:600;">@${u.username}</span>
+                <span style="color:#888;font-size:12px;">${u.name}</span>
+            </div>`
+        ).join('');
+        dropdown.style.display = 'block';
+        dropdown.querySelectorAll('.mention-item').forEach(item => {
+            item.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                const username = this.dataset.username;
+                const before = input.value.slice(0, mentionStart);
+                const after = input.value.slice(input.selectionStart);
+                input.value = before + '@' + username + ' ' + after;
+                dropdown.style.display = 'none';
+                input.focus();
+            });
+        });
+    });
+    input.addEventListener('blur', () => setTimeout(() => dropdown.style.display = 'none', 150));
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') dropdown.style.display = 'none';
+    });
+}
+
+// Инициализация для поля поста
+const postContent = document.getElementById('post-content');
+const postDropdown = document.getElementById('mention-dropdown');
+if (postContent && postDropdown) setupMentionAutocomplete(postContent, postDropdown);
+
+// Инициализация для всех полей комментариев
+document.querySelectorAll('.comment-form').forEach(form => {
+    const input = form.querySelector('.comment-input');
+    const dropdown = form.closest('div').querySelector('.comment-mention-dropdown');
+    if (input && dropdown) setupMentionAutocomplete(input, dropdown);
+});
+
 document.querySelectorAll('.like-form, .whale-form').forEach(form => {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();

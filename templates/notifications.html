@@ -30,6 +30,11 @@
                         <a href="/profile/{{ notif.from_user.username }}" style="font-weight: 600;">{{ notif.from_user.name or notif.from_user.username }}</a> прокомментировал твой пост 💬
                     {% elif notif.type == "follow" %}
                         <a href="/profile/{{ notif.from_user.username }}" style="font-weight: 600;">{{ notif.from_user.name or notif.from_user.username }}</a> подписался на тебя 👤
+                    {% elif notif.type == "mention" %}
+                        <a href="/profile/{{ notif.from_user.username }}" style="font-weight: 600;">{{ notif.from_user.name or notif.from_user.username }}</a> упомянул тебя в посте 🔔
+                        {% if notif.post_id %}
+                        — <a href="/post/{{ notif.post_id }}" style="color: #1d9bf0;">Посмотреть</a>
+                        {% endif %}
                     {% elif notif.type == "support" %}
                         <span style="font-weight: 600;">🆘 Обращение в поддержку</span>
                         {% if notif.text %}

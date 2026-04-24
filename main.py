@@ -197,6 +197,31 @@ def delete_media_file(url):
     except Exception as e:
         print(f"Could not delete file {filepath}: {e}")
 
+def process_mentions(content, author, post_id, db):
+    """Находит @упоминания в тексте и создаёт уведомления."""
+    mentions = re.findall(r'@([\w\.\-]+)', content)
+    notified = set()
+    for username in mentions:
+        if username in notified:
+            continue
+        mentioned_user = db.query(models.User).filter(models.User.username == username).first()
+        if mentioned_user and mentioned_user.id != author.id:
+            db.add(models.Notification(
+                user_id=mentioned_user.id,
+                from_user_id=author.id,
+                type="mention",
+                post_id=post_id
+            ))
+            notified.add(username)
+
+def render_mentions(content):
+    """Превращает @username в кликабельные ссылки."""
+    return re.sub(
+        r'@([\w\.\-]+)',
+        r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>',
+        content
+    )
+
 BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;margin:0'><div style='background:#fff;border-radius:16px;padding:40px;text-align:center;border:1px solid #e8e8e8;max-width:400px'><div style='font-size:48px;margin-bottom:16px'>🚫</div><h2 style='margin-bottom:8px'>Аккаунт заблокирован</h2><p style='color:#888;margin-bottom:24px'>Ваш аккаунт временно заблокирован администратором. Вы можете только просматривать ленту.</p><a href='/' style='background:#0f0f0f;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600'>На главную</a></div></body></html>"""
 
 @app.get("/", response_class=HTMLResponse)
@@ -271,6 +296,7 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         "is_plus": is_user_plus(user),
         "stories_data": stories_data,
         "my_story": my_story,
+        "render_mentions": render_mentions,
     })
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
@@ -279,7 +305,7 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_mentions": render_mentions})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -356,12 +382,14 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
             posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None})
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions})
         if url:
             media_url = url
             media_type = type_or_error
     post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type)
     db.add(post)
+    db.flush()
+    process_mentions(content, user, post.id, db)
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -464,10 +492,13 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
         return RedirectResponse("/login", status_code=302)
     if is_user_blocked(user):
         return HTMLResponse(BLOCKED_RESPONSE)
-    db.add(models.Comment(content=content, user_id=user.id, post_id=post_id))
+    comment = models.Comment(content=content, user_id=user.id, post_id=post_id)
+    db.add(comment)
+    db.flush()
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post and post.user_id != user.id:
         db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="comment", post_id=post_id))
+    process_mentions(content, user, post_id, db)
     db.commit()
     return RedirectResponse(f"/post/{post_id}", status_code=302)
 
@@ -491,7 +522,7 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     promocodes = []
     if current_user and current_user.is_owner and current_user.username == username:
         promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes})
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_mentions": render_mentions})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -816,6 +847,16 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
     db.commit()
     from fastapi.responses import JSONResponse
     return JSONResponse({"messages": [{"id": m.id, "sender_id": m.sender_id, "content": m.content, "image": m.image or "", "time": m.created_at.strftime("%H:%M")} for m in msgs]})
+
+@app.get("/api/users/search")
+def api_users_search(q: str = "", db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    if not q or len(q) < 1:
+        return JSONResponse({"users": []})
+    results = db.query(models.User).filter(
+        models.User.username.ilike(f"{q}%")
+    ).limit(5).all()
+    return JSONResponse({"users": [{"username": u.username, "name": u.name or u.username} for u in results]})
 
 @app.get("/auth/yandex/callback")
 async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
