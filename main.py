@@ -204,7 +204,20 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         following_ids = [f.following_id for f in user.following]
         posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
     else:
-        posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
+        posts = db.query(models.Post).order_by(models.Post.created_at.desc()).limit(200).all()
+        following_ids = set()
+        if user:
+            following_ids = set(f.following_id for f in user.following)
+        now = datetime.utcnow()
+        def score(post):
+            age_hours = max((now - post.created_at).total_seconds() / 3600, 0.1)
+            freshness = 1000 / (age_hours + 2)
+            likes = len(post.likes) * 3
+            comments = len(post.comments) * 2
+            whales = len(post.whales) * 1
+            follow_bonus = 50 if post.user_id in following_ids else 0
+            return freshness + likes + comments + whales + follow_bonus
+        posts = sorted(posts, key=score, reverse=True)
     return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user)})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
@@ -729,6 +742,26 @@ def yandex_login():
     from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
     url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
     return RedirectResponse(url)
+@app.get("/api/messages/{username}")
+def api_messages(username: str, request: Request, after: int = 0, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"messages": []})
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"messages": []})
+    msgs = db.query(models.Message).filter(
+        ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
+        ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))
+    ).filter(models.Message.id > after).order_by(models.Message.created_at).all()
+    for msg in msgs:
+        if msg.receiver_id == user.id and not msg.is_read:
+            msg.is_read = True
+    db.commit()
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"messages": [{"id": m.id, "sender_id": m.sender_id, "content": m.content, "image": m.image or "", "time": m.created_at.strftime("%H:%M")} for m in msgs]})
 
 @app.get("/auth/yandex/callback")
 async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):

@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Шапка чата -->
 <div class="card" style="padding: 14px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; position: sticky; top: 0; z-index: 10;">
-    <a href="/messages" style="color: #888; font-size: 20px; line-height: 1; padding: 4px 8px; border-radius: 8px; transition: background 0.15s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">←</a>
+    <a href="/messages" style="color: #888; font-size: 20px; line-height: 1; padding: 4px 8px; border-radius: 8px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">←</a>
     <a href="/profile/{{ other.username }}">
         <div class="avatar-circle" style="width: 38px; height: 38px;">
             {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size: 14px;">{{ other.username[0].upper() }}</span>{% endif %}
@@ -16,50 +15,36 @@
     <a href="/profile/{{ other.username }}" style="color: #888; font-size: 13px; padding: 6px 12px; border-radius: 20px; border: 1px solid #e8e8e8;">Профиль</a>
 </div>
 
-<!-- Сообщения -->
 <div class="card" id="messages-box" style="min-height: 420px; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 16px; scroll-behavior: smooth;">
     {% if messages %}
         {% for msg in messages %}
-        <div style="display: flex; flex-direction: column; {% if msg.sender_id == user.id %}align-items: flex-end{% else %}align-items: flex-start{% endif %}; gap: 2px;">
+        <div class="msg-item" data-id="{{ msg.id }}" style="display: flex; flex-direction: column; {% if msg.sender_id == user.id %}align-items: flex-end{% else %}align-items: flex-start{% endif %}; gap: 2px;">
             {% if msg.sender_id != user.id %}
             <div style="display: flex; align-items: flex-end; gap: 8px;">
                 <div class="avatar-circle" style="width: 26px; height: 26px; flex-shrink: 0;">
                     {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size: 10px;">{{ other.username[0].upper() }}</span>{% endif %}
                 </div>
                 <div style="max-width: 72%;">
-                    {% if msg.image %}
-                    <div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;">
-                        <img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')">
-                    </div>
-                    {% endif %}
-                    {% if msg.content %}
-                    <div style="padding: 10px 14px; border-radius: 18px 18px 18px 4px; background: #f0f0f0; color: #0f0f0f; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>
-                    {% endif %}
+                    {% if msg.image %}<div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;"><img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>{% endif %}
+                    {% if msg.content %}<div style="padding: 10px 14px; border-radius: 18px 18px 18px 4px; background: #f0f0f0; color: #0f0f0f; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>{% endif %}
                 </div>
             </div>
             {% else %}
             <div style="max-width: 72%;">
-                {% if msg.image %}
-                <div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;">
-                    <img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')">
-                </div>
-                {% endif %}
-                {% if msg.content %}
-                <div style="padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: #0f0f0f; color: white; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>
-                {% endif %}
+                {% if msg.image %}<div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;"><img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>{% endif %}
+                {% if msg.content %}<div style="padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: #0f0f0f; color: white; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>{% endif %}
             </div>
             {% endif %}
             <div style="font-size: 11px; color: #bbb; padding: 0 4px;">{{ msg.created_at.strftime("%H:%M") }}</div>
         </div>
         {% endfor %}
     {% else %}
-        <div style="text-align: center; color: #bbb; margin: auto; font-size: 14px; padding: 40px 0;">
+        <div id="empty-msg" style="text-align: center; color: #bbb; margin: auto; font-size: 14px; padding: 40px 0;">
             Начни диалог с @{{ other.username }} 👋
         </div>
     {% endif %}
 </div>
 
-<!-- Превью фото -->
 <div id="img-preview-wrap" style="display: none; padding: 8px 16px;">
     <div style="position: relative; display: inline-block;">
         <img id="img-preview" style="max-height: 120px; max-width: 200px; border-radius: 10px; border: 1px solid #e8e8e8;">
@@ -67,13 +52,12 @@
     </div>
 </div>
 
-<!-- Форма отправки -->
 <div class="card" style="padding: 12px 16px; margin-top: 8px;">
     <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center;">
         <div class="avatar-circle" style="width: 32px; height: 32px; flex-shrink: 0;">
             {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 12px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
-        <button type="button" onclick="document.getElementById('img-input').click()" style="background: none; border: none; cursor: pointer; font-size: 20px; color: #888; flex-shrink: 0;" title="Прикрепить фото">📎</button>
+        <button type="button" onclick="document.getElementById('img-input').click()" style="background: none; border: none; cursor: pointer; font-size: 20px; color: #888; flex-shrink: 0;">📎</button>
         <input type="file" id="img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="previewImage(this)">
         <input type="text" name="content" id="msg-input" placeholder="Написать сообщение..." style="margin-bottom: 0; flex: 1; padding: 10px 16px; border-radius: 24px; background: #f5f5f5; border: 1px solid #e8e8e8; font-size: 14px;">
         <button class="btn" style="border-radius: 24px; padding: 10px 20px; flex-shrink: 0;">Отправить</button>
@@ -82,20 +66,79 @@
 
 <script>
     const box = document.getElementById('messages-box');
-    if (box) box.scrollTop = box.scrollHeight;
+    const otherUsername = "{{ other.username }}";
+    const currentUserId = {{ user.id }};
+    const otherAvatar = "{{ other.avatar or '' }}";
+    const otherInitial = "{{ other.username[0].upper() }}";
+
+    function scrollToBottom() {
+        box.scrollTop = box.scrollHeight;
+    }
+    scrollToBottom();
 
     function previewImage(input) {
         const file = input.files[0];
         if (!file) return;
-        const wrap = document.getElementById('img-preview-wrap');
-        const img = document.getElementById('img-preview');
-        img.src = URL.createObjectURL(file);
-        wrap.style.display = 'block';
+        document.getElementById('img-preview').src = URL.createObjectURL(file);
+        document.getElementById('img-preview-wrap').style.display = 'block';
     }
 
     function clearImage() {
         document.getElementById('img-input').value = '';
         document.getElementById('img-preview-wrap').style.display = 'none';
     }
+
+    // Автообновление чата
+    let lastMsgId = 0;
+    const msgs = document.querySelectorAll('.msg-item');
+    if (msgs.length > 0) {
+        lastMsgId = parseInt(msgs[msgs.length - 1].dataset.id) || 0;
+    }
+
+    function avatarHtml(size) {
+        if (otherAvatar) {
+            return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>`;
+        }
+        return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:600;">${otherInitial}</span></div>`;
+    }
+
+    async function pollMessages() {
+        try {
+            const res = await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.messages && data.messages.length > 0) {
+                const empty = document.getElementById('empty-msg');
+                if (empty) empty.remove();
+                const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+                data.messages.forEach(msg => {
+                    lastMsgId = Math.max(lastMsgId, msg.id);
+                    const div = document.createElement('div');
+                    div.className = 'msg-item';
+                    div.dataset.id = msg.id;
+                    const isMine = msg.sender_id === currentUserId;
+                    div.style.cssText = `display:flex;flex-direction:column;${isMine ? 'align-items:flex-end' : 'align-items:flex-start'};gap:2px;`;
+                    let inner = '';
+                    if (isMine) {
+                        inner = `<div style="max-width:72%;">`;
+                        if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                        if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 4px 18px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
+                        inner += `</div>`;
+                    } else {
+                        inner = `<div style="display:flex;align-items:flex-end;gap:8px;">${avatarHtml(26)}<div style="max-width:72%;">`;
+                        if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                        if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 18px 4px;background:#f0f0f0;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
+                        inner += `</div></div>`;
+                    }
+                    inner += `<div style="font-size:11px;color:#bbb;padding:0 4px;">${msg.time}</div>`;
+                    div.innerHTML = inner;
+                    box.appendChild(div);
+                });
+                if (wasAtBottom) scrollToBottom();
+            }
+        } catch(e) {}
+    }
+
+    setInterval(pollMessages, 3000);
 </script>
 {% endblock %}
