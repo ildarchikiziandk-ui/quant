@@ -1,43 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-    <h2 style="font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">Уведомления</h2>
-    {% if notifications %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+    <h2 style="font-size: 20px; font-weight: 700;">Уведомления</h2>
     <form method="post" action="/notifications/read">
-        <button class="btn-outline" style="font-size: 13px; padding: 6px 14px;">Отметить все как прочитанные</button>
+        <button class="btn-outline" style="font-size: 13px; padding: 6px 14px;">Отметить все прочитанными</button>
     </form>
-    {% endif %}
 </div>
 
 {% if notifications %}
-    {% for n in notifications %}
-    <div class="card" style="{% if not n.is_read %}border-left: 3px solid #0f0f0f;{% endif %} padding: 14px 18px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <a href="/profile/{{ n.from_user.username }}">
-                <div style="width: 40px; height: 40px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: 600; flex-shrink: 0;">
-                    {{ n.from_user.username[0].upper() }}
+    {% for notif in notifications %}
+    <div class="card" style="{% if not notif.is_read %}border-left: 3px solid #0f0f0f;{% endif %}">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+            {% if notif.from_user %}
+            <a href="/profile/{{ notif.from_user.username }}">
+                <div class="avatar-circle" style="width: 36px; height: 36px; flex-shrink: 0;">
+                    {% if notif.from_user.avatar %}<img src="{{ notif.from_user.avatar }}">{% else %}<span style="font-size: 13px;">{{ notif.from_user.username[0].upper() }}</span>{% endif %}
                 </div>
             </a>
-            <div style="flex: 1;">
-                <span style="font-weight: 600;">{{ n.from_user.name or n.from_user.username }}</span>
-                {% if n.type == "like" %}
-                    <span style="color: #555;"> поставил(а) ❤️ на твой пост</span>
-                {% elif n.type == "comment" %}
-                    <span style="color: #555;"> прокомментировал(а) твой пост</span>
-                {% elif n.type == "follow" %}
-                    <span style="color: #555;"> подписался(ась) на тебя</span>
-                {% endif %}
-                <div style="color: #888; font-size: 12px; margin-top: 2px;">{{ n.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+            {% else %}
+            <div class="avatar-circle" style="width: 36px; height: 36px; flex-shrink: 0; background: #888;">
+                <span style="font-size: 16px;">?</span>
             </div>
-            {% if n.post %}
-            <a href="/" style="color: #888; font-size: 13px; flex-shrink: 0;">Пост</a>
             {% endif %}
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 14px; margin-bottom: 4px;">
+                    {% if notif.type == "like" %}
+                        <a href="/profile/{{ notif.from_user.username }}" style="font-weight: 600;">{{ notif.from_user.name or notif.from_user.username }}</a> лайкнул твой пост ❤️
+                    {% elif notif.type == "comment" %}
+                        <a href="/profile/{{ notif.from_user.username }}" style="font-weight: 600;">{{ notif.from_user.name or notif.from_user.username }}</a> прокомментировал твой пост 💬
+                    {% elif notif.type == "follow" %}
+                        <a href="/profile/{{ notif.from_user.username }}" style="font-weight: 600;">{{ notif.from_user.name or notif.from_user.username }}</a> подписался на тебя 👤
+                    {% elif notif.type == "support" %}
+                        <span style="font-weight: 600;">🆘 Обращение в поддержку</span>
+                        {% if notif.text %}
+                        <div style="background: #f5f5f5; border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 13px; white-space: pre-wrap; color: #333;">{{ notif.text }}</div>
+                        {% endif %}
+                        {% if notif.reply_email %}
+                        <div style="font-size: 12px; color: #888; margin-top: 4px;">📧 Email для ответа: {{ notif.reply_email }}</div>
+                        {% endif %}
+                        <div style="margin-top: 10px;">
+                            <form method="post" action="/support/reply/{{ notif.id }}" style="display: flex; gap: 8px; align-items: flex-start;">
+                                <textarea name="reply" placeholder="Ответить..." style="flex: 1; min-height: 60px; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1.5px solid #e0e0e0; resize: vertical; margin-bottom: 0;"></textarea>
+                                <button class="btn" style="font-size: 13px; padding: 8px 14px; flex-shrink: 0;">Ответить</button>
+                            </form>
+                        </div>
+                    {% elif notif.type == "support_reply" %}
+                        <span style="font-weight: 600;">💬 Ответ от поддержки</span>
+                        {% if notif.text %}
+                        <div style="background: #f0fff4; border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 13px; color: #276749;">{{ notif.text }}</div>
+                        {% endif %}
+                    {% else %}
+                        Новое уведомление
+                    {% endif %}
+                </div>
+                <div style="font-size: 12px; color: #bbb;">{{ notif.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+            </div>
         </div>
     </div>
     {% endfor %}
 {% else %}
-    <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
-        Пока нет уведомлений
-    </div>
+    <div class="card" style="text-align: center; color: #888; padding: 40px 0;">Пока нет уведомлений</div>
 {% endif %}
 {% endblock %}

@@ -42,11 +42,12 @@ try:
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS text VARCHAR DEFAULT ''"))
-        conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), text VARCHAR DEFAULT '', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS reply_email VARCHAR DEFAULT ''"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), text VARCHAR DEFAULT '', reply_email VARCHAR DEFAULT '', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS verification_codes (id SERIAL PRIMARY KEY, email VARCHAR, code VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS whales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id))"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS reactions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id), emoji VARCHAR DEFAULT '')"))
-        conn.execute(text("CREATE TABLE IF NOT EXISTS promocodes (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, days INTEGER DEFAULT 30, is_used BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS promocodes (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, days INTEGER DEFAULT 30, max_uses INTEGER DEFAULT 1, uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         conn.commit()
 except Exception as e:
@@ -519,6 +520,24 @@ def notifications_read(request: Request, db: Session = Depends(get_db)):
     db.commit()
     return RedirectResponse("/notifications", status_code=302)
 
+@app.post("/support/reply/{notif_id}")
+def support_reply(notif_id: int, request: Request, reply: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    notif = db.query(models.Notification).filter(models.Notification.id == notif_id).first()
+    if not notif:
+        return RedirectResponse("/notifications", status_code=302)
+    from email_service import send_support_reply
+    if notif.from_user_id:
+        sender = db.query(models.User).filter(models.User.id == notif.from_user_id).first()
+        if sender:
+            db.add(models.Notification(user_id=sender.id, from_user_id=user.id, type="support_reply", text=reply))
+            db.commit()
+    elif notif.reply_email:
+        send_support_reply(notif.reply_email, reply)
+    return RedirectResponse("/notifications", status_code=302)
+
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -589,10 +608,12 @@ def activate_plus(request: Request, code: str = Form(...), db: Session = Depends
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    promo = db.query(models.Promocode).filter(models.Promocode.code == code, models.Promocode.is_used == False).first()
-    if not promo:
-        return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "error": "Промокод не найден или уже использован"})
-    promo.is_used = True
+    promo = db.query(models.Promocode).filter(models.Promocode.code == code.upper().strip(), models.Promocode.is_active == True).first()
+    if not promo or promo.uses >= promo.max_uses:
+        return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "error": "Промокод не найден, уже использован или истёк"})
+    promo.uses += 1
+    if promo.uses >= promo.max_uses:
+        promo.is_active = False
     user.is_plus = True
     user.plus_until = datetime.utcnow() + timedelta(days=promo.days)
     db.commit()
@@ -623,12 +644,15 @@ def unblock_user(username: str, request: Request, db: Session = Depends(get_db))
     return RedirectResponse(f"/profile/{username}", status_code=302)
 
 @app.post("/admin/create_promo")
-def create_promo(request: Request, days: int = Form(30), db: Session = Depends(get_db)):
+def create_promo(request: Request, code: str = Form(...), days: int = Form(30), max_uses: int = Form(1), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user or not user.is_owner:
         return RedirectResponse("/", status_code=302)
-    code = uuid.uuid4().hex[:10].upper()
-    db.add(models.Promocode(code=code, days=days))
+    code = code.upper().strip()
+    existing = db.query(models.Promocode).filter(models.Promocode.code == code).first()
+    if existing:
+        return RedirectResponse(f"/profile/{user.username}?error=promo_exists", status_code=302)
+    db.add(models.Promocode(code=code, days=days, max_uses=max_uses))
     db.commit()
     return RedirectResponse(f"/profile/{user.username}", status_code=302)
 
@@ -668,27 +692,37 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
 
 @app.post("/support")
 def support_submit(request: Request, subject: str = Form(...), message: str = Form(...), email: str = Form(""), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    from email_service import send_support_confirmation
-    user_email = user.email if user else email
+    user_email = user.email if user else email.strip()
     if not user_email:
-        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "error": "Укажи email для ответа"})
+        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0, "error": "Укажи email для ответа"})
     owner = db.query(models.User).filter(models.User.username == "rubl").first()
-    notif_text = f"От: {user.username if user else user_email} | Тема: {subject} | {message[:200]}"
+    sender_name = user.username if user else user_email
+    notif_text = f"📧 {sender_name}\n📌 {subject}\n💬 {message[:300]}"
     if owner:
-        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support", text=notif_text))
+        db.add(models.Notification(
+            user_id=owner.id,
+            from_user_id=user.id if user else None,
+            type="support",
+            text=notif_text,
+            reply_email=user_email if not user else ""
+        ))
         db.commit()
-    send_support_confirmation(user_email, subject)
-    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "success": True})
+    try:
+        from email_service import send_support_confirmation
+        send_support_confirmation(user_email, subject)
+    except Exception as e:
+        print(f"Support email error: {e}")
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0, "success": True})
 
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
+    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
 
 @app.get("/auth/yandex")
 def yandex_login():
