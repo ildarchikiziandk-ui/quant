@@ -42,6 +42,7 @@ class Post(Base):
     comments = relationship("Comment", back_populates="post")
     whales = relationship("Whale", back_populates="post")
     reactions = relationship("Reaction", back_populates="post")
+    poll = relationship("Poll", back_populates="post", uselist=False)
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -90,8 +91,10 @@ class Message(Base):
     receiver_id = Column(Integer, ForeignKey("users.id"))
     content = Column(Text, default="")
     image = Column(String, default="")
+    voice = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
+    is_delivered = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
 
@@ -132,7 +135,7 @@ class Story(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     media_url = Column(String)
-    media_type = Column(String, default="image")  # image или video
+    media_type = Column(String, default="image")
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     author = relationship("User", back_populates="stories")
@@ -143,3 +146,42 @@ class StoryView(Base):
     story_id = Column(Integer, ForeignKey("stories.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     viewed_at = Column(DateTime, default=datetime.utcnow)
+
+class Poll(Base):
+    __tablename__ = "polls"
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id"), unique=True)
+    question = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    post = relationship("Post", back_populates="poll")
+    options = relationship("PollOption", back_populates="poll")
+
+class PollOption(Base):
+    __tablename__ = "poll_options"
+    id = Column(Integer, primary_key=True, index=True)
+    poll_id = Column(Integer, ForeignKey("polls.id"))
+    text = Column(String)
+    poll = relationship("Poll", back_populates="options")
+    votes = relationship("PollVote", back_populates="option")
+
+class PollVote(Base):
+    __tablename__ = "poll_votes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    option_id = Column(Integer, ForeignKey("poll_options.id"))
+    poll_id = Column(Integer, ForeignKey("polls.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    option = relationship("PollOption", back_populates="votes")
+
+class TypingStatus(Base):
+    __tablename__ = "typing_status"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    target_id = Column(Integer, ForeignKey("users.id"))
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+class StopWord(Base):
+    __tablename__ = "stop_words"
+    id = Column(Integer, primary_key=True, index=True)
+    word = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

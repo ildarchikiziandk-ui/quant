@@ -21,8 +21,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime"}
+ALLOWED_AUDIO_TYPES = {"audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
 MAX_VIDEO_SIZE = 20 * 1024 * 1024
+MAX_AUDIO_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 
 try:
@@ -41,6 +43,8 @@ try:
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS voice VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS text VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS reply_email VARCHAR DEFAULT ''"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), text VARCHAR DEFAULT '', reply_email VARCHAR DEFAULT '', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
@@ -50,6 +54,11 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS promocodes (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, days INTEGER DEFAULT 30, max_uses INTEGER DEFAULT 1, uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS stories (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), media_url VARCHAR, media_type VARCHAR DEFAULT 'image', created_at TIMESTAMP DEFAULT NOW(), expires_at TIMESTAMP)"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS story_views (id SERIAL PRIMARY KEY, story_id INTEGER REFERENCES stories(id), user_id INTEGER REFERENCES users(id), viewed_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS polls (id SERIAL PRIMARY KEY, post_id INTEGER REFERENCES posts(id) UNIQUE, question VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS poll_options (id SERIAL PRIMARY KEY, poll_id INTEGER REFERENCES polls(id), text VARCHAR)"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS poll_votes (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), option_id INTEGER REFERENCES poll_options(id), poll_id INTEGER REFERENCES polls(id), created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS typing_status (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), target_id INTEGER REFERENCES users(id), updated_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS stop_words (id SERIAL PRIMARY KEY, word VARCHAR UNIQUE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         conn.commit()
 except Exception as e:
@@ -122,6 +131,14 @@ def is_user_plus(user):
         return False
     return True
 
+def check_stop_words(content, db):
+    words = db.query(models.StopWord).all()
+    content_lower = content.lower()
+    for sw in words:
+        if sw.word.lower() in content_lower:
+            return True
+    return False
+
 def save_media_file(upload: UploadFile):
     if not upload or not upload.filename:
         return None, None
@@ -171,6 +188,28 @@ def save_media_file(upload: UploadFile):
             f.write(contents)
     return f"/uploads/{filename}", media_type
 
+def save_audio_file(upload: UploadFile):
+    if not upload or not upload.filename:
+        return None
+    contents = upload.file.read()
+    if len(contents) > MAX_AUDIO_SIZE:
+        return None
+    ext = ".webm"
+    content_type = (upload.content_type or "").lower()
+    if "ogg" in content_type:
+        ext = ".ogg"
+    elif "mp4" in content_type or "m4a" in content_type:
+        ext = ".mp4"
+    elif "mpeg" in content_type or "mp3" in content_type:
+        ext = ".mp3"
+    elif "wav" in content_type:
+        ext = ".wav"
+    filename = f"voice_{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    return f"/uploads/{filename}"
+
 def _auto_rotate(img):
     try:
         exif = img._getexif()
@@ -198,7 +237,6 @@ def delete_media_file(url):
         print(f"Could not delete file {filepath}: {e}")
 
 def process_mentions(content, author, post_id, db):
-    """Находит @упоминания в тексте и создаёт уведомления."""
     mentions = re.findall(r'@([\w\.\-]+)', content)
     notified = set()
     for username in mentions:
@@ -215,7 +253,6 @@ def process_mentions(content, author, post_id, db):
             notified.add(username)
 
 def render_mentions(content):
-    """Превращает @username в кликабельные ссылки."""
     return re.sub(
         r'@([\w\.\-]+)',
         r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>',
@@ -227,8 +264,6 @@ BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;ali
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-
-    # Удаляем просроченные истории
     expired = db.query(models.Story).filter(models.Story.expires_at < datetime.utcnow()).all()
     for s in expired:
         delete_media_file(s.media_url)
@@ -236,16 +271,10 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
         db.delete(s)
     if expired:
         db.commit()
-
-    # Собираем активные истории
-    active_stories = db.query(models.Story).filter(
-        models.Story.expires_at > datetime.utcnow()
-    ).order_by(models.Story.created_at.asc()).all()
-
+    active_stories = db.query(models.Story).filter(models.Story.expires_at > datetime.utcnow()).order_by(models.Story.created_at.asc()).all()
     seen_users = set()
     stories_data = []
     my_story = None
-
     for s in active_stories:
         if user and s.user_id == user.id:
             if my_story is None:
@@ -257,17 +286,9 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
             first_story = user_stories[0]
             seen = False
             if user:
-                view = db.query(models.StoryView).filter(
-                    models.StoryView.story_id == first_story.id,
-                    models.StoryView.user_id == user.id
-                ).first()
+                view = db.query(models.StoryView).filter(models.StoryView.story_id == first_story.id, models.StoryView.user_id == user.id).first()
                 seen = view is not None
-            stories_data.append({
-                "user": s.author,
-                "first_story_id": first_story.id,
-                "seen": seen,
-            })
-
+            stories_data.append({"user": s.author, "first_story_id": first_story.id, "seen": seen})
     if tab == "following" and user:
         following_ids = [f.following_id for f in user.following]
         posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
@@ -286,18 +307,7 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
             follow_bonus = 50 if post.user_id in following_ids else 0
             return freshness + likes + comments + whales + follow_bonus
         posts = sorted(posts, key=score, reverse=True)
-
-    return templates.TemplateResponse(request, "home.html", {
-        "user": user,
-        "posts": posts,
-        "unread": get_unread(user, db),
-        "unread_msg": get_unread_messages(user, db),
-        "tab": tab,
-        "is_plus": is_user_plus(user),
-        "stories_data": stories_data,
-        "my_story": my_story,
-        "render_mentions": render_mentions,
-    })
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_mentions": render_mentions})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -368,7 +378,7 @@ def logout():
     return response
 
 @app.post("/post")
-async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), db: Session = Depends(get_db)):
+async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), poll_question: str = Form(""), poll_option_1: str = Form(""), poll_option_2: str = Form(""), poll_option_3: str = Form(""), poll_option_4: str = Form(""), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -376,6 +386,9 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         return HTMLResponse(BLOCKED_RESPONSE)
     if not content or not content.strip():
         return RedirectResponse("/", status_code=302)
+    if check_stop_words(content, db):
+        posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
+        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions})
     media_url = ""
     media_type = ""
     if media and media.filename:
@@ -389,9 +402,34 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
     post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type)
     db.add(post)
     db.flush()
+    # Создаём опрос если заполнен вопрос и хотя бы 2 варианта
+    if poll_question.strip():
+        options = [o.strip() for o in [poll_option_1, poll_option_2, poll_option_3, poll_option_4] if o.strip()]
+        if len(options) >= 2:
+            poll = models.Poll(post_id=post.id, question=poll_question.strip())
+            db.add(poll)
+            db.flush()
+            for opt_text in options:
+                db.add(models.PollOption(poll_id=poll.id, text=opt_text))
     process_mentions(content, user, post.id, db)
     db.commit()
     return RedirectResponse("/", status_code=302)
+
+@app.post("/poll/vote/{option_id}")
+def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    option = db.query(models.PollOption).filter(models.PollOption.id == option_id).first()
+    if not option:
+        return RedirectResponse("/", status_code=302)
+    poll = option.poll
+    existing = db.query(models.PollVote).filter(models.PollVote.user_id == user.id, models.PollVote.poll_id == poll.id).first()
+    if existing:
+        return RedirectResponse(f"/post/{poll.post_id}", status_code=302)
+    db.add(models.PollVote(user_id=user.id, option_id=option_id, poll_id=poll.id))
+    db.commit()
+    return RedirectResponse(f"/post/{poll.post_id}", status_code=302)
 
 @app.post("/delete/{post_id}")
 def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -412,6 +450,12 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
         db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
         db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
+        if post.poll:
+            for opt in post.poll.options:
+                db.query(models.PollVote).filter(models.PollVote.option_id == opt.id).delete()
+            db.query(models.PollOption).filter(models.PollOption.poll_id == post.poll.id).delete()
+            db.query(models.PollVote).filter(models.PollVote.poll_id == post.poll.id).delete()
+            db.delete(post.poll)
         db.delete(post)
         db.commit()
     return RedirectResponse("/", status_code=302)
@@ -492,6 +536,8 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
         return RedirectResponse("/login", status_code=302)
     if is_user_blocked(user):
         return HTMLResponse(BLOCKED_RESPONSE)
+    if check_stop_words(content, db):
+        return RedirectResponse(f"/post/{post_id}?error=stopword", status_code=302)
     comment = models.Comment(content=content, user_id=user.id, post_id=post_id)
     db.add(comment)
     db.flush()
@@ -522,7 +568,10 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     promocodes = []
     if current_user and current_user.is_owner and current_user.username == username:
         promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_mentions": render_mentions})
+    stop_words = []
+    if current_user and current_user.is_owner and current_user.username == username:
+        stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_mentions": render_mentions, "stop_words": stop_words})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -568,11 +617,12 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
     for msg in msgs:
         if msg.receiver_id == user.id and not msg.is_read:
             msg.is_read = True
+            msg.is_delivered = True
     db.commit()
     return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db), "unread_msg": 0})
 
 @app.post("/messages/{username}")
-async def send_message(username: str, request: Request, content: str = Form(""), image: UploadFile = File(None), db: Session = Depends(get_db)):
+async def send_message(username: str, request: Request, content: str = Form(""), image: UploadFile = File(None), voice: UploadFile = File(None), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -582,13 +632,18 @@ async def send_message(username: str, request: Request, content: str = Form(""),
     if not other:
         return RedirectResponse("/messages", status_code=302)
     image_url = ""
+    voice_url = ""
     if image and image.filename:
         url, _ = save_media_file(image)
         if url:
             image_url = url
-    if not content.strip() and not image_url:
+    if voice and voice.filename:
+        url = save_audio_file(voice)
+        if url:
+            voice_url = url
+    if not content.strip() and not image_url and not voice_url:
         return RedirectResponse(f"/messages/{username}", status_code=302)
-    db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content, image=image_url))
+    db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content, image=image_url, voice=voice_url, is_delivered=True))
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
 
@@ -786,6 +841,28 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
         db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
 
+@app.post("/admin/stopword/add")
+def add_stop_word(request: Request, word: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    word = word.strip().lower()
+    if word and not db.query(models.StopWord).filter(models.StopWord.word == word).first():
+        db.add(models.StopWord(word=word))
+        db.commit()
+    return RedirectResponse(f"/profile/{user.username}", status_code=302)
+
+@app.post("/admin/stopword/delete/{word_id}")
+def delete_stop_word(word_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    sw = db.query(models.StopWord).filter(models.StopWord.id == word_id).first()
+    if sw:
+        db.delete(sw)
+        db.commit()
+    return RedirectResponse(f"/profile/{user.username}", status_code=302)
+
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -801,13 +878,7 @@ def support_submit(request: Request, subject: str = Form(...), message: str = Fo
     sender_name = user.username if user else user_email
     notif_text = f"📧 {sender_name}\n📌 {subject}\n💬 {message[:300]}"
     if owner:
-        db.add(models.Notification(
-            user_id=owner.id,
-            from_user_id=user.id if user else None,
-            type="support",
-            text=notif_text,
-            reply_email=user_email if not user else ""
-        ))
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support", text=notif_text, reply_email=user_email if not user else ""))
         db.commit()
     try:
         from email_service import send_support_confirmation
@@ -829,13 +900,12 @@ def yandex_login():
 
 @app.get("/api/messages/{username}")
 def api_messages(username: str, request: Request, after: int = 0, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
     user = auth.get_current_user(request, db)
     if not user:
-        from fastapi.responses import JSONResponse
         return JSONResponse({"messages": []})
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
-        from fastapi.responses import JSONResponse
         return JSONResponse({"messages": []})
     msgs = db.query(models.Message).filter(
         ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
@@ -844,18 +914,46 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
     for msg in msgs:
         if msg.receiver_id == user.id and not msg.is_read:
             msg.is_read = True
+            msg.is_delivered = True
     db.commit()
+    return JSONResponse({"messages": [{"id": m.id, "sender_id": m.sender_id, "content": m.content, "image": m.image or "", "voice": m.voice or "", "time": m.created_at.strftime("%H:%M"), "is_read": m.is_read, "is_delivered": m.is_delivered} for m in msgs]})
+
+@app.post("/api/typing/{username}")
+def api_typing(username: str, request: Request, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
-    return JSONResponse({"messages": [{"id": m.id, "sender_id": m.sender_id, "content": m.content, "image": m.image or "", "time": m.created_at.strftime("%H:%M")} for m in msgs]})
+    user = auth.get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False})
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return JSONResponse({"ok": False})
+    ts = db.query(models.TypingStatus).filter(models.TypingStatus.user_id == user.id, models.TypingStatus.target_id == other.id).first()
+    if ts:
+        ts.updated_at = datetime.utcnow()
+    else:
+        db.add(models.TypingStatus(user_id=user.id, target_id=other.id))
+    db.commit()
+    return JSONResponse({"ok": True})
+
+@app.get("/api/typing/{username}")
+def api_typing_check(username: str, request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    user = auth.get_current_user(request, db)
+    if not user:
+        return JSONResponse({"typing": False})
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return JSONResponse({"typing": False})
+    threshold = datetime.utcnow() - timedelta(seconds=4)
+    ts = db.query(models.TypingStatus).filter(models.TypingStatus.user_id == other.id, models.TypingStatus.target_id == user.id, models.TypingStatus.updated_at > threshold).first()
+    return JSONResponse({"typing": ts is not None})
 
 @app.get("/api/users/search")
 def api_users_search(q: str = "", db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
     if not q or len(q) < 1:
         return JSONResponse({"users": []})
-    results = db.query(models.User).filter(
-        models.User.username.ilike(f"{q}%")
-    ).limit(5).all()
+    results = db.query(models.User).filter(models.User.username.ilike(f"{q}%")).limit(5).all()
     return JSONResponse({"users": [{"username": u.username, "name": u.name or u.username} for u in results]})
 
 @app.get("/auth/yandex/callback")
@@ -913,28 +1011,14 @@ def story_view(story_id: int, request: Request, db: Session = Depends(get_db)):
     if not story or story.expires_at < datetime.utcnow():
         return RedirectResponse("/", status_code=302)
     if user and user.id != story.user_id:
-        existing_view = db.query(models.StoryView).filter(
-            models.StoryView.story_id == story_id,
-            models.StoryView.user_id == user.id
-        ).first()
+        existing_view = db.query(models.StoryView).filter(models.StoryView.story_id == story_id, models.StoryView.user_id == user.id).first()
         if not existing_view:
             db.add(models.StoryView(story_id=story_id, user_id=user.id))
             db.commit()
-    all_stories = db.query(models.Story).filter(
-        models.Story.user_id == story.user_id,
-        models.Story.expires_at > datetime.utcnow()
-    ).order_by(models.Story.created_at).all()
+    all_stories = db.query(models.Story).filter(models.Story.user_id == story.user_id, models.Story.expires_at > datetime.utcnow()).order_by(models.Story.created_at).all()
     current_index = next((i for i, s in enumerate(all_stories) if s.id == story_id), 0)
     views_count = db.query(models.StoryView).filter(models.StoryView.story_id == story_id).count()
-    return templates.TemplateResponse(request, "story_view.html", {
-        "user": user,
-        "story": story,
-        "all_stories": all_stories,
-        "current_index": current_index,
-        "views_count": views_count,
-        "unread": get_unread(user, db) if user else 0,
-        "unread_msg": get_unread_messages(user, db) if user else 0,
-    })
+    return templates.TemplateResponse(request, "story_view.html", {"user": user, "story": story, "all_stories": all_stories, "current_index": current_index, "views_count": views_count, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
 
 @app.post("/story/delete/{story_id}")
 def story_delete(story_id: int, request: Request, db: Session = Depends(get_db)):
