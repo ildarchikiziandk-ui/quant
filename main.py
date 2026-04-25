@@ -27,6 +27,8 @@ MAX_VIDEO_SIZE = 20 * 1024 * 1024
 MAX_AUDIO_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 
+ONLINE_THRESHOLD_MINUTES = 2
+
 try:
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR"))
@@ -40,6 +42,7 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_plus BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_until TIMESTAMP"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_color VARCHAR DEFAULT '#a855f7'"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
@@ -59,6 +62,7 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS poll_votes (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), option_id INTEGER REFERENCES poll_options(id), poll_id INTEGER REFERENCES polls(id), created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS typing_status (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), target_id INTEGER REFERENCES users(id), updated_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS stop_words (id SERIAL PRIMARY KEY, word VARCHAR UNIQUE, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS push_subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), endpoint TEXT, p256dh TEXT, auth TEXT, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         conn.commit()
 except Exception as e:
@@ -131,6 +135,11 @@ def is_user_plus(user):
         return False
     return True
 
+def is_user_online(user):
+    if not user or not user.last_seen:
+        return False
+    return (datetime.utcnow() - user.last_seen).total_seconds() < ONLINE_THRESHOLD_MINUTES * 60
+
 def check_stop_words(content, db):
     words = db.query(models.StopWord).all()
     content_lower = content.lower()
@@ -138,6 +147,39 @@ def check_stop_words(content, db):
         if sw.word.lower() in content_lower:
             return True
     return False
+
+def send_push_notification(user, title, body, url, db):
+    try:
+        import json
+        import base64
+        import tempfile
+        from pywebpush import webpush, WebPushException
+        subs = db.query(models.PushSubscription).filter(models.PushSubscription.user_id == user.id).all()
+        vapid_private_b64 = os.getenv("VAPID_PRIVATE_KEY", "")
+        vapid_email = os.getenv("VAPID_EMAIL", "mailto:quantru@internet.ru")
+        if not vapid_private_b64 or not subs:
+            return
+        pem_bytes = base64.b64decode(vapid_private_b64 + "==")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as f:
+            f.write(pem_bytes)
+            pem_path = f.name
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info={"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}},
+                    data=json.dumps({"title": title, "body": body, "url": url}),
+                    vapid_private_key=pem_path,
+                    vapid_claims={"sub": vapid_email}
+                )
+            except WebPushException as e:
+                if "410" in str(e) or "404" in str(e):
+                    db.delete(sub)
+                    db.commit()
+            except Exception as e:
+                print(f"Push send error: {e}")
+        os.unlink(pem_path)
+    except Exception as e:
+        print(f"Push error: {e}")
 
 def save_media_file(upload: UploadFile):
     if not upload or not upload.filename:
@@ -244,26 +286,21 @@ def process_mentions(content, author, post_id, db):
             continue
         mentioned_user = db.query(models.User).filter(models.User.username == username).first()
         if mentioned_user and mentioned_user.id != author.id:
-            db.add(models.Notification(
-                user_id=mentioned_user.id,
-                from_user_id=author.id,
-                type="mention",
-                post_id=post_id
-            ))
+            db.add(models.Notification(user_id=mentioned_user.id, from_user_id=author.id, type="mention", post_id=post_id))
+            send_push_notification(mentioned_user, "Quant", f"{author.name or author.username} упомянул тебя", f"/post/{post_id}", db)
             notified.add(username)
 
 def render_mentions(content):
-    return re.sub(
-        r'@([\w\.\-]+)',
-        r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>',
-        content
-    )
+    return re.sub(r'@([\w\.\-]+)', r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>', content)
 
 BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;margin:0'><div style='background:#fff;border-radius:16px;padding:40px;text-align:center;border:1px solid #e8e8e8;max-width:400px'><div style='font-size:48px;margin-bottom:16px'>🚫</div><h2 style='margin-bottom:8px'>Аккаунт заблокирован</h2><p style='color:#888;margin-bottom:24px'>Ваш аккаунт временно заблокирован администратором. Вы можете только просматривать ленту.</p><a href='/' style='background:#0f0f0f;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600'>На главную</a></div></body></html>"""
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
+    if user:
+        user.last_seen = datetime.utcnow()
+        db.commit()
     expired = db.query(models.Story).filter(models.Story.expires_at < datetime.utcnow()).all()
     for s in expired:
         delete_media_file(s.media_url)
@@ -307,15 +344,18 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
             follow_bonus = 50 if post.user_id in following_ids else 0
             return freshness + likes + comments + whales + follow_bonus
         posts = sorted(posts, key=score, reverse=True)
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_mentions": render_mentions})
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_mentions": render_mentions, "is_online": is_user_online})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
+    if user:
+        user.last_seen = datetime.utcnow()
+        db.commit()
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_mentions": render_mentions})
+    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_mentions": render_mentions, "is_online": is_user_online})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -388,21 +428,20 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         return RedirectResponse("/", status_code=302)
     if check_stop_words(content, db):
         posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions})
+        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions, "is_online": is_user_online})
     media_url = ""
     media_type = ""
     if media and media.filename:
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
             posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions})
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions, "is_online": is_user_online})
         if url:
             media_url = url
             media_type = type_or_error
     post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type)
     db.add(post)
     db.flush()
-    # Создаём опрос если заполнен вопрос и хотя бы 2 варианта
     if poll_question.strip():
         options = [o.strip() for o in [poll_option_1, poll_option_2, poll_option_3, poll_option_4] if o.strip()]
         if len(options) >= 2:
@@ -491,6 +530,7 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         post = db.query(models.Post).filter(models.Post.id == post_id).first()
         if post and post.user_id != user.id:
             db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="like", post_id=post_id))
+            send_push_notification(post.author, "Quant", f"{user.name or user.username} лайкнул твой пост ❤️", f"/post/{post_id}", db)
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -544,6 +584,7 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post and post.user_id != user.id:
         db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="comment", post_id=post_id))
+        send_push_notification(post.author, "Quant", f"{user.name or user.username} прокомментировал твой пост 💬", f"/post/{post_id}", db)
     process_mentions(content, user, post_id, db)
     db.commit()
     return RedirectResponse(f"/post/{post_id}", status_code=302)
@@ -551,6 +592,9 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
 @app.get("/profile/{username}", response_class=HTMLResponse)
 def profile(username: str, request: Request, db: Session = Depends(get_db)):
     current_user = auth.get_current_user(request, db)
+    if current_user:
+        current_user.last_seen = datetime.utcnow()
+        db.commit()
     profile_user = db.query(models.User).filter(models.User.username == username).first()
     if not profile_user:
         return RedirectResponse("/", status_code=302)
@@ -566,12 +610,11 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     if current_user and current_user.id != profile_user.id and is_following:
         is_friend = db.query(models.Follow).filter(models.Follow.follower_id == profile_user.id, models.Follow.following_id == current_user.id).first() is not None
     promocodes = []
-    if current_user and current_user.is_owner and current_user.username == username:
-        promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
     stop_words = []
     if current_user and current_user.is_owner and current_user.username == username:
+        promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
         stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_mentions": render_mentions, "stop_words": stop_words})
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_mentions": render_mentions, "stop_words": stop_words, "is_online": is_user_online})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -589,6 +632,7 @@ def follow(username: str, request: Request, db: Session = Depends(get_db)):
     else:
         db.add(models.Follow(follower_id=current_user.id, following_id=target.id))
         db.add(models.Notification(user_id=target.id, from_user_id=current_user.id, type="follow"))
+        send_push_notification(target, "Quant", f"{current_user.name or current_user.username} подписался на тебя 👤", f"/profile/{current_user.username}", db)
     db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
 
@@ -599,9 +643,11 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/login", status_code=302)
     if is_user_blocked(user):
         return HTMLResponse(BLOCKED_RESPONSE)
+    user.last_seen = datetime.utcnow()
+    db.commit()
     conversations = db.query(models.User).join(models.Message, (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)).filter(models.User.id != user.id).distinct().all()
     unread_from = get_unread_from(user, db)
-    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "unread_from": unread_from})
+    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "unread_from": unread_from, "is_online": is_user_online})
 
 @app.get("/messages/{username}", response_class=HTMLResponse)
 def conversation(username: str, request: Request, db: Session = Depends(get_db)):
@@ -610,6 +656,7 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
         return RedirectResponse("/login", status_code=302)
     if is_user_blocked(user):
         return HTMLResponse(BLOCKED_RESPONSE)
+    user.last_seen = datetime.utcnow()
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return RedirectResponse("/messages", status_code=302)
@@ -619,7 +666,7 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
             msg.is_read = True
             msg.is_delivered = True
     db.commit()
-    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db), "unread_msg": 0})
+    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db), "unread_msg": 0, "is_online": is_user_online})
 
 @app.post("/messages/{username}")
 async def send_message(username: str, request: Request, content: str = Form(""), image: UploadFile = File(None), voice: UploadFile = File(None), db: Session = Depends(get_db)):
@@ -644,6 +691,8 @@ async def send_message(username: str, request: Request, content: str = Form(""),
     if not content.strip() and not image_url and not voice_url:
         return RedirectResponse(f"/messages/{username}", status_code=302)
     db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content, image=image_url, voice=voice_url, is_delivered=True))
+    preview = content[:50] if content else ("🎙 Голосовое" if voice_url else "📎 Фото")
+    send_push_notification(other, f"Quant — {user.name or user.username}", preview, f"/messages/{user.username}", db)
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
 
@@ -660,6 +709,8 @@ def notifications_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    user.last_seen = datetime.utcnow()
+    db.commit()
     notifs = db.query(models.Notification).filter(models.Notification.user_id == user.id).order_by(models.Notification.created_at.desc()).limit(50).all()
     return templates.TemplateResponse(request, "notifications.html", {"user": user, "notifications": notifs, "unread": 0, "unread_msg": get_unread_messages(user, db)})
 
@@ -695,7 +746,8 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+    vapid_public = os.getenv("VAPID_PUBLIC_KEY", "")
+    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "vapid_public": vapid_public})
 
 @app.post("/settings")
 async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), avatar: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
@@ -904,6 +956,7 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
     user = auth.get_current_user(request, db)
     if not user:
         return JSONResponse({"messages": []})
+    user.last_seen = datetime.utcnow()
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return JSONResponse({"messages": []})
@@ -927,6 +980,7 @@ def api_typing(username: str, request: Request, db: Session = Depends(get_db)):
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return JSONResponse({"ok": False})
+    user.last_seen = datetime.utcnow()
     ts = db.query(models.TypingStatus).filter(models.TypingStatus.user_id == user.id, models.TypingStatus.target_id == other.id).first()
     if ts:
         ts.updated_at = datetime.utcnow()
@@ -955,6 +1009,37 @@ def api_users_search(q: str = "", db: Session = Depends(get_db)):
         return JSONResponse({"users": []})
     results = db.query(models.User).filter(models.User.username.ilike(f"{q}%")).limit(5).all()
     return JSONResponse({"users": [{"username": u.username, "name": u.name or u.username} for u in results]})
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    user = auth.get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False})
+    data = await request.json()
+    endpoint = data.get("endpoint")
+    p256dh = data.get("keys", {}).get("p256dh")
+    auth_key = data.get("keys", {}).get("auth")
+    if not endpoint or not p256dh or not auth_key:
+        return JSONResponse({"ok": False})
+    existing = db.query(models.PushSubscription).filter(models.PushSubscription.endpoint == endpoint).first()
+    if existing:
+        existing.user_id = user.id
+        existing.p256dh = p256dh
+        existing.auth = auth_key
+    else:
+        db.add(models.PushSubscription(user_id=user.id, endpoint=endpoint, p256dh=p256dh, auth=auth_key))
+    db.commit()
+    return JSONResponse({"ok": True})
+
+@app.get("/api/ping")
+def api_ping(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    user = auth.get_current_user(request, db)
+    if user:
+        user.last_seen = datetime.utcnow()
+        db.commit()
+    return JSONResponse({"ok": True})
 
 @app.get("/auth/yandex/callback")
 async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
