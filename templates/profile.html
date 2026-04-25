@@ -3,8 +3,13 @@
 {% block content %}
 <div class="card" style="padding: 24px;">
     <div style="display: flex; align-items: flex-start; gap: 16px;">
-        <div class="avatar-circle" style="width: 72px; height: 72px;">
-            {% if profile_user.avatar %}<img src="{{ profile_user.avatar }}">{% else %}<span style="font-size: 28px;">{{ profile_user.username[0].upper() }}</span>{% endif %}
+        <div style="position: relative;">
+            <div class="avatar-circle" style="width: 72px; height: 72px;">
+                {% if profile_user.avatar %}<img src="{{ profile_user.avatar }}">{% else %}<span style="font-size: 28px;">{{ profile_user.username[0].upper() }}</span>{% endif %}
+            </div>
+            {% if is_online(profile_user) %}
+            <div style="position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: #22c55e; border-radius: 50%; border: 2px solid white;"></div>
+            {% endif %}
         </div>
         <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 2px;">
@@ -20,6 +25,9 @@
                 {% endif %}
                 {% if is_friend %}
                 <span style="background: #e8f5e9; color: #2e7d32; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-left: 4px;">👥 Друг</span>
+                {% endif %}
+                {% if is_online(profile_user) %}
+                <span style="background: #f0fdf4; color: #16a34a; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 20px;">🟢 В сети</span>
                 {% endif %}
                 {% if profile_user.is_blocked %}
                 <span style="background: #fff3e0; color: #e65100; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-left: 4px;">🚫 Заблокирован</span>
@@ -43,27 +51,15 @@
             {% if user.is_owner %}
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0;">
                 <span style="font-size: 12px; color: #888; width: 100%;">Инструменты владельца:</span>
-                <form method="post" action="/admin/star/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button>
-                </form>
-                <form method="post" action="/admin/verify/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_verified_badge %}Убрать ✔{% else %}Дать ✔{% endif %}</button>
-                </form>
-                <form method="post" action="/admin/mod/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_moderator %}Убрать мод{% else %}Дать 🛡️ мод{% endif %}</button>
-                </form>
+                <form method="post" action="/admin/star/{{ profile_user.username }}"><button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button></form>
+                <form method="post" action="/admin/verify/{{ profile_user.username }}"><button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_verified_badge %}Убрать ✔{% else %}Дать ✔{% endif %}</button></form>
+                <form method="post" action="/admin/mod/{{ profile_user.username }}"><button class="btn-outline" style="font-size: 12px; padding: 6px 12px;">{% if profile_user.is_moderator %}Убрать мод{% else %}Дать 🛡️ мод{% endif %}</button></form>
                 {% if profile_user.is_blocked %}
-                <form method="post" action="/admin/unblock/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size: 12px; padding: 6px 12px; color: #2e7d32; border-color: #2e7d32;">✅ Разблокировать</button>
-                </form>
+                <form method="post" action="/admin/unblock/{{ profile_user.username }}"><button class="btn-outline" style="font-size: 12px; padding: 6px 12px; color: #2e7d32; border-color: #2e7d32;">✅ Разблокировать</button></form>
                 {% else %}
                 <form method="post" action="/admin/block/{{ profile_user.username }}" style="display:flex;gap:6px;align-items:center;">
                     <select name="days" style="padding:4px 8px;border-radius:6px;border:1.5px solid #e0e0e0;font-size:12px;">
-                        <option value="1">1 день</option>
-                        <option value="3">3 дня</option>
-                        <option value="7">7 дней</option>
-                        <option value="30">30 дней</option>
-                        <option value="365">1 год</option>
+                        <option value="1">1 день</option><option value="3">3 дня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="365">1 год</option>
                     </select>
                     <button class="btn-outline" style="font-size: 12px; padding: 6px 12px; color: #e53935; border-color: #e53935;">🚫 Заблокировать</button>
                 </form>
@@ -74,6 +70,21 @@
         </div>
     </div>
 </div>
+
+<!-- ДОСТИЖЕНИЯ -->
+{% if user_achievements %}
+<div class="card">
+    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px;">🎖️ Достижения</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        {% for ua in user_achievements %}
+        <div title="{{ ua.achievement.description }}" style="display: flex; align-items: center; gap: 6px; background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 20px; padding: 6px 12px; font-size: 13px; cursor: default;">
+            <span style="font-size: 16px;">{{ ua.achievement.emoji }}</span>
+            <span style="font-weight: 600;">{{ ua.achievement.name }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 {% if friends %}
 <div class="card">
@@ -91,6 +102,24 @@
 </div>
 {% endif %}
 
+<!-- ЗАПЛАНИРОВАННЫЕ ПОСТЫ (только для владельца профиля) -->
+{% if scheduled_posts %}
+<div class="card" style="border: 1px solid #bde0fe; background: #f0f7ff;">
+    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: #0369a1;">📅 Запланированные посты ({{ scheduled_posts|length }})</div>
+    {% for post in scheduled_posts %}
+    <div style="padding: 10px 0; border-bottom: 1px solid #e0f0ff; display: flex; align-items: flex-start; gap: 10px;">
+        <div style="flex: 1; font-size: 14px; color: #333;">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</div>
+        <div style="text-align: right; flex-shrink: 0;">
+            <div style="font-size: 12px; color: #0369a1; font-weight: 600;">{{ post.scheduled_at.strftime("%d.%m %H:%M") }}</div>
+            <form method="post" action="/delete/{{ post.id }}" onsubmit="return confirm('Удалить?')" style="margin-top: 4px;">
+                <button style="background:none;border:none;color:#e53935;cursor:pointer;font-size:12px;">Удалить</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% if user and user.is_owner and user.username == profile_user.username %}
 <div class="card">
     <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px;">➕ Создать промокод Quant Plus</div>
@@ -102,10 +131,7 @@
         <div>
             <label style="font-size:12px;color:#888;display:block;margin-bottom:4px;">Дней</label>
             <select name="days" style="padding:10px 12px;border-radius:8px;border:1.5px solid #e0e0e0;font-size:14px;">
-                <option value="7">7</option>
-                <option value="30" selected>30</option>
-                <option value="90">90</option>
-                <option value="365">365</option>
+                <option value="7">7</option><option value="30" selected>30</option><option value="90">90</option><option value="365">365</option>
             </select>
         </div>
         <div>
@@ -130,7 +156,6 @@
 </div>
 {% endif %}
 
-<!-- СТОП-СЛОВА -->
 <div class="card">
     <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px;">🚫 Стоп-слова</div>
     <form method="post" action="/admin/stopword/add" style="display:flex;gap:10px;margin-bottom:14px;">
@@ -152,13 +177,45 @@
     <div style="font-size:13px;color:#bbb;">Стоп-слов пока нет</div>
     {% endif %}
 </div>
-<!-- КОНЕЦ СТОП-СЛОВ -->
+{% endif %}
 
+<!-- ЗАКРЕПЛЁННЫЙ ПОСТ -->
+{% if pinned_post %}
+<div class="card" style="border: 2px solid #0f0f0f;">
+    <div style="font-size: 12px; color: #888; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+        📌 <span style="font-weight: 600;">Закреплённый пост</span>
+    </div>
+    <div class="post-content">{{ render_content(pinned_post.content) | safe }}</div>
+    {% if pinned_post.image %}
+    <div style="margin-bottom: 12px; border-radius: 12px; overflow: hidden; background: #000;">
+        {% if pinned_post.media_type == 'video' %}
+        <video src="{{ pinned_post.image }}" controls playsinline preload="metadata" style="display: block; max-width: 100%; max-height: 400px; width: auto; margin: 0 auto;"></video>
+        {% else %}
+        <img src="{{ pinned_post.image }}" loading="lazy" style="display: block; max-width: 100%; max-height: 400px; width: auto; margin: 0 auto; cursor: pointer;" onclick="window.open(this.src,'_blank')">
+        {% endif %}
+    </div>
+    {% endif %}
+    <div class="post-footer">
+        <span>❤️ {{ pinned_post.likes|length }}</span>
+        <span style="color:#ccc">·</span>
+        <span>💬 {{ pinned_post.comments|length }}</span>
+        <span style="color:#ccc">·</span>
+        <a href="/post/{{ pinned_post.id }}" style="color:#1d9bf0;font-size:13px;">Открыть →</a>
+        {% if user and user.id == profile_user.id %}
+        <form method="post" action="/pin/{{ pinned_post.id }}" style="margin-left:auto;">
+            <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;">Открепить</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
 {% endif %}
 
 {% for post in posts %}
 <div class="card">
-    <div class="post-content">{{ render_mentions(post.content) | safe }}</div>
+    {% if post.is_repost %}
+    <div style="font-size: 12px; color: #888; margin-bottom: 8px;">🔁 Репост</div>
+    {% endif %}
+    <div class="post-content">{{ render_content(post.content) | safe }}</div>
     {% if post.image %}
     <div style="margin-bottom: 12px; border-radius: 12px; overflow: hidden; max-width: 100%;">
         {% if post.media_type == 'video' %}
@@ -176,12 +233,8 @@
         {% set vote_count = option.votes | length %}
         {% set pct = ((vote_count / total_votes * 100) | round(0) | int) if total_votes > 0 else 0 %}
         <div style="margin-bottom: 8px;">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;">
-                <span>{{ option.text }}</span><span style="color:#888;">{{ pct }}% ({{ vote_count }})</span>
-            </div>
-            <div style="height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;">
-                <div style="height:100%;background:#0f0f0f;border-radius:4px;width:{{ pct }}%;"></div>
-            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;"><span>{{ option.text }}</span><span style="color:#888;">{{ pct }}% ({{ vote_count }})</span></div>
+            <div style="height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;"><div style="height:100%;background:#0f0f0f;border-radius:4px;width:{{ pct }}%;"></div></div>
         </div>
         {% endfor %}
         <div style="font-size:12px;color:#bbb;margin-top:6px;">{{ total_votes }} голосов</div>
@@ -198,9 +251,14 @@
         <span>💬 {{ post.comments|length }}</span>
         <span style="color:#ccc">·</span>
         <span style="color:#888">{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
-        {% if user and (user.id == post.author.id or user.is_owner or user.is_moderator) %}
+        {% if user and (user.id == post.user_id or user.is_owner or user.is_moderator) %}
         <form method="post" action="/delete/{{ post.id }}" style="margin-left: auto;" onsubmit="return confirm('Удалить пост?')">
-            <button style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+            <button style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 2px 6px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+        </form>
+        {% endif %}
+        {% if user and user.id == profile_user.id and not post.is_repost %}
+        <form method="post" action="/pin/{{ post.id }}">
+            <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:2px 6px;" title="Закрепить">{% if profile_user.pinned_post_id == post.id %}📌{% else %}📍{% endif %}</button>
         </form>
         {% endif %}
     </div>

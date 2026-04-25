@@ -22,12 +22,16 @@ class User(Base):
     is_plus = Column(Boolean, default=False)
     plus_until = Column(DateTime, nullable=True)
     plus_color = Column(String, default="#a855f7")
+    last_seen = Column(DateTime, nullable=True)
+    pinned_post_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
     following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
     notifications = relationship("Notification", foreign_keys="Notification.user_id", back_populates="user")
     stories = relationship("Story", back_populates="author")
+    push_subscriptions = relationship("PushSubscription", back_populates="user")
+    achievements = relationship("UserAchievement", back_populates="user")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -35,6 +39,10 @@ class Post(Base):
     content = Column(Text)
     image = Column(String, default="")
     media_type = Column(String, default="")
+    is_repost = Column(Boolean, default=False)
+    repost_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
+    scheduled_at = Column(DateTime, nullable=True)
+    is_published = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="posts")
@@ -43,6 +51,7 @@ class Post(Base):
     whales = relationship("Whale", back_populates="post")
     reactions = relationship("Reaction", back_populates="post")
     poll = relationship("Poll", back_populates="post", uselist=False)
+    original = relationship("Post", remote_side="Post.id", foreign_keys=[repost_id])
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -185,3 +194,30 @@ class StopWord(Base):
     id = Column(Integer, primary_key=True, index=True)
     word = Column(String, unique=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    endpoint = Column(Text)
+    p256dh = Column(Text)
+    auth = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="push_subscriptions")
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True)
+    name = Column(String)
+    description = Column(String)
+    emoji = Column(String)
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    achievement_id = Column(Integer, ForeignKey("achievements.id"))
+    earned_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="achievements")
+    achievement = relationship("Achievement")

@@ -26,8 +26,22 @@ MAX_IMAGE_SIZE = 10 * 1024 * 1024
 MAX_VIDEO_SIZE = 20 * 1024 * 1024
 MAX_AUDIO_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
-
 ONLINE_THRESHOLD_MINUTES = 2
+
+ACHIEVEMENTS_LIST = [
+    {"code": "first_post", "name": "Первый пост", "description": "Опубликовал первый пост", "emoji": "✍️"},
+    {"code": "post_10", "name": "Блогер", "description": "Опубликовал 10 постов", "emoji": "📝"},
+    {"code": "post_50", "name": "Активный автор", "description": "Опубликовал 50 постов", "emoji": "🔥"},
+    {"code": "post_100", "name": "Легенда", "description": "Опубликовал 100 постов", "emoji": "👑"},
+    {"code": "likes_10", "name": "Популярный", "description": "Получил 10 лайков", "emoji": "❤️"},
+    {"code": "likes_100", "name": "Звезда", "description": "Получил 100 лайков", "emoji": "⭐"},
+    {"code": "likes_1000", "name": "Суперзвезда", "description": "Получил 1000 лайков", "emoji": "🌟"},
+    {"code": "followers_10", "name": "На виду", "description": "10 подписчиков", "emoji": "👥"},
+    {"code": "followers_100", "name": "Инфлюенсер", "description": "100 подписчиков", "emoji": "📣"},
+    {"code": "comment_first", "name": "Комментатор", "description": "Оставил первый комментарий", "emoji": "💬"},
+    {"code": "repost_first", "name": "Репостер", "description": "Сделал первый репост", "emoji": "🔁"},
+    {"code": "whale_first", "name": "Китобой", "description": "Бросил первого кита", "emoji": "🐋"},
+]
 
 try:
     with engine.connect() as conn:
@@ -43,8 +57,13 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_until TIMESTAMP"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_color VARCHAR DEFAULT '#a855f7'"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS pinned_post_id INTEGER"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS repost_id INTEGER"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS voice VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN DEFAULT FALSE"))
@@ -63,7 +82,12 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS typing_status (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), target_id INTEGER REFERENCES users(id), updated_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS stop_words (id SERIAL PRIMARY KEY, word VARCHAR UNIQUE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS push_subscriptions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), endpoint TEXT, p256dh TEXT, auth TEXT, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS achievements (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, name VARCHAR, description VARCHAR, emoji VARCHAR)"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS user_achievements (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), achievement_id INTEGER REFERENCES achievements(id), earned_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
+        # Заполняем таблицу достижений
+        for a in ACHIEVEMENTS_LIST:
+            conn.execute(text(f"INSERT INTO achievements (code, name, description, emoji) VALUES ('{a['code']}', '{a['name']}', '{a['description']}', '{a['emoji']}') ON CONFLICT (code) DO NOTHING"))
         conn.commit()
 except Exception as e:
     print(f"DB migration warning: {e}")
@@ -147,6 +171,45 @@ def check_stop_words(content, db):
         if sw.word.lower() in content_lower:
             return True
     return False
+
+def check_and_give_achievements(user, db):
+    """Проверяет и выдаёт достижения пользователю."""
+    earned_codes = set(ua.achievement.code for ua in user.achievements)
+
+    def give(code):
+        if code in earned_codes:
+            return
+        ach = db.query(models.Achievement).filter(models.Achievement.code == code).first()
+        if ach:
+            db.add(models.UserAchievement(user_id=user.id, achievement_id=ach.id))
+            earned_codes.add(code)
+
+    post_count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == False, models.Post.is_published == True).count()
+    if post_count >= 1: give("first_post")
+    if post_count >= 10: give("post_10")
+    if post_count >= 50: give("post_50")
+    if post_count >= 100: give("post_100")
+
+    from sqlalchemy import func
+    total_likes = db.query(func.count(models.Like.id)).join(models.Post).filter(models.Post.user_id == user.id).scalar() or 0
+    if total_likes >= 10: give("likes_10")
+    if total_likes >= 100: give("likes_100")
+    if total_likes >= 1000: give("likes_1000")
+
+    followers_count = db.query(models.Follow).filter(models.Follow.following_id == user.id).count()
+    if followers_count >= 10: give("followers_10")
+    if followers_count >= 100: give("followers_100")
+
+    comment_count = db.query(models.Comment).filter(models.Comment.user_id == user.id).count()
+    if comment_count >= 1: give("comment_first")
+
+    repost_count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == True).count()
+    if repost_count >= 1: give("repost_first")
+
+    whale_count = db.query(models.Whale).filter(models.Whale.user_id == user.id).count()
+    if whale_count >= 1: give("whale_first")
+
+    db.commit()
 
 def send_push_notification(user, title, body, url, db):
     try:
@@ -293,6 +356,14 @@ def process_mentions(content, author, post_id, db):
 def render_mentions(content):
     return re.sub(r'@([\w\.\-]+)', r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>', content)
 
+def render_hashtags(content):
+    return re.sub(r'#([\w]+)', r'<a href="/hashtag/\1" style="color:#1d9bf0;font-weight:600;">#\1</a>', content)
+
+def render_content(content):
+    content = re.sub(r'@([\w\.\-]+)', r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>', content)
+    content = re.sub(r'#([\w]+)', r'<a href="/hashtag/\1" style="color:#1d9bf0;font-weight:600;">#\1</a>', content)
+    return content
+
 BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;margin:0'><div style='background:#fff;border-radius:16px;padding:40px;text-align:center;border:1px solid #e8e8e8;max-width:400px'><div style='font-size:48px;margin-bottom:16px'>🚫</div><h2 style='margin-bottom:8px'>Аккаунт заблокирован</h2><p style='color:#888;margin-bottom:24px'>Ваш аккаунт временно заблокирован администратором. Вы можете только просматривать ленту.</p><a href='/' style='background:#0f0f0f;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600'>На главную</a></div></body></html>"""
 
 @app.get("/", response_class=HTMLResponse)
@@ -300,6 +371,12 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if user:
         user.last_seen = datetime.utcnow()
+        db.commit()
+    # Публикуем запланированные посты
+    scheduled = db.query(models.Post).filter(models.Post.is_published == False, models.Post.scheduled_at <= datetime.utcnow()).all()
+    for p in scheduled:
+        p.is_published = True
+    if scheduled:
         db.commit()
     expired = db.query(models.Story).filter(models.Story.expires_at < datetime.utcnow()).all()
     for s in expired:
@@ -328,9 +405,9 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
             stories_data.append({"user": s.author, "first_story_id": first_story.id, "seen": seen})
     if tab == "following" and user:
         following_ids = [f.following_id for f in user.following]
-        posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids)).order_by(models.Post.created_at.desc()).all()
+        posts = db.query(models.Post).filter(models.Post.user_id.in_(following_ids), models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
     else:
-        posts = db.query(models.Post).order_by(models.Post.created_at.desc()).limit(200).all()
+        posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).limit(200).all()
         following_ids = set()
         if user:
             following_ids = set(f.following_id for f in user.following)
@@ -344,7 +421,7 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
             follow_bonus = 50 if post.user_id in following_ids else 0
             return freshness + likes + comments + whales + follow_bonus
         posts = sorted(posts, key=score, reverse=True)
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_mentions": render_mentions, "is_online": is_user_online})
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_content": render_content, "is_online": is_user_online})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -355,7 +432,7 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_mentions": render_mentions, "is_online": is_user_online})
+    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content, "is_online": is_user_online})
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -418,7 +495,7 @@ def logout():
     return response
 
 @app.post("/post")
-async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), poll_question: str = Form(""), poll_option_1: str = Form(""), poll_option_2: str = Form(""), poll_option_3: str = Form(""), poll_option_4: str = Form(""), db: Session = Depends(get_db)):
+async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), poll_question: str = Form(""), poll_option_1: str = Form(""), poll_option_2: str = Form(""), poll_option_3: str = Form(""), poll_option_4: str = Form(""), scheduled_at: str = Form(""), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -427,19 +504,29 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
     if not content or not content.strip():
         return RedirectResponse("/", status_code=302)
     if check_stop_words(content, db):
-        posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions, "is_online": is_user_online})
+        posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
+        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online})
     media_url = ""
     media_type = ""
     if media and media.filename:
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
-            posts = db.query(models.Post).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_mentions": render_mentions, "is_online": is_user_online})
+            posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online})
         if url:
             media_url = url
             media_type = type_or_error
-    post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type)
+    # Запланированный пост
+    sched = None
+    is_published = True
+    if scheduled_at.strip():
+        try:
+            sched = datetime.strptime(scheduled_at.strip(), "%Y-%m-%dT%H:%M")
+            if sched > datetime.utcnow():
+                is_published = False
+        except Exception:
+            pass
+    post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type, scheduled_at=sched, is_published=is_published)
     db.add(post)
     db.flush()
     if poll_question.strip():
@@ -450,9 +537,55 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
             db.flush()
             for opt_text in options:
                 db.add(models.PollOption(poll_id=poll.id, text=opt_text))
-    process_mentions(content, user, post.id, db)
+    if is_published:
+        process_mentions(content, user, post.id, db)
     db.commit()
+    check_and_give_achievements(user, db)
+    if not is_published:
+        return RedirectResponse("/?scheduled=1", status_code=302)
     return RedirectResponse("/", status_code=302)
+
+@app.post("/repost/{post_id}")
+def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    original = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if not original:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.repost_id == post_id).first()
+    if existing:
+        return RedirectResponse(f"/post/{post_id}", status_code=302)
+    repost_post = models.Post(
+        content=original.content,
+        user_id=user.id,
+        image=original.image,
+        media_type=original.media_type,
+        is_repost=True,
+        repost_id=post_id,
+        is_published=True
+    )
+    db.add(repost_post)
+    db.commit()
+    check_and_give_achievements(user, db)
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/pin/{post_id}")
+def pin_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
+    if not post:
+        return RedirectResponse(f"/profile/{user.username}", status_code=302)
+    if user.pinned_post_id == post_id:
+        user.pinned_post_id = None
+    else:
+        user.pinned_post_id = post_id
+    db.commit()
+    return RedirectResponse(f"/profile/{user.username}", status_code=302)
 
 @app.post("/poll/vote/{option_id}")
 def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
@@ -489,12 +622,15 @@ def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
         db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
         db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
+        db.query(models.Post).filter(models.Post.repost_id == post_id).delete()
         if post.poll:
             for opt in post.poll.options:
                 db.query(models.PollVote).filter(models.PollVote.option_id == opt.id).delete()
             db.query(models.PollOption).filter(models.PollOption.poll_id == post.poll.id).delete()
             db.query(models.PollVote).filter(models.PollVote.poll_id == post.poll.id).delete()
             db.delete(post.poll)
+        if user.pinned_post_id == post_id:
+            user.pinned_post_id = None
         db.delete(post)
         db.commit()
     return RedirectResponse("/", status_code=302)
@@ -532,6 +668,7 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
             db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="like", post_id=post_id))
             send_push_notification(post.author, "Quant", f"{user.name or user.username} лайкнул твой пост ❤️", f"/post/{post_id}", db)
     db.commit()
+    check_and_give_achievements(user, db)
     return RedirectResponse("/", status_code=302)
 
 @app.post("/whale/{post_id}")
@@ -546,6 +683,7 @@ def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.delete(existing)
     else:
         db.add(models.Whale(user_id=user.id, post_id=post_id))
+        check_and_give_achievements(user, db)
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -587,6 +725,7 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
         send_push_notification(post.author, "Quant", f"{user.name or user.username} прокомментировал твой пост 💬", f"/post/{post_id}", db)
     process_mentions(content, user, post_id, db)
     db.commit()
+    check_and_give_achievements(user, db)
     return RedirectResponse(f"/post/{post_id}", status_code=302)
 
 @app.get("/profile/{username}", response_class=HTMLResponse)
@@ -598,7 +737,13 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     profile_user = db.query(models.User).filter(models.User.username == username).first()
     if not profile_user:
         return RedirectResponse("/", status_code=302)
-    posts = db.query(models.Post).filter(models.Post.user_id == profile_user.id).order_by(models.Post.created_at.desc()).all()
+    posts = db.query(models.Post).filter(models.Post.user_id == profile_user.id, models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
+    scheduled_posts = []
+    if current_user and current_user.id == profile_user.id:
+        scheduled_posts = db.query(models.Post).filter(models.Post.user_id == profile_user.id, models.Post.is_published == False).order_by(models.Post.scheduled_at).all()
+    pinned_post = None
+    if profile_user.pinned_post_id:
+        pinned_post = db.query(models.Post).filter(models.Post.id == profile_user.pinned_post_id).first()
     is_following = False
     if current_user:
         is_following = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id, models.Follow.following_id == profile_user.id).first() is not None
@@ -614,7 +759,8 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     if current_user and current_user.is_owner and current_user.username == username:
         promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
         stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_mentions": render_mentions, "stop_words": stop_words, "is_online": is_user_online})
+    user_achievements = db.query(models.UserAchievement).filter(models.UserAchievement.user_id == profile_user.id).all()
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_content": render_content, "stop_words": stop_words, "is_online": is_user_online, "user_achievements": user_achievements})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -633,8 +779,31 @@ def follow(username: str, request: Request, db: Session = Depends(get_db)):
         db.add(models.Follow(follower_id=current_user.id, following_id=target.id))
         db.add(models.Notification(user_id=target.id, from_user_id=current_user.id, type="follow"))
         send_push_notification(target, "Quant", f"{current_user.name or current_user.username} подписался на тебя 👤", f"/profile/{current_user.username}", db)
+        check_and_give_achievements(target, db)
     db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.get("/hashtag/{tag}", response_class=HTMLResponse)
+def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if user:
+        user.last_seen = datetime.utcnow()
+        db.commit()
+    posts = db.query(models.Post).filter(
+        models.Post.is_published == True,
+        models.Post.content.ilike(f"%#{tag}%")
+    ).order_by(models.Post.created_at.desc()).limit(100).all()
+    return templates.TemplateResponse(request, "hashtag.html", {"user": user, "posts": posts, "tag": tag, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "render_content": render_content, "is_online": is_user_online})
+
+@app.get("/search", response_class=HTMLResponse)
+def search(request: Request, q: str = "", db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    user_results = []
+    post_results = []
+    if q:
+        user_results = db.query(models.User).filter(models.User.username.ilike(f"%{q}%") | models.User.name.ilike(f"%{q}%")).limit(10).all()
+        post_results = db.query(models.Post).filter(models.Post.is_published == True, models.Post.content.ilike(f"%{q}%")).order_by(models.Post.created_at.desc()).limit(20).all()
+    return templates.TemplateResponse(request, "search.html", {"user": user, "results": user_results, "post_results": post_results, "q": q, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "render_content": render_content})
 
 @app.get("/messages", response_class=HTMLResponse)
 def messages_page(request: Request, db: Session = Depends(get_db)):
@@ -695,14 +864,6 @@ async def send_message(username: str, request: Request, content: str = Form(""),
     send_push_notification(other, f"Quant — {user.name or user.username}", preview, f"/messages/{user.username}", db)
     db.commit()
     return RedirectResponse(f"/messages/{username}", status_code=302)
-
-@app.get("/search", response_class=HTMLResponse)
-def search(request: Request, q: str = "", db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    results = []
-    if q:
-        results = db.query(models.User).filter(models.User.username.ilike(f"%{q}%") | models.User.name.ilike(f"%{q}%")).limit(20).all()
-    return templates.TemplateResponse(request, "search.html", {"user": user, "results": results, "q": q, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)})
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, db: Session = Depends(get_db)):
