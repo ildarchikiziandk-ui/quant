@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 520px; margin: 0 auto;">
+
+    <!-- Шапка -->
+    <div style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%); border-radius: 20px; padding: 36px 28px; text-align: center; margin-bottom: 16px; color: white;">
+        <div style="font-size: 48px; margin-bottom: 12px;">💎</div>
+        <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px;">Quant Plus</h1>
+        <p style="font-size: 16px; opacity: 0.9;">Лучший опыт в Quant</p>
+    </div>
+
+    {% if is_plus %}
+    <!-- Уже есть подписка -->
+    <div class="card" style="text-align: center; padding: 28px; border: 2px solid #a855f7;">
+        <div style="font-size: 36px; margin-bottom: 12px;">✨</div>
+        <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">У тебя есть Quant Plus!</h2>
+        {% if user.plus_until %}
+        <p style="color: #888; font-size: 14px; margin-bottom: 16px;">Действует до {{ user.plus_until.strftime("%d.%m.%Y") }}</p>
+        {% else %}
+        <p style="color: #888; font-size: 14px; margin-bottom: 16px;">Бессрочная подписка</p>
+        {% endif %}
+        <a href="/settings"><button class="btn" style="background: linear-gradient(135deg, #a855f7, #6366f1);">Настроить значок</button></a>
+    </div>
+    {% else %}
+
+    <!-- Что входит в Plus -->
+    <div class="card">
+        <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px;">Что входит в Quant Plus</h2>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #a855f7, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">💎</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Значок Plus</div>
+                    <div style="color: #888; font-size: 13px;">Красивый цветной значок + рядом с именем. Цвет можно настроить.</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #ec4899, #f43f5e); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">🔥</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Дополнительные реакции</div>
+                    <div style="color: #888; font-size: 13px;">Реагируй на посты эмодзи: 🔥 😂 😮 😢 👏 🎉</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f59e0b, #f97316); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">🔖</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Закладки</div>
+                    <div style="color: #888; font-size: 13px;">Сохраняй интересные посты и возвращайся к ним в любое время.</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">📊</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Статистика просмотров</div>
+                    <div style="color: #888; font-size: 13px;">Смотри сколько людей просмотрели каждый твой пост.</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">🎖️</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Достижение Plus</div>
+                    <div style="color: #888; font-size: 13px;">Эксклюзивное достижение "Quant Plus" на профиле.</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6, #a855f7); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">⚡</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Ранний доступ</div>
+                    <div style="color: #888; font-size: 13px;">Первым получаешь доступ ко всем новым функциям Quant.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Блок покупки / промокода -->
+    <div class="card" style="border: 2px dashed #e0e0e0;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 28px; margin-bottom: 8px;">🎲</div>
+            <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">Как получить Quant Plus?</h3>
+            <p style="color: #888; font-size: 14px; line-height: 1.6;">Сейчас приобрести подписку напрямую нельзя. Но ты можешь попытать удачу — напиши <a href="/profile/rubl" style="color: #a855f7; font-weight: 600;">@rubl</a> что хочешь подписку, и, возможно, тебе повезёт! 😉</p>
+        </div>
+        <a href="/messages/rubl" style="display: block; margin-bottom: 12px;">
+            <button class="btn" style="width: 100%; background: linear-gradient(135deg, #a855f7, #6366f1); font-size: 15px; padding: 12px;">✉️ Написать @rubl</button>
+        </a>
+        <div style="text-align: center; margin: 16px 0; position: relative;">
+            <div style="height: 1px; background: #f0f0f0;"></div>
+            <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 12px; color: #bbb; font-size: 13px;">или</span>
+        </div>
+        <p style="font-size: 13px; color: #888; text-align: center; margin-bottom: 12px;">Есть промокод? Активируй его:</p>
+        {% if error %}
+        <div class="alert-error">⚠️ {{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 12px; margin-bottom: 12px; color: #276749; font-size: 14px; text-align: center;">{{ success }}</div>
+        {% endif %}
+        {% if user %}
+        <form method="post" action="/activate_plus" style="display: flex; gap: 10px;">
+            <input type="text" name="code" placeholder="Введи промокод" style="margin-bottom: 0; flex: 1; text-transform: uppercase;">
+            <button class="btn" style="background: linear-gradient(135deg, #a855f7, #6366f1);">Активировать</button>
+        </form>
+        {% else %}
+        <a href="/login"><button class="btn-outline" style="width: 100%;">Войди чтобы активировать промокод</button></a>
+        {% endif %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

@@ -32,6 +32,7 @@ class User(Base):
     stories = relationship("Story", back_populates="author")
     push_subscriptions = relationship("PushSubscription", back_populates="user")
     achievements = relationship("UserAchievement", back_populates="user")
+    bookmarks = relationship("Bookmark", back_populates="user")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -43,6 +44,7 @@ class Post(Base):
     repost_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
     scheduled_at = Column(DateTime, nullable=True)
     is_published = Column(Boolean, default=True)
+    views = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="posts")
@@ -52,6 +54,7 @@ class Post(Base):
     reactions = relationship("Reaction", back_populates="post")
     poll = relationship("Poll", back_populates="post", uselist=False)
     original = relationship("Post", remote_side="Post.id", foreign_keys=[repost_id])
+    bookmarks = relationship("Bookmark", back_populates="post")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -221,3 +224,12 @@ class UserAchievement(Base):
     earned_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="achievements")
     achievement = relationship("Achievement")
+
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("posts.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="bookmarks")
+    post = relationship("Post", back_populates="bookmarks")

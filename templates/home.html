@@ -206,6 +206,11 @@
                     <button type="submit" class="like-btn">🔁</button>
                 </form>
                 {% endif %}
+{% if user and is_plus %}
+<form method="post" action="/bookmark/{{ post.id }}">
+    <button type="submit" class="like-btn" style="{% if post.id in bookmarked_ids %}color:#f59e0b{% endif %}" title="Закладка">🔖</button>
+</form>
+{% endif %}
                 <span style="color: #ccc;">·</span>
                 <a href="/post/{{ post.id }}" style="color:#888;font-size:13px;padding:5px 10px;border-radius:20px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">💬 {{ post.comments|length }}</a>
                 <span style="color: #ccc;">·</span>
