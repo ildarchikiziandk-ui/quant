@@ -9,7 +9,6 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f0f0; color: #0f0f0f; }
         .layout { display: flex; min-height: 100vh; max-width: 1120px; margin: 0 auto; gap: 28px; padding: 0 16px; }
 
-        /* SIDEBAR */
         .sidebar { width: 220px; padding: 20px 0; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; overflow-y: auto; }
         .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; text-decoration: none; padding: 8px 12px; border-radius: 14px; transition: background 0.15s; }
         .sidebar-logo:hover { background: rgba(0,0,0,0.05); }
@@ -17,8 +16,6 @@
         .sidebar-logo-text { font-size: 22px; font-weight: 800; color: #0f0f0f; letter-spacing: -1px; }
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; text-decoration: none; color: #555; font-size: 14px; font-weight: 500; transition: all 0.15s; position: relative; }
         .nav-item:hover { background: rgba(0,0,0,0.06); color: #0f0f0f; }
-        .nav-item.active { background: #0f0f0f; color: white; }
-        .nav-item.active svg { stroke: white; }
         .nav-icon { width: 20px; height: 20px; flex-shrink: 0; }
         .nav-label { font-size: 14px; font-weight: 500; }
         .nav-badge { background: #e53935; color: white; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; margin-left: auto; }
@@ -29,74 +26,128 @@
         .nav-logout:hover { background: #fff0f0 !important; }
         .nav-logout svg { stroke: #e53935 !important; }
 
-        /* MAIN */
         .main { flex: 1; max-width: 600px; padding: 24px 0; min-width: 0; }
         .right { width: 280px; padding: 24px 0; flex-shrink: 0; }
 
-        /* CARDS */
         .card { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 10px; border: 1px solid #e4e4e4; }
-        .card-flat { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 10px; }
 
-        /* BUTTONS */
         .btn { background: #0f0f0f; color: #fff; border: none; padding: 10px 22px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; font-family: inherit; }
-        .btn:hover { background: #2a2a2a; transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
+        .btn:hover { background: #2a2a2a; }
         .btn-outline { background: transparent; color: #0f0f0f; border: 1.5px solid #d4d4d4; padding: 9px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; font-family: inherit; }
         .btn-outline:hover { border-color: #0f0f0f; background: #f5f5f5; }
         .btn-follow { background: #0f0f0f; color: #fff; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s; }
         .btn-follow:hover { background: #2a2a2a; }
         .btn-unfollow { background: transparent; color: #0f0f0f; border: 1.5px solid #d4d4d4; padding: 7px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-family: inherit; }
 
-        /* INPUTS */
         input, textarea { width: 100%; padding: 11px 14px; border: 1.5px solid #e4e4e4; border-radius: 10px; font-size: 14px; margin-bottom: 12px; outline: none; transition: border 0.15s; font-family: inherit; background: #fff; color: #0f0f0f; }
         input:focus, textarea:focus { border-color: #0f0f0f; }
         textarea { resize: vertical; min-height: 80px; }
 
-        /* POSTS */
         .post-content { margin-bottom: 14px; line-height: 1.65; font-size: 15px; color: #1a1a1a; }
         .post-footer { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 
-        /* ACTION BUTTONS — новые чистые кнопки без эмодзи */
-        .action-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; font-size: 13px; color: #888; padding: 7px 12px; border-radius: 20px; transition: all 0.15s; font-family: inherit; font-weight: 500; }
+        .action-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; font-size: 13px; color: #888; padding: 7px 10px; border-radius: 20px; transition: all 0.15s; font-family: inherit; font-weight: 500; }
         .action-btn:hover { background: #f5f5f5; color: #0f0f0f; }
         .action-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
         .action-btn.liked { color: #e0245e; }
         .action-btn.liked:hover { background: #fff0f5; }
         .action-btn.whaled { color: #0ea5e9; }
-        .action-btn.whaled:hover { background: #f0faff; }
         .action-btn.bookmarked { color: #f59e0b; }
 
-        /* ALERTS */
         .alert-error { background: #fff5f5; border: 1px solid #ffd0d0; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; color: #cc0000; font-size: 14px; }
         a { color: inherit; text-decoration: none; }
 
-        /* BADGES */
         .badge-owner { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #0f0f0f; border-radius: 4px; margin-left: 3px; vertical-align: middle; }
         .badge-verify { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #1d9bf0; border-radius: 50%; margin-left: 3px; vertical-align: middle; }
         .badge-star { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 3px; vertical-align: middle; }
         .badge-mod { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 3px; vertical-align: middle; }
 
-        /* RIGHT SIDEBAR */
         .right-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #e4e4e4; }
         .right-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #0f0f0f; }
 
-        /* AVATAR */
         .avatar-circle { border-radius: 50%; overflow: hidden; background: #1a1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .avatar-circle span { color: white; font-weight: 700; }
 
-        /* MOBILE NAV */
-        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 1px solid #e4e4e4; padding: 10px 0 max(10px, env(safe-area-inset-bottom)); z-index: 100; }
-        .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
-        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; color: #888; font-size: 10px; padding: 4px 10px; border-radius: 10px; transition: color 0.15s; }
-        .mobile-nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-        .mobile-nav-item:hover, .mobile-nav-item.active { color: #0f0f0f; }
+        /* MOBILE NAV — полностью переработана */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid #e8e8e8;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .mobile-nav-inner {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 56px;
+        }
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #aaa;
+            flex: 1;
+            height: 56px;
+            position: relative;
+            transition: color 0.15s;
+        }
+        .mobile-nav-item svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .mobile-nav-item:hover { color: #0f0f0f; }
+        .mobile-nav-item.plus-btn {
+            color: white;
+        }
+        .mobile-nav-item.plus-btn .plus-inner {
+            width: 40px;
+            height: 40px;
+            background: #0f0f0f;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mobile-nav-badge {
+            position: absolute;
+            top: 6px;
+            right: calc(50% - 18px);
+            background: #e53935;
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            border-radius: 6px;
+            padding: 1px 4px;
+            min-width: 14px;
+            text-align: center;
+        }
 
-        /* DIVIDER */
-        .divider { height: 1px; background: #f0f0f0; margin: 12px 0; }
-
-        @media (max-width: 900px) { .right { display: none; } .sidebar { width: 72px; } .sidebar-logo-text { display: none; } .nav-label { display: none; } .sidebar-logo-img { width: 36px; height: 36px; } }
-        @media (max-width: 640px) { .sidebar { display: none; } .mobile-nav { display: block; } .layout { padding: 0 12px; } .main { padding: 14px 0 90px 0; } }
+        @media (max-width: 900px) {
+            .right { display: none; }
+            .sidebar { width: 72px; }
+            .sidebar-logo-text { display: none; }
+            .nav-label { display: none; }
+            .sidebar-logo-img { width: 36px; height: 36px; }
+        }
+        @media (max-width: 640px) {
+            .sidebar { display: none; }
+            .mobile-nav { display: block; }
+            .layout { padding: 0 12px; }
+            .main { padding: 14px 0 72px 0; }
+        }
     </style>
 </head>
 <body>
@@ -196,22 +247,20 @@
                 </div>
             </div>
         </div>
-
         <div class="right-card">
             <h3>Поиск</h3>
             <form method="get" action="/search">
                 <input type="text" name="q" placeholder="Люди, посты, теги..." style="margin-bottom: 0;">
             </form>
         </div>
-
         {% if not (is_plus is defined and is_plus) %}
-        <a href="/plus" style="display: block; text-decoration: none;">
+        <a href="/plus" style="display: block;">
             <div style="background: #0f0f0f; border-radius: 16px; padding: 16px; color: white; cursor: pointer; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                     <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 2V16M2 9H16" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
                     <span style="font-weight: 700; font-size: 14px;">Quant Plus</span>
                 </div>
-                <div style="font-size: 12px; opacity: 0.7; line-height: 1.4;">Реакции, закладки, статистика и значок</div>
+                <div style="font-size: 12px; opacity: 0.7;">Реакции, закладки, статистика</div>
             </div>
         </a>
         {% endif %}
@@ -219,8 +268,8 @@
     {% endif %}
 </div>
 
-<!-- MOBILE NAV -->
 {% if user %}
+<!-- MOBILE NAV -->
 <div class="mobile-nav">
     <div class="mobile-nav-inner">
         <a href="/" class="mobile-nav-item">
@@ -229,16 +278,18 @@
         <a href="/search" class="mobile-nav-item">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </a>
-        <a href="/notifications" class="mobile-nav-item" style="position:relative;">
+        <a href="/notifications" class="mobile-nav-item">
+            {% if unread > 0 %}<span class="mobile-nav-badge">{{ unread }}</span>{% endif %}
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            {% if unread > 0 %}<span style="position:absolute;top:2px;right:4px;background:#e53935;color:white;font-size:8px;font-weight:700;border-radius:6px;padding:1px 4px;">{{ unread }}</span>{% endif %}
         </a>
-        <a href="/messages" class="mobile-nav-item" style="position:relative;">
+        <a href="/messages" class="mobile-nav-item">
+            {% if unread_msg > 0 %}<span class="mobile-nav-badge">{{ unread_msg }}</span>{% endif %}
             <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            {% if unread_msg > 0 %}<span style="position:absolute;top:2px;right:4px;background:#e53935;color:white;font-size:8px;font-weight:700;border-radius:6px;padding:1px 4px;">{{ unread_msg }}</span>{% endif %}
         </a>
-        <a href="/plus" class="mobile-nav-item">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <a href="/plus" class="mobile-nav-item plus-btn">
+            <div class="plus-inner">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
         </a>
         <a href="/profile/{{ user.username }}" class="mobile-nav-item">
             <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
