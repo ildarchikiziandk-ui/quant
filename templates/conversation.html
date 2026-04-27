@@ -18,7 +18,18 @@
 <div class="card" id="messages-box" style="min-height: 420px; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 16px; scroll-behavior: smooth;">
     {% if messages %}
         {% for msg in messages %}
-        <div class="msg-item" data-id="{{ msg.id }}" style="display: flex; flex-direction: column; {% if msg.sender_id == user.id %}align-items: flex-end{% else %}align-items: flex-start{% endif %}; gap: 2px;">
+        <div class="msg-item" data-id="{{ msg.id }}" data-mine="{{ 'true' if msg.sender_id == user.id else 'false' }}" style="display: flex; flex-direction: column; {% if msg.sender_id == user.id %}align-items: flex-end{% else %}align-items: flex-start{% endif %}; gap: 2px;">
+
+            {% if msg.is_deleted %}
+            <div style="padding: 8px 14px; border-radius: 18px; background: #f0f0f0; color: #bbb; font-size: 13px; font-style: italic;">🗑 Сообщение удалено</div>
+            {% else %}
+
+            {% if msg.forwarded_from %}
+            <div style="font-size: 11px; color: #888; margin-bottom: 2px; padding: 0 4px;">
+                ↪ Переслано от <a href="/profile/{{ msg.forwarded_from.username }}" style="color:#1d9bf0;font-weight:600;">{{ msg.forwarded_from.name or msg.forwarded_from.username }}</a>
+            </div>
+            {% endif %}
+
             {% if msg.sender_id != user.id %}
             <div style="display: flex; align-items: flex-end; gap: 8px;">
                 <div class="avatar-circle" style="width: 26px; height: 26px; flex-shrink: 0;">
@@ -26,27 +37,59 @@
                 </div>
                 <div style="max-width: 72%;">
                     {% if msg.image %}<div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;"><img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>{% endif %}
-                    {% if msg.voice %}<div style="background: #f0f0f0; border-radius: 18px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;"><audio src="{{ msg.voice }}" controls style="height: 32px; max-width: 220px;"></audio></div>{% endif %}
+                    {% if msg.voice %}<div style="background: #f0f0f0; border-radius: 18px; padding: 10px 14px;"><audio src="{{ msg.voice }}" controls style="height: 32px; max-width: 220px;"></audio></div>{% endif %}
                     {% if msg.content %}<div style="padding: 10px 14px; border-radius: 18px 18px 18px 4px; background: #f0f0f0; color: #0f0f0f; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>{% endif %}
                 </div>
             </div>
             {% else %}
             <div style="max-width: 72%;">
                 {% if msg.image %}<div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;"><img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>{% endif %}
-                {% if msg.voice %}<div style="background: #1a1a1a; border-radius: 18px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;"><audio src="{{ msg.voice }}" controls style="height: 32px; max-width: 220px; filter: invert(1);"></audio></div>{% endif %}
+                {% if msg.voice %}<div style="background: #1a1a1a; border-radius: 18px; padding: 10px 14px;"><audio src="{{ msg.voice }}" controls style="height: 32px; max-width: 220px; filter: invert(1);"></audio></div>{% endif %}
                 {% if msg.content %}<div style="padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: #0f0f0f; color: white; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>{% endif %}
             </div>
             {% endif %}
-            <div style="font-size: 11px; color: #bbb; padding: 0 4px; display: flex; align-items: center; gap: 4px;">
-                {{ msg.created_at.strftime("%H:%M") }}
-                {% if msg.sender_id == user.id %}
-                    {% if msg.is_read %}
-                    <span style="color: #1d9bf0; font-size: 13px;">✓✓</span>
-                    {% elif msg.is_delivered %}
-                    <span style="color: #bbb; font-size: 13px;">✓✓</span>
+
+            <!-- Реакции на сообщение -->
+            {% set reactions = {} %}
+            {% for r in msg.msg_reactions %}
+                {% if r.emoji in reactions %}
+                {% else %}
+                {% endif %}
+            {% endfor %}
+            {% if msg.msg_reactions %}
+            <div class="msg-reactions" style="display: flex; gap: 4px; flex-wrap: wrap; padding: 0 4px;">
+                {% set reaction_counts = {} %}
+                {% for r in msg.msg_reactions %}
+                    {% if r.emoji not in reaction_counts %}
+                        {% set _ = reaction_counts.update({r.emoji: 1}) %}
                     {% else %}
-                    <span style="color: #bbb; font-size: 13px;">✓</span>
+                        {% set _ = reaction_counts.update({r.emoji: reaction_counts[r.emoji] + 1}) %}
                     {% endif %}
+                {% endfor %}
+                {% for emoji, count in reaction_counts.items() %}
+                <span style="background: #f0f0f0; border-radius: 20px; padding: 2px 8px; font-size: 13px; cursor: pointer;" onclick="toggleReaction({{ msg.id }}, '{{ emoji }}')">{{ emoji }} {{ count }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% endif %}
+
+            <!-- Время + галочки + кнопки действий -->
+            <div style="font-size: 11px; color: #bbb; padding: 0 4px; display: flex; align-items: center; gap: 6px;">
+                {{ msg.created_at.strftime("%H:%M") }}
+                {% if msg.sender_id == user.id and not msg.is_deleted %}
+                    {% if msg.is_read %}<span style="color: #1d9bf0; font-size: 13px;">✓✓</span>
+                    {% elif msg.is_delivered %}<span style="color: #bbb; font-size: 13px;">✓✓</span>
+                    {% else %}<span style="color: #bbb; font-size: 13px;">✓</span>{% endif %}
+                {% endif %}
+                {% if not msg.is_deleted %}
+                <span class="msg-actions" style="display: none; gap: 4px;">
+                    <button onclick="showReactionPicker({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;" title="Реакция">😊</button>
+                    <button onclick="showForwardDialog({{ msg.id }})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;" title="Переслать">↪</button>
+                    {% if msg.sender_id == user.id %}
+                    <button onclick="deleteMessage({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#e53935;" title="Удалить">🗑</button>
+                    {% endif %}
+                </span>
                 {% endif %}
             </div>
         </div>
@@ -56,6 +99,26 @@
             Начни диалог с @{{ other.username }} 👋
         </div>
     {% endif %}
+</div>
+
+<!-- Пикер реакций -->
+<div id="reaction-picker" style="display:none; position:fixed; background:#fff; border:1px solid #e8e8e8; border-radius:14px; box-shadow:0 4px 20px rgba(0,0,0,0.15); padding:10px 14px; z-index:200; gap:8px; font-size:22px;">
+    {% for emoji in ["❤️","😂","😮","👍","🔥","😢"] %}
+    <span style="cursor:pointer;padding:4px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background=''" onclick="pickReaction('{{ emoji }}')">{{ emoji }}</span>
+    {% endfor %}
+</div>
+
+<!-- Диалог пересылки -->
+<div id="forward-dialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:300; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; padding:24px; width:300px; max-width:90vw;">
+        <div style="font-weight:700; font-size:16px; margin-bottom:14px;">↪ Переслать сообщение</div>
+        <input type="text" id="forward-username" placeholder="Никнейм получателя" style="margin-bottom:12px;">
+        <div id="forward-error" style="color:#e53935;font-size:13px;margin-bottom:8px;display:none;"></div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn" onclick="confirmForward()" style="flex:1;">Переслать</button>
+            <button class="btn-outline" onclick="closeForwardDialog()" style="flex:1;">Отмена</button>
+        </div>
+    </div>
 </div>
 
 <div id="img-preview-wrap" style="display: none; padding: 8px 16px;">
@@ -85,161 +148,272 @@
 </div>
 
 <script>
-    const box = document.getElementById('messages-box');
-    const otherUsername = "{{ other.username }}";
-    const currentUserId = {{ user.id }};
-    const otherAvatar = "{{ other.avatar or '' }}";
-    const otherInitial = "{{ other.username[0].upper() }}";
+const box = document.getElementById('messages-box');
+const otherUsername = "{{ other.username }}";
+const currentUserId = {{ user.id }};
+const otherAvatar = "{{ other.avatar or '' }}";
+const otherInitial = "{{ other.username[0].upper() }}";
 
-    function scrollToBottom() { box.scrollTop = box.scrollHeight; }
-    scrollToBottom();
+function scrollToBottom() { box.scrollTop = box.scrollHeight; }
+scrollToBottom();
 
-    function previewImage(input) {
-        const file = input.files[0];
-        if (!file) return;
-        document.getElementById('img-preview').src = URL.createObjectURL(file);
-        document.getElementById('img-preview-wrap').style.display = 'block';
-    }
-    function clearImage() {
-        document.getElementById('img-input').value = '';
-        document.getElementById('img-preview-wrap').style.display = 'none';
-    }
-    function previewVoice(input) {
-        if (!input.files[0]) return;
-        const wrap = document.getElementById('voice-preview-wrap');
-        wrap.style.display = 'flex';
-    }
-    function clearVoice() {
-        document.getElementById('voice-input').value = '';
-        document.getElementById('voice-preview-wrap').style.display = 'none';
-    }
+// Показываем кнопки действий при наведении
+document.querySelectorAll('.msg-item').forEach(item => {
+    item.addEventListener('mouseenter', () => {
+        const actions = item.querySelector('.msg-actions');
+        if (actions) actions.style.display = 'flex';
+    });
+    item.addEventListener('mouseleave', () => {
+        const actions = item.querySelector('.msg-actions');
+        if (actions) actions.style.display = 'none';
+    });
+});
 
-    // Запись голоса
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
+// Реакции
+let currentReactionMsgId = null;
+let reactionPickerAnchor = null;
 
-    async function toggleVoiceRecording() {
-        const btn = document.getElementById('voice-btn');
-        if (!isRecording) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioChunks = [];
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const file = new File([blob], 'voice.webm', { type: 'audio/webm' });
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    document.getElementById('voice-input').files = dt.files;
-                    previewVoice(document.getElementById('voice-input'));
-                    stream.getTracks().forEach(t => t.stop());
-                };
-                mediaRecorder.start();
-                isRecording = true;
-                btn.textContent = '⏹';
-                btn.style.color = '#e53935';
-            } catch(e) {
-                alert('Нет доступа к микрофону');
-            }
-        } else {
-            mediaRecorder.stop();
-            isRecording = false;
-            btn.textContent = '🎙';
-            btn.style.color = '#888';
+function showReactionPicker(msgId, btn) {
+    currentReactionMsgId = msgId;
+    const picker = document.getElementById('reaction-picker');
+    const rect = btn.getBoundingClientRect();
+    picker.style.display = 'flex';
+    picker.style.top = (rect.top - 60) + 'px';
+    picker.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+    reactionPickerAnchor = btn;
+}
+
+function pickReaction(emoji) {
+    if (!currentReactionMsgId) return;
+    document.getElementById('reaction-picker').style.display = 'none';
+    toggleReaction(currentReactionMsgId, emoji);
+}
+
+async function toggleReaction(msgId, emoji) {
+    const res = await fetch(`/api/message/react/${msgId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({emoji})
+    });
+    const data = await res.json();
+    if (data.ok) updateReactionsUI(msgId, data.reactions);
+}
+
+function updateReactionsUI(msgId, reactions) {
+    const item = document.querySelector(`.msg-item[data-id="${msgId}"]`);
+    if (!item) return;
+    let reactionsDiv = item.querySelector('.msg-reactions');
+    if (!reactionsDiv) {
+        reactionsDiv = document.createElement('div');
+        reactionsDiv.className = 'msg-reactions';
+        reactionsDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;';
+        const timeDiv = item.querySelector('div[style*="font-size: 11px"]');
+        if (timeDiv) item.insertBefore(reactionsDiv, timeDiv);
+    }
+    reactionsDiv.innerHTML = '';
+    for (const [emoji, count] of Object.entries(reactions)) {
+        if (count > 0) {
+            const span = document.createElement('span');
+            span.style.cssText = 'background:#f0f0f0;border-radius:20px;padding:2px 8px;font-size:13px;cursor:pointer;';
+            span.textContent = `${emoji} ${count}`;
+            span.onclick = () => toggleReaction(msgId, emoji);
+            reactionsDiv.appendChild(span);
         }
     }
+}
 
-    // Статус "печатает"
-    const msgInput = document.getElementById('msg-input');
-    let typingTimer = null;
-    msgInput.addEventListener('input', () => {
-        fetch(`/api/typing/${otherUsername}`, { method: 'POST' });
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => {}, 3000);
+document.addEventListener('click', e => {
+    const picker = document.getElementById('reaction-picker');
+    if (picker.style.display !== 'none' && !picker.contains(e.target) && e.target !== reactionPickerAnchor) {
+        picker.style.display = 'none';
+    }
+});
+
+// Удаление сообщения
+async function deleteMessage(msgId, btn) {
+    if (!confirm('Удалить сообщение?')) return;
+    const res = await fetch(`/api/message/delete/${msgId}`, {method: 'POST'});
+    const data = await res.json();
+    if (data.ok) {
+        const item = document.querySelector(`.msg-item[data-id="${msgId}"]`);
+        if (item) {
+            item.innerHTML = `<div style="padding:8px 14px;border-radius:18px;background:#f0f0f0;color:#bbb;font-size:13px;font-style:italic;">🗑 Сообщение удалено</div>`;
+        }
+    }
+}
+
+// Пересылка
+let forwardMsgId = null;
+
+function showForwardDialog(msgId) {
+    forwardMsgId = msgId;
+    document.getElementById('forward-username').value = '';
+    document.getElementById('forward-error').style.display = 'none';
+    document.getElementById('forward-dialog').style.display = 'flex';
+}
+
+function closeForwardDialog() {
+    document.getElementById('forward-dialog').style.display = 'none';
+    forwardMsgId = null;
+}
+
+async function confirmForward() {
+    const username = document.getElementById('forward-username').value.trim();
+    if (!username) return;
+    const res = await fetch(`/api/message/forward/${forwardMsgId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({to_username: username})
     });
-
-    // Автообновление чата
-    let lastMsgId = 0;
-    const msgs = document.querySelectorAll('.msg-item');
-    if (msgs.length > 0) lastMsgId = parseInt(msgs[msgs.length - 1].dataset.id) || 0;
-
-    function avatarHtml(size) {
-        if (otherAvatar) return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>`;
-        return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:600;">${otherInitial}</span></div>`;
+    const data = await res.json();
+    if (data.ok) {
+        closeForwardDialog();
+        alert(`Переслано пользователю @${data.to}`);
+    } else {
+        const err = document.getElementById('forward-error');
+        err.textContent = data.error || 'Ошибка';
+        err.style.display = 'block';
     }
+}
 
-    function ticksHtml(is_read, is_delivered) {
-        if (is_read) return '<span style="color:#1d9bf0;font-size:13px;">✓✓</span>';
-        if (is_delivered) return '<span style="color:#bbb;font-size:13px;">✓✓</span>';
-        return '<span style="color:#bbb;font-size:13px;">✓</span>';
-    }
+// Голосовые
+function previewImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('img-preview').src = URL.createObjectURL(file);
+    document.getElementById('img-preview-wrap').style.display = 'block';
+}
+function clearImage() {
+    document.getElementById('img-input').value = '';
+    document.getElementById('img-preview-wrap').style.display = 'none';
+}
+function previewVoice(input) {
+    if (!input.files[0]) return;
+    document.getElementById('voice-preview-wrap').style.display = 'flex';
+}
+function clearVoice() {
+    document.getElementById('voice-input').value = '';
+    document.getElementById('voice-preview-wrap').style.display = 'none';
+}
 
-    async function pollMessages() {
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function toggleVoiceRecording() {
+    const btn = document.getElementById('voice-btn');
+    if (!isRecording) {
         try {
-            const res = await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`);
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data.messages && data.messages.length > 0) {
-                const empty = document.getElementById('empty-msg');
-                if (empty) empty.remove();
-                const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-                data.messages.forEach(msg => {
-                    lastMsgId = Math.max(lastMsgId, msg.id);
-                    const div = document.createElement('div');
-                    div.className = 'msg-item';
-                    div.dataset.id = msg.id;
-                    const isMine = msg.sender_id === currentUserId;
-                    div.style.cssText = `display:flex;flex-direction:column;${isMine ? 'align-items:flex-end' : 'align-items:flex-start'};gap:2px;`;
-                    let inner = '';
-                    if (isMine) {
-                        inner = `<div style="max-width:72%;">`;
-                        if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
-                        if (msg.voice) inner += `<div style="background:#1a1a1a;border-radius:18px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>`;
-                        if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 4px 18px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                        inner += `</div>`;
-                    } else {
-                        inner = `<div style="display:flex;align-items:flex-end;gap:8px;">${avatarHtml(26)}<div style="max-width:72%;">`;
-                        if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
-                        if (msg.voice) inner += `<div style="background:#f0f0f0;border-radius:18px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;"></audio></div>`;
-                        if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 18px 4px;background:#f0f0f0;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                        inner += `</div></div>`;
-                    }
-                    inner += `<div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:4px;">${msg.time}${isMine ? ticksHtml(msg.is_read, msg.is_delivered) : ''}</div>`;
-                    div.innerHTML = inner;
-                    box.appendChild(div);
-                });
-                if (wasAtBottom) scrollToBottom();
-            }
-            // Обновляем галочки для своих сообщений
-            document.querySelectorAll('.msg-item').forEach(item => {
-                const msgData = data.messages.find(m => m.id === parseInt(item.dataset.id));
-                if (msgData) {
-                    const timeDiv = item.querySelector('div[style*="font-size:11px"]');
-                    if (timeDiv && msgData.sender_id === currentUserId) {
-                        const ticks = timeDiv.querySelector('span');
-                        if (ticks) ticks.outerHTML = ticksHtml(msgData.is_read, msgData.is_delivered);
-                    }
+            const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+            audioChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(audioChunks, {type: 'audio/webm'});
+                const file = new File([blob], 'voice.webm', {type: 'audio/webm'});
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                document.getElementById('voice-input').files = dt.files;
+                previewVoice(document.getElementById('voice-input'));
+                stream.getTracks().forEach(t => t.stop());
+            };
+            mediaRecorder.start();
+            isRecording = true;
+            btn.textContent = '⏹';
+            btn.style.color = '#e53935';
+        } catch(e) { alert('Нет доступа к микрофону'); }
+    } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        btn.textContent = '🎙';
+        btn.style.color = '#888';
+    }
+}
+
+// Статус "печатает"
+const msgInput = document.getElementById('msg-input');
+msgInput.addEventListener('input', () => {
+    fetch(`/api/typing/${otherUsername}`, {method: 'POST'});
+});
+
+// Автообновление чата
+let lastMsgId = 0;
+const msgs = document.querySelectorAll('.msg-item');
+if (msgs.length > 0) lastMsgId = parseInt(msgs[msgs.length - 1].dataset.id) || 0;
+
+function avatarHtml(size) {
+    if (otherAvatar) return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>`;
+    return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:600;">${otherInitial}</span></div>`;
+}
+
+function ticksHtml(is_read, is_delivered) {
+    if (is_read) return '<span style="color:#1d9bf0;font-size:13px;">✓✓</span>';
+    if (is_delivered) return '<span style="color:#bbb;font-size:13px;">✓✓</span>';
+    return '<span style="color:#bbb;font-size:13px;">✓</span>';
+}
+
+async function pollMessages() {
+    try {
+        const res = await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+            const empty = document.getElementById('empty-msg');
+            if (empty) empty.remove();
+            const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+            data.messages.forEach(msg => {
+                lastMsgId = Math.max(lastMsgId, msg.id);
+                if (msg.is_deleted) return;
+                const div = document.createElement('div');
+                div.className = 'msg-item';
+                div.dataset.id = msg.id;
+                div.dataset.mine = msg.sender_id === currentUserId ? 'true' : 'false';
+                const isMine = msg.sender_id === currentUserId;
+                div.style.cssText = `display:flex;flex-direction:column;${isMine ? 'align-items:flex-end' : 'align-items:flex-start'};gap:2px;`;
+                let fwd = '';
+                if (msg.forwarded_from_name) {
+                    fwd = `<div style="font-size:11px;color:#888;margin-bottom:2px;padding:0 4px;">↪ Переслано от <span style="color:#1d9bf0;font-weight:600;">${msg.forwarded_from_name}</span></div>`;
                 }
+                let inner = fwd;
+                if (isMine) {
+                    inner += `<div style="max-width:72%;">`;
+                    if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    if (msg.voice) inner += `<div style="background:#1a1a1a;border-radius:18px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>`;
+                    if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 4px 18px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
+                    inner += `</div>`;
+                } else {
+                    inner += `<div style="display:flex;align-items:flex-end;gap:8px;">${avatarHtml(26)}<div style="max-width:72%;">`;
+                    if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    if (msg.voice) inner += `<div style="background:#f0f0f0;border-radius:18px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;"></audio></div>`;
+                    if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 18px 4px;background:#f0f0f0;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
+                    inner += `</div></div>`;
+                }
+                const actionsHtml = `<span class="msg-actions" style="display:none;gap:4px;">
+                    <button onclick="showReactionPicker(${msg.id}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;">😊</button>
+                    <button onclick="showForwardDialog(${msg.id})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;">↪</button>
+                    ${isMine ? `<button onclick="deleteMessage(${msg.id}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#e53935;">🗑</button>` : ''}
+                </span>`;
+                inner += `<div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:6px;">${msg.time}${isMine ? ticksHtml(msg.is_read, msg.is_delivered) : ''}${actionsHtml}</div>`;
+                div.innerHTML = inner;
+                div.addEventListener('mouseenter', () => { const a = div.querySelector('.msg-actions'); if (a) a.style.display = 'flex'; });
+                div.addEventListener('mouseleave', () => { const a = div.querySelector('.msg-actions'); if (a) a.style.display = 'none'; });
+                box.appendChild(div);
             });
-        } catch(e) {}
-    }
+            if (wasAtBottom) scrollToBottom();
+        }
+    } catch(e) {}
+}
 
-    async function pollTyping() {
-        try {
-            const res = await fetch(`/api/typing/${otherUsername}`);
-            const data = await res.json();
-            const el = document.getElementById('typing-status');
-            if (data.typing) {
-                el.innerHTML = '<span style="color:#1d9bf0;">печатает...</span>';
-            } else {
-                el.textContent = '@' + otherUsername;
-            }
-        } catch(e) {}
-    }
+async function pollTyping() {
+    try {
+        const res = await fetch(`/api/typing/${otherUsername}`);
+        const data = await res.json();
+        const el = document.getElementById('typing-status');
+        el.innerHTML = data.typing ? '<span style="color:#1d9bf0;">печатает...</span>' : '@' + otherUsername;
+    } catch(e) {}
+}
 
-    setInterval(pollMessages, 3000);
-    setInterval(pollTyping, 2000);
+setInterval(pollMessages, 3000);
+setInterval(pollTyping, 2000);
 </script>
 {% endblock %}

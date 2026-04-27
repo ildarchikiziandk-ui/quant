@@ -69,6 +69,8 @@ try:
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS voice VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_id INTEGER"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS text VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS reply_email VARCHAR DEFAULT ''"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), text VARCHAR DEFAULT '', reply_email VARCHAR DEFAULT '', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
@@ -87,6 +89,7 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS achievements (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, name VARCHAR, description VARCHAR, emoji VARCHAR)"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS user_achievements (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), achievement_id INTEGER REFERENCES achievements(id), earned_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS bookmarks (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id), created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS message_reactions (id SERIAL PRIMARY KEY, message_id INTEGER REFERENCES messages(id), user_id INTEGER REFERENCES users(id), emoji VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         for a in ACHIEVEMENTS_LIST:
             conn.execute(text(f"INSERT INTO achievements (code, name, description, emoji) VALUES ('{a['code']}', '{a['name']}', '{a['description']}', '{a['emoji']}') ON CONFLICT (code) DO NOTHING"))
@@ -130,12 +133,12 @@ def get_unread(user, db):
 def get_unread_messages(user, db):
     if not user:
         return 0
-    return db.query(models.Message).filter(models.Message.receiver_id == user.id, models.Message.is_read == False).count()
+    return db.query(models.Message).filter(models.Message.receiver_id == user.id, models.Message.is_read == False, models.Message.is_deleted == False).count()
 
 def get_unread_from(user, db):
     if not user:
         return set()
-    msgs = db.query(models.Message.sender_id).filter(models.Message.receiver_id == user.id, models.Message.is_read == False).distinct().all()
+    msgs = db.query(models.Message.sender_id).filter(models.Message.receiver_id == user.id, models.Message.is_read == False, models.Message.is_deleted == False).distinct().all()
     return set(m[0] for m in msgs)
 
 def can_moderate(user):
@@ -391,7 +394,8 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     bookmarked_ids = set()
     if user:
         bookmarked_ids = set(b.post_id for b in user.bookmarks)
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": bookmarked_ids})
+    top_post_id = posts[0].id if posts else 0
+    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": bookmarked_ids, "top_post_id": top_post_id})
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -477,14 +481,14 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         return RedirectResponse("/", status_code=302)
     if check_stop_words(content, db):
         posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
-        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": set()})
+        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": set(), "top_post_id": 0})
     media_url = ""
     media_type = ""
     if media and media.filename:
         url, type_or_error = save_media_file(media)
         if url is None and type_or_error:
             posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": set()})
+            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": set(), "top_post_id": 0})
         if url:
             media_url = url
             media_type = type_or_error
@@ -839,7 +843,7 @@ def conversation(username: str, request: Request, db: Session = Depends(get_db))
         return RedirectResponse("/messages", status_code=302)
     msgs = db.query(models.Message).filter(((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) | ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))).order_by(models.Message.created_at).all()
     for msg in msgs:
-        if msg.receiver_id == user.id and not msg.is_read:
+        if msg.receiver_id == user.id and not msg.is_read and not msg.is_deleted:
             msg.is_read = True
             msg.is_delivered = True
     db.commit()
@@ -1113,13 +1117,35 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return JSONResponse({"messages": []})
-    msgs = db.query(models.Message).filter(((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) | ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))).filter(models.Message.id > after).order_by(models.Message.created_at).all()
+    msgs = db.query(models.Message).filter(
+        ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
+        ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))
+    ).filter(models.Message.id > after).order_by(models.Message.created_at).all()
     for msg in msgs:
-        if msg.receiver_id == user.id and not msg.is_read:
+        if msg.receiver_id == user.id and not msg.is_read and not msg.is_deleted:
             msg.is_read = True
             msg.is_delivered = True
     db.commit()
-    return JSONResponse({"messages": [{"id": m.id, "sender_id": m.sender_id, "content": m.content, "image": m.image or "", "voice": m.voice or "", "time": m.created_at.strftime("%H:%M"), "is_read": m.is_read, "is_delivered": m.is_delivered} for m in msgs]})
+    result = []
+    for m in msgs:
+        reactions = {}
+        for r in m.msg_reactions:
+            reactions[r.emoji] = reactions.get(r.emoji, 0) + 1
+        result.append({
+            "id": m.id,
+            "sender_id": m.sender_id,
+            "content": "" if m.is_deleted else m.content,
+            "image": "" if m.is_deleted else (m.image or ""),
+            "voice": "" if m.is_deleted else (m.voice or ""),
+            "time": m.created_at.strftime("%H:%M"),
+            "is_read": m.is_read,
+            "is_delivered": m.is_delivered,
+            "is_deleted": m.is_deleted,
+            "forwarded_from_id": m.forwarded_from_id,
+            "forwarded_from_name": (m.forwarded_from.name or m.forwarded_from.username) if m.forwarded_from else None,
+            "reactions": reactions,
+        })
+    return JSONResponse({"messages": result})
 
 @app.post("/api/typing/{username}")
 def api_typing(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1190,6 +1216,99 @@ def api_ping(request: Request, db: Session = Depends(get_db)):
         user.last_seen = datetime.utcnow()
         db.commit()
     return JSONResponse({"ok": True})
+
+@app.post("/api/message/react/{message_id}")
+async def react_to_message(message_id: int, request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    from collections import Counter
+    user = auth.get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False})
+    data = await request.json()
+    emoji = data.get("emoji", "")
+    allowed = ["❤️", "😂", "😮", "👍", "🔥", "😢"]
+    if emoji not in allowed:
+        return JSONResponse({"ok": False})
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg or msg.is_deleted:
+        return JSONResponse({"ok": False})
+    existing = db.query(models.MessageReaction).filter(models.MessageReaction.message_id == message_id, models.MessageReaction.user_id == user.id, models.MessageReaction.emoji == emoji).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.MessageReaction(message_id=message_id, user_id=user.id, emoji=emoji))
+    db.commit()
+    reactions = db.query(models.MessageReaction).filter(models.MessageReaction.message_id == message_id).all()
+    counts = Counter(r.emoji for r in reactions)
+    return JSONResponse({"ok": True, "reactions": dict(counts)})
+
+@app.post("/api/message/delete/{message_id}")
+def delete_message_api(message_id: int, request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    user = auth.get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False})
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg:
+        return JSONResponse({"ok": False})
+    if msg.sender_id != user.id and not user.is_owner:
+        return JSONResponse({"ok": False})
+    msg.is_deleted = True
+    msg.content = ""
+    msg.image = ""
+    msg.voice = ""
+    db.commit()
+    return JSONResponse({"ok": True})
+
+@app.post("/api/message/forward/{message_id}")
+async def forward_message(message_id: int, request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    user = auth.get_current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False})
+    data = await request.json()
+    to_username = data.get("to_username", "")
+    other = db.query(models.User).filter(models.User.username == to_username).first()
+    if not other:
+        return JSONResponse({"ok": False, "error": "Пользователь не найден"})
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg or msg.is_deleted:
+        return JSONResponse({"ok": False})
+    new_msg = models.Message(sender_id=user.id, receiver_id=other.id, content=msg.content, image=msg.image, voice=msg.voice, forwarded_from_id=msg.sender_id, is_delivered=True)
+    db.add(new_msg)
+    db.commit()
+    return JSONResponse({"ok": True, "to": other.username})
+
+@app.get("/api/feed/new")
+def api_feed_new(request: Request, after: int = 0, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    user = auth.get_current_user(request, db)
+    if user:
+        user.last_seen = datetime.utcnow()
+    scheduled = db.query(models.Post).filter(models.Post.is_published == False, models.Post.scheduled_at <= datetime.utcnow()).all()
+    for p in scheduled:
+        p.is_published = True
+    if scheduled:
+        db.commit()
+    posts = db.query(models.Post).filter(models.Post.is_published == True, models.Post.id > after).order_by(models.Post.created_at.desc()).limit(20).all()
+    result = []
+    for p in posts:
+        result.append({
+            "id": p.id,
+            "content": p.content,
+            "author_username": p.author.username,
+            "author_name": p.author.name or p.author.username,
+            "author_avatar": p.author.avatar or "",
+            "created_at": p.created_at.strftime("%d.%m.%Y %H:%M"),
+            "likes": len(p.likes),
+            "comments": len(p.comments),
+            "image": p.image or "",
+            "media_type": p.media_type or "",
+            "is_repost": p.is_repost,
+        })
+    if user:
+        db.commit()
+    return JSONResponse({"posts": result})
 
 @app.get("/auth/yandex/callback")
 async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):

@@ -12,8 +12,6 @@
                 <textarea name="content" id="post-content" placeholder="Что происходит? @упоминания и #хэштеги" required style="border: none; padding: 8px 0; font-size: 16px; resize: none; min-height: 60px; border-bottom: 1.5px solid #e8e8e8; border-radius: 0; margin-bottom: 12px; width: 100%;"></textarea>
                 <div id="mention-dropdown" style="display:none; position:absolute; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.10); z-index:100; min-width:200px; overflow:hidden;"></div>
             </div>
-
-            <!-- Блок опроса -->
             <div id="poll-block" style="display:none; background:#f9f9f9; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #e8e8e8;">
                 <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#555;">🗳 Опрос</div>
                 <input type="text" name="poll_question" placeholder="Вопрос опроса..." style="margin-bottom:8px; font-size:13px; padding:8px 12px;">
@@ -22,13 +20,10 @@
                 <input type="text" name="poll_option_3" placeholder="Вариант 3 (необязательно)" style="margin-bottom:6px; font-size:13px; padding:8px 12px;">
                 <input type="text" name="poll_option_4" placeholder="Вариант 4 (необязательно)" style="margin-bottom:0; font-size:13px; padding:8px 12px;">
             </div>
-
-            <!-- Запланированный пост -->
             <div id="schedule-block" style="display:none; background:#f0f7ff; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #bde0fe;">
                 <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#0369a1;">📅 Запланировать публикацию</div>
                 <input type="datetime-local" name="scheduled_at" style="margin-bottom:0; font-size:13px; padding:8px 12px;">
             </div>
-
             <div id="media-preview" style="display: none; position: relative; margin-bottom: 12px; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #e8e8e8;">
                 <img id="preview-img" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;">
                 <video id="preview-video" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;" controls></video>
@@ -122,14 +117,13 @@
     </div>
     {% endif %}
     <div style="display: flex; gap: 12px;">
-        <a href="/profile/{{ post.author.username if not post.is_repost else post.original.author.username }}">
+        {% set display_author = post.original.author if post.is_repost and post.original else post.author %}
+        <a href="/profile/{{ display_author.username }}">
             <div class="avatar-circle" style="width: 40px; height: 40px;">
-                {% set display_author = post.original.author if post.is_repost and post.original else post.author %}
                 {% if display_author.avatar %}<img src="{{ display_author.avatar }}">{% else %}<span style="font-size: 15px;">{{ display_author.username[0].upper() }}</span>{% endif %}
             </div>
         </a>
         <div style="flex: 1; min-width: 0;">
-            {% set display_author = post.original.author if post.is_repost and post.original else post.author %}
             <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; flex-wrap: wrap;">
                 <a href="/profile/{{ display_author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">{{ display_author.name or display_author.username }}</a>
                 {% if display_author.is_owner %}{{ owner_badge() }}{% endif %}
@@ -154,16 +148,12 @@
                 {% endif %}
             </div>
             {% endif %}
-
-            <!-- ОПРОС -->
             {% if post.poll %}
             {% set total_votes = post.poll.options | map(attribute='votes') | map('length') | sum %}
             <div style="background: #f9f9f9; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #e8e8e8;">
                 <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px;">🗳 {{ post.poll.question }}</div>
                 {% set user_voted = false %}
-                {% if user %}
-                    {% for opt in post.poll.options %}{% for v in opt.votes %}{% if v.user_id == user.id %}{% set user_voted = true %}{% endif %}{% endfor %}{% endfor %}
-                {% endif %}
+                {% if user %}{% for opt in post.poll.options %}{% for v in opt.votes %}{% if v.user_id == user.id %}{% set user_voted = true %}{% endif %}{% endfor %}{% endfor %}{% endif %}
                 {% for option in post.poll.options %}
                 {% set vote_count = option.votes | length %}
                 {% set pct = ((vote_count / total_votes * 100) | round(0) | int) if total_votes > 0 else 0 %}
@@ -181,7 +171,6 @@
                 <div style="font-size:12px;color:#bbb;margin-top:6px;">{{ total_votes }} голосов</div>
             </div>
             {% endif %}
-
             <div class="post-footer">
                 {% set user_liked = false %}
                 {% set user_whaled = false %}
@@ -206,15 +195,18 @@
                     <button type="submit" class="like-btn">🔁</button>
                 </form>
                 {% endif %}
-{% if user and is_plus %}
-<form method="post" action="/bookmark/{{ post.id }}">
-    <button type="submit" class="like-btn" style="{% if post.id in bookmarked_ids %}color:#f59e0b{% endif %}" title="Закладка">🔖</button>
-</form>
-{% endif %}
+                {% if user and is_plus %}
+                <form method="post" action="/bookmark/{{ post.id }}">
+                    <button type="submit" class="like-btn" style="{% if post.id in bookmarked_ids %}color:#f59e0b{% endif %}" title="Закладка">🔖</button>
+                </form>
+                {% endif %}
                 <span style="color: #ccc;">·</span>
                 <a href="/post/{{ post.id }}" style="color:#888;font-size:13px;padding:5px 10px;border-radius:20px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">💬 {{ post.comments|length }}</a>
                 <span style="color: #ccc;">·</span>
                 <button id="share-btn-{{ post.id }}" onclick="sharePost({{ post.id }})" style="background: none; border: none; cursor: pointer; font-size: 13px; color: #888; padding: 5px 10px; border-radius: 20px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">🔗</button>
+                {% if is_plus and user and user.id == post.author.id %}
+                <span style="color:#bbb;font-size:12px;margin-left:auto;">👁 {{ post.views or 0 }}</span>
+                {% endif %}
             </div>
             {% if post.comments %}
             <div style="margin-top: 12px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
@@ -350,5 +342,31 @@ document.querySelectorAll('.like-form, .whale-form').forEach(form => {
         }
     });
 });
+
+// Автообновление ленты
+let topPostId = {{ top_post_id or 0 }};
+
+async function checkNewPosts() {
+    try {
+        const res = await fetch(`/api/feed/new?after=${topPostId}`);
+        const data = await res.json();
+        if (data.posts && data.posts.length > 0) {
+            topPostId = data.posts[0].id;
+            let banner = document.getElementById('new-posts-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'new-posts-banner';
+                banner.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:white;padding:10px 24px;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+                banner.onclick = () => window.location.reload();
+                document.body.appendChild(banner);
+            }
+            const c = data.posts.length;
+            banner.textContent = `↑ ${c} новых пост${c === 1 ? '' : c < 5 ? 'а' : 'ов'} — нажми чтобы обновить`;
+            banner.style.display = 'block';
+        }
+    } catch(e) {}
+}
+
+setInterval(checkNewPosts, 30000);
 </script>
 {% endblock %}

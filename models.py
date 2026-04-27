@@ -104,11 +104,25 @@ class Message(Base):
     content = Column(Text, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
+    forwarded_from_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     is_delivered = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
+    forwarded_from = relationship("User", foreign_keys=[forwarded_from_id])
+    msg_reactions = relationship("MessageReaction", back_populates="message")
+
+class MessageReaction(Base):
+    __tablename__ = "message_reactions"
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    emoji = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    message = relationship("Message", back_populates="msg_reactions")
+    user = relationship("User")
 
 class Notification(Base):
     __tablename__ = "notifications"
