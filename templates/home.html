@@ -1,56 +1,74 @@
 {% extends "base.html" %}
 {% from "badges.html" import owner_badge, verify_badge, star_badge %}
 {% block content %}
+
 {% if user %}
 <div class="card">
     <div style="display: flex; gap: 12px;">
-        <div class="avatar-circle" style="width: 40px; height: 40px;">
+        <div class="avatar-circle" style="width: 40px; height: 40px; flex-shrink: 0;">
             {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 15px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
         <form method="post" action="/post" enctype="multipart/form-data" style="flex: 1;" id="post-form">
             <div style="position: relative;">
-                <textarea name="content" id="post-content" placeholder="Что происходит? @упоминания и #хэштеги" required style="border: none; padding: 8px 0; font-size: 16px; resize: none; min-height: 60px; border-bottom: 1.5px solid #e8e8e8; border-radius: 0; margin-bottom: 12px; width: 100%;"></textarea>
-                <div id="mention-dropdown" style="display:none; position:absolute; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.10); z-index:100; min-width:200px; overflow:hidden;"></div>
+                <textarea name="content" id="post-content" placeholder="Что происходит?" required style="border: none; border-bottom: 1.5px solid #ebebeb; border-radius: 0; padding: 8px 0; font-size: 15px; resize: none; min-height: 56px; margin-bottom: 12px; width: 100%; background: transparent;"></textarea>
+                <div id="mention-dropdown" style="display:none; position:absolute; background:#fff; border:1px solid #e4e4e4; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.10); z-index:100; min-width:200px; overflow:hidden;"></div>
             </div>
-            <div id="poll-block" style="display:none; background:#f9f9f9; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #e8e8e8;">
-                <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#555;">🗳 Опрос</div>
-                <input type="text" name="poll_question" placeholder="Вопрос опроса..." style="margin-bottom:8px; font-size:13px; padding:8px 12px;">
-                <input type="text" name="poll_option_1" placeholder="Вариант 1" style="margin-bottom:6px; font-size:13px; padding:8px 12px;">
-                <input type="text" name="poll_option_2" placeholder="Вариант 2" style="margin-bottom:6px; font-size:13px; padding:8px 12px;">
-                <input type="text" name="poll_option_3" placeholder="Вариант 3 (необязательно)" style="margin-bottom:6px; font-size:13px; padding:8px 12px;">
-                <input type="text" name="poll_option_4" placeholder="Вариант 4 (необязательно)" style="margin-bottom:0; font-size:13px; padding:8px 12px;">
+
+            <div id="poll-block" style="display:none; background:#f8f8f8; border-radius:12px; padding:14px; margin-bottom:12px; border:1px solid #ebebeb;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:#555;">Опрос</div>
+                <input type="text" name="poll_question" placeholder="Вопрос..." style="margin-bottom:8px; font-size:13px;">
+                <input type="text" name="poll_option_1" placeholder="Вариант 1" style="margin-bottom:6px; font-size:13px;">
+                <input type="text" name="poll_option_2" placeholder="Вариант 2" style="margin-bottom:6px; font-size:13px;">
+                <input type="text" name="poll_option_3" placeholder="Вариант 3 (необяз.)" style="margin-bottom:6px; font-size:13px;">
+                <input type="text" name="poll_option_4" placeholder="Вариант 4 (необяз.)" style="margin-bottom:0; font-size:13px;">
             </div>
-            <div id="schedule-block" style="display:none; background:#f0f7ff; border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid #bde0fe;">
-                <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#0369a1;">📅 Запланировать публикацию</div>
-                <input type="datetime-local" name="scheduled_at" style="margin-bottom:0; font-size:13px; padding:8px 12px;">
+
+            <div id="schedule-block" style="display:none; background:#f0f7ff; border-radius:12px; padding:14px; margin-bottom:12px; border:1px solid #bde0fe;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#0369a1;">Запланировать</div>
+                <input type="datetime-local" name="scheduled_at" style="margin-bottom:0; font-size:13px;">
             </div>
-            <div id="media-preview" style="display: none; position: relative; margin-bottom: 12px; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #e8e8e8;">
-                <img id="preview-img" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;">
-                <video id="preview-video" style="display: none; max-width: 100%; max-height: 400px; width: auto; border-radius: 10px;" controls></video>
-                <button type="button" onclick="clearMedia()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+
+            <div id="media-preview" style="display:none; position:relative; margin-bottom:12px; border-radius:12px; overflow:hidden; border:1px solid #ebebeb;">
+                <img id="preview-img" style="display:none; max-width:100%; max-height:360px; width:auto; border-radius:12px;">
+                <video id="preview-video" style="display:none; max-width:100%; max-height:360px; width:auto; border-radius:12px;" controls></video>
+                <button type="button" onclick="clearMedia()" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); color:white; border:none; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">×</button>
             </div>
-            <input type="file" id="media-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" style="display: none;" onchange="onMediaSelected(this)">
+            <input type="file" id="media-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" style="display:none;" onchange="onMediaSelected(this)">
+
             {% if upload_error %}
-            <div class="alert-error" style="margin-bottom: 12px;">⚠️ {{ upload_error }}</div>
+            <div class="alert-error">{{ upload_error }}</div>
             {% endif %}
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    <button type="button" onclick="document.getElementById('media-input').click()" style="background: none; border: none; color: #1d9bf0; cursor: pointer; font-size: 13px; padding: 6px 8px; border-radius: 8px; font-weight: 500;">📎 Фото/видео</button>
-                    <button type="button" onclick="togglePoll()" style="background: none; border: none; color: #1d9bf0; cursor: pointer; font-size: 13px; padding: 6px 8px; border-radius: 8px; font-weight: 500;">🗳 Опрос</button>
-                    <button type="button" onclick="toggleSchedule()" style="background: none; border: none; color: #1d9bf0; cursor: pointer; font-size: 13px; padding: 6px 8px; border-radius: 8px; font-weight: 500;">📅 Запланировать</button>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; gap:2px;">
+                    <button type="button" onclick="document.getElementById('media-input').click()" class="action-btn" style="font-size:12px;">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Фото / видео
+                    </button>
+                    <button type="button" onclick="togglePoll()" class="action-btn" style="font-size:12px;">
+                        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Опрос
+                    </button>
+                    <button type="button" onclick="toggleSchedule()" class="action-btn" style="font-size:12px;">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Запланировать
+                    </button>
                 </div>
-                <button class="btn">Опубликовать</button>
+                <button class="btn" style="padding: 9px 20px;">Опубликовать</button>
             </div>
         </form>
     </div>
 </div>
 {% if request.query_params.get('scheduled') %}
-<div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; color: #276749; font-size: 14px;">✔ Пост запланирован и будет опубликован в указанное время</div>
+<div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; color: #276749; font-size: 14px; display:flex; align-items:center; gap:8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#276749" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Пост запланирован
+</div>
 {% endif %}
 {% else %}
-<div class="card" style="text-align: center; padding: 40px 20px;">
-    <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
-    <h2 style="font-size: 22px; margin-bottom: 8px; letter-spacing: -0.5px;">Добро пожаловать в Quant</h2>
+<div class="card" style="text-align: center; padding: 44px 24px;">
+    <img src="/static/icon-192.png" style="width:56px;height:56px;border-radius:14px;margin-bottom:16px;">
+    <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px;">Добро пожаловать в Quant</h2>
     <p style="color: #888; margin-bottom: 24px; font-size: 15px;">Присоединяйся и общайся с людьми</p>
     <div style="display: flex; gap: 10px; justify-content: center;">
         <a href="/register"><button class="btn">Зарегистрироваться</button></a>
@@ -61,116 +79,124 @@
 
 <!-- ИСТОРИИ -->
 {% if user %}
-<div style="background: #fff; border-radius: 12px; border: 1px solid #e8e8e8; padding: 12px 16px; margin-bottom: 12px; overflow-x: auto;">
-    <div style="display: flex; gap: 16px; align-items: flex-start; min-width: max-content;">
+<div style="background: #fff; border-radius: 16px; border: 1px solid #e4e4e4; padding: 14px 16px; margin-bottom: 10px; overflow-x: auto;">
+    <div style="display: flex; gap: 14px; align-items: flex-start; min-width: max-content;">
         <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;" onclick="document.getElementById('story-upload-input').click()">
-            <div style="position: relative; width: 56px; height: 56px;">
+            <div style="position: relative; width: 54px; height: 54px;">
                 {% if my_story %}
-                <div style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 3px;">
-                    <div style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; overflow: hidden; background: #0f0f0f; display: flex; align-items: center; justify-content: center;">
-                        {% if user.avatar %}<img src="{{ user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="color:white;font-size:18px;font-weight:600;">{{ user.username[0].upper() }}</span>{% endif %}
+                <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);padding:2px;">
+                    <div style="width:100%;height:100%;border-radius:50%;border:2px solid white;overflow:hidden;background:#1a1a1a;display:flex;align-items:center;justify-content:center;">
+                        {% if user.avatar %}<img src="{{ user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="color:white;font-size:17px;font-weight:700;">{{ user.username[0].upper() }}</span>{% endif %}
                     </div>
                 </div>
                 {% else %}
-                <div style="position: absolute; inset: 0; border-radius: 50%; border: 2px dashed #ccc; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
-                    <div class="avatar-circle" style="width: 48px; height: 48px;">
-                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 16px;">{{ user.username[0].upper() }}</span>{% endif %}
+                <div style="position:absolute;inset:0;border-radius:50%;border:2px dashed #d4d4d4;overflow:hidden;background:#f8f8f8;display:flex;align-items:center;justify-content:center;">
+                    <div class="avatar-circle" style="width:46px;height:46px;">
+                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:15px;">{{ user.username[0].upper() }}</span>{% endif %}
                     </div>
                 </div>
                 {% endif %}
-                <div style="position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; background: #0f0f0f; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 700; line-height: 1; z-index: 2;">+</div>
+                <div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;background:#0f0f0f;border-radius:50%;border:2px solid white;display:flex;align-items:center;justify-content:center;z-index:2;">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><line x1="5" y1="1" x2="5" y2="9" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="5" x2="9" y2="5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </div>
             </div>
-            <span style="font-size: 11px; color: #555; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Моя история</span>
+            <span style="font-size:11px;color:#888;max-width:56px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Моя</span>
         </div>
         <form id="story-upload-form" method="post" action="/story/upload" enctype="multipart/form-data" style="display:none;">
             <input type="file" id="story-upload-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" onchange="document.getElementById('story-upload-form').submit()">
         </form>
         {% for item in stories_data %}
-        <a href="/story/{{ item.first_story_id }}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none;">
-            <div style="width: 56px; height: 56px; border-radius: 50%; padding: 3px; {% if item.seen %}background: #ccc;{% else %}background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);{% endif %}">
-                <div style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; overflow: hidden; background: #0f0f0f; display: flex; align-items: center; justify-content: center;">
-                    {% if item.user.avatar %}<img src="{{ item.user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="color:white;font-size:18px;font-weight:600;">{{ item.user.username[0].upper() }}</span>{% endif %}
+        <a href="/story/{{ item.first_story_id }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;">
+            <div style="width:54px;height:54px;border-radius:50%;padding:2px;{% if item.seen %}background:#d4d4d4;{% else %}background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);{% endif %}">
+                <div style="width:100%;height:100%;border-radius:50%;border:2px solid white;overflow:hidden;background:#1a1a1a;display:flex;align-items:center;justify-content:center;">
+                    {% if item.user.avatar %}<img src="{{ item.user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span style="color:white;font-size:17px;font-weight:700;">{{ item.user.username[0].upper() }}</span>{% endif %}
                 </div>
             </div>
-            <span style="font-size: 11px; color: #333; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.user.name or item.user.username }}</span>
+            <span style="font-size:11px;color:#555;max-width:56px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.user.name or item.user.username }}</span>
         </a>
         {% endfor %}
         {% if not stories_data and not my_story %}
-        <div style="display: flex; align-items: center; color: #bbb; font-size: 13px; padding-top: 14px;">Историй пока нет — добавь первым!</div>
+        <div style="display:flex;align-items:center;color:#bbb;font-size:13px;padding-top:16px;">Историй пока нет</div>
         {% endif %}
     </div>
 </div>
 {% endif %}
 
-<div style="display: flex; border-bottom: 1px solid #e8e8e8; margin-bottom: 12px; background: #fff; border-radius: 12px 12px 0 0; overflow: hidden;">
-    <a href="/?tab=foryou" style="flex: 1; text-align: center; padding: 14px; font-size: 14px; font-weight: 600; {% if tab == 'foryou' or not tab %}border-bottom: 2px solid #0f0f0f; color: #0f0f0f;{% else %}color: #888;{% endif %}">Для вас</a>
-    <a href="/?tab=following" style="flex: 1; text-align: center; padding: 14px; font-size: 14px; font-weight: 600; {% if tab == 'following' %}border-bottom: 2px solid #0f0f0f; color: #0f0f0f;{% else %}color: #888;{% endif %}">Подписки</a>
+<!-- ТАБЫ -->
+<div style="display:flex;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e4e4e4;margin-bottom:10px;">
+    <a href="/?tab=foryou" style="flex:1;text-align:center;padding:14px;font-size:14px;font-weight:600;{% if tab == 'foryou' or not tab %}border-bottom:2px solid #0f0f0f;color:#0f0f0f;{% else %}color:#888;{% endif %}text-decoration:none;">Для вас</a>
+    <a href="/?tab=following" style="flex:1;text-align:center;padding:14px;font-size:14px;font-weight:600;{% if tab == 'following' %}border-bottom:2px solid #0f0f0f;color:#0f0f0f;{% else %}color:#888;{% endif %}text-decoration:none;">Подписки</a>
 </div>
 
 {% for post in posts %}
-<div class="card">
+<div class="card" style="padding: 16px 18px;">
     {% if post.is_repost %}
-    <div style="font-size: 12px; color: #888; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-        <span>🔁</span>
-        <a href="/profile/{{ post.author.username }}" style="font-weight: 600; color: #888;">{{ post.author.name or post.author.username }}</a>
-        <span>сделал репост</span>
+    <div style="font-size:12px;color:#888;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        <a href="/profile/{{ post.author.username }}" style="font-weight:600;color:#888;">{{ post.author.name or post.author.username }}</a>
+        <span>поделился</span>
     </div>
     {% endif %}
     <div style="display: flex; gap: 12px;">
         {% set display_author = post.original.author if post.is_repost and post.original else post.author %}
-        <a href="/profile/{{ display_author.username }}">
+        <a href="/profile/{{ display_author.username }}" style="flex-shrink:0;">
             <div class="avatar-circle" style="width: 40px; height: 40px;">
                 {% if display_author.avatar %}<img src="{{ display_author.avatar }}">{% else %}<span style="font-size: 15px;">{{ display_author.username[0].upper() }}</span>{% endif %}
             </div>
         </a>
         <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; flex-wrap: wrap;">
-                <a href="/profile/{{ display_author.username }}" style="font-weight: 600; font-size: 14px; color: #0f0f0f;">{{ display_author.name or display_author.username }}</a>
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:5px;flex-wrap:wrap;">
+                <a href="/profile/{{ display_author.username }}" style="font-weight:700;font-size:14px;color:#0f0f0f;">{{ display_author.name or display_author.username }}</a>
                 {% if display_author.is_owner %}{{ owner_badge() }}{% endif %}
                 {% if display_author.is_verified_badge %}{{ verify_badge() }}{% endif %}
                 {% if display_author.is_starred %}{{ star_badge() }}{% endif %}
-                <span style="color: #888; font-size: 13px;">@{{ display_author.username }}</span>
-                <span style="color: #ccc;">·</span>
-                <span style="color: #888; font-size: 13px;">{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                <span style="color:#aaa;font-size:13px;">@{{ display_author.username }}</span>
+                <span style="color:#ddd;font-size:12px;">·</span>
+                <span style="color:#aaa;font-size:12px;">{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
                 {% if user and (user.id == post.user_id or user.is_owner or user.is_moderator) %}
-                <form method="post" action="/delete/{{ post.id }}" style="margin-left: auto;" onsubmit="return confirm('Удалить пост?')">
-                    <button style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+                <form method="post" action="/delete/{{ post.id }}" style="margin-left:auto;" onsubmit="return confirm('Удалить пост?')">
+                    <button style="background:none;border:none;color:#d4d4d4;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:6px;line-height:1;transition:color 0.15s;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#d4d4d4'">×</button>
                 </form>
                 {% endif %}
             </div>
+
             <div class="post-content">{{ render_content(post.content) | safe }}</div>
+
             {% if post.image %}
-            <div style="margin-bottom: 12px; border-radius: 12px; overflow: hidden; max-width: 100%; background: #000;">
+            <div style="margin-bottom:14px;border-radius:12px;overflow:hidden;background:#0f0f0f;">
                 {% if post.media_type == 'video' %}
-                <video src="{{ post.image }}" controls playsinline preload="metadata" style="display: block; max-width: 100%; max-height: 500px; width: auto; margin: 0 auto;"></video>
+                <video src="{{ post.image }}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:480px;width:auto;margin:0 auto;"></video>
                 {% else %}
-                <img src="{{ post.image }}" alt="" loading="lazy" style="display: block; max-width: 100%; max-height: 500px; width: auto; margin: 0 auto; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                <img src="{{ post.image }}" alt="" loading="lazy" style="display:block;max-width:100%;max-height:480px;width:auto;margin:0 auto;cursor:pointer;" onclick="window.open(this.src,'_blank')">
                 {% endif %}
             </div>
             {% endif %}
+
             {% if post.poll %}
             {% set total_votes = post.poll.options | map(attribute='votes') | map('length') | sum %}
-            <div style="background: #f9f9f9; border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid #e8e8e8;">
-                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px;">🗳 {{ post.poll.question }}</div>
+            <div style="background:#f8f8f8;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #ebebeb;">
+                <div style="font-weight:600;font-size:14px;margin-bottom:10px;">{{ post.poll.question }}</div>
                 {% set user_voted = false %}
                 {% if user %}{% for opt in post.poll.options %}{% for v in opt.votes %}{% if v.user_id == user.id %}{% set user_voted = true %}{% endif %}{% endfor %}{% endfor %}{% endif %}
                 {% for option in post.poll.options %}
                 {% set vote_count = option.votes | length %}
                 {% set pct = ((vote_count / total_votes * 100) | round(0) | int) if total_votes > 0 else 0 %}
                 {% if user_voted or not user %}
-                <div style="margin-bottom: 8px;">
-                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;"><span>{{ option.text }}</span><span style="color:#888;">{{ pct }}% ({{ vote_count }})</span></div>
-                    <div style="height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;"><div style="height:100%;background:#0f0f0f;border-radius:4px;width:{{ pct }}%;"></div></div>
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>{{ option.text }}</span><span style="color:#888;font-weight:600;">{{ pct }}%</span></div>
+                    <div style="height:6px;background:#e8e8e8;border-radius:3px;overflow:hidden;"><div style="height:100%;background:#0f0f0f;border-radius:3px;width:{{ pct }}%;"></div></div>
                 </div>
                 {% else %}
                 <form method="post" action="/poll/vote/{{ option.id }}" style="margin-bottom:6px;">
-                    <button type="submit" style="width:100%;text-align:left;background:#fff;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;" onmouseover="this.style.borderColor='#0f0f0f'" onmouseout="this.style.borderColor='#e0e0e0'">{{ option.text }}</button>
+                    <button type="submit" style="width:100%;text-align:left;background:#fff;border:1.5px solid #e4e4e4;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;font-family:inherit;transition:border 0.15s;" onmouseover="this.style.borderColor='#0f0f0f'" onmouseout="this.style.borderColor='#e4e4e4'">{{ option.text }}</button>
                 </form>
                 {% endif %}
                 {% endfor %}
-                <div style="font-size:12px;color:#bbb;margin-top:6px;">{{ total_votes }} голосов</div>
+                <div style="font-size:12px;color:#aaa;margin-top:8px;">{{ total_votes }} голосов</div>
             </div>
             {% endif %}
+
+            <!-- КНОПКИ ПОСТА — чистые SVG без эмодзи -->
             <div class="post-footer">
                 {% set user_liked = false %}
                 {% set user_whaled = false %}
@@ -178,63 +204,84 @@
                     {% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}
                     {% for whale in post.whales %}{% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}{% endfor %}
                 {% endif %}
-                <form method="post" action="/like/{{ post.id }}" class="like-form">
-                    <button type="submit" class="like-btn {% if user_liked %}liked{% endif %}">
-                        <span class="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
+
+                <form method="post" action="/like/{{ post.id }}" class="like-form" style="margin:0;">
+                    <button type="submit" class="action-btn like-btn {% if user_liked %}liked{% endif %}">
+                        <svg viewBox="0 0 24 24" {% if user_liked %}fill="#e0245e" stroke="#e0245e"{% endif %} style="{% if user_liked %}fill:#e0245e;{% endif %}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                         <span class="like-count">{{ post.likes|length }}</span>
                     </button>
                 </form>
-                <form method="post" action="/whale/{{ post.id }}" class="whale-form">
-                    <button type="submit" class="like-btn {% if user_whaled %}liked{% endif %}">
-                        <span class="whale-icon">🐋</span>
+
+                <form method="post" action="/whale/{{ post.id }}" class="whale-form" style="margin:0;">
+                    <button type="submit" class="action-btn whale-btn {% if user_whaled %}whaled{% endif %}">
+                        <svg viewBox="0 0 24 24" style="{% if user_whaled %}fill:#0ea5e9;stroke:#0ea5e9;{% endif %}"><path d="M22 17.5c0 2.5-2 4-4.5 4S13 21.5 12 21s-2.5 1-5 .5S2 18.5 2 16c0-2 1-3.5 3-4.5.5-.3 1-.8 1.3-1.4.6-1.2 1.2-3.6 1.7-5.1a1 1 0 0 1 1.9.3c.1.8 0 1.8-.2 2.7 1-.5 2.3-.7 3.8-.5 2.8.4 4.5 2 5 4 .2.7.3 1.5.3 2.3l.2.7c.3.7 1 1 1 1z"/></svg>
                         <span class="whale-count">{{ post.whales|length }}</span>
                     </button>
                 </form>
+
+                <a href="/post/{{ post.id }}" class="action-btn" style="text-decoration:none;">
+                    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    {{ post.comments|length }}
+                </a>
+
                 {% if user and not post.is_repost %}
-                <form method="post" action="/repost/{{ post.id }}" onsubmit="return confirm('Репостнуть этот пост?')">
-                    <button type="submit" class="like-btn">🔁</button>
+                <form method="post" action="/repost/{{ post.id }}" onsubmit="return confirm('Поделиться этим постом?')" style="margin:0;">
+                    <button type="submit" class="action-btn">
+                        <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    </button>
                 </form>
                 {% endif %}
+
                 {% if user and is_plus %}
-                <form method="post" action="/bookmark/{{ post.id }}">
-                    <button type="submit" class="like-btn" style="{% if post.id in bookmarked_ids %}color:#f59e0b{% endif %}" title="Закладка">🔖</button>
+                <form method="post" action="/bookmark/{{ post.id }}" style="margin:0;">
+                    <button type="submit" class="action-btn {% if post.id in bookmarked_ids %}bookmarked{% endif %}">
+                        <svg viewBox="0 0 24 24" {% if post.id in bookmarked_ids %}style="fill:#f59e0b;stroke:#f59e0b;"{% endif %}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    </button>
                 </form>
                 {% endif %}
-                <span style="color: #ccc;">·</span>
-                <a href="/post/{{ post.id }}" style="color:#888;font-size:13px;padding:5px 10px;border-radius:20px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">💬 {{ post.comments|length }}</a>
-                <span style="color: #ccc;">·</span>
-                <button id="share-btn-{{ post.id }}" onclick="sharePost({{ post.id }})" style="background: none; border: none; cursor: pointer; font-size: 13px; color: #888; padding: 5px 10px; border-radius: 20px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">🔗</button>
+
+                <button id="share-btn-{{ post.id }}" onclick="sharePost({{ post.id }})" class="action-btn" style="margin-left:auto;">
+                    <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                </button>
+
                 {% if is_plus and user and user.id == post.author.id %}
-                <span style="color:#bbb;font-size:12px;margin-left:auto;">👁 {{ post.views or 0 }}</span>
+                <span style="color:#bbb;font-size:12px;display:flex;align-items:center;gap:4px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    {{ post.views or 0 }}
+                </span>
                 {% endif %}
             </div>
+
             {% if post.comments %}
-            <div style="margin-top: 12px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
+            <div style="margin-top:14px;border-top:1px solid #f0f0f0;padding-top:12px;display:flex;flex-direction:column;gap:8px;">
                 {% for comment in post.comments %}
-                <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start;">
+                <div style="display:flex;gap:8px;align-items:flex-start;">
                     <a href="/profile/{{ comment.author.username }}">
-                        <div class="avatar-circle" style="width: 28px; height: 28px;">
-                            {% if comment.author.avatar %}<img src="{{ comment.author.avatar }}">{% else %}<span style="font-size: 11px;">{{ comment.author.username[0].upper() }}</span>{% endif %}
+                        <div class="avatar-circle" style="width:28px;height:28px;">
+                            {% if comment.author.avatar %}<img src="{{ comment.author.avatar }}">{% else %}<span style="font-size:11px;">{{ comment.author.username[0].upper() }}</span>{% endif %}
                         </div>
                     </a>
-                    <div style="background: #f5f5f5; border-radius: 10px; padding: 7px 12px; flex: 1;">
-                        <span style="font-weight: 600; font-size: 13px;">{{ comment.author.name or comment.author.username }}</span>
-                        <span style="font-size: 13px; color: #333; margin-left: 6px;">{{ render_content(comment.content) | safe }}</span>
+                    <div style="background:#f5f5f5;border-radius:12px;padding:8px 12px;flex:1;">
+                        <span style="font-weight:700;font-size:13px;">{{ comment.author.name or comment.author.username }}</span>
+                        <span style="font-size:13px;color:#333;margin-left:6px;">{{ render_content(comment.content) | safe }}</span>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
+
             {% if user %}
-            <div style="position: relative;">
-                <form method="post" action="/comment/{{ post.id }}" class="comment-form" style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
-                    <div class="avatar-circle" style="width: 28px; height: 28px;">
-                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 11px;">{{ user.username[0].upper() }}</span>{% endif %}
+            <div style="position:relative;margin-top:10px;">
+                <form method="post" action="/comment/{{ post.id }}" class="comment-form" style="display:flex;gap:8px;align-items:center;">
+                    <div class="avatar-circle" style="width:28px;height:28px;flex-shrink:0;">
+                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:11px;">{{ user.username[0].upper() }}</span>{% endif %}
                     </div>
-                    <input type="text" name="content" class="comment-input" placeholder="Комментировать..." style="margin-bottom: 0; flex: 1; padding: 7px 12px; font-size: 13px; border-radius: 20px; background: #f5f5f5; border: 1px solid #e8e8e8;" autocomplete="off">
-                    <button class="btn" style="padding: 7px 14px; font-size: 13px; border-radius: 20px;">→</button>
+                    <input type="text" name="content" class="comment-input" placeholder="Написать комментарий..." style="margin-bottom:0;flex:1;padding:8px 14px;font-size:13px;border-radius:20px;background:#f5f5f5;border:1px solid #ebebeb;" autocomplete="off">
+                    <button class="btn" style="padding:8px 14px;font-size:13px;border-radius:20px;flex-shrink:0;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
                 </form>
-                <div class="comment-mention-dropdown" style="display:none; position:absolute; background:#fff; border:1px solid #e8e8e8; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.10); z-index:100; min-width:200px; overflow:hidden; bottom: 44px; left: 36px;"></div>
+                <div class="comment-mention-dropdown" style="display:none;position:absolute;background:#fff;border:1px solid #e4e4e4;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.10);z-index:100;min-width:200px;overflow:hidden;bottom:44px;left:36px;"></div>
             </div>
             {% endif %}
         </div>
@@ -243,130 +290,104 @@
 {% endfor %}
 
 {% if not posts %}
-<div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
-    {% if tab == 'following' %}Подпишись на кого-нибудь чтобы видеть их посты!
-    {% else %}Пока нет постов. Будь первым!{% endif %}
+<div style="text-align:center;color:#aaa;padding:48px 0;font-size:15px;">
+    {% if tab == 'following' %}Подпишись на кого-нибудь чтобы видеть их посты
+    {% else %}Пока нет постов — будь первым{% endif %}
 </div>
 {% endif %}
 
 <script>
-function togglePoll() {
-    const b = document.getElementById('poll-block');
-    b.style.display = b.style.display === 'none' ? 'block' : 'none';
-}
-function toggleSchedule() {
-    const b = document.getElementById('schedule-block');
-    b.style.display = b.style.display === 'none' ? 'block' : 'none';
-}
+function togglePoll() { const b = document.getElementById('poll-block'); b.style.display = b.style.display==='none'?'block':'none'; }
+function toggleSchedule() { const b = document.getElementById('schedule-block'); b.style.display = b.style.display==='none'?'block':'none'; }
 function onMediaSelected(input) {
-    const file = input.files[0];
-    if (!file) { clearMedia(); return; }
-    const maxSize = file.type.startsWith('video/') ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) { alert('Файл слишком большой'); input.value = ''; clearMedia(); return; }
+    const file = input.files[0]; if (!file) { clearMedia(); return; }
+    const maxSize = file.type.startsWith('video/') ? 20*1024*1024 : 10*1024*1024;
+    if (file.size > maxSize) { alert('Файл слишком большой'); input.value=''; clearMedia(); return; }
     const preview = document.getElementById('media-preview');
-    const img = document.getElementById('preview-img');
-    const video = document.getElementById('preview-video');
+    const img = document.getElementById('preview-img'); const video = document.getElementById('preview-video');
     preview.style.display = 'block';
     const url = URL.createObjectURL(file);
-    if (file.type.startsWith('image/')) { img.src = url; img.style.display = 'block'; video.style.display = 'none'; video.removeAttribute('src'); }
-    else { video.src = url; video.style.display = 'block'; img.style.display = 'none'; img.removeAttribute('src'); }
+    if (file.type.startsWith('image/')) { img.src=url; img.style.display='block'; video.style.display='none'; video.removeAttribute('src'); }
+    else { video.src=url; video.style.display='block'; img.style.display='none'; img.removeAttribute('src'); }
 }
 function clearMedia() {
-    document.getElementById('media-input').value = '';
-    document.getElementById('media-preview').style.display = 'none';
-    document.getElementById('preview-img').style.display = 'none';
-    document.getElementById('preview-video').style.display = 'none';
+    document.getElementById('media-input').value='';
+    document.getElementById('media-preview').style.display='none';
+    document.getElementById('preview-img').style.display='none';
+    document.getElementById('preview-video').style.display='none';
 }
 function sharePost(postId) {
-    navigator.clipboard.writeText(window.location.origin + '/post/' + postId).then(() => {
-        const btn = document.getElementById('share-btn-' + postId);
-        const orig = btn.textContent;
-        btn.textContent = '✔';
-        setTimeout(() => btn.textContent = orig, 2000);
+    navigator.clipboard.writeText(window.location.origin+'/post/'+postId).then(()=>{
+        const btn = document.getElementById('share-btn-'+postId);
+        const orig = btn.innerHTML; btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(()=>btn.innerHTML=orig, 2000);
     });
 }
 function setupMentionAutocomplete(input, dropdown) {
     let mentionStart = -1;
     input.addEventListener('input', async function() {
-        const val = input.value, pos = input.selectionStart;
-        let atPos = -1;
-        for (let i = pos - 1; i >= 0; i--) {
-            if (val[i] === '@') { atPos = i; break; }
-            if (/\s/.test(val[i])) break;
-        }
-        if (atPos === -1) { dropdown.style.display = 'none'; return; }
-        const query = val.slice(atPos + 1, pos);
-        if (!query.length) { dropdown.style.display = 'none'; return; }
+        const val = input.value, pos = input.selectionStart; let atPos = -1;
+        for (let i = pos-1; i >= 0; i--) { if (val[i]==='@') { atPos=i; break; } if (/\s/.test(val[i])) break; }
+        if (atPos===-1) { dropdown.style.display='none'; return; }
+        const query = val.slice(atPos+1, pos); if (!query.length) { dropdown.style.display='none'; return; }
         mentionStart = atPos;
-        const res = await fetch('/api/users/search?q=' + encodeURIComponent(query));
-        const data = await res.json();
-        if (!data.users || !data.users.length) { dropdown.style.display = 'none'; return; }
-        dropdown.innerHTML = data.users.map(u => `<div class="mention-item" data-username="${u.username}" style="padding:10px 14px;cursor:pointer;font-size:14px;display:flex;gap:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''"><span style="font-weight:600;">@${u.username}</span><span style="color:#888;font-size:12px;">${u.name}</span></div>`).join('');
-        dropdown.style.display = 'block';
-        dropdown.querySelectorAll('.mention-item').forEach(item => {
+        const res = await fetch('/api/users/search?q='+encodeURIComponent(query)); const data = await res.json();
+        if (!data.users||!data.users.length) { dropdown.style.display='none'; return; }
+        dropdown.innerHTML = data.users.map(u=>`<div class="mention-item" data-username="${u.username}" style="padding:10px 14px;cursor:pointer;font-size:14px;display:flex;gap:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''"><span style="font-weight:700;">@${u.username}</span><span style="color:#888;font-size:12px;">${u.name}</span></div>`).join('');
+        dropdown.style.display='block';
+        dropdown.querySelectorAll('.mention-item').forEach(item=>{
             item.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-                input.value = input.value.slice(0, mentionStart) + '@' + this.dataset.username + ' ' + input.value.slice(input.selectionStart);
-                dropdown.style.display = 'none';
-                input.focus();
+                e.preventDefault(); input.value=input.value.slice(0,mentionStart)+'@'+this.dataset.username+' '+input.value.slice(input.selectionStart);
+                dropdown.style.display='none'; input.focus();
             });
         });
     });
-    input.addEventListener('blur', () => setTimeout(() => dropdown.style.display = 'none', 150));
-    input.addEventListener('keydown', e => { if (e.key === 'Escape') dropdown.style.display = 'none'; });
+    input.addEventListener('blur', ()=>setTimeout(()=>dropdown.style.display='none', 150));
+    input.addEventListener('keydown', e=>{ if (e.key==='Escape') dropdown.style.display='none'; });
 }
-const postContent = document.getElementById('post-content');
-const postDropdown = document.getElementById('mention-dropdown');
+const postContent = document.getElementById('post-content'); const postDropdown = document.getElementById('mention-dropdown');
 if (postContent && postDropdown) setupMentionAutocomplete(postContent, postDropdown);
-document.querySelectorAll('.comment-form').forEach(form => {
-    const input = form.querySelector('.comment-input');
-    const dropdown = form.closest('div').querySelector('.comment-mention-dropdown');
+document.querySelectorAll('.comment-form').forEach(form=>{
+    const input = form.querySelector('.comment-input'); const dropdown = form.closest('div').querySelector('.comment-mention-dropdown');
     if (input && dropdown) setupMentionAutocomplete(input, dropdown);
 });
-document.querySelectorAll('.like-form, .whale-form').forEach(form => {
+document.querySelectorAll('.like-form, .whale-form').forEach(form=>{
     form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button');
-        const icon = btn.querySelector('.like-icon, .whale-icon');
-        const count = btn.querySelector('.like-count, .whale-count');
+        e.preventDefault(); const btn = this.querySelector('button');
+        const isMine = btn.classList.contains('like-form')||this.classList.contains('like-form');
+        await fetch(this.action, {method:'POST'});
         const liked = btn.classList.contains('liked');
-        await fetch(this.action, {method: 'POST'});
-        if (liked) {
-            btn.classList.remove('liked');
-            if (icon && icon.classList.contains('like-icon')) icon.textContent = '🤍';
-            if (count) count.textContent = parseInt(count.textContent) - 1;
-        } else {
-            btn.classList.add('liked');
-            if (icon && icon.classList.contains('like-icon')) icon.textContent = '❤️';
-            if (count) count.textContent = parseInt(count.textContent) + 1;
+        if (liked) { btn.classList.remove('liked'); }
+        else { btn.classList.add('liked'); }
+        const countEl = btn.querySelector('.like-count, .whale-count');
+        if (countEl) countEl.textContent = parseInt(countEl.textContent) + (liked ? -1 : 1);
+        const svg = btn.querySelector('svg');
+        if (svg && btn.querySelector('.like-count')) {
+            svg.style.fill = liked ? '' : '#e0245e'; svg.style.stroke = liked ? '' : '#e0245e';
+            if (liked) { svg.removeAttribute('style'); }
         }
     });
 });
 
 // Автообновление ленты
 let topPostId = {{ top_post_id or 0 }};
-
 async function checkNewPosts() {
     try {
-        const res = await fetch(`/api/feed/new?after=${topPostId}`);
-        const data = await res.json();
+        const res = await fetch(`/api/feed/new?after=${topPostId}`); const data = await res.json();
         if (data.posts && data.posts.length > 0) {
             topPostId = data.posts[0].id;
             let banner = document.getElementById('new-posts-banner');
             if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'new-posts-banner';
-                banner.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:white;padding:10px 24px;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
-                banner.onclick = () => window.location.reload();
-                document.body.appendChild(banner);
+                banner = document.createElement('div'); banner.id='new-posts-banner';
+                banner.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:white;padding:10px 24px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:8px;';
+                banner.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg><span id="banner-text"></span>';
+                banner.onclick = ()=>window.location.reload(); document.body.appendChild(banner);
             }
-            const c = data.posts.length;
-            banner.textContent = `↑ ${c} новых пост${c === 1 ? '' : c < 5 ? 'а' : 'ов'} — нажми чтобы обновить`;
-            banner.style.display = 'block';
+            const c = data.posts.length; document.getElementById('banner-text').textContent = `${c} новых пост${c===1?'':'c < 5 ? "а" : "ов"'}`;
+            banner.style.display='flex';
         }
     } catch(e) {}
 }
-
 setInterval(checkNewPosts, 30000);
 </script>
 {% endblock %}

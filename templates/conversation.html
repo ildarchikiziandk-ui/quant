@@ -1,93 +1,91 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card" style="padding: 14px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; position: sticky; top: 0; z-index: 10;">
-    <a href="/messages" style="color: #888; font-size: 20px; line-height: 1; padding: 4px 8px; border-radius: 8px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">←</a>
-    <a href="/profile/{{ other.username }}">
+<div style="background:#fff;border-radius:16px;border:1px solid #e4e4e4;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:10px;position:sticky;top:0;z-index:10;backdrop-filter:blur(20px);">
+    <a href="/messages" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <a href="/profile/{{ other.username }}" style="flex-shrink:0;">
         <div class="avatar-circle" style="width: 38px; height: 38px;">
             {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size: 14px;">{{ other.username[0].upper() }}</span>{% endif %}
         </div>
     </a>
     <div style="flex: 1;">
-        <div style="font-weight: 600; font-size: 15px;">{{ other.name or other.username }}</div>
-        <div id="typing-status" style="color: #888; font-size: 13px;">@{{ other.username }}</div>
+        <div style="font-weight: 700; font-size: 15px;">{{ other.name or other.username }}</div>
+        <div id="typing-status" style="color: #888; font-size: 12px;">@{{ other.username }}</div>
     </div>
-    <a href="/profile/{{ other.username }}" style="color: #888; font-size: 13px; padding: 6px 12px; border-radius: 20px; border: 1px solid #e8e8e8;">Профиль</a>
+    <a href="/profile/{{ other.username }}" style="color:#888;font-size:13px;padding:7px 14px;border-radius:20px;border:1px solid #e4e4e4;font-weight:500;transition:all 0.15s;" onmouseover="this.style.borderColor='#0f0f0f'" onmouseout="this.style.borderColor='#e4e4e4'">Профиль</a>
 </div>
 
-<div class="card" id="messages-box" style="min-height: 420px; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 16px; scroll-behavior: smooth;">
+<div class="card" id="messages-box" style="min-height:420px;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:16px;scroll-behavior:smooth;border-radius:16px;">
     {% if messages %}
         {% for msg in messages %}
-        <div class="msg-item" data-id="{{ msg.id }}" data-mine="{{ 'true' if msg.sender_id == user.id else 'false' }}" style="display: flex; flex-direction: column; {% if msg.sender_id == user.id %}align-items: flex-end{% else %}align-items: flex-start{% endif %}; gap: 2px;">
+        <div class="msg-item" data-id="{{ msg.id }}" style="display:flex;flex-direction:column;{% if msg.sender_id == user.id %}align-items:flex-end{% else %}align-items:flex-start{% endif %};gap:2px;">
 
             {% if msg.is_deleted %}
-            <div style="padding: 8px 14px; border-radius: 18px; background: #f0f0f0; color: #bbb; font-size: 13px; font-style: italic;">🗑 Сообщение удалено</div>
+            <div style="padding:8px 14px;border-radius:16px;background:#f5f5f5;color:#bbb;font-size:13px;font-style:italic;display:flex;align-items:center;gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                Сообщение удалено
+            </div>
             {% else %}
 
             {% if msg.forwarded_from %}
-            <div style="font-size: 11px; color: #888; margin-bottom: 2px; padding: 0 4px;">
-                ↪ Переслано от <a href="/profile/{{ msg.forwarded_from.username }}" style="color:#1d9bf0;font-weight:600;">{{ msg.forwarded_from.name or msg.forwarded_from.username }}</a>
+            <div style="font-size:11px;color:#aaa;padding:0 4px;margin-bottom:2px;display:flex;align-items:center;gap:4px;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+                Переслано от <a href="/profile/{{ msg.forwarded_from.username }}" style="color:#1d9bf0;font-weight:600;">{{ msg.forwarded_from.name or msg.forwarded_from.username }}</a>
             </div>
             {% endif %}
 
             {% if msg.sender_id != user.id %}
-            <div style="display: flex; align-items: flex-end; gap: 8px;">
-                <div class="avatar-circle" style="width: 26px; height: 26px; flex-shrink: 0;">
-                    {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size: 10px;">{{ other.username[0].upper() }}</span>{% endif %}
+            <div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">
+                <div class="avatar-circle" style="width:26px;height:26px;flex-shrink:0;">
+                    {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:10px;">{{ other.username[0].upper() }}</span>{% endif %}
                 </div>
-                <div style="max-width: 72%;">
-                    {% if msg.image %}<div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;"><img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>{% endif %}
-                    {% if msg.voice %}<div style="background: #f0f0f0; border-radius: 18px; padding: 10px 14px;"><audio src="{{ msg.voice }}" controls style="height: 32px; max-width: 220px;"></audio></div>{% endif %}
-                    {% if msg.content %}<div style="padding: 10px 14px; border-radius: 18px 18px 18px 4px; background: #f0f0f0; color: #0f0f0f; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>{% endif %}
+                <div>
+                    {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
+                    {% if msg.voice %}<div style="background:#f5f5f5;border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;"></audio></div>{% endif %}
+                    {% if msg.content %}<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:#f5f5f5;color:#0f0f0f;font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
                 </div>
             </div>
             {% else %}
-            <div style="max-width: 72%;">
-                {% if msg.image %}<div style="border-radius: 12px; overflow: hidden; margin-bottom: 4px;"><img src="{{ msg.image }}" style="max-width: 100%; max-height: 300px; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>{% endif %}
-                {% if msg.voice %}<div style="background: #1a1a1a; border-radius: 18px; padding: 10px 14px;"><audio src="{{ msg.voice }}" controls style="height: 32px; max-width: 220px; filter: invert(1);"></audio></div>{% endif %}
-                {% if msg.content %}<div style="padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: #0f0f0f; color: white; font-size: 14px; line-height: 1.5;">{{ msg.content }}</div>{% endif %}
+            <div style="max-width:72%;">
+                {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
+                {% if msg.voice %}<div style="background:#1a1a1a;border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>{% endif %}
+                {% if msg.content %}<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
             </div>
             {% endif %}
 
-            <!-- Реакции на сообщение -->
-            {% set reactions = {} %}
-            {% for r in msg.msg_reactions %}
-                {% if r.emoji in reactions %}
-                {% else %}
-                {% endif %}
-            {% endfor %}
             {% if msg.msg_reactions %}
-            <div class="msg-reactions" style="display: flex; gap: 4px; flex-wrap: wrap; padding: 0 4px;">
+            <div class="msg-reactions" style="display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;">
                 {% set reaction_counts = {} %}
-                {% for r in msg.msg_reactions %}
-                    {% if r.emoji not in reaction_counts %}
-                        {% set _ = reaction_counts.update({r.emoji: 1}) %}
-                    {% else %}
-                        {% set _ = reaction_counts.update({r.emoji: reaction_counts[r.emoji] + 1}) %}
-                    {% endif %}
-                {% endfor %}
+                {% for r in msg.msg_reactions %}{% if r.emoji not in reaction_counts %}{% set _ = reaction_counts.update({r.emoji: 1}) %}{% else %}{% set _ = reaction_counts.update({r.emoji: reaction_counts[r.emoji] + 1}) %}{% endif %}{% endfor %}
                 {% for emoji, count in reaction_counts.items() %}
-                <span style="background: #f0f0f0; border-radius: 20px; padding: 2px 8px; font-size: 13px; cursor: pointer;" onclick="toggleReaction({{ msg.id }}, '{{ emoji }}')">{{ emoji }} {{ count }}</span>
+                <span style="background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;border:1px solid #ebebeb;" onclick="toggleReaction({{ msg.id }}, '{{ emoji }}')">{{ emoji }} {{ count }}</span>
                 {% endfor %}
             </div>
             {% endif %}
 
             {% endif %}
 
-            <!-- Время + галочки + кнопки действий -->
-            <div style="font-size: 11px; color: #bbb; padding: 0 4px; display: flex; align-items: center; gap: 6px;">
+            <div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:5px;">
                 {{ msg.created_at.strftime("%H:%M") }}
                 {% if msg.sender_id == user.id and not msg.is_deleted %}
-                    {% if msg.is_read %}<span style="color: #1d9bf0; font-size: 13px;">✓✓</span>
-                    {% elif msg.is_delivered %}<span style="color: #bbb; font-size: 13px;">✓✓</span>
-                    {% else %}<span style="color: #bbb; font-size: 13px;">✓</span>{% endif %}
+                    {% if msg.is_read %}<span style="color:#1d9bf0;font-size:12px;font-weight:600;">✓✓</span>
+                    {% elif msg.is_delivered %}<span style="color:#bbb;font-size:12px;">✓✓</span>
+                    {% else %}<span style="color:#bbb;font-size:12px;">✓</span>{% endif %}
                 {% endif %}
                 {% if not msg.is_deleted %}
-                <span class="msg-actions" style="display: none; gap: 4px;">
-                    <button onclick="showReactionPicker({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;" title="Реакция">😊</button>
-                    <button onclick="showForwardDialog({{ msg.id }})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;" title="Переслать">↪</button>
+                <span class="msg-actions" style="display:none;gap:3px;align-items:center;">
+                    <button onclick="showReactionPicker({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;font-size:14px;line-height:1;transition:background 0.1s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'" title="Реакция">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    </button>
+                    <button onclick="showForwardDialog({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;transition:background 0.1s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'" title="Переслать">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+                    </button>
                     {% if msg.sender_id == user.id %}
-                    <button onclick="deleteMessage({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#e53935;" title="Удалить">🗑</button>
+                    <button onclick="deleteMessage({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#e53935;transition:background 0.1s;" onmouseover="this.style.background='#fff0f0'" onmouseout="this.style.background='none'" title="Удалить">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
                     {% endif %}
                 </span>
                 {% endif %}
@@ -95,25 +93,26 @@
         </div>
         {% endfor %}
     {% else %}
-        <div id="empty-msg" style="text-align: center; color: #bbb; margin: auto; font-size: 14px; padding: 40px 0;">
-            Начни диалог с @{{ other.username }} 👋
+        <div id="empty-msg" style="text-align:center;color:#bbb;margin:auto;font-size:14px;padding:40px 0;">
+            Начни диалог с @{{ other.username }}
         </div>
     {% endif %}
 </div>
 
 <!-- Пикер реакций -->
-<div id="reaction-picker" style="display:none; position:fixed; background:#fff; border:1px solid #e8e8e8; border-radius:14px; box-shadow:0 4px 20px rgba(0,0,0,0.15); padding:10px 14px; z-index:200; gap:8px; font-size:22px;">
+<div id="reaction-picker" style="display:none;position:fixed;background:#fff;border:1px solid #e4e4e4;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.12);padding:10px 12px;z-index:300;gap:6px;">
     {% for emoji in ["❤️","😂","😮","👍","🔥","😢"] %}
-    <span style="cursor:pointer;padding:4px;border-radius:8px;transition:background 0.1s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background=''" onclick="pickReaction('{{ emoji }}')">{{ emoji }}</span>
+    <span style="cursor:pointer;padding:5px;border-radius:8px;font-size:22px;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="pickReaction('{{ emoji }}')">{{ emoji }}</span>
     {% endfor %}
 </div>
 
 <!-- Диалог пересылки -->
-<div id="forward-dialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:300; align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:16px; padding:24px; width:300px; max-width:90vw;">
-        <div style="font-weight:700; font-size:16px; margin-bottom:14px;">↪ Переслать сообщение</div>
-        <input type="text" id="forward-username" placeholder="Никнейм получателя" style="margin-bottom:12px;">
-        <div id="forward-error" style="color:#e53935;font-size:13px;margin-bottom:8px;display:none;"></div>
+<div id="forward-dialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:20px;padding:24px;width:320px;max-width:90vw;">
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Переслать сообщение</div>
+        <div style="color:#888;font-size:13px;margin-bottom:16px;">Введи никнейм получателя</div>
+        <input type="text" id="forward-username" placeholder="@username" style="margin-bottom:8px;">
+        <div id="forward-error" style="color:#e53935;font-size:13px;margin-bottom:10px;display:none;"></div>
         <div style="display:flex;gap:10px;">
             <button class="btn" onclick="confirmForward()" style="flex:1;">Переслать</button>
             <button class="btn-outline" onclick="closeForwardDialog()" style="flex:1;">Отмена</button>
@@ -121,29 +120,42 @@
     </div>
 </div>
 
-<div id="img-preview-wrap" style="display: none; padding: 8px 16px;">
-    <div style="position: relative; display: inline-block;">
-        <img id="img-preview" style="max-height: 120px; max-width: 200px; border-radius: 10px; border: 1px solid #e8e8e8;">
-        <button onclick="clearImage()" style="position: absolute; top: -8px; right: -8px; background: #e53935; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1;">×</button>
+{% if img_preview_show is defined %}
+<div id="img-preview-wrap" style="display:block;padding:8px 16px 0;">
+{% else %}
+<div id="img-preview-wrap" style="display:none;padding:8px 16px 0;">
+{% endif %}
+    <div style="position:relative;display:inline-block;">
+        <img id="img-preview" style="max-height:100px;max-width:180px;border-radius:10px;border:1px solid #e4e4e4;">
+        <button onclick="clearImage()" style="position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;">×</button>
     </div>
 </div>
 
-<div id="voice-preview-wrap" style="display: none; padding: 8px 16px; align-items: center; gap: 10px;">
-    <span style="font-size: 13px; color: #555;">🎙 Голосовое записано</span>
-    <button onclick="clearVoice()" style="background: #e53935; color: white; border: none; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px;">Удалить</button>
+<div id="voice-preview-wrap" style="display:none;padding:8px 16px 0;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:20px;padding:8px 14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span style="font-size:13px;color:#555;">Голосовое записано</span>
+        <button onclick="clearVoice()" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;font-weight:600;">Удалить</button>
+    </div>
 </div>
 
-<div class="card" style="padding: 12px 16px; margin-top: 8px;">
-    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" id="msg-form" style="display: flex; gap: 10px; align-items: center;">
-        <div class="avatar-circle" style="width: 32px; height: 32px; flex-shrink: 0;">
-            {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size: 12px;">{{ user.username[0].upper() }}</span>{% endif %}
+<div class="card" style="padding:12px 16px;margin-top:8px;">
+    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" id="msg-form" style="display:flex;gap:10px;align-items:center;">
+        <div class="avatar-circle" style="width:32px;height:32px;flex-shrink:0;">
+            {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:12px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
-        <button type="button" onclick="document.getElementById('img-input').click()" style="background: none; border: none; cursor: pointer; font-size: 20px; color: #888; flex-shrink: 0;">📎</button>
-        <input type="file" id="img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="previewImage(this)">
-        <input type="file" id="voice-input" name="voice" accept="audio/*" style="display: none;" onchange="previewVoice(this)">
-        <input type="text" name="content" id="msg-input" placeholder="Написать сообщение..." style="margin-bottom: 0; flex: 1; padding: 10px 16px; border-radius: 24px; background: #f5f5f5; border: 1px solid #e8e8e8; font-size: 14px;" autocomplete="off">
-        <button type="button" id="voice-btn" onclick="toggleVoiceRecording()" style="background: none; border: none; cursor: pointer; font-size: 20px; color: #888; flex-shrink: 0;">🎙</button>
-        <button class="btn" style="border-radius: 24px; padding: 10px 20px; flex-shrink: 0;">Отправить</button>
+        <button type="button" onclick="document.getElementById('img-input').click()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#0f0f0f'" onmouseout="this.style.color='#aaa'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </button>
+        <input type="file" id="img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewImage(this)">
+        <input type="file" id="voice-input" name="voice" accept="audio/*" style="display:none;" onchange="previewVoice(this)">
+        <input type="text" name="content" id="msg-input" placeholder="Сообщение..." style="margin-bottom:0;flex:1;padding:10px 16px;border-radius:24px;background:#f5f5f5;border:1px solid #ebebeb;font-size:14px;" autocomplete="off">
+        <button type="button" id="voice-btn" onclick="toggleVoiceRecording()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#0f0f0f'" onmouseout="this.style.color='#aaa'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="btn" style="border-radius:20px;padding:10px 18px;flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
     </form>
 </div>
 
@@ -157,19 +169,11 @@ const otherInitial = "{{ other.username[0].upper() }}";
 function scrollToBottom() { box.scrollTop = box.scrollHeight; }
 scrollToBottom();
 
-// Показываем кнопки действий при наведении
 document.querySelectorAll('.msg-item').forEach(item => {
-    item.addEventListener('mouseenter', () => {
-        const actions = item.querySelector('.msg-actions');
-        if (actions) actions.style.display = 'flex';
-    });
-    item.addEventListener('mouseleave', () => {
-        const actions = item.querySelector('.msg-actions');
-        if (actions) actions.style.display = 'none';
-    });
+    item.addEventListener('mouseenter', () => { const a = item.querySelector('.msg-actions'); if (a) a.style.display='flex'; });
+    item.addEventListener('mouseleave', () => { const a = item.querySelector('.msg-actions'); if (a) a.style.display='none'; });
 });
 
-// Реакции
 let currentReactionMsgId = null;
 let reactionPickerAnchor = null;
 
@@ -179,224 +183,153 @@ function showReactionPicker(msgId, btn) {
     const rect = btn.getBoundingClientRect();
     picker.style.display = 'flex';
     picker.style.top = (rect.top - 60) + 'px';
-    picker.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+    picker.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
     reactionPickerAnchor = btn;
 }
-
 function pickReaction(emoji) {
     if (!currentReactionMsgId) return;
     document.getElementById('reaction-picker').style.display = 'none';
     toggleReaction(currentReactionMsgId, emoji);
 }
-
 async function toggleReaction(msgId, emoji) {
-    const res = await fetch(`/api/message/react/${msgId}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({emoji})
-    });
+    const res = await fetch(`/api/message/react/${msgId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({emoji}) });
     const data = await res.json();
     if (data.ok) updateReactionsUI(msgId, data.reactions);
 }
-
 function updateReactionsUI(msgId, reactions) {
-    const item = document.querySelector(`.msg-item[data-id="${msgId}"]`);
-    if (!item) return;
+    const item = document.querySelector(`.msg-item[data-id="${msgId}"]`); if (!item) return;
     let reactionsDiv = item.querySelector('.msg-reactions');
     if (!reactionsDiv) {
-        reactionsDiv = document.createElement('div');
-        reactionsDiv.className = 'msg-reactions';
+        reactionsDiv = document.createElement('div'); reactionsDiv.className = 'msg-reactions';
         reactionsDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;';
-        const timeDiv = item.querySelector('div[style*="font-size: 11px"]');
+        const timeDiv = item.querySelector('div[style*="font-size:11px"]');
         if (timeDiv) item.insertBefore(reactionsDiv, timeDiv);
     }
     reactionsDiv.innerHTML = '';
     for (const [emoji, count] of Object.entries(reactions)) {
         if (count > 0) {
             const span = document.createElement('span');
-            span.style.cssText = 'background:#f0f0f0;border-radius:20px;padding:2px 8px;font-size:13px;cursor:pointer;';
+            span.style.cssText = 'background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;border:1px solid #ebebeb;';
             span.textContent = `${emoji} ${count}`;
             span.onclick = () => toggleReaction(msgId, emoji);
             reactionsDiv.appendChild(span);
         }
     }
 }
-
 document.addEventListener('click', e => {
     const picker = document.getElementById('reaction-picker');
-    if (picker.style.display !== 'none' && !picker.contains(e.target) && e.target !== reactionPickerAnchor) {
-        picker.style.display = 'none';
-    }
+    if (picker.style.display!=='none' && !picker.contains(e.target) && e.target!==reactionPickerAnchor) picker.style.display='none';
 });
 
-// Удаление сообщения
-async function deleteMessage(msgId, btn) {
+async function deleteMessage(msgId) {
     if (!confirm('Удалить сообщение?')) return;
-    const res = await fetch(`/api/message/delete/${msgId}`, {method: 'POST'});
+    const res = await fetch(`/api/message/delete/${msgId}`, {method:'POST'});
     const data = await res.json();
     if (data.ok) {
         const item = document.querySelector(`.msg-item[data-id="${msgId}"]`);
         if (item) {
-            item.innerHTML = `<div style="padding:8px 14px;border-radius:18px;background:#f0f0f0;color:#bbb;font-size:13px;font-style:italic;">🗑 Сообщение удалено</div>`;
+            const isMine = item.style.alignItems === 'flex-end';
+            item.innerHTML = `<div style="padding:8px 14px;border-radius:16px;background:#f5f5f5;color:#bbb;font-size:13px;font-style:italic;display:flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Сообщение удалено</div>`;
         }
     }
 }
 
-// Пересылка
 let forwardMsgId = null;
-
-function showForwardDialog(msgId) {
-    forwardMsgId = msgId;
-    document.getElementById('forward-username').value = '';
-    document.getElementById('forward-error').style.display = 'none';
-    document.getElementById('forward-dialog').style.display = 'flex';
-}
-
-function closeForwardDialog() {
-    document.getElementById('forward-dialog').style.display = 'none';
-    forwardMsgId = null;
-}
-
+function showForwardDialog(msgId) { forwardMsgId=msgId; document.getElementById('forward-username').value=''; document.getElementById('forward-error').style.display='none'; document.getElementById('forward-dialog').style.display='flex'; }
+function closeForwardDialog() { document.getElementById('forward-dialog').style.display='none'; forwardMsgId=null; }
 async function confirmForward() {
-    const username = document.getElementById('forward-username').value.trim();
-    if (!username) return;
-    const res = await fetch(`/api/message/forward/${forwardMsgId}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({to_username: username})
-    });
+    const username = document.getElementById('forward-username').value.trim(); if (!username) return;
+    const res = await fetch(`/api/message/forward/${forwardMsgId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({to_username:username}) });
     const data = await res.json();
-    if (data.ok) {
-        closeForwardDialog();
-        alert(`Переслано пользователю @${data.to}`);
-    } else {
-        const err = document.getElementById('forward-error');
-        err.textContent = data.error || 'Ошибка';
-        err.style.display = 'block';
-    }
+    if (data.ok) { closeForwardDialog(); alert(`Переслано @${data.to}`); }
+    else { const err=document.getElementById('forward-error'); err.textContent=data.error||'Ошибка'; err.style.display='block'; }
 }
 
-// Голосовые
 function previewImage(input) {
-    const file = input.files[0];
-    if (!file) return;
-    document.getElementById('img-preview').src = URL.createObjectURL(file);
-    document.getElementById('img-preview-wrap').style.display = 'block';
+    const file=input.files[0]; if (!file) return;
+    document.getElementById('img-preview').src=URL.createObjectURL(file);
+    document.getElementById('img-preview-wrap').style.display='block';
 }
-function clearImage() {
-    document.getElementById('img-input').value = '';
-    document.getElementById('img-preview-wrap').style.display = 'none';
-}
-function previewVoice(input) {
-    if (!input.files[0]) return;
-    document.getElementById('voice-preview-wrap').style.display = 'flex';
-}
-function clearVoice() {
-    document.getElementById('voice-input').value = '';
-    document.getElementById('voice-preview-wrap').style.display = 'none';
-}
+function clearImage() { document.getElementById('img-input').value=''; document.getElementById('img-preview-wrap').style.display='none'; }
+function previewVoice(input) { if (!input.files[0]) return; document.getElementById('voice-preview-wrap').style.display='flex'; }
+function clearVoice() { document.getElementById('voice-input').value=''; document.getElementById('voice-preview-wrap').style.display='none'; }
 
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-
+let mediaRecorder=null, audioChunks=[], isRecording=false;
 async function toggleVoiceRecording() {
-    const btn = document.getElementById('voice-btn');
+    const btn=document.getElementById('voice-btn');
     if (!isRecording) {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-            audioChunks = [];
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(audioChunks, {type: 'audio/webm'});
-                const file = new File([blob], 'voice.webm', {type: 'audio/webm'});
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                document.getElementById('voice-input').files = dt.files;
+            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            audioChunks=[]; mediaRecorder=new MediaRecorder(stream);
+            mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+            mediaRecorder.onstop=()=>{
+                const blob=new Blob(audioChunks,{type:'audio/webm'});
+                const file=new File([blob],'voice.webm',{type:'audio/webm'});
+                const dt=new DataTransfer(); dt.items.add(file);
+                document.getElementById('voice-input').files=dt.files;
                 previewVoice(document.getElementById('voice-input'));
-                stream.getTracks().forEach(t => t.stop());
+                stream.getTracks().forEach(t=>t.stop());
             };
-            mediaRecorder.start();
-            isRecording = true;
-            btn.textContent = '⏹';
-            btn.style.color = '#e53935';
+            mediaRecorder.start(); isRecording=true;
+            btn.style.color='#e53935';
         } catch(e) { alert('Нет доступа к микрофону'); }
-    } else {
-        mediaRecorder.stop();
-        isRecording = false;
-        btn.textContent = '🎙';
-        btn.style.color = '#888';
-    }
+    } else { mediaRecorder.stop(); isRecording=false; btn.style.color='#aaa'; }
 }
 
-// Статус "печатает"
-const msgInput = document.getElementById('msg-input');
-msgInput.addEventListener('input', () => {
-    fetch(`/api/typing/${otherUsername}`, {method: 'POST'});
-});
+const msgInput=document.getElementById('msg-input');
+msgInput.addEventListener('input',()=>fetch(`/api/typing/${otherUsername}`,{method:'POST'}));
 
-// Автообновление чата
-let lastMsgId = 0;
-const msgs = document.querySelectorAll('.msg-item');
-if (msgs.length > 0) lastMsgId = parseInt(msgs[msgs.length - 1].dataset.id) || 0;
+let lastMsgId=0;
+const msgs=document.querySelectorAll('.msg-item');
+if (msgs.length>0) lastMsgId=parseInt(msgs[msgs.length-1].dataset.id)||0;
 
 function avatarHtml(size) {
     if (otherAvatar) return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>`;
-    return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:600;">${otherInitial}</span></div>`;
+    return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:700;">${otherInitial}</span></div>`;
 }
-
 function ticksHtml(is_read, is_delivered) {
-    if (is_read) return '<span style="color:#1d9bf0;font-size:13px;">✓✓</span>';
-    if (is_delivered) return '<span style="color:#bbb;font-size:13px;">✓✓</span>';
-    return '<span style="color:#bbb;font-size:13px;">✓</span>';
+    if (is_read) return '<span style="color:#1d9bf0;font-size:12px;font-weight:600;">✓✓</span>';
+    if (is_delivered) return '<span style="color:#bbb;font-size:12px;">✓✓</span>';
+    return '<span style="color:#bbb;font-size:12px;">✓</span>';
 }
 
 async function pollMessages() {
     try {
-        const res = await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.messages && data.messages.length > 0) {
-            const empty = document.getElementById('empty-msg');
-            if (empty) empty.remove();
-            const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-            data.messages.forEach(msg => {
-                lastMsgId = Math.max(lastMsgId, msg.id);
-                if (msg.is_deleted) return;
-                const div = document.createElement('div');
-                div.className = 'msg-item';
-                div.dataset.id = msg.id;
-                div.dataset.mine = msg.sender_id === currentUserId ? 'true' : 'false';
-                const isMine = msg.sender_id === currentUserId;
-                div.style.cssText = `display:flex;flex-direction:column;${isMine ? 'align-items:flex-end' : 'align-items:flex-start'};gap:2px;`;
-                let fwd = '';
-                if (msg.forwarded_from_name) {
-                    fwd = `<div style="font-size:11px;color:#888;margin-bottom:2px;padding:0 4px;">↪ Переслано от <span style="color:#1d9bf0;font-weight:600;">${msg.forwarded_from_name}</span></div>`;
-                }
-                let inner = fwd;
+        const res=await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`); if (!res.ok) return;
+        const data=await res.json();
+        if (data.messages&&data.messages.length>0) {
+            const empty=document.getElementById('empty-msg'); if (empty) empty.remove();
+            const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+            data.messages.forEach(msg=>{
+                lastMsgId=Math.max(lastMsgId,msg.id); if (msg.is_deleted) return;
+                const div=document.createElement('div'); div.className='msg-item'; div.dataset.id=msg.id;
+                const isMine=msg.sender_id===currentUserId;
+                div.style.cssText=`display:flex;flex-direction:column;${isMine?'align-items:flex-end':'align-items:flex-start'};gap:2px;`;
+                let fwd='';
+                if (msg.forwarded_from_name) fwd=`<div style="font-size:11px;color:#aaa;padding:0 4px;margin-bottom:2px;">↪ от <span style="color:#1d9bf0;font-weight:600;">${msg.forwarded_from_name}</span></div>`;
+                let inner=fwd;
                 if (isMine) {
-                    inner += `<div style="max-width:72%;">`;
-                    if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
-                    if (msg.voice) inner += `<div style="background:#1a1a1a;border-radius:18px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>`;
-                    if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 4px 18px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                    inner += `</div>`;
+                    inner+=`<div style="max-width:72%;">`;
+                    if (msg.image) inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    if (msg.voice) inner+=`<div style="background:#1a1a1a;border-radius:16px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>`;
+                    if (msg.content) inner+=`<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
+                    inner+=`</div>`;
                 } else {
-                    inner += `<div style="display:flex;align-items:flex-end;gap:8px;">${avatarHtml(26)}<div style="max-width:72%;">`;
-                    if (msg.image) inner += `<div style="border-radius:12px;overflow:hidden;margin-bottom:4px;"><img src="${msg.image}" style="max-width:100%;max-height:300px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
-                    if (msg.voice) inner += `<div style="background:#f0f0f0;border-radius:18px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;"></audio></div>`;
-                    if (msg.content) inner += `<div style="padding:10px 14px;border-radius:18px 18px 18px 4px;background:#f0f0f0;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                    inner += `</div></div>`;
+                    inner+=`<div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">${avatarHtml(26)}<div>`;
+                    if (msg.image) inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    if (msg.voice) inner+=`<div style="background:#f5f5f5;border-radius:16px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;"></audio></div>`;
+                    if (msg.content) inner+=`<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:#f5f5f5;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
+                    inner+=`</div></div>`;
                 }
-                const actionsHtml = `<span class="msg-actions" style="display:none;gap:4px;">
-                    <button onclick="showReactionPicker(${msg.id}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;">😊</button>
-                    <button onclick="showForwardDialog(${msg.id})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#888;">↪</button>
-                    ${isMine ? `<button onclick="deleteMessage(${msg.id}, this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;border-radius:6px;color:#e53935;">🗑</button>` : ''}
+                const actHtml=`<span class="msg-actions" style="display:none;gap:3px;align-items:center;">
+                    <button onclick="showReactionPicker(${msg.id},this)" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;" title="Реакция"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
+                    <button onclick="showForwardDialog(${msg.id})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;" title="Переслать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg></button>
+                    ${isMine?`<button onclick="deleteMessage(${msg.id})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#e53935;" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}
                 </span>`;
-                inner += `<div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:6px;">${msg.time}${isMine ? ticksHtml(msg.is_read, msg.is_delivered) : ''}${actionsHtml}</div>`;
-                div.innerHTML = inner;
-                div.addEventListener('mouseenter', () => { const a = div.querySelector('.msg-actions'); if (a) a.style.display = 'flex'; });
-                div.addEventListener('mouseleave', () => { const a = div.querySelector('.msg-actions'); if (a) a.style.display = 'none'; });
+                inner+=`<div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:5px;">${msg.time}${isMine?ticksHtml(msg.is_read,msg.is_delivered):''}${actHtml}</div>`;
+                div.innerHTML=inner;
+                div.addEventListener('mouseenter',()=>{ const a=div.querySelector('.msg-actions'); if(a) a.style.display='flex'; });
+                div.addEventListener('mouseleave',()=>{ const a=div.querySelector('.msg-actions'); if(a) a.style.display='none'; });
                 box.appendChild(div);
             });
             if (wasAtBottom) scrollToBottom();
@@ -406,10 +339,9 @@ async function pollMessages() {
 
 async function pollTyping() {
     try {
-        const res = await fetch(`/api/typing/${otherUsername}`);
-        const data = await res.json();
-        const el = document.getElementById('typing-status');
-        el.innerHTML = data.typing ? '<span style="color:#1d9bf0;">печатает...</span>' : '@' + otherUsername;
+        const res=await fetch(`/api/typing/${otherUsername}`); const data=await res.json();
+        const el=document.getElementById('typing-status');
+        el.innerHTML=data.typing?'<span style="color:#1d9bf0;font-size:12px;">печатает...</span>':'@'+otherUsername;
     } catch(e) {}
 }
 
