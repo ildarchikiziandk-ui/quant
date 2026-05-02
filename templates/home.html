@@ -77,7 +77,6 @@
 </div>
 {% endif %}
 
-<!-- ИСТОРИИ -->
 {% if user %}
 <div style="background:#fff;border-radius:16px;border:1px solid #e4e4e4;padding:14px 16px;margin-bottom:10px;overflow-x:auto;">
     <div style="display:flex;gap:14px;align-items:flex-start;min-width:max-content;">
@@ -122,7 +121,6 @@
 </div>
 {% endif %}
 
-<!-- ТАБЫ -->
 <div style="display:flex;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e4e4e4;margin-bottom:10px;">
     <a href="/?tab=foryou" style="flex:1;text-align:center;padding:14px;font-size:14px;font-weight:600;{% if tab == 'foryou' or not tab %}border-bottom:2px solid #0f0f0f;color:#0f0f0f;{% else %}color:#888;{% endif %}text-decoration:none;">Для вас</a>
     <a href="/?tab=following" style="flex:1;text-align:center;padding:14px;font-size:14px;font-weight:600;{% if tab == 'following' %}border-bottom:2px solid #0f0f0f;color:#0f0f0f;{% else %}color:#888;{% endif %}text-decoration:none;">Подписки</a>
@@ -196,7 +194,6 @@
             </div>
             {% endif %}
 
-            <!-- КНОПКИ ПОСТА -->
             <div class="post-footer">
                 {% set user_liked = false %}
                 {% set user_whaled = false %}
@@ -205,17 +202,22 @@
                     {% for whale in post.whales %}{% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}{% endfor %}
                 {% endif %}
 
+                <!-- ЛАЙК — правильный цвет при загрузке -->
                 <form method="post" action="/like/{{ post.id }}" class="like-form" style="margin:0;">
-                    <button type="submit" class="action-btn {% if user_liked %}liked{% endif %}">
-                        <svg viewBox="0 0 24 24" {% if user_liked %}style="fill:#e0245e;stroke:#e0245e;"{% endif %}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <button type="submit" class="action-btn {% if user_liked %}liked{% endif %}" id="like-btn-{{ post.id }}">
+                        <svg viewBox="0 0 24 24" style="{% if user_liked %}fill:#e0245e;stroke:#e0245e;{% else %}fill:none;stroke:currentColor;{% endif %}"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                         <span class="like-count">{{ post.likes|length }}</span>
                     </button>
                 </form>
 
+                <!-- КИТ — нормальная иконка волны -->
                 <form method="post" action="/whale/{{ post.id }}" class="whale-form" style="margin:0;">
-                    <button type="submit" class="action-btn {% if user_whaled %}whaled{% endif %}">
-                        <!-- Нормальная иконка волны вместо кита -->
-                        <svg viewBox="0 0 24 24" {% if user_whaled %}style="fill:#0ea5e9;stroke:#0ea5e9;"{% endif %}><path d="M2 12c1.5-4 4-6 7-6s5.5 2 7 6c-1.5 4-4 6-7 6s-5.5-2-7-6z"/><circle cx="12" cy="12" r="2" fill="white" stroke="none"/></svg>
+                    <button type="submit" class="action-btn {% if user_whaled %}whaled{% endif %}" id="whale-btn-{{ post.id }}">
+                        <svg viewBox="0 0 24 24" style="{% if user_whaled %}fill:#0ea5e9;stroke:#0ea5e9;{% else %}fill:none;stroke:currentColor;{% endif %}">
+                            <path d="M3 18c0 0 2-6 9-6s9 6 9 6" stroke-linecap="round"/>
+                            <path d="M3 14c0 0 2-6 9-6s9 6 9 6" stroke-linecap="round" opacity="0.4"/>
+                            <path d="M3 10c0 0 2-4 9-4s9 4 9 4" stroke-linecap="round" opacity="0.2"/>
+                        </svg>
                         <span class="whale-count">{{ post.whales|length }}</span>
                     </button>
                 </form>
@@ -351,40 +353,50 @@ function setupMentionAutocomplete(input, dropdown) {
     input.addEventListener('blur',()=>setTimeout(()=>dropdown.style.display='none',150));
     input.addEventListener('keydown',e=>{ if (e.key==='Escape') dropdown.style.display='none'; });
 }
-const postContent=document.getElementById('post-content'); const postDropdown=document.getElementById('mention-dropdown');
+const postContent=document.getElementById('post-content');
+const postDropdown=document.getElementById('mention-dropdown');
 if (postContent&&postDropdown) setupMentionAutocomplete(postContent,postDropdown);
 document.querySelectorAll('.comment-form').forEach(form=>{
-    const input=form.querySelector('.comment-input'); const dropdown=form.closest('div').querySelector('.comment-mention-dropdown');
+    const input=form.querySelector('.comment-input');
+    const dropdown=form.closest('div').querySelector('.comment-mention-dropdown');
     if (input&&dropdown) setupMentionAutocomplete(input,dropdown);
 });
 document.querySelectorAll('.like-form,.whale-form').forEach(form=>{
     form.addEventListener('submit', async function(e) {
-        e.preventDefault(); const btn=this.querySelector('button');
+        e.preventDefault();
+        const btn=this.querySelector('button');
+        const svg=btn.querySelector('svg');
+        const isLike=btn.querySelector('.like-count')!==null;
         await fetch(this.action,{method:'POST'});
         const liked=btn.classList.contains('liked');
-        if (liked) btn.classList.remove('liked'); else btn.classList.add('liked');
+        if (liked) {
+            btn.classList.remove('liked');
+            svg.style.fill='none'; svg.style.stroke='currentColor';
+        } else {
+            btn.classList.add('liked');
+            if (isLike) { svg.style.fill='#e0245e'; svg.style.stroke='#e0245e'; }
+            else { svg.style.fill='#0ea5e9'; svg.style.stroke='#0ea5e9'; }
+        }
         const countEl=btn.querySelector('.like-count,.whale-count');
         if (countEl) countEl.textContent=parseInt(countEl.textContent)+(liked?-1:1);
-        const svg=btn.querySelector('svg');
-        if (svg&&btn.querySelector('.like-count')) {
-            if (liked) { svg.style.fill=''; svg.style.stroke=''; }
-            else { svg.style.fill='#e0245e'; svg.style.stroke='#e0245e'; }
-        }
     });
 });
 
 let topPostId={{ top_post_id or 0 }};
 async function checkNewPosts() {
     try {
-        const res=await fetch(`/api/feed/new?after=${topPostId}`); const data=await res.json();
+        const res=await fetch(`/api/feed/new?after=${topPostId}`);
+        const data=await res.json();
         if (data.posts&&data.posts.length>0) {
             topPostId=data.posts[0].id;
             let banner=document.getElementById('new-posts-banner');
             if (!banner) {
-                banner=document.createElement('div'); banner.id='new-posts-banner';
+                banner=document.createElement('div');
+                banner.id='new-posts-banner';
                 banner.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:white;padding:10px 24px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:8px;white-space:nowrap;';
                 banner.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg><span id="banner-text"></span>';
-                banner.onclick=()=>window.location.reload(); document.body.appendChild(banner);
+                banner.onclick=()=>window.location.reload();
+                document.body.appendChild(banner);
             }
             const c=data.posts.length;
             document.getElementById('banner-text').textContent=`${c} новых пост${c===1?'':c<5?'а':'ов'}`;
