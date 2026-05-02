@@ -1012,10 +1012,10 @@ def create_promo(request: Request, code: str = Form(...), days: int = Form(30), 
     code = code.upper().strip()
     existing = db.query(models.Promocode).filter(models.Promocode.code == code).first()
     if existing:
-        return RedirectResponse(f"/profile/{user.username}?error=promo_exists", status_code=302)
+        return RedirectResponse(f"/admin", status_code=302)
     db.add(models.Promocode(code=code, days=days, max_uses=max_uses))
     db.commit()
-    return RedirectResponse(f"/profile/{user.username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=promocodes", status_code=302)
 
 @app.post("/admin/star/{username}")
 def give_star(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1026,7 +1026,7 @@ def give_star(username: str, request: Request, db: Session = Depends(get_db)):
     if target:
         target.is_starred = not target.is_starred
         db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=users&q={username}", status_code=302)
 
 @app.post("/admin/verify/{username}")
 def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1037,7 +1037,7 @@ def give_verify(username: str, request: Request, db: Session = Depends(get_db)):
     if target:
         target.is_verified_badge = not target.is_verified_badge
         db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=users&q={username}", status_code=302)
 
 @app.post("/admin/mod/{username}")
 def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1048,7 +1048,19 @@ def give_mod(username: str, request: Request, db: Session = Depends(get_db)):
     if target:
         target.is_moderator = not target.is_moderator
         db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=users&q={username}", status_code=302)
+
+@app.post("/admin/give_plus/{username}")
+def give_plus(username: str, request: Request, days: int = Form(30), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if target:
+        target.is_plus = True
+        target.plus_until = datetime.utcnow() + timedelta(days=days)
+        db.commit()
+    return RedirectResponse(f"/admin?tab=users&q={username}", status_code=302)
 
 @app.post("/admin/stopword/add")
 def add_stop_word(request: Request, word: str = Form(...), db: Session = Depends(get_db)):
@@ -1059,7 +1071,7 @@ def add_stop_word(request: Request, word: str = Form(...), db: Session = Depends
     if word and not db.query(models.StopWord).filter(models.StopWord.word == word).first():
         db.add(models.StopWord(word=word))
         db.commit()
-    return RedirectResponse(f"/profile/{user.username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=settings", status_code=302)
 
 @app.post("/admin/stopword/delete/{word_id}")
 def delete_stop_word(word_id: int, request: Request, db: Session = Depends(get_db)):
@@ -1070,7 +1082,72 @@ def delete_stop_word(word_id: int, request: Request, db: Session = Depends(get_d
     if sw:
         db.delete(sw)
         db.commit()
-    return RedirectResponse(f"/profile/{user.username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=settings", status_code=302)
+
+@app.post("/admin/delete_post/{post_id}")
+def admin_delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post:
+        if post.image:
+            delete_media_file(post.image)
+        db.query(models.Like).filter(models.Like.post_id == post_id).delete()
+        db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
+        db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
+        db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
+        db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
+        db.query(models.Post).filter(models.Post.repost_id == post_id).delete()
+        db.query(models.Bookmark).filter(models.Bookmark.post_id == post_id).delete()
+        db.delete(post)
+        db.commit()
+    return RedirectResponse(f"/admin?tab=posts", status_code=302)
+
+@app.post("/admin/notify_all")
+def admin_notify_all(request: Request, text: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    all_users = db.query(models.User).all()
+    for u in all_users:
+        if u.id != user.id:
+            db.add(models.Notification(user_id=u.id, from_user_id=user.id, type="system", text=text))
+    db.commit()
+    return RedirectResponse(f"/admin?tab=notify&sent=1", status_code=302)
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    from sqlalchemy import func
+    stats = {
+        "total_users": db.query(models.User).count(),
+        "new_today": db.query(models.User).filter(models.User.created_at >= datetime.utcnow().replace(hour=0, minute=0, second=0)).count(),
+        "new_week": db.query(models.User).filter(models.User.created_at >= datetime.utcnow() - timedelta(days=7)).count(),
+        "total_posts": db.query(models.Post).filter(models.Post.is_published == True).count(),
+        "posts_today": db.query(models.Post).filter(models.Post.is_published == True, models.Post.created_at >= datetime.utcnow().replace(hour=0, minute=0, second=0)).count(),
+        "active_24h": db.query(models.User).filter(models.User.last_seen >= datetime.utcnow() - timedelta(hours=24)).count(),
+        "total_messages": db.query(models.Message).filter(models.Message.is_deleted == False).count(),
+        "plus_users": db.query(models.User).filter(models.User.is_plus == True).count(),
+    }
+    users = []
+    if tab == "users":
+        if q:
+            users = db.query(models.User).filter(models.User.username.ilike(f"%{q}%") | models.User.name.ilike(f"%{q}%") | models.User.email.ilike(f"%{q}%")).limit(50).all()
+        else:
+            users = db.query(models.User).order_by(models.User.created_at.desc()).limit(50).all()
+    posts = []
+    if tab == "posts":
+        posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).limit(50).all()
+    promocodes = []
+    if tab == "promocodes":
+        promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
+    stop_words = []
+    if tab == "settings":
+        stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
+    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
 
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
@@ -1117,10 +1194,7 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return JSONResponse({"messages": []})
-    msgs = db.query(models.Message).filter(
-        ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
-        ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))
-    ).filter(models.Message.id > after).order_by(models.Message.created_at).all()
+    msgs = db.query(models.Message).filter(((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) | ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))).filter(models.Message.id > after).order_by(models.Message.created_at).all()
     for msg in msgs:
         if msg.receiver_id == user.id and not msg.is_read and not msg.is_deleted:
             msg.is_read = True
@@ -1131,20 +1205,7 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
         reactions = {}
         for r in m.msg_reactions:
             reactions[r.emoji] = reactions.get(r.emoji, 0) + 1
-        result.append({
-            "id": m.id,
-            "sender_id": m.sender_id,
-            "content": "" if m.is_deleted else m.content,
-            "image": "" if m.is_deleted else (m.image or ""),
-            "voice": "" if m.is_deleted else (m.voice or ""),
-            "time": m.created_at.strftime("%H:%M"),
-            "is_read": m.is_read,
-            "is_delivered": m.is_delivered,
-            "is_deleted": m.is_deleted,
-            "forwarded_from_id": m.forwarded_from_id,
-            "forwarded_from_name": (m.forwarded_from.name or m.forwarded_from.username) if m.forwarded_from else None,
-            "reactions": reactions,
-        })
+        result.append({"id": m.id, "sender_id": m.sender_id, "content": "" if m.is_deleted else m.content, "image": "" if m.is_deleted else (m.image or ""), "voice": "" if m.is_deleted else (m.voice or ""), "time": m.created_at.strftime("%H:%M"), "is_read": m.is_read, "is_delivered": m.is_delivered, "is_deleted": m.is_deleted, "forwarded_from_id": m.forwarded_from_id, "forwarded_from_name": (m.forwarded_from.name or m.forwarded_from.username) if m.forwarded_from else None, "reactions": reactions})
     return JSONResponse({"messages": result})
 
 @app.post("/api/typing/{username}")
@@ -1293,19 +1354,7 @@ def api_feed_new(request: Request, after: int = 0, db: Session = Depends(get_db)
     posts = db.query(models.Post).filter(models.Post.is_published == True, models.Post.id > after).order_by(models.Post.created_at.desc()).limit(20).all()
     result = []
     for p in posts:
-        result.append({
-            "id": p.id,
-            "content": p.content,
-            "author_username": p.author.username,
-            "author_name": p.author.name or p.author.username,
-            "author_avatar": p.author.avatar or "",
-            "created_at": p.created_at.strftime("%d.%m.%Y %H:%M"),
-            "likes": len(p.likes),
-            "comments": len(p.comments),
-            "image": p.image or "",
-            "media_type": p.media_type or "",
-            "is_repost": p.is_repost,
-        })
+        result.append({"id": p.id, "content": p.content, "author_username": p.author.username, "author_name": p.author.name or p.author.username, "author_avatar": p.author.avatar or "", "created_at": p.created_at.strftime("%d.%m.%Y %H:%M"), "likes": len(p.likes), "comments": len(p.comments), "image": p.image or "", "media_type": p.media_type or "", "is_repost": p.is_repost})
     if user:
         db.commit()
     return JSONResponse({"posts": result})
