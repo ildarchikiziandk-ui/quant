@@ -33,6 +33,8 @@ class User(Base):
     push_subscriptions = relationship("PushSubscription", back_populates="user")
     achievements = relationship("UserAchievement", back_populates="user")
     bookmarks = relationship("Bookmark", back_populates="user")
+    reports_sent = relationship("Report", foreign_keys="Report.reporter_id", back_populates="reporter")
+    reports_received = relationship("Report", foreign_keys="Report.target_id", back_populates="target")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -247,3 +249,21 @@ class Bookmark(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="bookmarks")
     post = relationship("Post", back_populates="bookmarks")
+
+class Report(Base):
+    __tablename__ = "reports"
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"))
+    target_id = Column(Integer, ForeignKey("users.id"))
+    reason = Column(String, default="")
+    text = Column(Text, default="")
+    image_1 = Column(String, default="")
+    image_2 = Column(String, default="")
+    image_3 = Column(String, default="")
+    image_4 = Column(String, default="")
+    image_5 = Column(String, default="")
+    status = Column(String, default="new")
+    admin_comment = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    reporter = relationship("User", foreign_keys=[reporter_id], back_populates="reports_sent")
+    target = relationship("User", foreign_keys=[target_id], back_populates="reports_received")

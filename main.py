@@ -90,6 +90,7 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS user_achievements (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), achievement_id INTEGER REFERENCES achievements(id), earned_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS bookmarks (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id), created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS message_reactions (id SERIAL PRIMARY KEY, message_id INTEGER REFERENCES messages(id), user_id INTEGER REFERENCES users(id), emoji VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS reports (id SERIAL PRIMARY KEY, reporter_id INTEGER REFERENCES users(id), target_id INTEGER REFERENCES users(id), reason VARCHAR DEFAULT '', text TEXT DEFAULT '', image_1 VARCHAR DEFAULT '', image_2 VARCHAR DEFAULT '', image_3 VARCHAR DEFAULT '', image_4 VARCHAR DEFAULT '', image_5 VARCHAR DEFAULT '', status VARCHAR DEFAULT 'new', admin_comment TEXT DEFAULT '', created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         for a in ACHIEVEMENTS_LIST:
             conn.execute(text(f"INSERT INTO achievements (code, name, description, emoji) VALUES ('{a['code']}', '{a['name']}', '{a['description']}', '{a['emoji']}') ON CONFLICT (code) DO NOTHING"))
@@ -753,7 +754,12 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
         stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
     user_achievements = db.query(models.UserAchievement).filter(models.UserAchievement.user_id == profile_user.id).all()
     total_views = sum(p.views or 0 for p in posts)
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_content": render_content, "stop_words": stop_words, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views})
+    already_reported = False
+    if current_user and current_user.id != profile_user.id:
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        report_count = db.query(models.Report).filter(models.Report.reporter_id == current_user.id, models.Report.target_id == profile_user.id, models.Report.created_at >= week_ago).count()
+        already_reported = report_count >= 3
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_content": render_content, "stop_words": stop_words, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views, "already_reported": already_reported})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -775,6 +781,68 @@ def follow(username: str, request: Request, db: Session = Depends(get_db)):
         check_and_give_achievements(target, db)
     db.commit()
     return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.get("/report/{username}", response_class=HTMLResponse)
+def report_page(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target or target.id == user.id:
+        return RedirectResponse("/", status_code=302)
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    report_count = db.query(models.Report).filter(models.Report.reporter_id == user.id, models.Report.target_id == target.id, models.Report.created_at >= week_ago).count()
+    if report_count >= 3:
+        return RedirectResponse(f"/profile/{username}", status_code=302)
+    return templates.TemplateResponse(request, "report.html", {"user": user, "target": target, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.post("/report/{username}")
+async def report_submit(username: str, request: Request, reason: str = Form(...), text: str = Form(""), image_1: UploadFile = File(None), image_2: UploadFile = File(None), image_3: UploadFile = File(None), image_4: UploadFile = File(None), image_5: UploadFile = File(None), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target or target.id == user.id:
+        return RedirectResponse("/", status_code=302)
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    report_count = db.query(models.Report).filter(models.Report.reporter_id == user.id, models.Report.target_id == target.id, models.Report.created_at >= week_ago).count()
+    if report_count >= 3:
+        return RedirectResponse(f"/profile/{username}", status_code=302)
+    images = []
+    for img_upload in [image_1, image_2, image_3, image_4, image_5]:
+        if img_upload and img_upload.filename:
+            url, _ = save_media_file(img_upload)
+            images.append(url or "")
+        else:
+            images.append("")
+    report = models.Report(reporter_id=user.id, target_id=target.id, reason=reason, text=text, image_1=images[0], image_2=images[1], image_3=images[2], image_4=images[3], image_5=images[4])
+    db.add(report)
+    owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    if owner:
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id, type="report", text=f"🚩 @{user.username} пожаловался на @{target.username}\nПричина: {reason}\n{text[:200]}"))
+    db.commit()
+    return RedirectResponse(f"/profile/{username}?reported=1", status_code=302)
+
+@app.post("/admin/report/action/{report_id}")
+def report_action(report_id: int, request: Request, action: str = Form(...), comment: str = Form(""), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    report = db.query(models.Report).filter(models.Report.id == report_id).first()
+    if not report:
+        return RedirectResponse("/admin?tab=reports", status_code=302)
+    report.status = action
+    report.admin_comment = comment
+    if action == "block" and report.target:
+        report.target.is_blocked = True
+        report.target.blocked_until = datetime.utcnow() + timedelta(days=7)
+        db.add(models.Notification(user_id=report.target_id, from_user_id=user.id, type="system", text="Ваш аккаунт заблокирован по жалобе на 7 дней."))
+    elif action == "warn" and report.target:
+        db.add(models.Notification(user_id=report.target_id, from_user_id=user.id, type="system", text=f"Предупреждение от администратора: {comment}"))
+    if report.reporter_id:
+        db.add(models.Notification(user_id=report.reporter_id, from_user_id=user.id, type="system", text=f"Ваша жалоба на @{report.target.username} рассмотрена. Решение: {action}."))
+    db.commit()
+    return RedirectResponse("/admin?tab=reports", status_code=302)
 
 @app.get("/hashtag/{tag}", response_class=HTMLResponse)
 def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
@@ -990,7 +1058,7 @@ def block_user(username: str, request: Request, days: int = Form(1), db: Session
         target.is_blocked = True
         target.blocked_until = datetime.utcnow() + timedelta(days=days)
         db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=users&q={username}", status_code=302)
 
 @app.post("/admin/unblock/{username}")
 def unblock_user(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1002,7 +1070,7 @@ def unblock_user(username: str, request: Request, db: Session = Depends(get_db))
         target.is_blocked = False
         target.blocked_until = None
         db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
+    return RedirectResponse(f"/admin?tab=users&q={username}", status_code=302)
 
 @app.post("/admin/create_promo")
 def create_promo(request: Request, code: str = Form(...), days: int = Form(30), max_uses: int = Form(1), db: Session = Depends(get_db)):
@@ -1012,10 +1080,10 @@ def create_promo(request: Request, code: str = Form(...), days: int = Form(30), 
     code = code.upper().strip()
     existing = db.query(models.Promocode).filter(models.Promocode.code == code).first()
     if existing:
-        return RedirectResponse(f"/admin", status_code=302)
+        return RedirectResponse("/admin?tab=promocodes", status_code=302)
     db.add(models.Promocode(code=code, days=days, max_uses=max_uses))
     db.commit()
-    return RedirectResponse(f"/admin?tab=promocodes", status_code=302)
+    return RedirectResponse("/admin?tab=promocodes", status_code=302)
 
 @app.post("/admin/star/{username}")
 def give_star(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1071,7 +1139,7 @@ def add_stop_word(request: Request, word: str = Form(...), db: Session = Depends
     if word and not db.query(models.StopWord).filter(models.StopWord.word == word).first():
         db.add(models.StopWord(word=word))
         db.commit()
-    return RedirectResponse(f"/admin?tab=settings", status_code=302)
+    return RedirectResponse("/admin?tab=settings", status_code=302)
 
 @app.post("/admin/stopword/delete/{word_id}")
 def delete_stop_word(word_id: int, request: Request, db: Session = Depends(get_db)):
@@ -1082,7 +1150,7 @@ def delete_stop_word(word_id: int, request: Request, db: Session = Depends(get_d
     if sw:
         db.delete(sw)
         db.commit()
-    return RedirectResponse(f"/admin?tab=settings", status_code=302)
+    return RedirectResponse("/admin?tab=settings", status_code=302)
 
 @app.post("/admin/delete_post/{post_id}")
 def admin_delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -1102,7 +1170,7 @@ def admin_delete_post(post_id: int, request: Request, db: Session = Depends(get_
         db.query(models.Bookmark).filter(models.Bookmark.post_id == post_id).delete()
         db.delete(post)
         db.commit()
-    return RedirectResponse(f"/admin?tab=posts", status_code=302)
+    return RedirectResponse("/admin?tab=posts", status_code=302)
 
 @app.post("/admin/notify_all")
 def admin_notify_all(request: Request, text: str = Form(...), db: Session = Depends(get_db)):
@@ -1114,7 +1182,7 @@ def admin_notify_all(request: Request, text: str = Form(...), db: Session = Depe
         if u.id != user.id:
             db.add(models.Notification(user_id=u.id, from_user_id=user.id, type="system", text=text))
     db.commit()
-    return RedirectResponse(f"/admin?tab=notify&sent=1", status_code=302)
+    return RedirectResponse("/admin?tab=notify&sent=1", status_code=302)
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = Depends(get_db)):
@@ -1147,7 +1215,10 @@ def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = 
     stop_words = []
     if tab == "settings":
         stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
-    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
+    reports = []
+    if tab == "reports":
+        reports = db.query(models.Report).order_by(models.Report.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "reports": reports, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
 
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
