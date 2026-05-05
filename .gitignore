@@ -2,4 +2,4 @@ venv/
 __pycache__/
 *.db
 *.pyc
-.env
+.env/root/quant/uploads
