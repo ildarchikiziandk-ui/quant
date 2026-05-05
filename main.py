@@ -27,7 +27,7 @@ MAX_VIDEO_SIZE = 20 * 1024 * 1024
 MAX_AUDIO_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 ONLINE_THRESHOLD_MINUTES = 2
-BETA_CODE = "ПЕЛЬМЕНЬ228"
+BETA_CODE = "PELMEN228"
 
 ACHIEVEMENTS_LIST = [
     {"code": "first_post", "name": "Первый пост", "description": "Опубликовал первый пост", "emoji": "✍️"},
