@@ -1,11 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card" style="max-width: 400px; margin: 40px auto;">
-    <h2 style="margin-bottom: 20px;">Вход</h2>
+    <div style="text-align:center; margin-bottom: 24px;">
+        <img src="/static/icon-192.png" style="width:56px;height:56px;border-radius:14px;margin-bottom:12px;">
+        <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">Quant</h2>
+        <div style="display:inline-block;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 16px;margin-top:8px;">
+            <span style="font-size:13px;color:#92400e;font-weight:600;">🔒 Закрытое бета-тестирование</span>
+        </div>
+    </div>
+
     {% if error %}
-        <div class="alert-error">⚠️ {{ error }}</div>
+    <div class="alert-error">⚠️ {{ error }}</div>
     {% endif %}
+
+    {% if not beta_ok %}
+    <div style="margin-bottom:20px;">
+        <div style="font-size:13px;color:#555;margin-bottom:8px;font-weight:600;">Введи код доступа</div>
+        <form method="get" action="/login">
+            <input type="text" name="beta" placeholder="Код бета-тестировщика" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-weight:700;font-size:16px;">
+            <button class="btn" style="width:100%;">Войти в бету</button>
+        </form>
+        <div style="text-align:center;margin-top:16px;font-size:13px;color:#bbb;">Нет кода? Напиши <a href="https://t.me/rubl" style="color:#0f0f0f;font-weight:600;">@rubl</a></div>
+    </div>
+    {% else %}
     <form method="post" action="/login">
+        <input type="hidden" name="beta" value="{{ beta_code }}">
         <input type="text" name="username" placeholder="Никнейм" required>
         <input type="password" name="password" placeholder="Пароль" required>
         <button class="btn" style="width: 100%;">Войти</button>
@@ -19,15 +38,14 @@
 
     <a href="/auth/yandex" style="display: block;">
         <button type="button" style="width: 100%; background: #fc3f1d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                <path d="M13.5 11.5V2h2.3C17.9 2 19 3.1 19 5.2c0 2.2-1.1 3.3-3.2 3.3h-1v3zm0 0V22h-3V11.5zm0 0h-1.3C10.1 11.5 9 10.4 9 8.2c0-2.1 1.1-3.2 3.2-3.2h1.3v6.5z"/>
-            </svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M13.5 11.5V2h2.3C17.9 2 19 3.1 19 5.2c0 2.2-1.1 3.3-3.2 3.3h-1v3zm0 0V22h-3V11.5zm0 0h-1.3C10.1 11.5 9 10.4 9 8.2c0-2.1 1.1-3.2 3.2-3.2h1.3v6.5z"/></svg>
             Войти через Яндекс
         </button>
     </a>
 
-    <p style="margin-top: 16px; font-size: 14px; color: #555;">
-        Нет аккаунта? <a href="/register">Зарегистрироваться</a>
+    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align:center;">
+        Нет аккаунта? <a href="/register?beta={{ beta_code }}" style="font-weight: 600;">Зарегистрироваться</a>
     </p>
+    {% endif %}
 </div>
 {% endblock %}

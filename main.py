@@ -27,6 +27,7 @@ MAX_VIDEO_SIZE = 20 * 1024 * 1024
 MAX_AUDIO_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 ONLINE_THRESHOLD_MINUTES = 2
+BETA_CODE = "ПЕЛЬМЕНЬ228"
 
 ACHIEVEMENTS_LIST = [
     {"code": "first_post", "name": "Первый пост", "description": "Опубликовал первый пост", "emoji": "✍️"},
@@ -102,6 +103,15 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploads", StaticFiles(directory="/root/quant/uploads"), name="uploads")
 templates = Jinja2Templates(directory="templates")
+
+def check_beta(request: Request):
+    beta = request.cookies.get("beta_access")
+    if beta == BETA_CODE:
+        return True
+    beta_param = request.query_params.get("beta", "").upper().strip()
+    if beta_param == BETA_CODE:
+        return True
+    return False
 
 def validate_username(username):
     if len(username) < 3:
@@ -336,11 +346,57 @@ def render_content(content):
     content = re.sub(r'#([\w]+)', r'<a href="/hashtag/\1" style="color:#1d9bf0;font-weight:600;">#\1</a>', content)
     return content
 
+BETA_RESPONSE = """<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Quant — Закрытая бета</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.wrap{text-align:center;padding:40px 24px;max-width:420px;}
+.logo{width:72px;height:72px;border-radius:20px;margin:0 auto 24px;display:block;}
+h1{font-size:26px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;}
+p{color:#888;font-size:15px;margin-bottom:32px;line-height:1.6;}
+.badge{display:inline-block;background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:8px 18px;font-size:13px;color:#888;margin-bottom:32px;}
+form{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+input{background:#1a1a1a;border:1.5px solid #333;color:white;padding:12px 16px;border-radius:10px;font-size:15px;outline:none;text-align:center;letter-spacing:2px;font-weight:700;width:220px;}
+input:focus{border-color:#555;}
+input::placeholder{color:#555;letter-spacing:0;font-weight:400;}
+button{background:white;color:#0f0f0f;border:none;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
+button:hover{background:#eee;}
+.err{color:#e53935;font-size:13px;margin-top:12px;}
+</style></head>
+<body><div class="wrap">
+<img src="/static/icon-192.png" class="logo" alt="Quant">
+<h1>Quant</h1>
+<p>Сейчас идёт закрытое бета-тестирование. Для доступа нужен код.</p>
+<div class="badge">🔒 Закрытая бета</div>
+<form method="get" action="/beta">
+<input type="text" name="code" placeholder="Введи код доступа" autofocus>
+<button type="submit">Войти</button>
+</form>
+<div class="err">BETA_ERROR</div>
+</div></body></html>"""
+
 BLOCKED_RESPONSE = """<html><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;margin:0'><div style='background:#fff;border-radius:16px;padding:40px;text-align:center;border:1px solid #e8e8e8;max-width:400px'><div style='font-size:48px;margin-bottom:16px'>🚫</div><h2 style='margin-bottom:8px'>Аккаунт заблокирован</h2><p style='color:#888;margin-bottom:24px'>Ваш аккаунт временно заблокирован администратором.</p><a href='/' style='background:#0f0f0f;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600'>На главную</a></div></body></html>"""
+
+def beta_redirect(error=""):
+    html = BETA_RESPONSE.replace("BETA_ERROR", error)
+    return HTMLResponse(html)
+
+@app.get("/beta")
+def beta_entry(request: Request, code: str = ""):
+    code = code.upper().strip()
+    if code == BETA_CODE:
+        response = RedirectResponse("/", status_code=302)
+        response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
+        return response
+    if code:
+        return beta_redirect("Неверный код доступа")
+    return beta_redirect("")
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
+    if not user and not check_beta(request):
+        return beta_redirect("")
     if user:
         user.last_seen = datetime.utcnow()
         db.commit()
@@ -400,6 +456,8 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     if user:
         user.last_seen = datetime.utcnow()
@@ -412,27 +470,33 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content, "is_online": is_user_online})
 
 @app.get("/register", response_class=HTMLResponse)
-def register_page(request: Request):
-    return templates.TemplateResponse(request, "register.html", {})
+def register_page(request: Request, beta: str = ""):
+    if not check_beta(request) and beta.upper().strip() != BETA_CODE:
+        return beta_redirect("")
+    beta_code = beta.upper().strip() if beta.upper().strip() == BETA_CODE else ""
+    return templates.TemplateResponse(request, "register.html", {"beta_code": beta_code})
 
 @app.post("/register")
-def register(request: Request, name: str = Form(...), username: str = Form(...), email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+def register(request: Request, name: str = Form(...), username: str = Form(...), email: str = Form(...), password: str = Form(...), beta: str = Form(""), db: Session = Depends(get_db)):
+    if not check_beta(request) and beta.upper().strip() != BETA_CODE:
+        return beta_redirect("")
     error = validate_username(username)
     if error:
-        return templates.TemplateResponse(request, "register.html", {"error": error})
+        return templates.TemplateResponse(request, "register.html", {"error": error, "beta_code": beta})
     error = validate_password(password)
     if error:
-        return templates.TemplateResponse(request, "register.html", {"error": error})
+        return templates.TemplateResponse(request, "register.html", {"error": error, "beta_code": beta})
     if db.query(models.User).filter(models.User.username == username).first():
-        return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят"})
+        return templates.TemplateResponse(request, "register.html", {"error": f"Никнейм @{username} уже занят", "beta_code": beta})
     if db.query(models.User).filter(models.User.email == email).first():
-        return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован"})
+        return templates.TemplateResponse(request, "register.html", {"error": "Этот email уже зарегистрирован", "beta_code": beta})
     user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
     db.add(user)
     db.commit()
     token = auth.create_token({"sub": username})
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
+    response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
     return response
 
 @app.post("/verify")
@@ -452,17 +516,24 @@ def verify(request: Request, email: str = Form(...), username: str = Form(...), 
     return response
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html", {})
+def login_page(request: Request, beta: str = ""):
+    beta_upper = beta.upper().strip()
+    if not check_beta(request) and beta_upper != BETA_CODE:
+        return beta_redirect("")
+    beta_ok = check_beta(request) or beta_upper == BETA_CODE
+    return templates.TemplateResponse(request, "login.html", {"beta_ok": beta_ok, "beta_code": beta_upper if beta_upper == BETA_CODE else ""})
 
 @app.post("/login")
-def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+def login(request: Request, username: str = Form(...), password: str = Form(...), beta: str = Form(""), db: Session = Depends(get_db)):
+    if not check_beta(request) and beta.upper().strip() != BETA_CODE:
+        return beta_redirect("")
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user or not auth.verify_password(password, user.password):
-        return templates.TemplateResponse(request, "login.html", {"error": "Неверный никнейм или пароль"})
+        return templates.TemplateResponse(request, "login.html", {"error": "Неверный никнейм или пароль", "beta_ok": True, "beta_code": beta})
     token = auth.create_token({"sub": username})
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
+    response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
     return response
 
 @app.get("/logout")
@@ -723,6 +794,8 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
 
 @app.get("/profile/{username}", response_class=HTMLResponse)
 def profile(username: str, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     current_user = auth.get_current_user(request, db)
     if current_user:
         current_user.last_seen = datetime.utcnow()
@@ -840,12 +913,14 @@ def report_action(report_id: int, request: Request, action: str = Form(...), com
     elif action == "warn" and report.target:
         db.add(models.Notification(user_id=report.target_id, from_user_id=user.id, type="system", text=f"Предупреждение от администратора: {comment}"))
     if report.reporter_id:
-        db.add(models.Notification(user_id=report.reporter_id, from_user_id=user.id, type="system", text=f"Ваша жалоба на @{report.target.username} рассмотрена. Решение: {action}."))
+        db.add(models.Notification(user_id=report.reporter_id, from_user_id=user.id, type="system", text=f"Ваша жалоба рассмотрена. Решение: {action}."))
     db.commit()
     return RedirectResponse("/admin?tab=reports", status_code=302)
 
 @app.get("/hashtag/{tag}", response_class=HTMLResponse)
 def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     if user:
         user.last_seen = datetime.utcnow()
@@ -855,6 +930,8 @@ def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
 
 @app.get("/search", response_class=HTMLResponse)
 def search(request: Request, q: str = "", db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     user_results = []
     post_results = []
@@ -865,6 +942,8 @@ def search(request: Request, q: str = "", db: Session = Depends(get_db)):
 
 @app.get("/plus", response_class=HTMLResponse)
 def plus_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     return templates.TemplateResponse(request, "plus.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0, "is_plus": is_user_plus(user)})
 
@@ -887,6 +966,8 @@ def activate_plus(request: Request, code: str = Form(...), db: Session = Depends
 
 @app.get("/messages", response_class=HTMLResponse)
 def messages_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -900,6 +981,8 @@ def messages_page(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/messages/{username}", response_class=HTMLResponse)
 def conversation(username: str, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -947,6 +1030,8 @@ async def send_message(username: str, request: Request, content: str = Form(""),
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -984,6 +1069,8 @@ def support_reply(notif_id: int, request: Request, reply: str = Form(...), db: S
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -1218,10 +1305,13 @@ def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = 
     reports = []
     if tab == "reports":
         reports = db.query(models.Report).order_by(models.Report.created_at.desc()).limit(50).all()
-    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "reports": reports, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
+    new_reports_count = db.query(models.Report).filter(models.Report.status == "new").count()
+    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "reports": reports, "new_reports_count": new_reports_count, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
 
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
 
@@ -1460,6 +1550,7 @@ async def yandex_callback(code: str, request: Request, db: Session = Depends(get
     token = auth.create_token({"sub": user.username})
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
+    response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
     return response
 
 @app.post("/story/upload")
@@ -1480,6 +1571,8 @@ async def story_upload(request: Request, media: UploadFile = File(...), db: Sess
 
 @app.get("/story/{story_id}", response_class=HTMLResponse)
 def story_view(story_id: int, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
     user = auth.get_current_user(request, db)
     story = db.query(models.Story).filter(models.Story.id == story_id).first()
     if not story or story.expires_at < datetime.utcnow():

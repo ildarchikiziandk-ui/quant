@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card" style="max-width: 400px; margin: 40px auto;">
-    <h2 style="margin-bottom: 6px;">Регистрация</h2>
-    <p style="color: #888; font-size: 14px; margin-bottom: 20px;">Создай свой аккаунт в Quant</p>
+    <div style="text-align:center; margin-bottom: 24px;">
+        <img src="/static/icon-192.png" style="width:56px;height:56px;border-radius:14px;margin-bottom:12px;">
+        <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">Регистрация</h2>
+        <div style="display:inline-block;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:6px 14px;margin-top:8px;">
+            <span style="font-size:12px;color:#92400e;font-weight:600;">🔒 Закрытое бета-тестирование</span>
+        </div>
+    </div>
+
     {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
+
     <form method="post" action="/register">
+        <input type="hidden" name="beta" value="{{ beta_code }}">
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
         <input type="text" name="name" placeholder="Например: Ильдар" required>
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
@@ -21,6 +29,6 @@
         </div>
         <button class="btn" style="width: 100%;">Зарегистрироваться</button>
     </form>
-    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">Уже есть аккаунт? <a href="/login" style="font-weight: 600;">Войти</a></p>
+    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">Уже есть аккаунт? <a href="/login?beta={{ beta_code }}" style="font-weight: 600;">Войти</a></p>
 </div>
 {% endblock %}
