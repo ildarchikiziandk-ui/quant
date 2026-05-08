@@ -11,7 +11,9 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     avatar = Column(String, default="")
+    cover = Column(String, default="")
     bio = Column(String, default="")
+    emoji_status = Column(String, default="")
     is_verified = Column(Boolean, default=False)
     is_owner = Column(Boolean, default=False)
     is_starred = Column(Boolean, default=False)
@@ -29,12 +31,10 @@ class User(Base):
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
     following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
     notifications = relationship("Notification", foreign_keys="Notification.user_id", back_populates="user")
-    stories = relationship("Story", back_populates="author")
-    push_subscriptions = relationship("PushSubscription", back_populates="user")
     achievements = relationship("UserAchievement", back_populates="user")
     bookmarks = relationship("Bookmark", back_populates="user")
-    reports_sent = relationship("Report", foreign_keys="Report.reporter_id", back_populates="reporter")
-    reports_received = relationship("Report", foreign_keys="Report.target_id", back_populates="target")
+    sessions = relationship("UserSession", back_populates="user")
+    special_requests = relationship("SpecialRequest", foreign_keys="SpecialRequest.user_id", back_populates="user")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -42,21 +42,19 @@ class Post(Base):
     content = Column(Text)
     image = Column(String, default="")
     media_type = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"))
     is_repost = Column(Boolean, default=False)
-    repost_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
+    repost_id = Column(Integer, nullable=True)
     scheduled_at = Column(DateTime, nullable=True)
     is_published = Column(Boolean, default=True)
     views = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    user_id = Column(Integer, ForeignKey("users.id"))
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
     whales = relationship("Whale", back_populates="post")
     reactions = relationship("Reaction", back_populates="post")
     poll = relationship("Poll", back_populates="post", uselist=False)
-    original = relationship("Post", remote_side="Post.id", foreign_keys=[repost_id])
-    bookmarks = relationship("Bookmark", back_populates="post")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -106,10 +104,10 @@ class Message(Base):
     content = Column(Text, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
-    forwarded_from_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     is_delivered = Column(Boolean, default=False)
+    forwarded_from_id = Column(Integer, nullable=True)
     is_deleted = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
@@ -124,7 +122,6 @@ class MessageReaction(Base):
     emoji = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     message = relationship("Message", back_populates="msg_reactions")
-    user = relationship("User")
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -166,7 +163,8 @@ class Story(Base):
     media_type = Column(String, default="image")
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
-    author = relationship("User", back_populates="stories")
+    author = relationship("User")
+    views = relationship("StoryView", back_populates="story")
 
 class StoryView(Base):
     __tablename__ = "story_views"
@@ -174,6 +172,7 @@ class StoryView(Base):
     story_id = Column(Integer, ForeignKey("stories.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     viewed_at = Column(DateTime, default=datetime.utcnow)
+    story = relationship("Story", back_populates="views")
 
 class Poll(Base):
     __tablename__ = "polls"
@@ -211,7 +210,7 @@ class TypingStatus(Base):
 class StopWord(Base):
     __tablename__ = "stop_words"
     id = Column(Integer, primary_key=True, index=True)
-    word = Column(String, unique=True, index=True)
+    word = Column(String, unique=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class PushSubscription(Base):
@@ -222,12 +221,11 @@ class PushSubscription(Base):
     p256dh = Column(Text)
     auth = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
-    user = relationship("User", back_populates="push_subscriptions")
 
 class Achievement(Base):
     __tablename__ = "achievements"
     id = Column(Integer, primary_key=True, index=True)
-    code = Column(String, unique=True, index=True)
+    code = Column(String, unique=True)
     name = Column(String)
     description = Column(String)
     emoji = Column(String)
@@ -248,7 +246,7 @@ class Bookmark(Base):
     post_id = Column(Integer, ForeignKey("posts.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="bookmarks")
-    post = relationship("Post", back_populates="bookmarks")
+    post = relationship("Post")
 
 class Report(Base):
     __tablename__ = "reports"
@@ -265,5 +263,30 @@ class Report(Base):
     status = Column(String, default="new")
     admin_comment = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
-    reporter = relationship("User", foreign_keys=[reporter_id], back_populates="reports_sent")
-    target = relationship("User", foreign_keys=[target_id], back_populates="reports_received")
+    reporter = relationship("User", foreign_keys=[reporter_id])
+    target = relationship("User", foreign_keys=[target_id])
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    token_hash = Column(String, index=True)
+    device = Column(String, default="")
+    ip = Column(String, default="")
+    user_agent = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_active = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    user = relationship("User", back_populates="sessions")
+
+class SpecialRequest(Base):
+    __tablename__ = "special_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    type = Column(String)
+    reason = Column(Text, default="")
+    links = Column(String, default="")
+    status = Column(String, default="new")
+    admin_comment = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", foreign_keys=[user_id], back_populates="special_requests")

@@ -10,6 +10,22 @@
     {% endif %}
 
     <form method="post" action="/settings" enctype="multipart/form-data">
+        <!-- ОБЛОЖКА -->
+        <div style="margin-bottom:20px;">
+            <label style="font-size:13px;color:#555;margin-bottom:6px;display:block;font-weight:600;">Обложка профиля</label>
+            <div style="position:relative;height:120px;border-radius:12px;overflow:hidden;background:#f0f0f0;margin-bottom:8px;cursor:pointer;" onclick="document.getElementById('cover-input').click()">
+                {% if user.cover %}
+                <img id="cover-preview" src="{{ user.cover }}" style="width:100%;height:100%;object-fit:cover;">
+                {% else %}
+                <img id="cover-preview" style="display:none;width:100%;height:100%;object-fit:cover;">
+                <div id="cover-placeholder" style="display:flex;align-items:center;justify-content:center;height:100%;color:#bbb;font-size:14px;">Нажми чтобы добавить обложку</div>
+                {% endif %}
+                <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:12px;padding:4px 10px;border-radius:6px;">Изменить</div>
+            </div>
+            <input type="file" id="cover-input" name="cover" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewCover(this)">
+        </div>
+
+        <!-- АВАТАР -->
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
             <div id="avatar-preview-wrap" style="width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: #0f0f0f; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                 {% if user.avatar %}
@@ -28,11 +44,25 @@
 
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
         <input type="text" name="name" value="{{ user.name or '' }}" placeholder="Твоё имя" required>
+
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
         <input type="text" name="username" value="{{ user.username }}" required>
         <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
+
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">О себе</label>
         <textarea name="bio" placeholder="Расскажи о себе...">{{ user.bio or '' }}</textarea>
+
+        <label style="font-size: 13px; color: #555; margin-bottom: 8px; display: block;">Эмодзи-статус</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            {% for emoji in ['', '🔥', '❤️', '😎', '🚀', '💎', '⭐', '🎮', '🎵', '📚', '💻', '🌍'] %}
+            <label style="cursor:pointer;">
+                <input type="radio" name="emoji_status" value="{{ emoji }}" {% if (user.emoji_status or '') == emoji %}checked{% endif %} style="display:none;">
+                <div style="width:38px;height:38px;border-radius:10px;border:2px solid {% if (user.emoji_status or '') == emoji %}#0f0f0f{% else %}#e4e4e4{% endif %};display:flex;align-items:center;justify-content:center;font-size:20px;transition:border 0.15s;" onclick="updateEmojiBorders(this)">
+                    {% if emoji %}{{ emoji }}{% else %}<span style="color:#bbb;font-size:12px;">✕</span>{% endif %}
+                </div>
+            </label>
+            {% endfor %}
+        </div>
 
         {% if is_plus %}
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🎨 Цвет значка Quant Plus</label>
@@ -49,10 +79,7 @@
     <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
         <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">✨ Quant Plus</h3>
         <p style="font-size: 13px; color: #888; margin-bottom: 16px;">Активируй подписку промокодом — получи дополнительные реакции, значок и ранний доступ к новым функциям.</p>
-        <form method="post" action="/activate_plus" style="display:flex;gap:10px;">
-            <input type="text" name="code" placeholder="Введи промокод" style="margin-bottom:0;flex:1;">
-            <button class="btn">Активировать</button>
-        </form>
+        <a href="/plus"><button class="btn" style="width:100%;">Узнать больше</button></a>
     </div>
     {% else %}
     <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
@@ -73,6 +100,45 @@
             <button class="btn-outline" style="width: 100%;">Сменить пароль</button>
         </form>
     </div>
+
+    <!-- УСТРОЙСТВА -->
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="font-size: 16px; font-weight: 600;">🔐 Активные сессии</h3>
+            <form method="post" action="/sessions/revoke_all">
+                <button class="btn-outline" style="font-size:12px;padding:5px 12px;color:#e53935;border-color:#ffd0d0;">Завершить все</button>
+            </form>
+        </div>
+        {% if sessions %}
+        {% for session in sessions %}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;">
+            <div style="width:36px;height:36px;background:#f5f5f5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+                {% if 'Мобильный' in session.device %}📱{% else %}💻{% endif %}
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;">{{ session.device }}</div>
+                <div style="font-size:12px;color:#888;">{{ session.ip }} · {{ session.last_active.strftime("%d.%m.%Y %H:%M") }}</div>
+            </div>
+            {% if session.token_hash == current_hash %}
+            <span style="font-size:11px;background:#f0fff4;color:#276749;padding:3px 8px;border-radius:6px;font-weight:600;">Текущая</span>
+            {% else %}
+            <form method="post" action="/sessions/revoke/{{ session.id }}">
+                <button style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">✕</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="color:#888;font-size:14px;">Нет активных сессий</div>
+        {% endif %}
+    </div>
+
+    <!-- ЗАЯВКА НА СТАТУС -->
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">💎 Особый статус</h3>
+        <p style="font-size: 13px; color: #888; margin-bottom: 16px;">Подай заявку на верификацию, особый статус или роль модератора.</p>
+        <a href="/special_request"><button class="btn-outline" style="width:100%;">Подать заявку</button></a>
+    </div>
 </div>
 
 <script>
@@ -85,6 +151,24 @@ function previewAvatar(input) {
     img.src = url;
     img.style.display = 'block';
     if (letter) letter.style.display = 'none';
+}
+
+function previewCover(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = document.getElementById('cover-preview');
+    const placeholder = document.getElementById('cover-placeholder');
+    img.src = url;
+    img.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+}
+
+function updateEmojiBorders(el) {
+    document.querySelectorAll('[onclick="updateEmojiBorders(this)"]').forEach(d => {
+        d.style.borderColor = '#e4e4e4';
+    });
+    el.style.borderColor = '#0f0f0f';
 }
 </script>
 {% endblock %}

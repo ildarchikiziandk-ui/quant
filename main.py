@@ -11,6 +11,7 @@ import auth
 import re
 import os
 import uuid
+import hashlib
 from PIL import Image
 import io
 
@@ -60,6 +61,8 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plus_color VARCHAR DEFAULT '#a855f7'"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS pinned_post_id INTEGER"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS cover VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emoji_status VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE"))
@@ -92,6 +95,8 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS bookmarks (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id), created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS message_reactions (id SERIAL PRIMARY KEY, message_id INTEGER REFERENCES messages(id), user_id INTEGER REFERENCES users(id), emoji VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS reports (id SERIAL PRIMARY KEY, reporter_id INTEGER REFERENCES users(id), target_id INTEGER REFERENCES users(id), reason VARCHAR DEFAULT '', text TEXT DEFAULT '', image_1 VARCHAR DEFAULT '', image_2 VARCHAR DEFAULT '', image_3 VARCHAR DEFAULT '', image_4 VARCHAR DEFAULT '', image_5 VARCHAR DEFAULT '', status VARCHAR DEFAULT 'new', admin_comment TEXT DEFAULT '', created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS user_sessions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), token_hash VARCHAR, device VARCHAR DEFAULT '', ip VARCHAR DEFAULT '', user_agent VARCHAR DEFAULT '', created_at TIMESTAMP DEFAULT NOW(), last_active TIMESTAMP DEFAULT NOW(), is_active BOOLEAN DEFAULT TRUE)"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS special_requests (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), type VARCHAR, reason TEXT DEFAULT '', links VARCHAR DEFAULT '', status VARCHAR DEFAULT 'new', admin_comment TEXT DEFAULT '', created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         for a in ACHIEVEMENTS_LIST:
             conn.execute(text(f"INSERT INTO achievements (code, name, description, emoji) VALUES ('{a['code']}', '{a['name']}', '{a['description']}', '{a['emoji']}') ON CONFLICT (code) DO NOTHING"))
@@ -218,6 +223,20 @@ def check_and_give_achievements(user, db):
     if whale_count >= 1: give("whale_first")
     if is_user_plus(user): give("plus_member")
     db.commit()
+
+def save_session(user, request, token, db):
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        ua = request.headers.get("user-agent", "")
+        ip = request.headers.get("x-real-ip", request.client.host if request.client else "")
+        device = "Мобильный" if any(x in ua.lower() for x in ["mobile", "android", "iphone"]) else "Компьютер"
+        browser = "Chrome" if "chrome" in ua.lower() else "Firefox" if "firefox" in ua.lower() else "Safari" if "safari" in ua.lower() else "Браузер"
+        device_label = f"{device} · {browser}"
+        session = models.UserSession(user_id=user.id, token_hash=token_hash, device=device_label, ip=ip, user_agent=ua[:200])
+        db.add(session)
+        db.commit()
+    except Exception as e:
+        print(f"Session save error: {e}")
 
 def send_push_notification(user, title, body, url, db):
     try:
@@ -497,6 +516,7 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
+    save_session(user, request, token, db)
     return response
 
 @app.post("/verify")
@@ -534,13 +554,96 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
+    save_session(user, request, token, db)
     return response
 
 @app.get("/logout")
-def logout():
+def logout(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if user:
+        token = request.cookies.get("token")
+        if token:
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            session = db.query(models.UserSession).filter(models.UserSession.token_hash == token_hash).first()
+            if session:
+                session.is_active = False
+                db.commit()
     response = RedirectResponse("/", status_code=302)
     response.delete_cookie("token")
     return response
+
+@app.post("/sessions/revoke/{session_id}")
+def revoke_session(session_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    session = db.query(models.UserSession).filter(models.UserSession.id == session_id, models.UserSession.user_id == user.id).first()
+    if session:
+        session.is_active = False
+        db.commit()
+    return RedirectResponse("/settings", status_code=302)
+
+@app.post("/sessions/revoke_all")
+def revoke_all_sessions(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    current_token = request.cookies.get("token")
+    current_hash = hashlib.sha256(current_token.encode()).hexdigest() if current_token else ""
+    db.query(models.UserSession).filter(models.UserSession.user_id == user.id, models.UserSession.token_hash != current_hash).update({"is_active": False})
+    db.commit()
+    return RedirectResponse("/settings", status_code=302)
+
+@app.get("/special_request", response_class=HTMLResponse)
+def special_request_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    existing = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == user.id, models.SpecialRequest.status == "new").first()
+    return templates.TemplateResponse(request, "special_request.html", {"user": user, "existing": existing, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.post("/special_request")
+def special_request_submit(request: Request, type: str = Form(...), reason: str = Form(...), links: str = Form(""), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    existing = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == user.id, models.SpecialRequest.status == "new").first()
+    if existing:
+        return RedirectResponse("/special_request", status_code=302)
+    req = models.SpecialRequest(user_id=user.id, type=type, reason=reason, links=links)
+    db.add(req)
+    owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    if owner:
+        type_labels = {"verify": "Верификация ✔", "star": "Особый статус ⭐", "mod": "Модератор 🛡️"}
+        label = type_labels.get(type, type)
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id, type="system", text=f"💎 Заявка на {label} от @{user.username}\n{reason[:200]}"))
+    db.commit()
+    return templates.TemplateResponse(request, "special_request.html", {"user": user, "existing": req, "success": True, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.post("/admin/special_request/action/{req_id}")
+def special_request_action(req_id: int, request: Request, action: str = Form(...), comment: str = Form(""), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    req = db.query(models.SpecialRequest).filter(models.SpecialRequest.id == req_id).first()
+    if not req:
+        return RedirectResponse("/admin?tab=requests", status_code=302)
+    req.status = action
+    req.admin_comment = comment
+    if action == "approve" and req.user:
+        if req.type == "verify":
+            req.user.is_verified_badge = True
+        elif req.type == "star":
+            req.user.is_starred = True
+        elif req.type == "mod":
+            req.user.is_moderator = True
+        db.add(models.Notification(user_id=req.user_id, from_user_id=user.id, type="system", text=f"✅ Твоя заявка одобрена! {comment}"))
+    elif action == "reject":
+        db.add(models.Notification(user_id=req.user_id, from_user_id=user.id, type="system", text=f"❌ Твоя заявка отклонена. {comment}"))
+    db.commit()
+    return RedirectResponse("/admin?tab=requests", status_code=302)
 
 @app.post("/post")
 async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), poll_question: str = Form(""), poll_option_1: str = Form(""), poll_option_2: str = Form(""), poll_option_3: str = Form(""), poll_option_4: str = Form(""), scheduled_at: str = Form(""), db: Session = Depends(get_db)):
@@ -820,11 +923,6 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     is_friend = False
     if current_user and current_user.id != profile_user.id and is_following:
         is_friend = db.query(models.Follow).filter(models.Follow.follower_id == profile_user.id, models.Follow.following_id == current_user.id).first() is not None
-    promocodes = []
-    stop_words = []
-    if current_user and current_user.is_owner and current_user.username == username:
-        promocodes = db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).all()
-        stop_words = db.query(models.StopWord).order_by(models.StopWord.created_at.desc()).all()
     user_achievements = db.query(models.UserAchievement).filter(models.UserAchievement.user_id == profile_user.id).all()
     total_views = sum(p.views or 0 for p in posts)
     already_reported = False
@@ -832,7 +930,10 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
         week_ago = datetime.utcnow() - timedelta(days=7)
         report_count = db.query(models.Report).filter(models.Report.reporter_id == current_user.id, models.Report.target_id == profile_user.id, models.Report.created_at >= week_ago).count()
         already_reported = report_count >= 3
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "promocodes": promocodes, "render_content": render_content, "stop_words": stop_words, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views, "already_reported": already_reported})
+    pending_request = None
+    if current_user and current_user.id == profile_user.id:
+        pending_request = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == current_user.id, models.SpecialRequest.status == "new").first()
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "render_content": render_content, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views, "already_reported": already_reported, "pending_request": pending_request})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1075,10 +1176,13 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=302)
     vapid_public = os.getenv("VAPID_PUBLIC_KEY", "")
-    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "vapid_public": vapid_public})
+    current_token = request.cookies.get("token")
+    current_hash = hashlib.sha256(current_token.encode()).hexdigest() if current_token else ""
+    sessions = db.query(models.UserSession).filter(models.UserSession.user_id == user.id, models.UserSession.is_active == True).order_by(models.UserSession.last_active.desc()).all()
+    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "vapid_public": vapid_public, "sessions": sessions, "current_hash": current_hash})
 
 @app.post("/settings")
-async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), avatar: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
+async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), emoji_status: str = Form(""), avatar: UploadFile = File(None), cover: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -1110,8 +1214,30 @@ async def settings_save(request: Request, name: str = Form(...), bio: str = Form
         except Exception as e:
             print(f"Avatar error: {e}")
             return templates.TemplateResponse(request, "settings.html", {"user": user, "error": "Не удалось обработать фото"})
+    if cover and cover.filename:
+        content_type = (cover.content_type or "").lower()
+        if content_type in ALLOWED_IMAGE_TYPES:
+            contents = await cover.read()
+            if len(contents) <= MAX_IMAGE_SIZE:
+                try:
+                    img = Image.open(io.BytesIO(contents))
+                    img = _auto_rotate(img)
+                    img.thumbnail((1200, 400), Image.LANCZOS)
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGB")
+                    filename = f"cover_{uuid.uuid4().hex}.jpg"
+                    filepath = os.path.join(UPLOAD_DIR, filename)
+                    img.save(filepath, quality=85, optimize=True)
+                    if user.cover:
+                        delete_media_file(user.cover)
+                    user.cover = f"/uploads/{filename}"
+                except Exception as e:
+                    print(f"Cover error: {e}")
     if is_user_plus(user) and re.match(r'^#[0-9a-fA-F]{6}$', plus_color):
         user.plus_color = plus_color
+    allowed_emojis = ["", "🔥", "❤️", "😎", "🚀", "💎", "⭐", "🎮", "🎵", "📚", "💻", "🌍"]
+    if emoji_status in allowed_emojis:
+        user.emoji_status = emoji_status
     user.name = name
     user.bio = bio
     user.username = username
@@ -1305,8 +1431,12 @@ def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = 
     reports = []
     if tab == "reports":
         reports = db.query(models.Report).order_by(models.Report.created_at.desc()).limit(50).all()
+    special_requests = []
+    if tab == "requests":
+        special_requests = db.query(models.SpecialRequest).order_by(models.SpecialRequest.created_at.desc()).limit(50).all()
     new_reports_count = db.query(models.Report).filter(models.Report.status == "new").count()
-    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "reports": reports, "new_reports_count": new_reports_count, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
+    new_requests_count = db.query(models.SpecialRequest).filter(models.SpecialRequest.status == "new").count()
+    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "reports": reports, "special_requests": special_requests, "new_reports_count": new_reports_count, "new_requests_count": new_requests_count, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
 
 @app.get("/support", response_class=HTMLResponse)
 def support_page(request: Request, db: Session = Depends(get_db)):
@@ -1436,6 +1566,12 @@ def api_ping(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if user:
         user.last_seen = datetime.utcnow()
+        current_token = request.cookies.get("token")
+        if current_token:
+            token_hash = hashlib.sha256(current_token.encode()).hexdigest()
+            session = db.query(models.UserSession).filter(models.UserSession.token_hash == token_hash).first()
+            if session:
+                session.last_active = datetime.utcnow()
         db.commit()
     return JSONResponse({"ok": True})
 
@@ -1551,6 +1687,7 @@ async def yandex_callback(code: str, request: Request, db: Session = Depends(get
     response = RedirectResponse("/", status_code=302)
     response.set_cookie("token", token)
     response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
+    save_session(user, request, token, db)
     return response
 
 @app.post("/story/upload")
