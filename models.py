@@ -111,7 +111,7 @@ class Message(Base):
     is_deleted = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
-    forwarded_from = relationship("User", foreign_keys=[forwarded_from_id])
+forwarded_from = relationship("User", foreign_keys="[Message.forwarded_from_id]", primaryjoin="Message.forwarded_from_id == User.id")
     msg_reactions = relationship("MessageReaction", back_populates="message")
 
 class MessageReaction(Base):
