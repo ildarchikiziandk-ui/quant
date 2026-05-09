@@ -52,16 +52,35 @@
         <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">О себе</label>
         <textarea name="bio" placeholder="Расскажи о себе...">{{ user.bio or '' }}</textarea>
 
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🌐 Сайт или ссылка</label>
+        <input type="text" name="website" value="{{ user.website or '' }}" placeholder="https://example.com">
+
+        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🎂 День рождения</label>
+        <input type="date" name="birthday" value="{{ user.birthday or '' }}" style="margin-bottom:16px;">
+
         <label style="font-size: 13px; color: #555; margin-bottom: 8px; display: block;">Эмодзи-статус</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
             {% for emoji in ['', '🔥', '❤️', '😎', '🚀', '💎', '⭐', '🎮', '🎵', '📚', '💻', '🌍'] %}
             <label style="cursor:pointer;">
-                <input type="radio" name="emoji_status" value="{{ emoji }}" {% if (user.emoji_status or '') == emoji %}checked{% endif %} style="display:none;">
-                <div style="width:38px;height:38px;border-radius:10px;border:2px solid {% if (user.emoji_status or '') == emoji %}#0f0f0f{% else %}#e4e4e4{% endif %};display:flex;align-items:center;justify-content:center;font-size:20px;transition:border 0.15s;" onclick="updateEmojiBorders(this)">
+                <input type="radio" name="emoji_status" value="{{ emoji }}" {% if (user.emoji_status or '') == emoji %}checked{% endif %} style="display:none;" onchange="updateEmojiBorders(this)">
+                <div style="width:38px;height:38px;border-radius:10px;border:2px solid {% if (user.emoji_status or '') == emoji %}#0f0f0f{% else %}#e4e4e4{% endif %};display:flex;align-items:center;justify-content:center;font-size:20px;transition:border 0.15s;">
                     {% if emoji %}{{ emoji }}{% else %}<span style="color:#bbb;font-size:12px;">✕</span>{% endif %}
                 </div>
             </label>
             {% endfor %}
+        </div>
+
+        <!-- ЗАКРЫТЫЙ ПРОФИЛЬ -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#f8f8f8;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+            <div>
+                <div style="font-size:14px;font-weight:600;">🔒 Закрытый профиль</div>
+                <div style="font-size:12px;color:#888;margin-top:2px;">Посты видны только подписчикам</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                <input type="checkbox" name="is_private" {% if user.is_private %}checked{% endif %} style="display:none;" onchange="this.parentElement.querySelector('.slider').style.background=this.checked?'#0f0f0f':'#e0e0e0';this.parentElement.querySelector('.knob').style.transform=this.checked?'translateX(20px)':'translateX(0)'">
+                <div class="slider" style="position:absolute;inset:0;border-radius:24px;background:{% if user.is_private %}#0f0f0f{% else %}#e0e0e0{% endif %};transition:background 0.2s;"></div>
+                <div class="knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;transform:{% if user.is_private %}translateX(20px){% else %}translateX(0){% endif %};"></div>
+            </label>
         </div>
 
         {% if is_plus %}
@@ -133,11 +152,23 @@
         {% endif %}
     </div>
 
-    <!-- ЗАЯВКА НА СТАТУС -->
+    <!-- ДОПОЛНИТЕЛЬНО -->
     <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">💎 Особый статус</h3>
-        <p style="font-size: 13px; color: #888; margin-bottom: 16px;">Подай заявку на верификацию, особый статус или роль модератора.</p>
-        <a href="/special_request"><button class="btn-outline" style="width:100%;">Подать заявку</button></a>
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 14px;">Дополнительно</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <a href="/special_request" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8f8f8;border-radius:10px;text-decoration:none;color:#0f0f0f;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
+                <span style="font-size:14px;">💎 Подать заявку на статус</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <a href="/blocked" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8f8f8;border-radius:10px;text-decoration:none;color:#0f0f0f;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
+                <span style="font-size:14px;">🚫 Заблокированные пользователи</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <a href="/mentions" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8f8f8;border-radius:10px;text-decoration:none;color:#0f0f0f;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
+                <span style="font-size:14px;">📣 Мои упоминания</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+        </div>
     </div>
 </div>
 
@@ -164,11 +195,11 @@ function previewCover(input) {
     if (placeholder) placeholder.style.display = 'none';
 }
 
-function updateEmojiBorders(el) {
-    document.querySelectorAll('[onclick="updateEmojiBorders(this)"]').forEach(d => {
-        d.style.borderColor = '#e4e4e4';
+function updateEmojiBorders(input) {
+    document.querySelectorAll('input[name="emoji_status"]').forEach(r => {
+        const div = r.nextElementSibling;
+        if (div) div.style.borderColor = r.checked ? '#0f0f0f' : '#e4e4e4';
     });
-    el.style.borderColor = '#0f0f0f';
 }
 </script>
 {% endblock %}

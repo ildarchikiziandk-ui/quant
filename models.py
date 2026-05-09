@@ -13,6 +13,8 @@ class User(Base):
     avatar = Column(String, default="")
     cover = Column(String, default="")
     bio = Column(String, default="")
+    website = Column(String, default="")
+    birthday = Column(String, default="")
     emoji_status = Column(String, default="")
     is_verified = Column(Boolean, default=False)
     is_owner = Column(Boolean, default=False)
@@ -26,6 +28,7 @@ class User(Base):
     plus_color = Column(String, default="#a855f7")
     last_seen = Column(DateTime, nullable=True)
     pinned_post_id = Column(Integer, nullable=True)
+    is_private = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -35,6 +38,7 @@ class User(Base):
     bookmarks = relationship("Bookmark", back_populates="user")
     sessions = relationship("UserSession", back_populates="user")
     special_requests = relationship("SpecialRequest", foreign_keys="SpecialRequest.user_id", back_populates="user")
+    blocked_users = relationship("UserBlock", foreign_keys="UserBlock.blocker_id", back_populates="blocker")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -290,3 +294,12 @@ class SpecialRequest(Base):
     admin_comment = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", foreign_keys=[user_id], back_populates="special_requests")
+
+class UserBlock(Base):
+    __tablename__ = "user_blocks"
+    id = Column(Integer, primary_key=True, index=True)
+    blocker_id = Column(Integer, ForeignKey("users.id"))
+    blocked_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    blocker = relationship("User", foreign_keys=[blocker_id], back_populates="blocked_users")
+    blocked = relationship("User", foreign_keys=[blocked_id])

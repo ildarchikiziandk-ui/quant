@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <a href="/notifications" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <h2 style="font-size:18px;font-weight:800;">Упоминания</h2>
+</div>
+
+{% if mentions %}
+{% for mention in mentions %}
+<div class="card" style="{% if not mention.is_read %}border-left:3px solid #0f0f0f;{% endif %}">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+        {% if mention.from_user %}
+        <a href="/profile/{{ mention.from_user.username }}">
+            <div class="avatar-circle" style="width:38px;height:38px;flex-shrink:0;">
+                {% if mention.from_user.avatar %}<img src="{{ mention.from_user.avatar }}">{% else %}<span style="font-size:14px;">{{ mention.from_user.username[0].upper() }}</span>{% endif %}
+            </div>
+        </a>
+        {% endif %}
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;margin-bottom:4px;">
+                {% if mention.from_user %}
+                <a href="/profile/{{ mention.from_user.username }}" style="font-weight:600;">{{ mention.from_user.name or mention.from_user.username }}</a>
+                {% endif %}
+                упомянул тебя в посте 📣
+            </div>
+            {% if mention.post %}
+            <a href="/post/{{ mention.post.id }}" style="display:block;background:#f8f8f8;border-radius:8px;padding:10px 12px;font-size:13px;color:#555;margin-bottom:6px;text-decoration:none;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
+                {{ mention.post.content[:120] }}{% if mention.post.content|length > 120 %}...{% endif %}
+            </a>
+            {% endif %}
+            <div style="font-size:12px;color:#bbb;">{{ mention.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card" style="text-align:center;padding:48px 24px;color:#888;">
+    <div style="font-size:40px;margin-bottom:12px;">📣</div>
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Нет упоминаний</div>
+    <div style="font-size:13px;">Когда кто-то напишет @{{ user.username }} в посте — это появится здесь</div>
+</div>
+{% endif %}
+{% endblock %}

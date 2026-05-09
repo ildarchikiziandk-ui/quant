@@ -63,6 +63,9 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS pinned_post_id INTEGER"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS cover VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS emoji_status VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS website VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE"))
@@ -73,7 +76,7 @@ try:
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS voice VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN DEFAULT FALSE"))
-        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_id INTEGER"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_id INTEGER REFERENCES users(id)"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS text VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS reply_email VARCHAR DEFAULT ''"))
@@ -97,6 +100,7 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS reports (id SERIAL PRIMARY KEY, reporter_id INTEGER REFERENCES users(id), target_id INTEGER REFERENCES users(id), reason VARCHAR DEFAULT '', text TEXT DEFAULT '', image_1 VARCHAR DEFAULT '', image_2 VARCHAR DEFAULT '', image_3 VARCHAR DEFAULT '', image_4 VARCHAR DEFAULT '', image_5 VARCHAR DEFAULT '', status VARCHAR DEFAULT 'new', admin_comment TEXT DEFAULT '', created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS user_sessions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), token_hash VARCHAR, device VARCHAR DEFAULT '', ip VARCHAR DEFAULT '', user_agent VARCHAR DEFAULT '', created_at TIMESTAMP DEFAULT NOW(), last_active TIMESTAMP DEFAULT NOW(), is_active BOOLEAN DEFAULT TRUE)"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS special_requests (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), type VARCHAR, reason TEXT DEFAULT '', links VARCHAR DEFAULT '', status VARCHAR DEFAULT 'new', admin_comment TEXT DEFAULT '', created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS user_blocks (id SERIAL PRIMARY KEY, blocker_id INTEGER REFERENCES users(id), blocked_id INTEGER REFERENCES users(id), created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         for a in ACHIEVEMENTS_LIST:
             conn.execute(text(f"INSERT INTO achievements (code, name, description, emoji) VALUES ('{a['code']}', '{a['name']}', '{a['description']}', '{a['emoji']}') ON CONFLICT (code) DO NOTHING"))
@@ -192,6 +196,15 @@ def check_stop_words(content, db):
         if sw.word.lower() in content_lower:
             return True
     return False
+
+def is_blocked_by(current_user, target_user, db):
+    if not current_user or not target_user:
+        return False
+    block = db.query(models.UserBlock).filter(
+        ((models.UserBlock.blocker_id == target_user.id) & (models.UserBlock.blocked_id == current_user.id)) |
+        ((models.UserBlock.blocker_id == current_user.id) & (models.UserBlock.blocked_id == target_user.id))
+    ).first()
+    return block is not None
 
 def check_and_give_achievements(user, db):
     earned_codes = set(ua.achievement.code for ua in user.achievements)
@@ -364,6 +377,22 @@ def render_content(content):
     content = re.sub(r'@([\w\.\-]+)', r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>', content)
     content = re.sub(r'#([\w]+)', r'<a href="/hashtag/\1" style="color:#1d9bf0;font-weight:600;">#\1</a>', content)
     return content
+
+def generate_qr_svg(url):
+    try:
+        import qrcode
+        import qrcode.image.svg
+        factory = qrcode.image.svg.SvgPathImage
+        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(image_factory=factory)
+        import io as _io
+        buf = _io.BytesIO()
+        img.save(buf)
+        return buf.getvalue().decode("utf-8")
+    except Exception:
+        return ""
 
 BETA_RESPONSE = """<!DOCTYPE html>
 <html lang="ru">
@@ -593,6 +622,57 @@ def revoke_all_sessions(request: Request, db: Session = Depends(get_db)):
     db.query(models.UserSession).filter(models.UserSession.user_id == user.id, models.UserSession.token_hash != current_hash).update({"is_active": False})
     db.commit()
     return RedirectResponse("/settings", status_code=302)
+
+@app.get("/qr/{username}", response_class=HTMLResponse)
+def qr_page(username: str, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    profile_user = db.query(models.User).filter(models.User.username == username).first()
+    if not profile_user:
+        return RedirectResponse("/", status_code=302)
+    profile_url = f"https://quantru.duckdns.org/profile/{username}"
+    qr_svg = generate_qr_svg(profile_url)
+    return templates.TemplateResponse(request, "qr.html", {"user": user, "profile_user": profile_user, "qr_svg": qr_svg, "profile_url": profile_url, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
+
+@app.post("/block_user/{username}")
+def block_user_action(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target or target.id == user.id:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == user.id, models.UserBlock.blocked_id == target.id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.UserBlock(blocker_id=user.id, blocked_id=target.id))
+        existing_follow = db.query(models.Follow).filter(models.Follow.follower_id == user.id, models.Follow.following_id == target.id).first()
+        if existing_follow:
+            db.delete(existing_follow)
+    db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.get("/blocked", response_class=HTMLResponse)
+def blocked_users_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    blocked = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == user.id).all()
+    return templates.TemplateResponse(request, "blocked.html", {"user": user, "blocked": blocked, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.get("/mentions", response_class=HTMLResponse)
+def mentions_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    mentions = db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.type == "mention").order_by(models.Notification.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse(request, "mentions.html", {"user": user, "mentions": mentions, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
 
 @app.get("/special_request", response_class=HTMLResponse)
 def special_request_page(request: Request, db: Session = Depends(get_db)):
@@ -906,16 +986,19 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     profile_user = db.query(models.User).filter(models.User.username == username).first()
     if not profile_user:
         return RedirectResponse("/", status_code=302)
-    posts = db.query(models.Post).filter(models.Post.user_id == profile_user.id, models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
+    is_following = False
+    if current_user:
+        is_following = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id, models.Follow.following_id == profile_user.id).first() is not None
+    is_private_and_hidden = profile_user.is_private and not is_following and (not current_user or current_user.id != profile_user.id)
+    posts = []
+    if not is_private_and_hidden:
+        posts = db.query(models.Post).filter(models.Post.user_id == profile_user.id, models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
     scheduled_posts = []
     if current_user and current_user.id == profile_user.id:
         scheduled_posts = db.query(models.Post).filter(models.Post.user_id == profile_user.id, models.Post.is_published == False).order_by(models.Post.scheduled_at).all()
     pinned_post = None
-    if profile_user.pinned_post_id:
+    if profile_user.pinned_post_id and not is_private_and_hidden:
         pinned_post = db.query(models.Post).filter(models.Post.id == profile_user.pinned_post_id).first()
-    is_following = False
-    if current_user:
-        is_following = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id, models.Follow.following_id == profile_user.id).first() is not None
     following_ids = set(f.following_id for f in profile_user.following)
     follower_ids = set(f.follower_id for f in profile_user.followers)
     friend_ids = following_ids & follower_ids
@@ -933,7 +1016,10 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     pending_request = None
     if current_user and current_user.id == profile_user.id:
         pending_request = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == current_user.id, models.SpecialRequest.status == "new").first()
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "render_content": render_content, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views, "already_reported": already_reported, "pending_request": pending_request})
+    is_user_blocked_by_me = False
+    if current_user and current_user.id != profile_user.id:
+        is_user_blocked_by_me = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == current_user.id, models.UserBlock.blocked_id == profile_user.id).first() is not None
+    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "render_content": render_content, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views, "already_reported": already_reported, "pending_request": pending_request, "is_private_and_hidden": is_private_and_hidden, "is_user_blocked_by_me": is_user_blocked_by_me})
 
 @app.post("/follow/{username}")
 def follow(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1182,7 +1268,7 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "vapid_public": vapid_public, "sessions": sessions, "current_hash": current_hash})
 
 @app.post("/settings")
-async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), emoji_status: str = Form(""), avatar: UploadFile = File(None), cover: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
+async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), emoji_status: str = Form(""), website: str = Form(""), birthday: str = Form(""), is_private: str = Form(""), avatar: UploadFile = File(None), cover: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -1241,6 +1327,9 @@ async def settings_save(request: Request, name: str = Form(...), bio: str = Form
     user.name = name
     user.bio = bio
     user.username = username
+    user.website = website[:100] if website else ""
+    user.birthday = birthday[:20] if birthday else ""
+    user.is_private = is_private == "on"
     db.commit()
     token = auth.create_token({"sub": username})
     response = RedirectResponse(f"/profile/{username}", status_code=302)
