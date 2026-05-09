@@ -103,15 +103,17 @@
             transition: color 0.15s;
             gap: 3px;
         }
-        .mobile-nav-item svg {
+        .mobile-nav-item svg, .mn-icon {
             width: 22px;
             height: 22px;
-            stroke: currentColor;
-            fill: none;
             stroke-width: 1.8;
             stroke-linecap: round;
             stroke-linejoin: round;
             transition: stroke 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-style: normal;
         }
         .mobile-nav-item span.label {
             font-size: 9px;
@@ -183,10 +185,10 @@
                 <span class="nav-label">Уведомления</span>
                 {% if unread > 0 %}<span class="nav-badge">{{ unread }}</span>{% endif %}
             </a>
-            <a href="/messages" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span class="nav-label">Сообщения</span>
-                {% if unread_msg > 0 %}<span class="nav-badge">{{ unread_msg }}</span>{% endif %}
+            <!-- ЗАМЕНЕНО: Ссылка на Pulse -->
+            <a href="https://pulse.quantru.duckdns.org" class="nav-item" target="_blank">
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">Pulse</span>
             </a>
             <a href="/profile/{{ user.username }}" class="nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -265,17 +267,6 @@
                 <input type="text" name="q" placeholder="Люди, посты, теги..." style="margin-bottom:0;">
             </form>
         </div>
-        {% if not (is_plus is defined and is_plus) %}
-        <a href="/plus" style="display:block;">
-            <div style="background:#0f0f0f;border-radius:16px;padding:16px;color:white;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                    <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 2V16M2 9H16" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
-                    <span style="font-weight:700;font-size:14px;">Quant Plus</span>
-                </div>
-                <div style="font-size:12px;opacity:0.7;">Реакции, закладки, статистика</div>
-            </div>
-        </a>
-        {% endif %}
     </div>
     {% endif %}
 </div>
@@ -294,59 +285,25 @@
         <a href="/notifications" class="mobile-nav-item">
             {% if unread > 0 %}<span class="mobile-nav-badge">{{ unread }}</span>{% endif %}
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="label">Звонки</span>
+            <span class="label">Уведомления</span>
         </a>
         <a href="/plus" class="mobile-nav-item plus-btn">
             <div class="plus-inner">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </div>
         </a>
-        <a href="/messages" class="mobile-nav-item">
-            {% if unread_msg > 0 %}<span class="mobile-nav-badge">{{ unread_msg }}</span>{% endif %}
-            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span class="label">Чаты</span>
+        <!-- ЗАМЕНЕНО: Мобильная ссылка на Pulse -->
+        <a href="https://pulse.quantru.duckdns.org" class="mobile-nav-item" target="_blank">
+            <span class="mn-icon">💬</span>
+            <span class="label">Pulse</span>
         </a>
         <a href="/profile/{{ user.username }}" class="mobile-nav-item">
             <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span class="label">Профиль</span>
         </a>
-        <a href="/settings" class="mobile-nav-item">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span class="label">Ещё</span>
-        </a>
     </div>
 </div>
-
-<script>
-setInterval(() => fetch('/api/ping'), 30000);
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js').then(reg => {
-        if ('PushManager' in window) {
-            Notification.requestPermission().then(perm => {
-                if (perm === 'granted') {
-                    const vapidPublic = '{{ vapid_public if vapid_public is defined else "" }}';
-                    if (!vapidPublic) return;
-                    reg.pushManager.getSubscription().then(existing => {
-                        if (existing) { sendSubToServer(existing); return; }
-                        reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublic) }).then(sub => sendSubToServer(sub)).catch(() => {});
-                    });
-                }
-            });
-        }
-    });
-}
-function sendSubToServer(sub) {
-    fetch('/api/push/subscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sub.toJSON()) });
-}
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
-    return outputArray;
-}
-</script>
 {% endif %}
+
 </body>
 </html>
