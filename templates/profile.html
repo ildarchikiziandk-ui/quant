@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- ОБЛОЖКА -->
-<div style="position:relative;height:160px;border-radius:16px;overflow:hidden;background:#f0f0f0;margin-bottom:-50px;">
+<div style="position:relative;height:160px;border-radius:16px;overflow:hidden;background:#f0f0f0;margin-bottom:12px;">
     {% if profile_user.cover %}
     <img src="{{ profile_user.cover }}" style="width:100%;height:100%;object-fit:cover;">
     {% else %}
@@ -14,9 +14,9 @@
     {% endif %}
 </div>
 
-<div class="card" style="padding: 24px; padding-top: 60px;">
+<div class="card" style="padding: 24px;">
     <div style="display: flex; align-items: flex-start; gap: 16px;">
-        <div class="avatar-circle" style="width: 72px; height: 72px; margin-top: -36px; border: 3px solid white; flex-shrink:0;">
+        <div class="avatar-circle" style="width: 72px; height: 72px; border: 3px solid white; flex-shrink:0;">
             {% if profile_user.avatar %}<img src="{{ profile_user.avatar }}">{% else %}<span style="font-size: 28px;">{{ profile_user.username[0].upper() }}</span>{% endif %}
         </div>
         <div style="flex: 1; min-width: 0;">
