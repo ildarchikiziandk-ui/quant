@@ -107,11 +107,11 @@ class Message(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     is_delivered = Column(Boolean, default=False)
-    forwarded_from_id = Column(Integer, nullable=True)
+    forwarded_from_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_deleted = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
-forwarded_from = relationship("User", foreign_keys="[Message.forwarded_from_id]", primaryjoin="Message.forwarded_from_id == User.id")
+    forwarded_from = relationship("User", foreign_keys=[forwarded_from_id])
     msg_reactions = relationship("MessageReaction", back_populates="message")
 
 class MessageReaction(Base):
