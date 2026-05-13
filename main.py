@@ -12,6 +12,7 @@ import re
 import os
 import uuid
 import hashlib
+import random
 from PIL import Image
 import io
 
@@ -23,12 +24,25 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime"}
 ALLOWED_AUDIO_TYPES = {"audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"}
+ALLOWED_FILE_TYPES = {"application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
-MAX_VIDEO_SIZE = 20 * 1024 * 1024
+MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100MB для видео до 5 минут
 MAX_AUDIO_SIZE = 10 * 1024 * 1024
+MAX_FILE_SIZE = 50 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 ONLINE_THRESHOLD_MINUTES = 2
 BETA_CODE = "PELMEN228"
+
+DAILY_TASKS_LIST = [
+    {"code": "post_today", "title": "Опубликуй пост", "description": "Напиши хотя бы один пост сегодня", "emoji": "✍️", "points": 20, "task_type": "post", "target_count": 1},
+    {"code": "like_5", "title": "Поставь 5 лайков", "description": "Лайкни 5 постов других пользователей", "emoji": "❤️", "points": 15, "task_type": "like", "target_count": 5},
+    {"code": "comment_3", "title": "Оставь 3 комментария", "description": "Прокомментируй 3 поста", "emoji": "💬", "points": 20, "task_type": "comment", "target_count": 3},
+    {"code": "follow_1", "title": "Подпишись на кого-нибудь", "description": "Найди интересного человека и подпишись", "emoji": "👤", "points": 10, "task_type": "follow", "target_count": 1},
+    {"code": "message_1", "title": "Напиши сообщение", "description": "Отправь личное сообщение", "emoji": "✉️", "points": 10, "task_type": "message", "target_count": 1},
+    {"code": "story_today", "title": "Добавь историю", "description": "Опубликуй историю сегодня", "emoji": "📸", "points": 25, "task_type": "story", "target_count": 1},
+    {"code": "whale_3", "title": "Брось 3 кита", "description": "Нажми 🐋 на 3 постах", "emoji": "🐋", "points": 15, "task_type": "whale", "target_count": 3},
+    {"code": "visit_today", "title": "Зайди в Quant", "description": "Просто зайди на сайт", "emoji": "⚡", "points": 5, "task_type": "visit", "target_count": 1},
+]
 
 ACHIEVEMENTS_LIST = [
     {"code": "first_post", "name": "Первый пост", "description": "Опубликовал первый пост", "emoji": "✍️"},
@@ -44,6 +58,8 @@ ACHIEVEMENTS_LIST = [
     {"code": "repost_first", "name": "Репостер", "description": "Сделал первый репост", "emoji": "🔁"},
     {"code": "whale_first", "name": "Китобой", "description": "Бросил первого кита", "emoji": "🐋"},
     {"code": "plus_member", "name": "Quant Plus", "description": "Активировал подписку Quant Plus", "emoji": "💎"},
+    {"code": "tasks_7", "name": "Недельный марафон", "description": "Выполнял задания 7 дней подряд", "emoji": "🏆"},
+    {"code": "raffle_winner", "name": "Победитель", "description": "Выиграл еженедельный розыгрыш", "emoji": "🎉"},
 ]
 
 try:
@@ -66,6 +82,10 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS website VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_points INTEGER DEFAULT 0"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_points INTEGER DEFAULT 0"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_points INTEGER DEFAULT 0"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_reset TIMESTAMP"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE"))
@@ -73,13 +93,21 @@ try:
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE"))
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_exclusive BOOLEAN DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS exclusive_until TIMESTAMP"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS voice VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_url VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_name VARCHAR DEFAULT ''"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size INTEGER DEFAULT 0"))
+        conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_video_circle BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS forwarded_from_id INTEGER REFERENCES users(id)"))
         conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS text VARCHAR DEFAULT ''"))
         conn.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS reply_email VARCHAR DEFAULT ''"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS post_media (id SERIAL PRIMARY KEY, post_id INTEGER REFERENCES posts(id), media_url VARCHAR DEFAULT '', media_type VARCHAR DEFAULT 'image', position INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS pinned_chats (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), pinned_user_id INTEGER REFERENCES users(id), created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), from_user_id INTEGER REFERENCES users(id), type VARCHAR, post_id INTEGER REFERENCES posts(id), text VARCHAR DEFAULT '', reply_email VARCHAR DEFAULT '', is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS verification_codes (id SERIAL PRIMARY KEY, email VARCHAR, code VARCHAR, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS whales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), post_id INTEGER REFERENCES posts(id))"))
@@ -101,9 +129,15 @@ try:
         conn.execute(text("CREATE TABLE IF NOT EXISTS user_sessions (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), token_hash VARCHAR, device VARCHAR DEFAULT '', ip VARCHAR DEFAULT '', user_agent VARCHAR DEFAULT '', created_at TIMESTAMP DEFAULT NOW(), last_active TIMESTAMP DEFAULT NOW(), is_active BOOLEAN DEFAULT TRUE)"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS special_requests (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), type VARCHAR, reason TEXT DEFAULT '', links VARCHAR DEFAULT '', status VARCHAR DEFAULT 'new', admin_comment TEXT DEFAULT '', created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("CREATE TABLE IF NOT EXISTS user_blocks (id SERIAL PRIMARY KEY, blocker_id INTEGER REFERENCES users(id), blocked_id INTEGER REFERENCES users(id), created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS daily_tasks (id SERIAL PRIMARY KEY, code VARCHAR UNIQUE, title VARCHAR, description VARCHAR, emoji VARCHAR DEFAULT '⚡', points INTEGER DEFAULT 10, task_type VARCHAR, target_count INTEGER DEFAULT 1, is_active BOOLEAN DEFAULT TRUE)"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS user_daily_tasks (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), task_id INTEGER REFERENCES daily_tasks(id), progress INTEGER DEFAULT 0, is_completed BOOLEAN DEFAULT FALSE, completed_at TIMESTAMP, date VARCHAR DEFAULT '')"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS weekly_raffles (id SERIAL PRIMARY KEY, week_start TIMESTAMP, week_end TIMESTAMP, prize VARCHAR DEFAULT 'Quant Plus 30 дней', prize_days INTEGER DEFAULT 30, winner_id INTEGER REFERENCES users(id), is_finished BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())"))
+        conn.execute(text("CREATE TABLE IF NOT EXISTS raffle_entries (id SERIAL PRIMARY KEY, raffle_id INTEGER REFERENCES weekly_raffles(id), user_id INTEGER REFERENCES users(id), tickets INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT NOW())"))
         conn.execute(text("UPDATE users SET is_owner = TRUE WHERE username = 'rubl'"))
         for a in ACHIEVEMENTS_LIST:
             conn.execute(text(f"INSERT INTO achievements (code, name, description, emoji) VALUES ('{a['code']}', '{a['name']}', '{a['description']}', '{a['emoji']}') ON CONFLICT (code) DO NOTHING"))
+        for t in DAILY_TASKS_LIST:
+            conn.execute(text(f"INSERT INTO daily_tasks (code, title, description, emoji, points, task_type, target_count) VALUES ('{t['code']}', '{t['title']}', '{t['description']}', '{t['emoji']}', {t['points']}, '{t['task_type']}', {t['target_count']}) ON CONFLICT (code) DO NOTHING"))
         conn.commit()
 except Exception as e:
     print(f"DB migration warning: {e}")
@@ -197,85 +231,21 @@ def check_stop_words(content, db):
             return True
     return False
 
-def is_blocked_by(current_user, target_user, db):
-    if not current_user or not target_user:
-        return False
-    block = db.query(models.UserBlock).filter(
-        ((models.UserBlock.blocker_id == target_user.id) & (models.UserBlock.blocked_id == current_user.id)) |
-        ((models.UserBlock.blocker_id == current_user.id) & (models.UserBlock.blocked_id == target_user.id))
-    ).first()
-    return block is not None
+def render_content(content):
+    content = re.sub(r'@([\w\.\-]+)', r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>', content)
+    content = re.sub(r'#([\w]+)', r'<a href="/hashtag/\1" style="color:#1d9bf0;font-weight:600;">#\1</a>', content)
+    return content
 
-def check_and_give_achievements(user, db):
-    earned_codes = set(ua.achievement.code for ua in user.achievements)
-    def give(code):
-        if code in earned_codes:
-            return
-        ach = db.query(models.Achievement).filter(models.Achievement.code == code).first()
-        if ach:
-            db.add(models.UserAchievement(user_id=user.id, achievement_id=ach.id))
-            earned_codes.add(code)
-    post_count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == False, models.Post.is_published == True).count()
-    if post_count >= 1: give("first_post")
-    if post_count >= 10: give("post_10")
-    if post_count >= 50: give("post_50")
-    if post_count >= 100: give("post_100")
-    from sqlalchemy import func
-    total_likes = db.query(func.count(models.Like.id)).join(models.Post).filter(models.Post.user_id == user.id).scalar() or 0
-    if total_likes >= 10: give("likes_10")
-    if total_likes >= 100: give("likes_100")
-    if total_likes >= 1000: give("likes_1000")
-    followers_count = db.query(models.Follow).filter(models.Follow.following_id == user.id).count()
-    if followers_count >= 10: give("followers_10")
-    if followers_count >= 100: give("followers_100")
-    comment_count = db.query(models.Comment).filter(models.Comment.user_id == user.id).count()
-    if comment_count >= 1: give("comment_first")
-    repost_count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == True).count()
-    if repost_count >= 1: give("repost_first")
-    whale_count = db.query(models.Whale).filter(models.Whale.user_id == user.id).count()
-    if whale_count >= 1: give("whale_first")
-    if is_user_plus(user): give("plus_member")
-    db.commit()
-
-def save_session(user, request, token, db):
-    try:
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        ua = request.headers.get("user-agent", "")
-        ip = request.headers.get("x-real-ip", request.client.host if request.client else "")
-        device = "Мобильный" if any(x in ua.lower() for x in ["mobile", "android", "iphone"]) else "Компьютер"
-        browser = "Chrome" if "chrome" in ua.lower() else "Firefox" if "firefox" in ua.lower() else "Safari" if "safari" in ua.lower() else "Браузер"
-        device_label = f"{device} · {browser}"
-        session = models.UserSession(user_id=user.id, token_hash=token_hash, device=device_label, ip=ip, user_agent=ua[:200])
-        db.add(session)
-        db.commit()
-    except Exception as e:
-        print(f"Session save error: {e}")
-
-def send_push_notification(user, title, body, url, db):
-    try:
-        import json, base64, tempfile
-        from pywebpush import webpush, WebPushException
-        subs = db.query(models.PushSubscription).filter(models.PushSubscription.user_id == user.id).all()
-        vapid_private_b64 = os.getenv("VAPID_PRIVATE_KEY", "")
-        vapid_email = os.getenv("VAPID_EMAIL", "mailto:quantru@internet.ru")
-        if not vapid_private_b64 or not subs:
-            return
-        pem_bytes = base64.b64decode(vapid_private_b64 + "==")
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as f:
-            f.write(pem_bytes)
-            pem_path = f.name
-        for sub in subs:
-            try:
-                webpush(subscription_info={"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}}, data=json.dumps({"title": title, "body": body, "url": url}), vapid_private_key=pem_path, vapid_claims={"sub": vapid_email})
-            except WebPushException as e:
-                if "410" in str(e) or "404" in str(e):
-                    db.delete(sub)
-                    db.commit()
-            except Exception as e:
-                print(f"Push send error: {e}")
-        os.unlink(pem_path)
-    except Exception as e:
-        print(f"Push error: {e}")
+def process_mentions(content, author, post_id, db):
+    mentions = re.findall(r'@([\w\.\-]+)', content)
+    notified = set()
+    for username in mentions:
+        if username in notified:
+            continue
+        mentioned_user = db.query(models.User).filter(models.User.username == username).first()
+        if mentioned_user and mentioned_user.id != author.id:
+            db.add(models.Notification(user_id=mentioned_user.id, from_user_id=author.id, type="mention", post_id=post_id))
+            notified.add(username)
 
 def save_media_file(upload: UploadFile):
     if not upload or not upload.filename:
@@ -285,11 +255,11 @@ def save_media_file(upload: UploadFile):
     file_size = len(contents)
     if content_type in ALLOWED_IMAGE_TYPES:
         if file_size > MAX_IMAGE_SIZE:
-            return None, f"Фото слишком большое (макс. {MAX_IMAGE_SIZE // 1024 // 1024} МБ)"
+            return None, f"Фото слишком большое (макс. 10 МБ)"
         media_type = "image"
     elif content_type in ALLOWED_VIDEO_TYPES:
         if file_size > MAX_VIDEO_SIZE:
-            return None, f"Видео слишком большое (макс. {MAX_VIDEO_SIZE // 1024 // 1024} МБ)"
+            return None, f"Видео слишком большое (макс. 100 МБ)"
         media_type = "video"
     else:
         return None, "Неподдерживаемый формат. Разрешены: JPG, PNG, WEBP, MP4"
@@ -319,6 +289,20 @@ def save_media_file(upload: UploadFile):
         with open(filepath, "wb") as f:
             f.write(contents)
     return f"/uploads/{filename}", media_type
+
+def save_file_attachment(upload: UploadFile):
+    if not upload or not upload.filename:
+        return None, None, 0
+    contents = upload.file.read()
+    file_size = len(contents)
+    if file_size > MAX_FILE_SIZE:
+        return None, None, 0
+    ext = os.path.splitext(upload.filename)[1].lower() or ".bin"
+    filename = f"file_{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    return f"/uploads/{filename}", upload.filename, file_size
 
 def save_audio_file(upload: UploadFile):
     if not upload or not upload.filename:
@@ -361,22 +345,153 @@ def delete_media_file(url):
     except Exception as e:
         print(f"Could not delete file {filepath}: {e}")
 
-def process_mentions(content, author, post_id, db):
-    mentions = re.findall(r'@([\w\.\-]+)', content)
-    notified = set()
-    for username in mentions:
-        if username in notified:
-            continue
-        mentioned_user = db.query(models.User).filter(models.User.username == username).first()
-        if mentioned_user and mentioned_user.id != author.id:
-            db.add(models.Notification(user_id=mentioned_user.id, from_user_id=author.id, type="mention", post_id=post_id))
-            send_push_notification(mentioned_user, "Quant", f"{author.name or author.username} упомянул тебя", f"/post/{post_id}", db)
-            notified.add(username)
+def save_session(user, request, token, db):
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        ua = request.headers.get("user-agent", "")
+        ip = request.headers.get("x-real-ip", request.client.host if request.client else "")
+        device = "Мобильный" if any(x in ua.lower() for x in ["mobile", "android", "iphone"]) else "Компьютер"
+        browser = "Chrome" if "chrome" in ua.lower() else "Firefox" if "firefox" in ua.lower() else "Safari" if "safari" in ua.lower() else "Браузер"
+        device_label = f"{device} · {browser}"
+        session = models.UserSession(user_id=user.id, token_hash=token_hash, device=device_label, ip=ip, user_agent=ua[:200])
+        db.add(session)
+        db.commit()
+    except Exception as e:
+        print(f"Session save error: {e}")
 
-def render_content(content):
-    content = re.sub(r'@([\w\.\-]+)', r'<a href="/profile/\1" style="color:#1d9bf0;font-weight:600;">@\1</a>', content)
-    content = re.sub(r'#([\w]+)', r'<a href="/hashtag/\1" style="color:#1d9bf0;font-weight:600;">#\1</a>', content)
-    return content
+def check_and_give_achievements(user, db):
+    earned_codes = set(ua.achievement.code for ua in user.achievements)
+    def give(code):
+        if code in earned_codes:
+            return
+        ach = db.query(models.Achievement).filter(models.Achievement.code == code).first()
+        if ach:
+            db.add(models.UserAchievement(user_id=user.id, achievement_id=ach.id))
+            earned_codes.add(code)
+    post_count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == False, models.Post.is_published == True).count()
+    if post_count >= 1: give("first_post")
+    if post_count >= 10: give("post_10")
+    if post_count >= 50: give("post_50")
+    if post_count >= 100: give("post_100")
+    from sqlalchemy import func
+    total_likes = db.query(func.count(models.Like.id)).join(models.Post).filter(models.Post.user_id == user.id).scalar() or 0
+    if total_likes >= 10: give("likes_10")
+    if total_likes >= 100: give("likes_100")
+    if total_likes >= 1000: give("likes_1000")
+    followers_count = db.query(models.Follow).filter(models.Follow.following_id == user.id).count()
+    if followers_count >= 10: give("followers_10")
+    if followers_count >= 100: give("followers_100")
+    comment_count = db.query(models.Comment).filter(models.Comment.user_id == user.id).count()
+    if comment_count >= 1: give("comment_first")
+    repost_count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == True).count()
+    if repost_count >= 1: give("repost_first")
+    whale_count = db.query(models.Whale).filter(models.Whale.user_id == user.id).count()
+    if whale_count >= 1: give("whale_first")
+    if is_user_plus(user): give("plus_member")
+    db.commit()
+
+# ===== ГЕЙМИФИКАЦИЯ =====
+
+def get_today_str():
+    return datetime.utcnow().strftime("%Y-%m-%d")
+
+def get_or_create_daily_tasks(user, db):
+    today = get_today_str()
+    existing = db.query(models.UserDailyTask).filter(
+        models.UserDailyTask.user_id == user.id,
+        models.UserDailyTask.date == today
+    ).all()
+    if existing:
+        return existing
+    tasks = db.query(models.DailyTask).filter(models.DailyTask.is_active == True).all()
+    for task in tasks:
+        db.add(models.UserDailyTask(user_id=user.id, task_id=task.id, date=today, progress=0, is_completed=False))
+    db.commit()
+    return db.query(models.UserDailyTask).filter(models.UserDailyTask.user_id == user.id, models.UserDailyTask.date == today).all()
+
+def update_task_progress(user, task_type, db, count=1):
+    if not user:
+        return
+    today = get_today_str()
+    tasks = db.query(models.UserDailyTask).join(models.DailyTask).filter(
+        models.UserDailyTask.user_id == user.id,
+        models.UserDailyTask.date == today,
+        models.DailyTask.task_type == task_type,
+        models.UserDailyTask.is_completed == False
+    ).all()
+    for ut in tasks:
+        ut.progress = min(ut.progress + count, ut.task.target_count)
+        if ut.progress >= ut.task.target_count:
+            ut.is_completed = True
+            ut.completed_at = datetime.utcnow()
+            points = ut.task.points
+            user.daily_points = (user.daily_points or 0) + points
+            user.weekly_points = (user.weekly_points or 0) + points
+            user.total_points = (user.total_points or 0) + points
+            update_raffle_entry(user, db)
+    db.commit()
+
+def update_raffle_entry(user, db):
+    raffle = get_current_raffle(db)
+    if not raffle:
+        return
+    entry = db.query(models.RaffleEntry).filter(
+        models.RaffleEntry.raffle_id == raffle.id,
+        models.RaffleEntry.user_id == user.id
+    ).first()
+    if entry:
+        entry.tickets += 1
+    else:
+        db.add(models.RaffleEntry(raffle_id=raffle.id, user_id=user.id, tickets=1))
+    db.commit()
+
+def get_current_raffle(db):
+    now = datetime.utcnow()
+    raffle = db.query(models.WeeklyRaffle).filter(
+        models.WeeklyRaffle.week_start <= now,
+        models.WeeklyRaffle.week_end >= now,
+        models.WeeklyRaffle.is_finished == False
+    ).first()
+    if not raffle:
+        week_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_start = week_start - timedelta(days=week_start.weekday())
+        week_end = week_start + timedelta(days=7)
+        raffle = models.WeeklyRaffle(week_start=week_start, week_end=week_end)
+        db.add(raffle)
+        db.commit()
+        db.refresh(raffle)
+    return raffle
+
+def finish_raffle_if_needed(db):
+    now = datetime.utcnow()
+    old_raffles = db.query(models.WeeklyRaffle).filter(
+        models.WeeklyRaffle.week_end < now,
+        models.WeeklyRaffle.is_finished == False
+    ).all()
+    for raffle in old_raffles:
+        entries = db.query(models.RaffleEntry).filter(models.RaffleEntry.raffle_id == raffle.id).all()
+        if entries:
+            pool = []
+            for entry in entries:
+                pool.extend([entry.user_id] * entry.tickets)
+            winner_id = random.choice(pool)
+            raffle.winner_id = winner_id
+            winner = db.query(models.User).filter(models.User.id == winner_id).first()
+            if winner:
+                winner.is_plus = True
+                winner.plus_until = datetime.utcnow() + timedelta(days=raffle.prize_days)
+                db.add(models.Notification(
+                    user_id=winner_id,
+                    type="system",
+                    text=f"🎉 Поздравляем! Ты выиграл еженедельный розыгрыш и получил Quant Plus на {raffle.prize_days} дней!"
+                ))
+                give_ach = db.query(models.Achievement).filter(models.Achievement.code == "raffle_winner").first()
+                if give_ach:
+                    existing_ach = db.query(models.UserAchievement).filter(models.UserAchievement.user_id == winner_id, models.UserAchievement.achievement_id == give_ach.id).first()
+                    if not existing_ach:
+                        db.add(models.UserAchievement(user_id=winner_id, achievement_id=give_ach.id))
+        raffle.is_finished = True
+        db.commit()
 
 def generate_qr_svg(url):
     try:
@@ -399,22 +514,18 @@ BETA_RESPONSE = """<!DOCTYPE html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Quant — Закрытая бета</title>
 <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh;}
 .wrap{text-align:center;padding:40px 24px;max-width:420px;}
-.logo{width:72px;height:72px;border-radius:20px;margin:0 auto 24px;display:block;}
-h1{font-size:26px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;}
+h1{font-size:26px;font-weight:800;margin-bottom:8px;}
 p{color:#888;font-size:15px;margin-bottom:32px;line-height:1.6;}
 .badge{display:inline-block;background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:8px 18px;font-size:13px;color:#888;margin-bottom:32px;}
 form{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 input{background:#1a1a1a;border:1.5px solid #333;color:white;padding:12px 16px;border-radius:10px;font-size:15px;outline:none;text-align:center;letter-spacing:2px;font-weight:700;width:220px;}
 input:focus{border-color:#555;}
-input::placeholder{color:#555;letter-spacing:0;font-weight:400;}
 button{background:white;color:#0f0f0f;border:none;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
-button:hover{background:#eee;}
 .err{color:#e53935;font-size:13px;margin-top:12px;}
 </style></head>
 <body><div class="wrap">
-<img src="/static/icon-192.png" class="logo" alt="Quant">
 <h1>Quant</h1>
-<p>Сейчас идёт закрытое бета-тестирование. Для доступа нужен код.</p>
+<p>Сейчас идёт закрытое бета-тестирование.</p>
 <div class="badge">🔒 Закрытая бета</div>
 <form method="get" action="/beta">
 <input type="text" name="code" placeholder="Введи код доступа" autofocus>
@@ -448,6 +559,8 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     if user:
         user.last_seen = datetime.utcnow()
         db.commit()
+        update_task_progress(user, "visit", db)
+        finish_raffle_if_needed(db)
     scheduled = db.query(models.Post).filter(models.Post.is_published == False, models.Post.scheduled_at <= datetime.utcnow()).all()
     for p in scheduled:
         p.is_published = True
@@ -500,7 +613,71 @@ def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
     if user:
         bookmarked_ids = set(b.post_id for b in user.bookmarks)
     top_post_id = posts[0].id if posts else 0
-    return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": tab, "is_plus": is_user_plus(user), "stories_data": stories_data, "my_story": my_story, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": bookmarked_ids, "top_post_id": top_post_id})
+    daily_tasks = []
+    raffle = None
+    user_tickets = 0
+    if user:
+        daily_tasks = get_or_create_daily_tasks(user, db)
+        raffle = get_current_raffle(db)
+        if raffle:
+            entry = db.query(models.RaffleEntry).filter(models.RaffleEntry.raffle_id == raffle.id, models.RaffleEntry.user_id == user.id).first()
+            user_tickets = entry.tickets if entry else 0
+    return templates.TemplateResponse(request, "home.html", {
+        "user": user, "posts": posts,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "tab": tab, "is_plus": is_user_plus(user),
+        "stories_data": stories_data, "my_story": my_story,
+        "render_content": render_content, "is_online": is_user_online,
+        "bookmarked_ids": bookmarked_ids, "top_post_id": top_post_id,
+        "daily_tasks": daily_tasks, "raffle": raffle, "user_tickets": user_tickets
+    })
+
+@app.get("/reels", response_class=HTMLResponse)
+def reels_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if user:
+        user.last_seen = datetime.utcnow()
+        db.commit()
+    reels = db.query(models.Post).filter(
+        models.Post.is_published == True,
+        models.Post.media_type == "video"
+    ).order_by(models.Post.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse(request, "reels.html", {
+        "user": user, "reels": reels,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "is_plus": is_user_plus(user), "render_content": render_content
+    })
+
+@app.get("/tasks", response_class=HTMLResponse)
+def tasks_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    user.last_seen = datetime.utcnow()
+    db.commit()
+    daily_tasks = get_or_create_daily_tasks(user, db)
+    raffle = get_current_raffle(db)
+    user_tickets = 0
+    total_entries = 0
+    if raffle:
+        entry = db.query(models.RaffleEntry).filter(models.RaffleEntry.raffle_id == raffle.id, models.RaffleEntry.user_id == user.id).first()
+        user_tickets = entry.tickets if entry else 0
+        total_entries = db.query(models.RaffleEntry).filter(models.RaffleEntry.raffle_id == raffle.id).count()
+    past_raffles = db.query(models.WeeklyRaffle).filter(models.WeeklyRaffle.is_finished == True).order_by(models.WeeklyRaffle.week_end.desc()).limit(5).all()
+    completed_today = sum(1 for t in daily_tasks if t.is_completed)
+    total_tasks = len(daily_tasks)
+    return templates.TemplateResponse(request, "tasks.html", {
+        "user": user, "daily_tasks": daily_tasks,
+        "raffle": raffle, "user_tickets": user_tickets,
+        "total_entries": total_entries, "past_raffles": past_raffles,
+        "completed_today": completed_today, "total_tasks": total_tasks,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "is_plus": is_user_plus(user)
+    })
 
 @app.get("/post/{post_id}", response_class=HTMLResponse)
 def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
@@ -515,14 +692,17 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/", status_code=302)
     post.views = (post.views or 0) + 1
     db.commit()
-    return templates.TemplateResponse(request, "post.html", {"user": user, "post": post, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content, "is_online": is_user_online})
+    return templates.TemplateResponse(request, "post.html", {
+        "user": user, "post": post,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "is_plus": is_user_plus(user), "render_content": render_content, "is_online": is_user_online
+    })
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request, beta: str = ""):
     if not check_beta(request) and beta.upper().strip() != BETA_CODE:
         return beta_redirect("")
-    beta_code = beta.upper().strip() if beta.upper().strip() == BETA_CODE else ""
-    return templates.TemplateResponse(request, "register.html", {"beta_code": beta_code})
+    return templates.TemplateResponse(request, "register.html", {"beta_code": beta.upper().strip() if beta.upper().strip() == BETA_CODE else ""})
 
 @app.post("/register")
 def register(request: Request, name: str = Form(...), username: str = Form(...), email: str = Form(...), password: str = Form(...), beta: str = Form(""), db: Session = Depends(get_db)):
@@ -548,29 +728,12 @@ def register(request: Request, name: str = Form(...), username: str = Form(...),
     save_session(user, request, token, db)
     return response
 
-@app.post("/verify")
-def verify(request: Request, email: str = Form(...), username: str = Form(...), name: str = Form(...), password: str = Form(...), code: str = Form(...), db: Session = Depends(get_db)):
-    vc = db.query(models.VerificationCode).filter(models.VerificationCode.email == email, models.VerificationCode.code == code).first()
-    if not vc:
-        return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password, "error": "Неверный код"})
-    if (datetime.utcnow() - vc.created_at).seconds > 600:
-        return templates.TemplateResponse(request, "verify.html", {"request": request, "email": email, "username": username, "name": name, "password": password, "error": "Код истёк"})
-    user = models.User(name=name, username=username, email=email, password=auth.hash_password(password), is_verified=True)
-    db.add(user)
-    db.query(models.VerificationCode).filter(models.VerificationCode.email == email).delete()
-    db.commit()
-    token = auth.create_token({"sub": username})
-    response = RedirectResponse("/", status_code=302)
-    response.set_cookie("token", token)
-    return response
-
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, beta: str = ""):
     beta_upper = beta.upper().strip()
     if not check_beta(request) and beta_upper != BETA_CODE:
         return beta_redirect("")
-    beta_ok = check_beta(request) or beta_upper == BETA_CODE
-    return templates.TemplateResponse(request, "login.html", {"beta_ok": beta_ok, "beta_code": beta_upper if beta_upper == BETA_CODE else ""})
+    return templates.TemplateResponse(request, "login.html", {"beta_ok": True, "beta_code": beta_upper if beta_upper == BETA_CODE else ""})
 
 @app.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...), beta: str = Form(""), db: Session = Depends(get_db)):
@@ -601,132 +764,15 @@ def logout(request: Request, db: Session = Depends(get_db)):
     response.delete_cookie("token")
     return response
 
-@app.post("/sessions/revoke/{session_id}")
-def revoke_session(session_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    session = db.query(models.UserSession).filter(models.UserSession.id == session_id, models.UserSession.user_id == user.id).first()
-    if session:
-        session.is_active = False
-        db.commit()
-    return RedirectResponse("/settings", status_code=302)
-
-@app.post("/sessions/revoke_all")
-def revoke_all_sessions(request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    current_token = request.cookies.get("token")
-    current_hash = hashlib.sha256(current_token.encode()).hexdigest() if current_token else ""
-    db.query(models.UserSession).filter(models.UserSession.user_id == user.id, models.UserSession.token_hash != current_hash).update({"is_active": False})
-    db.commit()
-    return RedirectResponse("/settings", status_code=302)
-
-@app.get("/qr/{username}", response_class=HTMLResponse)
-def qr_page(username: str, request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    profile_user = db.query(models.User).filter(models.User.username == username).first()
-    if not profile_user:
-        return RedirectResponse("/", status_code=302)
-    profile_url = f"https://quantru.duckdns.org/profile/{username}"
-    qr_svg = generate_qr_svg(profile_url)
-    return templates.TemplateResponse(request, "qr.html", {"user": user, "profile_user": profile_user, "qr_svg": qr_svg, "profile_url": profile_url, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
-
-@app.post("/block_user/{username}")
-def block_user_action(username: str, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    target = db.query(models.User).filter(models.User.username == username).first()
-    if not target or target.id == user.id:
-        return RedirectResponse("/", status_code=302)
-    existing = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == user.id, models.UserBlock.blocked_id == target.id).first()
-    if existing:
-        db.delete(existing)
-    else:
-        db.add(models.UserBlock(blocker_id=user.id, blocked_id=target.id))
-        existing_follow = db.query(models.Follow).filter(models.Follow.follower_id == user.id, models.Follow.following_id == target.id).first()
-        if existing_follow:
-            db.delete(existing_follow)
-    db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
-
-@app.get("/blocked", response_class=HTMLResponse)
-def blocked_users_page(request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    blocked = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == user.id).all()
-    return templates.TemplateResponse(request, "blocked.html", {"user": user, "blocked": blocked, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
-
-@app.get("/mentions", response_class=HTMLResponse)
-def mentions_page(request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    mentions = db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.type == "mention").order_by(models.Notification.created_at.desc()).limit(50).all()
-    return templates.TemplateResponse(request, "mentions.html", {"user": user, "mentions": mentions, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
-
-@app.get("/special_request", response_class=HTMLResponse)
-def special_request_page(request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    existing = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == user.id, models.SpecialRequest.status == "new").first()
-    return templates.TemplateResponse(request, "special_request.html", {"user": user, "existing": existing, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
-
-@app.post("/special_request")
-def special_request_submit(request: Request, type: str = Form(...), reason: str = Form(...), links: str = Form(""), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    existing = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == user.id, models.SpecialRequest.status == "new").first()
-    if existing:
-        return RedirectResponse("/special_request", status_code=302)
-    req = models.SpecialRequest(user_id=user.id, type=type, reason=reason, links=links)
-    db.add(req)
-    owner = db.query(models.User).filter(models.User.username == "rubl").first()
-    if owner:
-        type_labels = {"verify": "Верификация ✔", "star": "Особый статус ⭐", "mod": "Модератор 🛡️"}
-        label = type_labels.get(type, type)
-        db.add(models.Notification(user_id=owner.id, from_user_id=user.id, type="system", text=f"💎 Заявка на {label} от @{user.username}\n{reason[:200]}"))
-    db.commit()
-    return templates.TemplateResponse(request, "special_request.html", {"user": user, "existing": req, "success": True, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
-
-@app.post("/admin/special_request/action/{req_id}")
-def special_request_action(req_id: int, request: Request, action: str = Form(...), comment: str = Form(""), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user or not user.is_owner:
-        return RedirectResponse("/", status_code=302)
-    req = db.query(models.SpecialRequest).filter(models.SpecialRequest.id == req_id).first()
-    if not req:
-        return RedirectResponse("/admin?tab=requests", status_code=302)
-    req.status = action
-    req.admin_comment = comment
-    if action == "approve" and req.user:
-        if req.type == "verify":
-            req.user.is_verified_badge = True
-        elif req.type == "star":
-            req.user.is_starred = True
-        elif req.type == "mod":
-            req.user.is_moderator = True
-        db.add(models.Notification(user_id=req.user_id, from_user_id=user.id, type="system", text=f"✅ Твоя заявка одобрена! {comment}"))
-    elif action == "reject":
-        db.add(models.Notification(user_id=req.user_id, from_user_id=user.id, type="system", text=f"❌ Твоя заявка отклонена. {comment}"))
-    db.commit()
-    return RedirectResponse("/admin?tab=requests", status_code=302)
-
 @app.post("/post")
-async def create_post(request: Request, content: str = Form(...), media: UploadFile = File(None), poll_question: str = Form(""), poll_option_1: str = Form(""), poll_option_2: str = Form(""), poll_option_3: str = Form(""), poll_option_4: str = Form(""), scheduled_at: str = Form(""), db: Session = Depends(get_db)):
+async def create_post(request: Request, content: str = Form(...),
+    media: UploadFile = File(None),
+    media_2: UploadFile = File(None),
+    media_3: UploadFile = File(None),
+    media_4: UploadFile = File(None),
+    media_5: UploadFile = File(None),
+    poll_question: str = Form(""), poll_option_1: str = Form(""), poll_option_2: str = Form(""), poll_option_3: str = Form(""), poll_option_4: str = Form(""),
+    scheduled_at: str = Form(""), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -735,18 +781,23 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
     if not content or not content.strip():
         return RedirectResponse("/", status_code=302)
     if check_stop_words(content, db):
-        posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
-        return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": "⛔ Пост содержит запрещённые слова", "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": set(), "top_post_id": 0})
+        return RedirectResponse("/?error=stopword", status_code=302)
     media_url = ""
     media_type = ""
-    if media and media.filename:
-        url, type_or_error = save_media_file(media)
-        if url is None and type_or_error:
-            posts = db.query(models.Post).filter(models.Post.is_published == True).order_by(models.Post.created_at.desc()).all()
-            return templates.TemplateResponse(request, "home.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "tab": "foryou", "upload_error": type_or_error, "is_plus": is_user_plus(user), "stories_data": [], "my_story": None, "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": set(), "top_post_id": 0})
+    extra_media = []
+    all_uploads = [media, media_2, media_3, media_4, media_5]
+    valid_uploads = [u for u in all_uploads if u and u.filename]
+    if valid_uploads:
+        url, type_or_error = save_media_file(valid_uploads[0])
         if url:
             media_url = url
             media_type = type_or_error
+            for extra in valid_uploads[1:]:
+                eurl, etype = save_media_file(extra)
+                if eurl:
+                    extra_media.append({"url": eurl, "type": etype})
+        elif type_or_error:
+            return RedirectResponse("/?error=upload", status_code=302)
     sched = None
     is_published = True
     if scheduled_at.strip():
@@ -759,6 +810,8 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
     post = models.Post(content=content, user_id=user.id, image=media_url, media_type=media_type, scheduled_at=sched, is_published=is_published)
     db.add(post)
     db.flush()
+    for i, em in enumerate(extra_media):
+        db.add(models.PostMedia(post_id=post.id, media_url=em["url"], media_type=em["type"], position=i+1))
     if poll_question.strip():
         options = [o.strip() for o in [poll_option_1, poll_option_2, poll_option_3, poll_option_4] if o.strip()]
         if len(options) >= 2:
@@ -771,131 +824,8 @@ async def create_post(request: Request, content: str = Form(...), media: UploadF
         process_mentions(content, user, post.id, db)
     db.commit()
     check_and_give_achievements(user, db)
-    if not is_published:
-        return RedirectResponse("/?scheduled=1", status_code=302)
-    return RedirectResponse("/", status_code=302)
-
-@app.post("/repost/{post_id}")
-def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    original = db.query(models.Post).filter(models.Post.id == post_id).first()
-    if not original:
-        return RedirectResponse("/", status_code=302)
-    existing = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.repost_id == post_id).first()
-    if existing:
-        return RedirectResponse(f"/post/{post_id}", status_code=302)
-    repost_post = models.Post(content=original.content, user_id=user.id, image=original.image, media_type=original.media_type, is_repost=True, repost_id=post_id, is_published=True)
-    db.add(repost_post)
-    db.commit()
-    check_and_give_achievements(user, db)
-    return RedirectResponse("/", status_code=302)
-
-@app.post("/pin/{post_id}")
-def pin_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
-    if not post:
-        return RedirectResponse(f"/profile/{user.username}", status_code=302)
-    user.pinned_post_id = None if user.pinned_post_id == post_id else post_id
-    db.commit()
-    return RedirectResponse(f"/profile/{user.username}", status_code=302)
-
-@app.post("/bookmark/{post_id}")
-def bookmark_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if not is_user_plus(user):
-        return RedirectResponse("/plus", status_code=302)
-    existing = db.query(models.Bookmark).filter(models.Bookmark.user_id == user.id, models.Bookmark.post_id == post_id).first()
-    if existing:
-        db.delete(existing)
-    else:
-        db.add(models.Bookmark(user_id=user.id, post_id=post_id))
-    db.commit()
-    return RedirectResponse("/bookmarks", status_code=302)
-
-@app.get("/bookmarks", response_class=HTMLResponse)
-def bookmarks_page(request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if not is_user_plus(user):
-        return RedirectResponse("/plus", status_code=302)
-    bookmarks = db.query(models.Bookmark).filter(models.Bookmark.user_id == user.id).order_by(models.Bookmark.created_at.desc()).all()
-    posts = [b.post for b in bookmarks if b.post]
-    bookmarked_ids = set(b.post_id for b in user.bookmarks)
-    return templates.TemplateResponse(request, "bookmarks.html", {"user": user, "posts": posts, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "render_content": render_content, "is_online": is_user_online, "bookmarked_ids": bookmarked_ids, "is_plus": True})
-
-@app.post("/poll/vote/{option_id}")
-def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    option = db.query(models.PollOption).filter(models.PollOption.id == option_id).first()
-    if not option:
-        return RedirectResponse("/", status_code=302)
-    poll = option.poll
-    existing = db.query(models.PollVote).filter(models.PollVote.user_id == user.id, models.PollVote.poll_id == poll.id).first()
-    if existing:
-        return RedirectResponse(f"/post/{poll.post_id}", status_code=302)
-    db.add(models.PollVote(user_id=user.id, option_id=option_id, poll_id=poll.id))
-    db.commit()
-    return RedirectResponse(f"/post/{poll.post_id}", status_code=302)
-
-@app.post("/delete/{post_id}")
-def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    if can_moderate(user):
-        post = db.query(models.Post).filter(models.Post.id == post_id).first()
-    else:
-        post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
-    if post:
-        if post.image:
-            delete_media_file(post.image)
-        db.query(models.Like).filter(models.Like.post_id == post_id).delete()
-        db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
-        db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
-        db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
-        db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
-        db.query(models.Post).filter(models.Post.repost_id == post_id).delete()
-        db.query(models.Bookmark).filter(models.Bookmark.post_id == post_id).delete()
-        if post.poll:
-            for opt in post.poll.options:
-                db.query(models.PollVote).filter(models.PollVote.option_id == opt.id).delete()
-            db.query(models.PollOption).filter(models.PollOption.poll_id == post.poll.id).delete()
-            db.query(models.PollVote).filter(models.PollVote.poll_id == post.poll.id).delete()
-            db.delete(post.poll)
-        if user.pinned_post_id == post_id:
-            user.pinned_post_id = None
-        db.delete(post)
-        db.commit()
-    return RedirectResponse("/", status_code=302)
-
-@app.post("/delete_comment/{comment_id}")
-def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    if can_moderate(user):
-        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
-    else:
-        comment = db.query(models.Comment).filter(models.Comment.id == comment_id, models.Comment.user_id == user.id).first()
-    if comment:
-        db.delete(comment)
-        db.commit()
+    if is_published:
+        update_task_progress(user, "post", db)
     return RedirectResponse("/", status_code=302)
 
 @app.post("/like/{post_id}")
@@ -913,7 +843,7 @@ def like_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         post = db.query(models.Post).filter(models.Post.id == post_id).first()
         if post and post.user_id != user.id:
             db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="like", post_id=post_id))
-            send_push_notification(post.author, "Quant", f"{user.name or user.username} лайкнул твой пост ❤️", f"/post/{post_id}", db)
+        update_task_progress(user, "like", db)
     db.commit()
     check_and_give_achievements(user, db)
     return RedirectResponse("/", status_code=302)
@@ -930,27 +860,8 @@ def whale_post(post_id: int, request: Request, db: Session = Depends(get_db)):
         db.delete(existing)
     else:
         db.add(models.Whale(user_id=user.id, post_id=post_id))
+        update_task_progress(user, "whale", db)
         check_and_give_achievements(user, db)
-    db.commit()
-    return RedirectResponse("/", status_code=302)
-
-@app.post("/react/{post_id}")
-def react_post(post_id: int, request: Request, emoji: str = Form(...), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    if not is_user_plus(user):
-        return RedirectResponse("/plus", status_code=302)
-    allowed = ["🔥", "😂", "😮", "😢", "👏", "🎉"]
-    if emoji not in allowed:
-        return RedirectResponse("/", status_code=302)
-    existing = db.query(models.Reaction).filter(models.Reaction.user_id == user.id, models.Reaction.post_id == post_id, models.Reaction.emoji == emoji).first()
-    if existing:
-        db.delete(existing)
-    else:
-        db.add(models.Reaction(user_id=user.id, post_id=post_id, emoji=emoji))
     db.commit()
     return RedirectResponse("/", status_code=302)
 
@@ -969,11 +880,179 @@ def add_comment(post_id: int, request: Request, content: str = Form(...), db: Se
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post and post.user_id != user.id:
         db.add(models.Notification(user_id=post.user_id, from_user_id=user.id, type="comment", post_id=post_id))
-        send_push_notification(post.author, "Quant", f"{user.name or user.username} прокомментировал твой пост 💬", f"/post/{post_id}", db)
     process_mentions(content, user, post_id, db)
     db.commit()
     check_and_give_achievements(user, db)
+    update_task_progress(user, "comment", db)
     return RedirectResponse(f"/post/{post_id}", status_code=302)
+
+@app.post("/follow/{username}")
+def follow(username: str, request: Request, db: Session = Depends(get_db)):
+    current_user = auth.get_current_user(request, db)
+    if not current_user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(current_user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target or target.id == current_user.id:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id, models.Follow.following_id == target.id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.Follow(follower_id=current_user.id, following_id=target.id))
+        db.add(models.Notification(user_id=target.id, from_user_id=current_user.id, type="follow"))
+        check_and_give_achievements(target, db)
+        update_task_progress(current_user, "follow", db)
+    db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.get("/messages", response_class=HTMLResponse)
+def messages_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    user.last_seen = datetime.utcnow()
+    db.commit()
+    conversations = db.query(models.User).join(
+        models.Message,
+        (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)
+    ).filter(models.User.id != user.id).distinct().all()
+    unread_from = get_unread_from(user, db)
+    pinned_ids = set(p.pinned_user_id for p in db.query(models.PinnedChat).filter(models.PinnedChat.user_id == user.id).all())
+    pinned_convs = [c for c in conversations if c.id in pinned_ids]
+    other_convs = [c for c in conversations if c.id not in pinned_ids]
+    return templates.TemplateResponse(request, "messages.html", {
+        "user": user, "conversations": other_convs, "pinned_convs": pinned_convs,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "unread_from": unread_from, "is_online": is_user_online, "pinned_ids": pinned_ids
+    })
+
+@app.post("/messages/pin/{username}")
+def pin_chat(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target:
+        return RedirectResponse("/messages", status_code=302)
+    existing = db.query(models.PinnedChat).filter(models.PinnedChat.user_id == user.id, models.PinnedChat.pinned_user_id == target.id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.PinnedChat(user_id=user.id, pinned_user_id=target.id))
+    db.commit()
+    return RedirectResponse("/messages", status_code=302)
+
+@app.get("/messages/{username}", response_class=HTMLResponse)
+def conversation(username: str, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    user.last_seen = datetime.utcnow()
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return RedirectResponse("/messages", status_code=302)
+    msgs = db.query(models.Message).filter(
+        ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
+        ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))
+    ).order_by(models.Message.created_at).all()
+    for msg in msgs:
+        if msg.receiver_id == user.id and not msg.is_read and not msg.is_deleted:
+            msg.is_read = True
+            msg.is_delivered = True
+    db.commit()
+    is_pinned = db.query(models.PinnedChat).filter(models.PinnedChat.user_id == user.id, models.PinnedChat.pinned_user_id == other.id).first() is not None
+    return templates.TemplateResponse(request, "conversation.html", {
+        "user": user, "other": other, "messages": msgs,
+        "unread": get_unread(user, db), "unread_msg": 0,
+        "is_online": is_user_online, "is_pinned": is_pinned
+    })
+
+@app.post("/messages/{username}")
+async def send_message(username: str, request: Request,
+    content: str = Form(""),
+    image: UploadFile = File(None),
+    voice: UploadFile = File(None),
+    file: UploadFile = File(None),
+    db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if is_user_blocked(user):
+        return HTMLResponse(BLOCKED_RESPONSE)
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return RedirectResponse("/messages", status_code=302)
+    image_url = ""
+    voice_url = ""
+    file_url = ""
+    file_name = ""
+    file_size = 0
+    is_video_circle = False
+    if image and image.filename:
+        url, _ = save_media_file(image)
+        if url:
+            image_url = url
+    if voice and voice.filename:
+        content_type = (voice.content_type or "").lower()
+        if "video" in content_type:
+            url, _ = save_media_file(voice)
+            if url:
+                image_url = url
+                is_video_circle = True
+        else:
+            url = save_audio_file(voice)
+            if url:
+                voice_url = url
+    if file and file.filename:
+        furl, fname, fsize = save_file_attachment(file)
+        if furl:
+            file_url = furl
+            file_name = fname
+            file_size = fsize
+    if not content.strip() and not image_url and not voice_url and not file_url:
+        return RedirectResponse(f"/messages/{username}", status_code=302)
+    db.add(models.Message(
+        sender_id=user.id, receiver_id=other.id,
+        content=content, image=image_url, voice=voice_url,
+        file_url=file_url, file_name=file_name, file_size=file_size,
+        is_video_circle=is_video_circle, is_delivered=True
+    ))
+    db.commit()
+    update_task_progress(user, "message", db)
+    return RedirectResponse(f"/messages/{username}", status_code=302)
+
+@app.get("/messages/{username}/search", response_class=HTMLResponse)
+def search_messages(username: str, request: Request, q: str = "", db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    other = db.query(models.User).filter(models.User.username == username).first()
+    if not other:
+        return RedirectResponse("/messages", status_code=302)
+    results = []
+    if q:
+        results = db.query(models.Message).filter(
+            ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
+            ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id)),
+            models.Message.content.ilike(f"%{q}%"),
+            models.Message.is_deleted == False
+        ).order_by(models.Message.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse(request, "message_search.html", {
+        "user": user, "other": other, "results": results, "q": q,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db)
+    })
 
 @app.get("/profile/{username}", response_class=HTMLResponse)
 def profile(username: str, request: Request, db: Session = Depends(get_db)):
@@ -1019,101 +1098,17 @@ def profile(username: str, request: Request, db: Session = Depends(get_db)):
     is_user_blocked_by_me = False
     if current_user and current_user.id != profile_user.id:
         is_user_blocked_by_me = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == current_user.id, models.UserBlock.blocked_id == profile_user.id).first() is not None
-    return templates.TemplateResponse(request, "profile.html", {"user": current_user, "profile_user": profile_user, "posts": posts, "scheduled_posts": scheduled_posts, "pinned_post": pinned_post, "is_following": is_following, "friends": friends, "is_friend": is_friend, "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db), "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user), "render_content": render_content, "is_online": is_user_online, "user_achievements": user_achievements, "total_views": total_views, "already_reported": already_reported, "pending_request": pending_request, "is_private_and_hidden": is_private_and_hidden, "is_user_blocked_by_me": is_user_blocked_by_me})
-
-@app.post("/follow/{username}")
-def follow(username: str, request: Request, db: Session = Depends(get_db)):
-    current_user = auth.get_current_user(request, db)
-    if not current_user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(current_user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    target = db.query(models.User).filter(models.User.username == username).first()
-    if not target or target.id == current_user.id:
-        return RedirectResponse("/", status_code=302)
-    existing = db.query(models.Follow).filter(models.Follow.follower_id == current_user.id, models.Follow.following_id == target.id).first()
-    if existing:
-        db.delete(existing)
-    else:
-        db.add(models.Follow(follower_id=current_user.id, following_id=target.id))
-        db.add(models.Notification(user_id=target.id, from_user_id=current_user.id, type="follow"))
-        send_push_notification(target, "Quant", f"{current_user.name or current_user.username} подписался на тебя 👤", f"/profile/{current_user.username}", db)
-        check_and_give_achievements(target, db)
-    db.commit()
-    return RedirectResponse(f"/profile/{username}", status_code=302)
-
-@app.get("/report/{username}", response_class=HTMLResponse)
-def report_page(username: str, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    target = db.query(models.User).filter(models.User.username == username).first()
-    if not target or target.id == user.id:
-        return RedirectResponse("/", status_code=302)
-    week_ago = datetime.utcnow() - timedelta(days=7)
-    report_count = db.query(models.Report).filter(models.Report.reporter_id == user.id, models.Report.target_id == target.id, models.Report.created_at >= week_ago).count()
-    if report_count >= 3:
-        return RedirectResponse(f"/profile/{username}", status_code=302)
-    return templates.TemplateResponse(request, "report.html", {"user": user, "target": target, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
-
-@app.post("/report/{username}")
-async def report_submit(username: str, request: Request, reason: str = Form(...), text: str = Form(""), image_1: UploadFile = File(None), image_2: UploadFile = File(None), image_3: UploadFile = File(None), image_4: UploadFile = File(None), image_5: UploadFile = File(None), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    target = db.query(models.User).filter(models.User.username == username).first()
-    if not target or target.id == user.id:
-        return RedirectResponse("/", status_code=302)
-    week_ago = datetime.utcnow() - timedelta(days=7)
-    report_count = db.query(models.Report).filter(models.Report.reporter_id == user.id, models.Report.target_id == target.id, models.Report.created_at >= week_ago).count()
-    if report_count >= 3:
-        return RedirectResponse(f"/profile/{username}", status_code=302)
-    images = []
-    for img_upload in [image_1, image_2, image_3, image_4, image_5]:
-        if img_upload and img_upload.filename:
-            url, _ = save_media_file(img_upload)
-            images.append(url or "")
-        else:
-            images.append("")
-    report = models.Report(reporter_id=user.id, target_id=target.id, reason=reason, text=text, image_1=images[0], image_2=images[1], image_3=images[2], image_4=images[3], image_5=images[4])
-    db.add(report)
-    owner = db.query(models.User).filter(models.User.username == "rubl").first()
-    if owner:
-        db.add(models.Notification(user_id=owner.id, from_user_id=user.id, type="report", text=f"🚩 @{user.username} пожаловался на @{target.username}\nПричина: {reason}\n{text[:200]}"))
-    db.commit()
-    return RedirectResponse(f"/profile/{username}?reported=1", status_code=302)
-
-@app.post("/admin/report/action/{report_id}")
-def report_action(report_id: int, request: Request, action: str = Form(...), comment: str = Form(""), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user or not user.is_owner:
-        return RedirectResponse("/", status_code=302)
-    report = db.query(models.Report).filter(models.Report.id == report_id).first()
-    if not report:
-        return RedirectResponse("/admin?tab=reports", status_code=302)
-    report.status = action
-    report.admin_comment = comment
-    if action == "block" and report.target:
-        report.target.is_blocked = True
-        report.target.blocked_until = datetime.utcnow() + timedelta(days=7)
-        db.add(models.Notification(user_id=report.target_id, from_user_id=user.id, type="system", text="Ваш аккаунт заблокирован по жалобе на 7 дней."))
-    elif action == "warn" and report.target:
-        db.add(models.Notification(user_id=report.target_id, from_user_id=user.id, type="system", text=f"Предупреждение от администратора: {comment}"))
-    if report.reporter_id:
-        db.add(models.Notification(user_id=report.reporter_id, from_user_id=user.id, type="system", text=f"Ваша жалоба рассмотрена. Решение: {action}."))
-    db.commit()
-    return RedirectResponse("/admin?tab=reports", status_code=302)
-
-@app.get("/hashtag/{tag}", response_class=HTMLResponse)
-def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    if user:
-        user.last_seen = datetime.utcnow()
-        db.commit()
-    posts = db.query(models.Post).filter(models.Post.is_published == True, models.Post.content.ilike(f"%#{tag}%")).order_by(models.Post.created_at.desc()).limit(100).all()
-    return templates.TemplateResponse(request, "hashtag.html", {"user": user, "posts": posts, "tag": tag, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "render_content": render_content, "is_online": is_user_online})
+    return templates.TemplateResponse(request, "profile.html", {
+        "user": current_user, "profile_user": profile_user, "posts": posts,
+        "scheduled_posts": scheduled_posts, "pinned_post": pinned_post,
+        "is_following": is_following, "friends": friends, "is_friend": is_friend,
+        "unread": get_unread(current_user, db), "unread_msg": get_unread_messages(current_user, db),
+        "is_plus": is_user_plus(current_user), "profile_is_plus": is_user_plus(profile_user),
+        "render_content": render_content, "is_online": is_user_online,
+        "user_achievements": user_achievements, "total_views": total_views,
+        "already_reported": already_reported, "pending_request": pending_request,
+        "is_private_and_hidden": is_private_and_hidden, "is_user_blocked_by_me": is_user_blocked_by_me
+    })
 
 @app.get("/search", response_class=HTMLResponse)
 def search(request: Request, q: str = "", db: Session = Depends(get_db)):
@@ -1125,95 +1120,11 @@ def search(request: Request, q: str = "", db: Session = Depends(get_db)):
     if q:
         user_results = db.query(models.User).filter(models.User.username.ilike(f"%{q}%") | models.User.name.ilike(f"%{q}%")).limit(10).all()
         post_results = db.query(models.Post).filter(models.Post.is_published == True, models.Post.content.ilike(f"%{q}%")).order_by(models.Post.created_at.desc()).limit(20).all()
-    return templates.TemplateResponse(request, "search.html", {"user": user, "results": user_results, "post_results": post_results, "q": q, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "render_content": render_content})
-
-@app.get("/plus", response_class=HTMLResponse)
-def plus_page(request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "plus.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0, "is_plus": is_user_plus(user)})
-
-@app.post("/activate_plus")
-def activate_plus(request: Request, code: str = Form(...), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    promo = db.query(models.Promocode).filter(models.Promocode.code == code.upper().strip(), models.Promocode.is_active == True).first()
-    if not promo or promo.uses >= promo.max_uses:
-        return templates.TemplateResponse(request, "plus.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "error": "Промокод не найден, уже использован или истёк"})
-    promo.uses += 1
-    if promo.uses >= promo.max_uses:
-        promo.is_active = False
-    user.is_plus = True
-    user.plus_until = datetime.utcnow() + timedelta(days=promo.days)
-    db.commit()
-    check_and_give_achievements(user, db)
-    return templates.TemplateResponse(request, "plus.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": True, "success": f"🎉 Quant Plus активирован на {promo.days} дней!"})
-
-@app.get("/messages", response_class=HTMLResponse)
-def messages_page(request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    user.last_seen = datetime.utcnow()
-    db.commit()
-    conversations = db.query(models.User).join(models.Message, (models.Message.sender_id == user.id) | (models.Message.receiver_id == user.id)).filter(models.User.id != user.id).distinct().all()
-    unread_from = get_unread_from(user, db)
-    return templates.TemplateResponse(request, "messages.html", {"user": user, "conversations": conversations, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "unread_from": unread_from, "is_online": is_user_online})
-
-@app.get("/messages/{username}", response_class=HTMLResponse)
-def conversation(username: str, request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    user.last_seen = datetime.utcnow()
-    other = db.query(models.User).filter(models.User.username == username).first()
-    if not other:
-        return RedirectResponse("/messages", status_code=302)
-    msgs = db.query(models.Message).filter(((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) | ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))).order_by(models.Message.created_at).all()
-    for msg in msgs:
-        if msg.receiver_id == user.id and not msg.is_read and not msg.is_deleted:
-            msg.is_read = True
-            msg.is_delivered = True
-    db.commit()
-    return templates.TemplateResponse(request, "conversation.html", {"user": user, "other": other, "messages": msgs, "unread": get_unread(user, db), "unread_msg": 0, "is_online": is_user_online})
-
-@app.post("/messages/{username}")
-async def send_message(username: str, request: Request, content: str = Form(""), image: UploadFile = File(None), voice: UploadFile = File(None), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    other = db.query(models.User).filter(models.User.username == username).first()
-    if not other:
-        return RedirectResponse("/messages", status_code=302)
-    image_url = ""
-    voice_url = ""
-    if image and image.filename:
-        url, _ = save_media_file(image)
-        if url:
-            image_url = url
-    if voice and voice.filename:
-        url = save_audio_file(voice)
-        if url:
-            voice_url = url
-    if not content.strip() and not image_url and not voice_url:
-        return RedirectResponse(f"/messages/{username}", status_code=302)
-    db.add(models.Message(sender_id=user.id, receiver_id=other.id, content=content, image=image_url, voice=voice_url, is_delivered=True))
-    preview = content[:50] if content else ("🎙 Голосовое" if voice_url else "📎 Фото")
-    send_push_notification(other, f"Quant — {user.name or user.username}", preview, f"/messages/{user.username}", db)
-    db.commit()
-    return RedirectResponse(f"/messages/{username}", status_code=302)
+    return templates.TemplateResponse(request, "search.html", {
+        "user": user, "results": user_results, "post_results": post_results, "q": q,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "render_content": render_content
+    })
 
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request, db: Session = Depends(get_db)):
@@ -1225,7 +1136,10 @@ def notifications_page(request: Request, db: Session = Depends(get_db)):
     user.last_seen = datetime.utcnow()
     db.commit()
     notifs = db.query(models.Notification).filter(models.Notification.user_id == user.id).order_by(models.Notification.created_at.desc()).limit(50).all()
-    return templates.TemplateResponse(request, "notifications.html", {"user": user, "notifications": notifs, "unread": 0, "unread_msg": get_unread_messages(user, db)})
+    return templates.TemplateResponse(request, "notifications.html", {
+        "user": user, "notifications": notifs,
+        "unread": 0, "unread_msg": get_unread_messages(user, db)
+    })
 
 @app.post("/notifications/read")
 def notifications_read(request: Request, db: Session = Depends(get_db)):
@@ -1236,24 +1150,6 @@ def notifications_read(request: Request, db: Session = Depends(get_db)):
     db.commit()
     return RedirectResponse("/notifications", status_code=302)
 
-@app.post("/support/reply/{notif_id}")
-def support_reply(notif_id: int, request: Request, reply: str = Form(...), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user or not user.is_owner:
-        return RedirectResponse("/", status_code=302)
-    notif = db.query(models.Notification).filter(models.Notification.id == notif_id).first()
-    if not notif:
-        return RedirectResponse("/notifications", status_code=302)
-    from email_service import send_support_reply
-    if notif.from_user_id:
-        sender = db.query(models.User).filter(models.User.id == notif.from_user_id).first()
-        if sender:
-            db.add(models.Notification(user_id=sender.id, from_user_id=user.id, type="support_reply", text=reply))
-            db.commit()
-    elif notif.reply_email:
-        send_support_reply(notif.reply_email, reply)
-    return RedirectResponse("/notifications", status_code=302)
-
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, db: Session = Depends(get_db)):
     if not check_beta(request):
@@ -1261,14 +1157,19 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    vapid_public = os.getenv("VAPID_PUBLIC_KEY", "")
     current_token = request.cookies.get("token")
     current_hash = hashlib.sha256(current_token.encode()).hexdigest() if current_token else ""
     sessions = db.query(models.UserSession).filter(models.UserSession.user_id == user.id, models.UserSession.is_active == True).order_by(models.UserSession.last_active.desc()).all()
-    return templates.TemplateResponse(request, "settings.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "vapid_public": vapid_public, "sessions": sessions, "current_hash": current_hash})
+    return templates.TemplateResponse(request, "settings.html", {
+        "user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "is_plus": is_user_plus(user), "sessions": sessions, "current_hash": current_hash, "vapid_public": ""
+    })
 
 @app.post("/settings")
-async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...), emoji_status: str = Form(""), website: str = Form(""), birthday: str = Form(""), is_private: str = Form(""), avatar: UploadFile = File(None), cover: UploadFile = File(None), plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
+async def settings_save(request: Request, name: str = Form(...), bio: str = Form(""), username: str = Form(...),
+    emoji_status: str = Form(""), website: str = Form(""), birthday: str = Form(""),
+    is_private: str = Form(""), avatar: UploadFile = File(None), cover: UploadFile = File(None),
+    plus_color: str = Form("#a855f7"), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -1350,6 +1251,340 @@ def change_password(request: Request, old_password: str = Form(...), new_passwor
     db.commit()
     return templates.TemplateResponse(request, "settings.html", {"user": user, "success": "Пароль успешно изменён"})
 
+@app.post("/delete/{post_id}")
+def delete_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if can_moderate(user):
+        post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    else:
+        post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.user_id == user.id).first()
+    if post:
+        if post.image:
+            delete_media_file(post.image)
+        for pm in post.media_items:
+            delete_media_file(pm.media_url)
+            db.delete(pm)
+        db.query(models.Like).filter(models.Like.post_id == post_id).delete()
+        db.query(models.Comment).filter(models.Comment.post_id == post_id).delete()
+        db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
+        db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
+        db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
+        db.query(models.Post).filter(models.Post.repost_id == post_id).delete()
+        db.query(models.Bookmark).filter(models.Bookmark.post_id == post_id).delete()
+        if user.pinned_post_id == post_id:
+            user.pinned_post_id = None
+        db.delete(post)
+        db.commit()
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/repost/{post_id}")
+def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    original = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if not original:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.repost_id == post_id).first()
+    if existing:
+        return RedirectResponse(f"/post/{post_id}", status_code=302)
+    repost_post = models.Post(content=original.content, user_id=user.id, image=original.image, media_type=original.media_type, is_repost=True, repost_id=post_id, is_published=True)
+    db.add(repost_post)
+    db.commit()
+    check_and_give_achievements(user, db)
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/pin/{post_id}")
+def pin_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    user.pinned_post_id = None if user.pinned_post_id == post_id else post_id
+    db.commit()
+    return RedirectResponse(f"/profile/{user.username}", status_code=302)
+
+@app.post("/bookmark/{post_id}")
+def bookmark_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if not is_user_plus(user):
+        return RedirectResponse("/plus", status_code=302)
+    existing = db.query(models.Bookmark).filter(models.Bookmark.user_id == user.id, models.Bookmark.post_id == post_id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.Bookmark(user_id=user.id, post_id=post_id))
+    db.commit()
+    return RedirectResponse("/bookmarks", status_code=302)
+
+@app.get("/bookmarks", response_class=HTMLResponse)
+def bookmarks_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    if not is_user_plus(user):
+        return RedirectResponse("/plus", status_code=302)
+    bookmarks = db.query(models.Bookmark).filter(models.Bookmark.user_id == user.id).order_by(models.Bookmark.created_at.desc()).all()
+    posts = [b.post for b in bookmarks if b.post]
+    bookmarked_ids = set(b.post_id for b in user.bookmarks)
+    return templates.TemplateResponse(request, "bookmarks.html", {
+        "user": user, "posts": posts,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "render_content": render_content, "is_online": is_user_online,
+        "bookmarked_ids": bookmarked_ids, "is_plus": True
+    })
+
+@app.post("/react/{post_id}")
+def react_post(post_id: int, request: Request, emoji: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not is_user_plus(user):
+        return RedirectResponse("/", status_code=302)
+    allowed = ["🔥", "😂", "😮", "😢", "👏", "🎉"]
+    if emoji not in allowed:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.Reaction).filter(models.Reaction.user_id == user.id, models.Reaction.post_id == post_id, models.Reaction.emoji == emoji).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.Reaction(user_id=user.id, post_id=post_id, emoji=emoji))
+    db.commit()
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/poll/vote/{option_id}")
+def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    option = db.query(models.PollOption).filter(models.PollOption.id == option_id).first()
+    if not option:
+        return RedirectResponse("/", status_code=302)
+    poll = option.poll
+    existing = db.query(models.PollVote).filter(models.PollVote.user_id == user.id, models.PollVote.poll_id == poll.id).first()
+    if existing:
+        return RedirectResponse(f"/post/{poll.post_id}", status_code=302)
+    db.add(models.PollVote(user_id=user.id, option_id=option_id, poll_id=poll.id))
+    db.commit()
+    return RedirectResponse(f"/post/{poll.post_id}", status_code=302)
+
+@app.post("/story/upload")
+async def story_upload(request: Request, media: UploadFile = File(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    url, type_or_error = save_media_file(media)
+    if url is None:
+        return RedirectResponse("/", status_code=302)
+    expires = datetime.utcnow() + timedelta(hours=24)
+    story = models.Story(user_id=user.id, media_url=url, media_type=type_or_error, expires_at=expires)
+    db.add(story)
+    db.commit()
+    update_task_progress(user, "story", db)
+    return RedirectResponse("/", status_code=302)
+
+@app.get("/story/{story_id}", response_class=HTMLResponse)
+def story_view(story_id: int, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    story = db.query(models.Story).filter(models.Story.id == story_id).first()
+    if not story or story.expires_at < datetime.utcnow():
+        return RedirectResponse("/", status_code=302)
+    if user and user.id != story.user_id:
+        existing_view = db.query(models.StoryView).filter(models.StoryView.story_id == story_id, models.StoryView.user_id == user.id).first()
+        if not existing_view:
+            db.add(models.StoryView(story_id=story_id, user_id=user.id))
+            db.commit()
+    all_stories = db.query(models.Story).filter(models.Story.user_id == story.user_id, models.Story.expires_at > datetime.utcnow()).order_by(models.Story.created_at).all()
+    current_index = next((i for i, s in enumerate(all_stories) if s.id == story_id), 0)
+    views_count = db.query(models.StoryView).filter(models.StoryView.story_id == story_id).count()
+    return templates.TemplateResponse(request, "story_view.html", {
+        "user": user, "story": story, "all_stories": all_stories,
+        "current_index": current_index, "views_count": views_count,
+        "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0
+    })
+
+@app.post("/story/delete/{story_id}")
+def story_delete(story_id: int, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    story = db.query(models.Story).filter(models.Story.id == story_id).first()
+    if story and (story.user_id == user.id or user.is_owner):
+        delete_media_file(story.media_url)
+        db.query(models.StoryView).filter(models.StoryView.story_id == story_id).delete()
+        db.delete(story)
+        db.commit()
+    return RedirectResponse("/", status_code=302)
+
+@app.post("/block_user/{username}")
+def block_user_action(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target or target.id == user.id:
+        return RedirectResponse("/", status_code=302)
+    existing = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == user.id, models.UserBlock.blocked_id == target.id).first()
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(models.UserBlock(blocker_id=user.id, blocked_id=target.id))
+    db.commit()
+    return RedirectResponse(f"/profile/{username}", status_code=302)
+
+@app.get("/hashtag/{tag}", response_class=HTMLResponse)
+def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    posts = db.query(models.Post).filter(models.Post.is_published == True, models.Post.content.ilike(f"%#{tag}%")).order_by(models.Post.created_at.desc()).limit(100).all()
+    return templates.TemplateResponse(request, "hashtag.html", {
+        "user": user, "posts": posts, "tag": tag,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "render_content": render_content, "is_online": is_user_online
+    })
+
+@app.get("/plus", response_class=HTMLResponse)
+def plus_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "plus.html", {
+        "user": user, "unread": get_unread(user, db) if user else 0,
+        "unread_msg": get_unread_messages(user, db) if user else 0, "is_plus": is_user_plus(user)
+    })
+
+@app.post("/activate_plus")
+def activate_plus(request: Request, code: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    promo = db.query(models.Promocode).filter(models.Promocode.code == code.upper().strip(), models.Promocode.is_active == True).first()
+    if not promo or promo.uses >= promo.max_uses:
+        return templates.TemplateResponse(request, "plus.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "error": "Промокод не найден или уже использован"})
+    promo.uses += 1
+    if promo.uses >= promo.max_uses:
+        promo.is_active = False
+    user.is_plus = True
+    user.plus_until = datetime.utcnow() + timedelta(days=promo.days)
+    db.commit()
+    check_and_give_achievements(user, db)
+    return templates.TemplateResponse(request, "plus.html", {"user": user, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": True, "success": f"🎉 Quant Plus активирован на {promo.days} дней!"})
+
+@app.get("/support", response_class=HTMLResponse)
+def support_page(request: Request, db: Session = Depends(get_db)):
+    if not check_beta(request):
+        return beta_redirect("")
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
+
+@app.post("/support")
+def support_submit(request: Request, subject: str = Form(...), message: str = Form(...), email: str = Form(""), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    user_email = user.email if user else email.strip()
+    if not user_email:
+        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": 0, "unread_msg": 0, "error": "Укажи email для ответа"})
+    owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    sender_name = user.username if user else user_email
+    notif_text = f"📧 {sender_name}\n📌 {subject}\n💬 {message[:300]}"
+    if owner:
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support", text=notif_text, reply_email=user_email if not user else ""))
+        db.commit()
+    try:
+        from email_service import send_support_confirmation
+        send_support_confirmation(user_email, subject)
+    except Exception as e:
+        print(f"Support email error: {e}")
+    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": 0, "unread_msg": 0, "success": True})
+
+@app.post("/support/reply/{notif_id}")
+def support_reply(notif_id: int, request: Request, reply: str = Form(...), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    notif = db.query(models.Notification).filter(models.Notification.id == notif_id).first()
+    if not notif:
+        return RedirectResponse("/notifications", status_code=302)
+    if notif.from_user_id:
+        db.add(models.Notification(user_id=notif.from_user_id, from_user_id=user.id, type="support_reply", text=reply))
+        db.commit()
+    elif notif.reply_email:
+        try:
+            from email_service import send_support_reply
+            send_support_reply(notif.reply_email, reply)
+        except Exception as e:
+            print(f"Email error: {e}")
+    return RedirectResponse("/notifications", status_code=302)
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
+
+@app.get("/qr/{username}", response_class=HTMLResponse)
+def qr_page(username: str, request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    profile_user = db.query(models.User).filter(models.User.username == username).first()
+    if not profile_user:
+        return RedirectResponse("/", status_code=302)
+    profile_url = f"https://quantru.duckdns.org/profile/{username}"
+    qr_svg = generate_qr_svg(profile_url)
+    return templates.TemplateResponse(request, "qr.html", {"user": user, "profile_user": profile_user, "qr_svg": qr_svg, "profile_url": profile_url, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
+
+@app.get("/special_request", response_class=HTMLResponse)
+def special_request_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    existing = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == user.id, models.SpecialRequest.status == "new").first()
+    return templates.TemplateResponse(request, "special_request.html", {"user": user, "existing": existing, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.post("/special_request")
+def special_request_submit(request: Request, type: str = Form(...), reason: str = Form(...), links: str = Form(""), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    existing = db.query(models.SpecialRequest).filter(models.SpecialRequest.user_id == user.id, models.SpecialRequest.status == "new").first()
+    if existing:
+        return RedirectResponse("/special_request", status_code=302)
+    req = models.SpecialRequest(user_id=user.id, type=type, reason=reason, links=links)
+    db.add(req)
+    owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    if owner:
+        type_labels = {"verify": "Верификация ✔", "star": "Особый статус ⭐", "mod": "Модератор 🛡️"}
+        label = type_labels.get(type, type)
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id, type="system", text=f"💎 Заявка на {label} от @{user.username}\n{reason[:200]}"))
+    db.commit()
+    return templates.TemplateResponse(request, "special_request.html", {"user": user, "existing": req, "success": True, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.post("/report/{username}")
+async def report_submit(username: str, request: Request, reason: str = Form(...), text: str = Form(""), image_1: UploadFile = File(None), image_2: UploadFile = File(None), image_3: UploadFile = File(None), image_4: UploadFile = File(None), image_5: UploadFile = File(None), db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    target = db.query(models.User).filter(models.User.username == username).first()
+    if not target or target.id == user.id:
+        return RedirectResponse("/", status_code=302)
+    images = []
+    for img_upload in [image_1, image_2, image_3, image_4, image_5]:
+        if img_upload and img_upload.filename:
+            url, _ = save_media_file(img_upload)
+            images.append(url or "")
+        else:
+            images.append("")
+    report = models.Report(reporter_id=user.id, target_id=target.id, reason=reason, text=text, image_1=images[0], image_2=images[1], image_3=images[2], image_4=images[3], image_5=images[4])
+    db.add(report)
+    owner = db.query(models.User).filter(models.User.username == "rubl").first()
+    if owner:
+        db.add(models.Notification(user_id=owner.id, from_user_id=user.id, type="report", text=f"🚩 @{user.username} пожаловался на @{target.username}\nПричина: {reason}\n{text[:200]}"))
+    db.commit()
+    return RedirectResponse(f"/profile/{username}?reported=1", status_code=302)
+
+# ===== ADMIN =====
+
 @app.post("/admin/block/{username}")
 def block_user(username: str, request: Request, days: int = Form(1), db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
@@ -1381,10 +1616,9 @@ def create_promo(request: Request, code: str = Form(...), days: int = Form(30), 
         return RedirectResponse("/", status_code=302)
     code = code.upper().strip()
     existing = db.query(models.Promocode).filter(models.Promocode.code == code).first()
-    if existing:
-        return RedirectResponse("/admin?tab=promocodes", status_code=302)
-    db.add(models.Promocode(code=code, days=days, max_uses=max_uses))
-    db.commit()
+    if not existing:
+        db.add(models.Promocode(code=code, days=days, max_uses=max_uses))
+        db.commit()
     return RedirectResponse("/admin?tab=promocodes", status_code=302)
 
 @app.post("/admin/star/{username}")
@@ -1468,8 +1702,6 @@ def admin_delete_post(post_id: int, request: Request, db: Session = Depends(get_
         db.query(models.Notification).filter(models.Notification.post_id == post_id).delete()
         db.query(models.Whale).filter(models.Whale.post_id == post_id).delete()
         db.query(models.Reaction).filter(models.Reaction.post_id == post_id).delete()
-        db.query(models.Post).filter(models.Post.repost_id == post_id).delete()
-        db.query(models.Bookmark).filter(models.Bookmark.post_id == post_id).delete()
         db.delete(post)
         db.commit()
     return RedirectResponse("/admin?tab=posts", status_code=302)
@@ -1485,6 +1717,14 @@ def admin_notify_all(request: Request, text: str = Form(...), db: Session = Depe
             db.add(models.Notification(user_id=u.id, from_user_id=user.id, type="system", text=text))
     db.commit()
     return RedirectResponse("/admin?tab=notify&sent=1", status_code=302)
+
+@app.post("/admin/raffle/finish")
+def admin_finish_raffle(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user or not user.is_owner:
+        return RedirectResponse("/", status_code=302)
+    finish_raffle_if_needed(db)
+    return RedirectResponse("/admin?tab=raffle", status_code=302)
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = Depends(get_db)):
@@ -1523,46 +1763,103 @@ def admin_page(request: Request, tab: str = "stats", q: str = "", db: Session = 
     special_requests = []
     if tab == "requests":
         special_requests = db.query(models.SpecialRequest).order_by(models.SpecialRequest.created_at.desc()).limit(50).all()
+    raffle = None
+    raffle_entries = []
+    if tab == "raffle":
+        raffle = get_current_raffle(db)
+        if raffle:
+            raffle_entries = db.query(models.RaffleEntry).filter(models.RaffleEntry.raffle_id == raffle.id).order_by(models.RaffleEntry.tickets.desc()).all()
     new_reports_count = db.query(models.Report).filter(models.Report.status == "new").count()
     new_requests_count = db.query(models.SpecialRequest).filter(models.SpecialRequest.status == "new").count()
-    return templates.TemplateResponse(request, "admin.html", {"user": user, "tab": tab, "q": q, "stats": stats, "users": users, "posts": posts, "promocodes": promocodes, "stop_words": stop_words, "reports": reports, "special_requests": special_requests, "new_reports_count": new_reports_count, "new_requests_count": new_requests_count, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user), "render_content": render_content})
+    return templates.TemplateResponse(request, "admin.html", {
+        "user": user, "tab": tab, "q": q, "stats": stats,
+        "users": users, "posts": posts, "promocodes": promocodes,
+        "stop_words": stop_words, "reports": reports, "special_requests": special_requests,
+        "raffle": raffle, "raffle_entries": raffle_entries,
+        "new_reports_count": new_reports_count, "new_requests_count": new_requests_count,
+        "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db),
+        "is_plus": is_user_plus(user), "render_content": render_content
+    })
 
-@app.get("/support", response_class=HTMLResponse)
-def support_page(request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
+@app.post("/sessions/revoke/{session_id}")
+def revoke_session(session_id: int, request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
-
-@app.post("/support")
-def support_submit(request: Request, subject: str = Form(...), message: str = Form(...), email: str = Form(""), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    user_email = user.email if user else email.strip()
-    if not user_email:
-        return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0, "error": "Укажи email для ответа"})
-    owner = db.query(models.User).filter(models.User.username == "rubl").first()
-    sender_name = user.username if user else user_email
-    notif_text = f"📧 {sender_name}\n📌 {subject}\n💬 {message[:300]}"
-    if owner:
-        db.add(models.Notification(user_id=owner.id, from_user_id=user.id if user else None, type="support", text=notif_text, reply_email=user_email if not user else ""))
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    session = db.query(models.UserSession).filter(models.UserSession.id == session_id, models.UserSession.user_id == user.id).first()
+    if session:
+        session.is_active = False
         db.commit()
-    try:
-        from email_service import send_support_confirmation
-        send_support_confirmation(user_email, subject)
-    except Exception as e:
-        print(f"Support email error: {e}")
-    return templates.TemplateResponse(request, "support.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0, "success": True})
+    return RedirectResponse("/settings", status_code=302)
 
-@app.get("/terms", response_class=HTMLResponse)
-def terms(request: Request, db: Session = Depends(get_db)):
+@app.post("/sessions/revoke_all")
+def revoke_all_sessions(request: Request, db: Session = Depends(get_db)):
     user = auth.get_current_user(request, db)
-    return templates.TemplateResponse(request, "terms.html", {"user": user, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    current_token = request.cookies.get("token")
+    current_hash = hashlib.sha256(current_token.encode()).hexdigest() if current_token else ""
+    db.query(models.UserSession).filter(models.UserSession.user_id == user.id, models.UserSession.token_hash != current_hash).update({"is_active": False})
+    db.commit()
+    return RedirectResponse("/settings", status_code=302)
+
+@app.get("/blocked", response_class=HTMLResponse)
+def blocked_users_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    blocked = db.query(models.UserBlock).filter(models.UserBlock.blocker_id == user.id).all()
+    return templates.TemplateResponse(request, "blocked.html", {"user": user, "blocked": blocked, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
+
+@app.get("/mentions", response_class=HTMLResponse)
+def mentions_page(request: Request, db: Session = Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    mentions = db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.type == "mention").order_by(models.Notification.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse(request, "mentions.html", {"user": user, "mentions": mentions, "unread": get_unread(user, db), "unread_msg": get_unread_messages(user, db), "is_plus": is_user_plus(user)})
 
 @app.get("/auth/yandex")
 def yandex_login():
     from yandex_auth import YANDEX_CLIENT_ID, YANDEX_REDIRECT_URI, YANDEX_AUTH_URL
     url = f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
     return RedirectResponse(url)
+
+@app.get("/auth/yandex/callback")
+async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
+    import httpx
+    from yandex_auth import YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, YANDEX_REDIRECT_URI, YANDEX_TOKEN_URL, YANDEX_USER_URL
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(YANDEX_TOKEN_URL, data={"grant_type": "authorization_code", "code": code, "client_id": YANDEX_CLIENT_ID, "client_secret": YANDEX_CLIENT_SECRET, "redirect_uri": YANDEX_REDIRECT_URI})
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse("/login?error=yandex", status_code=302)
+        user_resp = await client.get(YANDEX_USER_URL, headers={"Authorization": f"OAuth {access_token}"})
+        yandex_user = user_resp.json()
+    yandex_id = str(yandex_user.get("id", ""))
+    email = yandex_user.get("default_email", f"yandex_{yandex_id}@yandex.ru")
+    name = yandex_user.get("real_name") or yandex_user.get("display_name") or "Пользователь"
+    username_base = yandex_user.get("login", f"yandex_{yandex_id}")
+    username_base = re.sub(r'[^\w\.\-]', '_', username_base)[:28]
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        username = username_base
+        counter = 1
+        while db.query(models.User).filter(models.User.username == username).first():
+            username = f"{username_base}_{counter}"
+            counter += 1
+        user = models.User(name=name, username=username, email=email, password=auth.hash_password(yandex_id + "yandex"), is_verified=True)
+        db.add(user)
+        db.commit()
+    token = auth.create_token({"sub": user.username})
+    response = RedirectResponse("/", status_code=302)
+    response.set_cookie("token", token)
+    response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
+    save_session(user, request, token, db)
+    return response
+
+# ===== API =====
 
 @app.get("/api/messages/{username}")
 def api_messages(username: str, request: Request, after: int = 0, db: Session = Depends(get_db)):
@@ -1574,7 +1871,10 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
     other = db.query(models.User).filter(models.User.username == username).first()
     if not other:
         return JSONResponse({"messages": []})
-    msgs = db.query(models.Message).filter(((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) | ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))).filter(models.Message.id > after).order_by(models.Message.created_at).all()
+    msgs = db.query(models.Message).filter(
+        ((models.Message.sender_id == user.id) & (models.Message.receiver_id == other.id)) |
+        ((models.Message.sender_id == other.id) & (models.Message.receiver_id == user.id))
+    ).filter(models.Message.id > after).order_by(models.Message.created_at).all()
     for msg in msgs:
         if msg.receiver_id == user.id and not msg.is_read and not msg.is_deleted:
             msg.is_read = True
@@ -1585,7 +1885,22 @@ def api_messages(username: str, request: Request, after: int = 0, db: Session = 
         reactions = {}
         for r in m.msg_reactions:
             reactions[r.emoji] = reactions.get(r.emoji, 0) + 1
-        result.append({"id": m.id, "sender_id": m.sender_id, "content": "" if m.is_deleted else m.content, "image": "" if m.is_deleted else (m.image or ""), "voice": "" if m.is_deleted else (m.voice or ""), "time": m.created_at.strftime("%H:%M"), "is_read": m.is_read, "is_delivered": m.is_delivered, "is_deleted": m.is_deleted, "forwarded_from_id": m.forwarded_from_id, "forwarded_from_name": (m.forwarded_from.name or m.forwarded_from.username) if m.forwarded_from else None, "reactions": reactions})
+        result.append({
+            "id": m.id, "sender_id": m.sender_id,
+            "content": "" if m.is_deleted else m.content,
+            "image": "" if m.is_deleted else (m.image or ""),
+            "voice": "" if m.is_deleted else (m.voice or ""),
+            "file_url": "" if m.is_deleted else (m.file_url or ""),
+            "file_name": "" if m.is_deleted else (m.file_name or ""),
+            "file_size": 0 if m.is_deleted else (m.file_size or 0),
+            "is_video_circle": m.is_video_circle,
+            "time": m.created_at.strftime("%H:%M"),
+            "is_read": m.is_read, "is_delivered": m.is_delivered,
+            "is_deleted": m.is_deleted,
+            "forwarded_from_id": m.forwarded_from_id,
+            "forwarded_from_name": (m.forwarded_from.name or m.forwarded_from.username) if m.forwarded_from else None,
+            "reactions": reactions
+        })
     return JSONResponse({"messages": result})
 
 @app.post("/api/typing/{username}")
@@ -1622,47 +1937,24 @@ def api_typing_check(username: str, request: Request, db: Session = Depends(get_
 @app.get("/api/users/search")
 def api_users_search(q: str = "", db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
-    if not q or len(q) < 1:
+    if not q:
         return JSONResponse({"users": []})
     results = db.query(models.User).filter(models.User.username.ilike(f"{q}%")).limit(5).all()
     return JSONResponse({"users": [{"username": u.username, "name": u.name or u.username} for u in results]})
 
-@app.post("/api/push/subscribe")
-async def push_subscribe(request: Request, db: Session = Depends(get_db)):
-    from fastapi.responses import JSONResponse
-    user = auth.get_current_user(request, db)
-    if not user:
-        return JSONResponse({"ok": False})
-    data = await request.json()
-    endpoint = data.get("endpoint")
-    p256dh = data.get("keys", {}).get("p256dh")
-    auth_key = data.get("keys", {}).get("auth")
-    if not endpoint or not p256dh or not auth_key:
-        return JSONResponse({"ok": False})
-    existing = db.query(models.PushSubscription).filter(models.PushSubscription.endpoint == endpoint).first()
-    if existing:
-        existing.user_id = user.id
-        existing.p256dh = p256dh
-        existing.auth = auth_key
-    else:
-        db.add(models.PushSubscription(user_id=user.id, endpoint=endpoint, p256dh=p256dh, auth=auth_key))
-    db.commit()
-    return JSONResponse({"ok": True})
-
-@app.get("/api/ping")
-def api_ping(request: Request, db: Session = Depends(get_db)):
+@app.get("/api/feed/new")
+def api_feed_new(request: Request, after: int = 0, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
     user = auth.get_current_user(request, db)
     if user:
         user.last_seen = datetime.utcnow()
-        current_token = request.cookies.get("token")
-        if current_token:
-            token_hash = hashlib.sha256(current_token.encode()).hexdigest()
-            session = db.query(models.UserSession).filter(models.UserSession.token_hash == token_hash).first()
-            if session:
-                session.last_active = datetime.utcnow()
+    posts = db.query(models.Post).filter(models.Post.is_published == True, models.Post.id > after).order_by(models.Post.created_at.desc()).limit(20).all()
+    result = []
+    for p in posts:
+        result.append({"id": p.id, "content": p.content, "author_username": p.author.username, "author_name": p.author.name or p.author.username, "author_avatar": p.author.avatar or "", "created_at": p.created_at.strftime("%d.%m.%Y %H:%M"), "likes": len(p.likes), "comments": len(p.comments), "image": p.image or "", "media_type": p.media_type or "", "is_repost": p.is_repost})
+    if user:
         db.commit()
-    return JSONResponse({"ok": True})
+    return JSONResponse({"posts": result})
 
 @app.post("/api/message/react/{message_id}")
 async def react_to_message(message_id: int, request: Request, db: Session = Depends(get_db)):
@@ -1704,6 +1996,7 @@ def delete_message_api(message_id: int, request: Request, db: Session = Depends(
     msg.content = ""
     msg.image = ""
     msg.voice = ""
+    msg.file_url = ""
     db.commit()
     return JSONResponse({"ok": True})
 
@@ -1726,102 +2019,17 @@ async def forward_message(message_id: int, request: Request, db: Session = Depen
     db.commit()
     return JSONResponse({"ok": True, "to": other.username})
 
-@app.get("/api/feed/new")
-def api_feed_new(request: Request, after: int = 0, db: Session = Depends(get_db)):
+@app.get("/api/ping")
+def api_ping(request: Request, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
     user = auth.get_current_user(request, db)
     if user:
         user.last_seen = datetime.utcnow()
-    scheduled = db.query(models.Post).filter(models.Post.is_published == False, models.Post.scheduled_at <= datetime.utcnow()).all()
-    for p in scheduled:
-        p.is_published = True
-    if scheduled:
+        current_token = request.cookies.get("token")
+        if current_token:
+            token_hash = hashlib.sha256(current_token.encode()).hexdigest()
+            session = db.query(models.UserSession).filter(models.UserSession.token_hash == token_hash).first()
+            if session:
+                session.last_active = datetime.utcnow()
         db.commit()
-    posts = db.query(models.Post).filter(models.Post.is_published == True, models.Post.id > after).order_by(models.Post.created_at.desc()).limit(20).all()
-    result = []
-    for p in posts:
-        result.append({"id": p.id, "content": p.content, "author_username": p.author.username, "author_name": p.author.name or p.author.username, "author_avatar": p.author.avatar or "", "created_at": p.created_at.strftime("%d.%m.%Y %H:%M"), "likes": len(p.likes), "comments": len(p.comments), "image": p.image or "", "media_type": p.media_type or "", "is_repost": p.is_repost})
-    if user:
-        db.commit()
-    return JSONResponse({"posts": result})
-
-@app.get("/auth/yandex/callback")
-async def yandex_callback(code: str, request: Request, db: Session = Depends(get_db)):
-    import httpx
-    from yandex_auth import YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET, YANDEX_REDIRECT_URI, YANDEX_TOKEN_URL, YANDEX_USER_URL
-    async with httpx.AsyncClient() as client:
-        token_resp = await client.post(YANDEX_TOKEN_URL, data={"grant_type": "authorization_code", "code": code, "client_id": YANDEX_CLIENT_ID, "client_secret": YANDEX_CLIENT_SECRET, "redirect_uri": YANDEX_REDIRECT_URI})
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
-        if not access_token:
-            return RedirectResponse("/login?error=yandex", status_code=302)
-        user_resp = await client.get(YANDEX_USER_URL, headers={"Authorization": f"OAuth {access_token}"})
-        yandex_user = user_resp.json()
-    yandex_id = str(yandex_user.get("id", ""))
-    email = yandex_user.get("default_email", f"yandex_{yandex_id}@yandex.ru")
-    name = yandex_user.get("real_name") or yandex_user.get("display_name") or "Пользователь"
-    username_base = yandex_user.get("login", f"yandex_{yandex_id}")
-    username_base = re.sub(r'[^\w\.\-]', '_', username_base)[:28]
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user:
-        username = username_base
-        counter = 1
-        while db.query(models.User).filter(models.User.username == username).first():
-            username = f"{username_base}_{counter}"
-            counter += 1
-        user = models.User(name=name, username=username, email=email, password=auth.hash_password(yandex_id + "yandex"), is_verified=True)
-        db.add(user)
-        db.commit()
-    token = auth.create_token({"sub": user.username})
-    response = RedirectResponse("/", status_code=302)
-    response.set_cookie("token", token)
-    response.set_cookie("beta_access", BETA_CODE, max_age=60*60*24*30)
-    save_session(user, request, token, db)
-    return response
-
-@app.post("/story/upload")
-async def story_upload(request: Request, media: UploadFile = File(...), db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    if is_user_blocked(user):
-        return HTMLResponse(BLOCKED_RESPONSE)
-    url, type_or_error = save_media_file(media)
-    if url is None:
-        return RedirectResponse("/", status_code=302)
-    expires = datetime.utcnow() + timedelta(hours=24)
-    story = models.Story(user_id=user.id, media_url=url, media_type=type_or_error, expires_at=expires)
-    db.add(story)
-    db.commit()
-    return RedirectResponse("/", status_code=302)
-
-@app.get("/story/{story_id}", response_class=HTMLResponse)
-def story_view(story_id: int, request: Request, db: Session = Depends(get_db)):
-    if not check_beta(request):
-        return beta_redirect("")
-    user = auth.get_current_user(request, db)
-    story = db.query(models.Story).filter(models.Story.id == story_id).first()
-    if not story or story.expires_at < datetime.utcnow():
-        return RedirectResponse("/", status_code=302)
-    if user and user.id != story.user_id:
-        existing_view = db.query(models.StoryView).filter(models.StoryView.story_id == story_id, models.StoryView.user_id == user.id).first()
-        if not existing_view:
-            db.add(models.StoryView(story_id=story_id, user_id=user.id))
-            db.commit()
-    all_stories = db.query(models.Story).filter(models.Story.user_id == story.user_id, models.Story.expires_at > datetime.utcnow()).order_by(models.Story.created_at).all()
-    current_index = next((i for i, s in enumerate(all_stories) if s.id == story_id), 0)
-    views_count = db.query(models.StoryView).filter(models.StoryView.story_id == story_id).count()
-    return templates.TemplateResponse(request, "story_view.html", {"user": user, "story": story, "all_stories": all_stories, "current_index": current_index, "views_count": views_count, "unread": get_unread(user, db) if user else 0, "unread_msg": get_unread_messages(user, db) if user else 0})
-
-@app.post("/story/delete/{story_id}")
-def story_delete(story_id: int, request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    story = db.query(models.Story).filter(models.Story.id == story_id).first()
-    if story and (story.user_id == user.id or user.is_owner):
-        delete_media_file(story.media_url)
-        db.query(models.StoryView).filter(models.StoryView.story_id == story_id).delete()
-        db.delete(story)
-        db.commit()
-    return RedirectResponse("/", status_code=302)
+    return JSONResponse({"ok": True})

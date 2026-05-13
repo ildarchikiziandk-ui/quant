@@ -29,6 +29,10 @@ class User(Base):
     last_seen = Column(DateTime, nullable=True)
     pinned_post_id = Column(Integer, nullable=True)
     is_private = Column(Boolean, default=False)
+    daily_points = Column(Integer, default=0)
+    weekly_points = Column(Integer, default=0)
+    total_points = Column(Integer, default=0)
+    last_daily_reset = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -39,6 +43,8 @@ class User(Base):
     sessions = relationship("UserSession", back_populates="user")
     special_requests = relationship("SpecialRequest", foreign_keys="SpecialRequest.user_id", back_populates="user")
     blocked_users = relationship("UserBlock", foreign_keys="UserBlock.blocker_id", back_populates="blocker")
+    daily_tasks = relationship("UserDailyTask", back_populates="user")
+    raffle_entries = relationship("RaffleEntry", back_populates="user")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -53,12 +59,25 @@ class Post(Base):
     scheduled_at = Column(DateTime, nullable=True)
     is_published = Column(Boolean, default=True)
     views = Column(Integer, default=0)
+    is_exclusive = Column(Boolean, default=False)
+    exclusive_until = Column(DateTime, nullable=True)
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
     whales = relationship("Whale", back_populates="post")
     reactions = relationship("Reaction", back_populates="post")
     poll = relationship("Poll", back_populates="post", uselist=False)
+    media_items = relationship("PostMedia", back_populates="post")
+
+class PostMedia(Base):
+    __tablename__ = "post_media"
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id"))
+    media_url = Column(String, default="")
+    media_type = Column(String, default="image")
+    position = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    post = relationship("Post", back_populates="media_items")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -108,6 +127,10 @@ class Message(Base):
     content = Column(Text, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
+    file_url = Column(String, default="")
+    file_name = Column(String, default="")
+    file_size = Column(Integer, default=0)
+    is_video_circle = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     is_delivered = Column(Boolean, default=False)
@@ -126,6 +149,13 @@ class MessageReaction(Base):
     emoji = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     message = relationship("Message", back_populates="msg_reactions")
+
+class PinnedChat(Base):
+    __tablename__ = "pinned_chats"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    pinned_user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -303,3 +333,52 @@ class UserBlock(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     blocker = relationship("User", foreign_keys=[blocker_id], back_populates="blocked_users")
     blocked = relationship("User", foreign_keys=[blocked_id])
+
+# ===== ГЕЙМИФИКАЦИЯ =====
+
+class DailyTask(Base):
+    __tablename__ = "daily_tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True)
+    title = Column(String)
+    description = Column(String)
+    emoji = Column(String, default="⚡")
+    points = Column(Integer, default=10)
+    task_type = Column(String)
+    target_count = Column(Integer, default=1)
+    is_active = Column(Boolean, default=True)
+
+class UserDailyTask(Base):
+    __tablename__ = "user_daily_tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    task_id = Column(Integer, ForeignKey("daily_tasks.id"))
+    progress = Column(Integer, default=0)
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    date = Column(String, default="")
+    user = relationship("User", back_populates="daily_tasks")
+    task = relationship("DailyTask")
+
+class WeeklyRaffle(Base):
+    __tablename__ = "weekly_raffles"
+    id = Column(Integer, primary_key=True, index=True)
+    week_start = Column(DateTime)
+    week_end = Column(DateTime)
+    prize = Column(String, default="Quant Plus 30 дней")
+    prize_days = Column(Integer, default=30)
+    winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_finished = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    winner = relationship("User", foreign_keys=[winner_id])
+    entries = relationship("RaffleEntry", back_populates="raffle")
+
+class RaffleEntry(Base):
+    __tablename__ = "raffle_entries"
+    id = Column(Integer, primary_key=True, index=True)
+    raffle_id = Column(Integer, ForeignKey("weekly_raffles.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    tickets = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    raffle = relationship("WeeklyRaffle", back_populates="entries")
+    user = relationship("User", back_populates="raffle_entries")

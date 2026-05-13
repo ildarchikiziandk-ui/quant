@@ -1,28 +1,92 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 700;">Сообщения</h2>
-{% if conversations %}
-    {% for conv_user in conversations %}
-    <a href="/messages/{{ conv_user.username }}" style="text-decoration: none; color: #1a1a1a;">
-        <div class="card" style="display: flex; align-items: center; gap: 16px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='#fff'">
-            <div style="position: relative;">
-                <div class="avatar-circle" style="width: 48px; height: 48px;">
-                    {% if conv_user.avatar %}<img src="{{ conv_user.avatar }}">{% else %}<span style="font-size: 18px;">{{ conv_user.username[0].upper() }}</span>{% endif %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <h2 style="font-size:20px;font-weight:800;">Сообщения</h2>
+    <a href="/search" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+</div>
+
+{% if pinned_convs %}
+<div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px;padding:0 4px;">📌 ЗАКРЕПЛЁННЫЕ</div>
+{% for conv_user in pinned_convs %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+    <a href="/messages/{{ conv_user.username }}" style="text-decoration:none;color:#1a1a1a;flex:1;">
+        <div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;transition:background 0.15s;border-left:3px solid #0f0f0f;padding:14px;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='#fff'">
+            <div style="position:relative;flex-shrink:0;">
+                <div class="avatar-circle" style="width:48px;height:48px;">
+                    {% if conv_user.avatar %}<img src="{{ conv_user.avatar }}">{% else %}<span style="font-size:18px;">{{ conv_user.username[0].upper() }}</span>{% endif %}
                 </div>
+                {% if is_online(conv_user) %}
+                <div style="position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid white;"></div>
+                {% endif %}
                 {% if conv_user.id in unread_from %}
-                <div style="position: absolute; top: 0; right: 0; width: 12px; height: 12px; background: #e53935; border-radius: 50%; border: 2px solid #fff;"></div>
+                <div style="position:absolute;top:0;right:0;width:12px;height:12px;background:#e53935;border-radius:50%;border:2px solid #fff;"></div>
                 {% endif %}
             </div>
-            <div>
-                <div style="font-weight: 600; font-size: 15px;">{{ conv_user.name or conv_user.username }}</div>
-                <div style="color: #888; font-size: 13px;">@{{ conv_user.username }}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:15px;">{{ conv_user.name or conv_user.username }}</div>
+                <div style="color:#888;font-size:13px;">@{{ conv_user.username }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:#bbb;">📌</span>
+                <a href="/messages/{{ conv_user.username }}/search" style="color:#888;padding:4px;" onclick="event.stopPropagation();">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </a>
+                <form method="post" action="/messages/pin/{{ conv_user.username }}" onclick="event.stopPropagation();">
+                    <button style="background:none;border:none;cursor:pointer;color:#888;padding:4px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
+                    </button>
+                </form>
             </div>
         </div>
     </a>
+</div>
+{% endfor %}
+<div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px;margin-top:12px;padding:0 4px;">💬 ВСЕ ЧАТЫ</div>
+{% endif %}
+
+{% if conversations %}
+    {% for conv_user in conversations %}
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <a href="/messages/{{ conv_user.username }}" style="text-decoration:none;color:#1a1a1a;flex:1;">
+            <div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='#fff'">
+                <div style="position:relative;flex-shrink:0;">
+                    <div class="avatar-circle" style="width:48px;height:48px;">
+                        {% if conv_user.avatar %}<img src="{{ conv_user.avatar }}">{% else %}<span style="font-size:18px;">{{ conv_user.username[0].upper() }}</span>{% endif %}
+                    </div>
+                    {% if is_online(conv_user) %}
+                    <div style="position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid white;"></div>
+                    {% endif %}
+                    {% if conv_user.id in unread_from %}
+                    <div style="position:absolute;top:0;right:0;width:12px;height:12px;background:#e53935;border-radius:50%;border:2px solid #fff;"></div>
+                    {% endif %}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:15px;">{{ conv_user.name or conv_user.username }}</div>
+                    <div style="color:#888;font-size:13px;">@{{ conv_user.username }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <a href="/messages/{{ conv_user.username }}/search" style="color:#888;padding:4px;" onclick="event.stopPropagation();">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </a>
+                    <form method="post" action="/messages/pin/{{ conv_user.username }}" onclick="event.stopPropagation();">
+                        <button style="background:none;border:none;cursor:pointer;color:#bbb;padding:4px;" title="Закрепить">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </a>
+    </div>
     {% endfor %}
 {% else %}
-    <div class="card" style="text-align: center; color: #888; padding: 40px 0;">
-        <p>Нет диалогов. Напиши кому-нибудь через его профиль!</p>
+    {% if not pinned_convs %}
+    <div class="card" style="text-align:center;color:#888;padding:48px 24px;">
+        <div style="font-size:40px;margin-bottom:12px;">✉️</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Нет диалогов</div>
+        <div style="font-size:13px;">Напиши кому-нибудь через его профиль!</div>
     </div>
+    {% endif %}
 {% endif %}
 {% endblock %}

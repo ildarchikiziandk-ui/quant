@@ -1,23 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div style="background:#fff;border-radius:16px;border:1px solid #e4e4e4;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:10px;position:sticky;top:0;z-index:10;backdrop-filter:blur(20px);">
-    <a href="/messages" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;transition:background 0.15s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+<div style="background:#fff;border-radius:16px;border:1px solid #e4e4e4;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:10px;position:sticky;top:0;z-index:10;">
+    <a href="/messages" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </a>
     <a href="/profile/{{ other.username }}" style="flex-shrink:0;">
-        <div class="avatar-circle" style="width: 38px; height: 38px;">
-            {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size: 14px;">{{ other.username[0].upper() }}</span>{% endif %}
+        <div class="avatar-circle" style="width:38px;height:38px;">
+            {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:14px;">{{ other.username[0].upper() }}</span>{% endif %}
         </div>
     </a>
-    <div style="flex: 1;">
-        <div style="font-weight: 700; font-size: 15px;">{{ other.name or other.username }}</div>
-        <div id="typing-status" style="color: #888; font-size: 12px;">@{{ other.username }}</div>
+    <div style="flex:1;">
+        <div style="font-weight:700;font-size:15px;">{{ other.name or other.username }}</div>
+        <div id="typing-status" style="color:#888;font-size:12px;">@{{ other.username }}</div>
     </div>
-    <a href="/profile/{{ other.username }}" style="color:#888;font-size:13px;padding:7px 14px;border-radius:20px;border:1px solid #e4e4e4;font-weight:500;transition:all 0.15s;" onmouseover="this.style.borderColor='#0f0f0f'" onmouseout="this.style.borderColor='#e4e4e4'">Профиль</a>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <a href="/messages/{{ other.username }}/search" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </a>
+        <form method="post" action="/messages/pin/{{ other.username }}">
+            <button style="background:none;border:none;cursor:pointer;color:{% if is_pinned %}#0f0f0f{% else %}#bbb{% endif %};display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'" title="{% if is_pinned %}Открепить{% else %}Закрепить{% endif %}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
+            </button>
+        </form>
+    </div>
 </div>
 
-<div class="card" id="messages-box" style="min-height:420px;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:16px;scroll-behavior:smooth;border-radius:16px;">
+<div class="card" id="messages-box" style="min-height:420px;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:16px;scroll-behavior:smooth;">
     {% if messages %}
         {% for msg in messages %}
         <div class="msg-item" data-id="{{ msg.id }}" style="display:flex;flex-direction:column;{% if msg.sender_id == user.id %}align-items:flex-end{% else %}align-items:flex-start{% endif %};gap:2px;">
@@ -30,9 +39,8 @@
             {% else %}
 
             {% if msg.forwarded_from %}
-            <div style="font-size:11px;color:#aaa;padding:0 4px;margin-bottom:2px;display:flex;align-items:center;gap:4px;">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
-                Переслано от <a href="/profile/{{ msg.forwarded_from.username }}" style="color:#1d9bf0;font-weight:600;">{{ msg.forwarded_from.name or msg.forwarded_from.username }}</a>
+            <div style="font-size:11px;color:#aaa;padding:0 4px;margin-bottom:2px;">
+                ↪ от <a href="/profile/{{ msg.forwarded_from.username }}" style="color:#1d9bf0;font-weight:600;">{{ msg.forwarded_from.name or msg.forwarded_from.username }}</a>
             </div>
             {% endif %}
 
@@ -42,29 +50,56 @@
                     {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:10px;">{{ other.username[0].upper() }}</span>{% endif %}
                 </div>
                 <div>
-                    {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
+                    {% if msg.image %}
+                        {% if msg.is_video_circle %}
+                        <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;margin-bottom:3px;border:3px solid #f0f0f0;">
+                            <video src="{{ msg.image }}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>
+                        </div>
+                        {% else %}
+                        <div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>
+                        {% endif %}
+                    {% endif %}
                     {% if msg.voice %}<div style="background:#f5f5f5;border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;"></audio></div>{% endif %}
+                    {% if msg.file_url %}
+                    <a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:12px;padding:10px 14px;text-decoration:none;color:#0f0f0f;max-width:220px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <div><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">{{ msg.file_name }}</div><div style="font-size:11px;color:#888;">{{ (msg.file_size / 1024) | int }} КБ</div></div>
+                    </a>
+                    {% endif %}
                     {% if msg.content %}<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:#f5f5f5;color:#0f0f0f;font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
                 </div>
             </div>
             {% else %}
             <div style="max-width:72%;">
-                {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
+                {% if msg.image %}
+                    {% if msg.is_video_circle %}
+                    <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;margin-bottom:3px;border:3px solid #333;">
+                        <video src="{{ msg.image }}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>
+                    </div>
+                    {% else %}
+                    <div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>
+                    {% endif %}
+                {% endif %}
                 {% if msg.voice %}<div style="background:#1a1a1a;border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>{% endif %}
+                {% if msg.file_url %}
+                <a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:12px;padding:10px 14px;text-decoration:none;color:white;max-width:220px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <div><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">{{ msg.file_name }}</div><div style="font-size:11px;color:#888;">{{ (msg.file_size / 1024) | int }} КБ</div></div>
+                </a>
+                {% endif %}
                 {% if msg.content %}<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
             </div>
             {% endif %}
 
             {% if msg.msg_reactions %}
-            <div class="msg-reactions" style="display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;">
+            <div style="display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;">
                 {% set reaction_counts = {} %}
                 {% for r in msg.msg_reactions %}{% if r.emoji not in reaction_counts %}{% set _ = reaction_counts.update({r.emoji: 1}) %}{% else %}{% set _ = reaction_counts.update({r.emoji: reaction_counts[r.emoji] + 1}) %}{% endif %}{% endfor %}
                 {% for emoji, count in reaction_counts.items() %}
-                <span style="background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;border:1px solid #ebebeb;" onclick="toggleReaction({{ msg.id }}, '{{ emoji }}')">{{ emoji }} {{ count }}</span>
+                <span style="background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;" onclick="toggleReaction({{ msg.id }}, '{{ emoji }}')">{{ emoji }} {{ count }}</span>
                 {% endfor %}
             </div>
             {% endif %}
-
             {% endif %}
 
             <div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:5px;">
@@ -76,14 +111,12 @@
                 {% endif %}
                 {% if not msg.is_deleted %}
                 <span class="msg-actions" style="display:none;gap:3px;align-items:center;">
-                    <button onclick="showReactionPicker({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;font-size:14px;line-height:1;transition:background 0.1s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'" title="Реакция">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-                    </button>
-                    <button onclick="showForwardDialog({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;transition:background 0.1s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'" title="Переслать">
+                    <button onclick="showReactionPicker({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;">😊</button>
+                    <button onclick="showForwardDialog({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
                     </button>
                     {% if msg.sender_id == user.id %}
-                    <button onclick="deleteMessage({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#e53935;transition:background 0.1s;" onmouseover="this.style.background='#fff0f0'" onmouseout="this.style.background='none'" title="Удалить">
+                    <button onclick="deleteMessage({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#e53935;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                     </button>
                     {% endif %}
@@ -102,15 +135,14 @@
 <!-- Пикер реакций -->
 <div id="reaction-picker" style="display:none;position:fixed;background:#fff;border:1px solid #e4e4e4;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.12);padding:10px 12px;z-index:300;gap:6px;">
     {% for emoji in ["❤️","😂","😮","👍","🔥","😢"] %}
-    <span style="cursor:pointer;padding:5px;border-radius:8px;font-size:22px;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="pickReaction('{{ emoji }}')">{{ emoji }}</span>
+    <span style="cursor:pointer;padding:5px;border-radius:8px;font-size:22px;" onclick="pickReaction('{{ emoji }}')">{{ emoji }}</span>
     {% endfor %}
 </div>
 
 <!-- Диалог пересылки -->
 <div id="forward-dialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:20px;padding:24px;width:320px;max-width:90vw;">
-        <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Переслать сообщение</div>
-        <div style="color:#888;font-size:13px;margin-bottom:16px;">Введи никнейм получателя</div>
+        <div style="font-weight:700;font-size:16px;margin-bottom:16px;">Переслать сообщение</div>
         <input type="text" id="forward-username" placeholder="@username" style="margin-bottom:8px;">
         <div id="forward-error" style="color:#e53935;font-size:13px;margin-bottom:10px;display:none;"></div>
         <div style="display:flex;gap:10px;">
@@ -120,40 +152,48 @@
     </div>
 </div>
 
-{% if img_preview_show is defined %}
-<div id="img-preview-wrap" style="display:block;padding:8px 16px 0;">
-{% else %}
+<!-- Превью прикреплений -->
 <div id="img-preview-wrap" style="display:none;padding:8px 16px 0;">
-{% endif %}
     <div style="position:relative;display:inline-block;">
         <img id="img-preview" style="max-height:100px;max-width:180px;border-radius:10px;border:1px solid #e4e4e4;">
-        <button onclick="clearImage()" style="position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;">×</button>
+        <button onclick="clearImage()" style="position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;">×</button>
     </div>
 </div>
 
-<div id="voice-preview-wrap" style="display:none;padding:8px 16px 0;align-items:center;gap:10px;">
+<div id="file-preview-wrap" style="display:none;padding:8px 16px 0;">
+    <div style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:12px;padding:8px 14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span id="file-preview-name" style="font-size:13px;color:#555;"></span>
+        <button onclick="clearFile()" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;font-weight:600;">✕</button>
+    </div>
+</div>
+
+<div id="voice-preview-wrap" style="display:none;padding:8px 16px 0;">
     <div style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:20px;padding:8px 14px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        <span style="font-size:13px;color:#555;">Голосовое записано</span>
+        <span style="font-size:13px;color:#555;">🎙 Голосовое записано</span>
         <button onclick="clearVoice()" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;font-weight:600;">Удалить</button>
     </div>
 </div>
 
 <div class="card" style="padding:12px 16px;margin-top:8px;">
-    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" id="msg-form" style="display:flex;gap:10px;align-items:center;">
+    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" id="msg-form" style="display:flex;gap:8px;align-items:center;">
         <div class="avatar-circle" style="width:32px;height:32px;flex-shrink:0;">
             {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:12px;">{{ user.username[0].upper() }}</span>{% endif %}
         </div>
-        <button type="button" onclick="document.getElementById('img-input').click()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#0f0f0f'" onmouseout="this.style.color='#aaa'">
+        <button type="button" onclick="document.getElementById('img-input').click()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;" title="Фото">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         </button>
+        <button type="button" onclick="document.getElementById('file-input').click()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;" title="Файл">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </button>
         <input type="file" id="img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewImage(this)">
-        <input type="file" id="voice-input" name="voice" accept="audio/*" style="display:none;" onchange="previewVoice(this)">
+        <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;" onchange="previewFile(this)">
+        <input type="file" id="voice-input" name="voice" accept="audio/*,video/*" style="display:none;" onchange="previewVoice(this)">
         <input type="text" name="content" id="msg-input" placeholder="Сообщение..." style="margin-bottom:0;flex:1;padding:10px 16px;border-radius:24px;background:#f5f5f5;border:1px solid #ebebeb;font-size:14px;" autocomplete="off">
-        <button type="button" id="voice-btn" onclick="toggleVoiceRecording()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;border-radius:8px;transition:color 0.15s;" onmouseover="this.style.color='#0f0f0f'" onmouseout="this.style.color='#aaa'">
+        <button type="button" id="voice-btn" onclick="toggleVoiceRecording()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;" title="Голосовое">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </button>
-        <button class="btn" style="border-radius:20px;padding:10px 18px;flex-shrink:0;">
+        <button class="btn" style="border-radius:20px;padding:10px 16px;flex-shrink:0;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
     </form>
@@ -198,9 +238,10 @@ async function toggleReaction(msgId, emoji) {
 }
 function updateReactionsUI(msgId, reactions) {
     const item = document.querySelector(`.msg-item[data-id="${msgId}"]`); if (!item) return;
-    let reactionsDiv = item.querySelector('.msg-reactions');
+    let reactionsDiv = item.querySelector('.msg-reactions-dynamic');
     if (!reactionsDiv) {
-        reactionsDiv = document.createElement('div'); reactionsDiv.className = 'msg-reactions';
+        reactionsDiv = document.createElement('div');
+        reactionsDiv.className = 'msg-reactions-dynamic';
         reactionsDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;';
         const timeDiv = item.querySelector('div[style*="font-size:11px"]');
         if (timeDiv) item.insertBefore(reactionsDiv, timeDiv);
@@ -209,7 +250,7 @@ function updateReactionsUI(msgId, reactions) {
     for (const [emoji, count] of Object.entries(reactions)) {
         if (count > 0) {
             const span = document.createElement('span');
-            span.style.cssText = 'background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;border:1px solid #ebebeb;';
+            span.style.cssText = 'background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;';
             span.textContent = `${emoji} ${count}`;
             span.onclick = () => toggleReaction(msgId, emoji);
             reactionsDiv.appendChild(span);
@@ -218,7 +259,7 @@ function updateReactionsUI(msgId, reactions) {
 }
 document.addEventListener('click', e => {
     const picker = document.getElementById('reaction-picker');
-    if (picker.style.display!=='none' && !picker.contains(e.target) && e.target!==reactionPickerAnchor) picker.style.display='none';
+    if (picker.style.display !== 'none' && !picker.contains(e.target) && e.target !== reactionPickerAnchor) picker.style.display = 'none';
 });
 
 async function deleteMessage(msgId) {
@@ -227,10 +268,7 @@ async function deleteMessage(msgId) {
     const data = await res.json();
     if (data.ok) {
         const item = document.querySelector(`.msg-item[data-id="${msgId}"]`);
-        if (item) {
-            const isMine = item.style.alignItems === 'flex-end';
-            item.innerHTML = `<div style="padding:8px 14px;border-radius:16px;background:#f5f5f5;color:#bbb;font-size:13px;font-style:italic;display:flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Сообщение удалено</div>`;
-        }
+        if (item) item.innerHTML = `<div style="padding:8px 14px;border-radius:16px;background:#f5f5f5;color:#bbb;font-size:13px;font-style:italic;">🗑 Сообщение удалено</div>`;
     }
 }
 
@@ -251,6 +289,14 @@ function previewImage(input) {
     document.getElementById('img-preview-wrap').style.display='block';
 }
 function clearImage() { document.getElementById('img-input').value=''; document.getElementById('img-preview-wrap').style.display='none'; }
+
+function previewFile(input) {
+    const file=input.files[0]; if (!file) return;
+    document.getElementById('file-preview-name').textContent=file.name;
+    document.getElementById('file-preview-wrap').style.display='block';
+}
+function clearFile() { document.getElementById('file-input').value=''; document.getElementById('file-preview-wrap').style.display='none'; }
+
 function previewVoice(input) { if (!input.files[0]) return; document.getElementById('voice-preview-wrap').style.display='flex'; }
 function clearVoice() { document.getElementById('voice-input').value=''; document.getElementById('voice-preview-wrap').style.display='none'; }
 
@@ -284,13 +330,8 @@ const msgs=document.querySelectorAll('.msg-item');
 if (msgs.length>0) lastMsgId=parseInt(msgs[msgs.length-1].dataset.id)||0;
 
 function avatarHtml(size) {
-    if (otherAvatar) return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;"></div>`;
+    if (otherAvatar) return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`;
     return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:700;">${otherInitial}</span></div>`;
-}
-function ticksHtml(is_read, is_delivered) {
-    if (is_read) return '<span style="color:#1d9bf0;font-size:12px;font-weight:600;">✓✓</span>';
-    if (is_delivered) return '<span style="color:#bbb;font-size:12px;">✓✓</span>';
-    return '<span style="color:#bbb;font-size:12px;">✓</span>';
 }
 
 async function pollMessages() {
@@ -310,23 +351,26 @@ async function pollMessages() {
                 let inner=fwd;
                 if (isMine) {
                     inner+=`<div style="max-width:72%;">`;
-                    if (msg.image) inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    if (msg.image) {
+                        if (msg.is_video_circle) inner+=`<div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid #333;"><video src="${msg.image}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`;
+                        else inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    }
                     if (msg.voice) inner+=`<div style="background:#1a1a1a;border-radius:16px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>`;
+                    if (msg.file_url) inner+=`<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:12px;padding:10px 14px;color:white;text-decoration:none;">📎 ${msg.file_name}</a>`;
                     if (msg.content) inner+=`<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
                     inner+=`</div>`;
                 } else {
                     inner+=`<div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">${avatarHtml(26)}<div>`;
-                    if (msg.image) inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    if (msg.image) {
+                        if (msg.is_video_circle) inner+=`<div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid #f0f0f0;"><video src="${msg.image}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`;
+                        else inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
+                    }
                     if (msg.voice) inner+=`<div style="background:#f5f5f5;border-radius:16px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;"></audio></div>`;
+                    if (msg.file_url) inner+=`<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:12px;padding:10px 14px;color:#0f0f0f;text-decoration:none;">📎 ${msg.file_name}</a>`;
                     if (msg.content) inner+=`<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:#f5f5f5;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
                     inner+=`</div></div>`;
                 }
-                const actHtml=`<span class="msg-actions" style="display:none;gap:3px;align-items:center;">
-                    <button onclick="showReactionPicker(${msg.id},this)" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;" title="Реакция"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
-                    <button onclick="showForwardDialog(${msg.id})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;" title="Переслать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg></button>
-                    ${isMine?`<button onclick="deleteMessage(${msg.id})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#e53935;" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}
-                </span>`;
-                inner+=`<div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:5px;">${msg.time}${isMine?ticksHtml(msg.is_read,msg.is_delivered):''}${actHtml}</div>`;
+                inner+=`<div style="font-size:11px;color:#bbb;padding:0 4px;">${msg.time}</div>`;
                 div.innerHTML=inner;
                 div.addEventListener('mouseenter',()=>{ const a=div.querySelector('.msg-actions'); if(a) a.style.display='flex'; });
                 div.addEventListener('mouseleave',()=>{ const a=div.querySelector('.msg-actions'); if(a) a.style.display='none'; });
