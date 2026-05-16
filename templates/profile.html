@@ -2,130 +2,103 @@
 {% from "badges.html" import owner_badge, verify_badge, star_badge, mod_badge %}
 {% block content %}
 
-<!-- ОБЛОЖКА -->
-<div style="position:relative;height:160px;border-radius:16px;overflow:hidden;background:#f0f0f0;margin-bottom:12px;">
+<div style="position:relative;height:180px;border-radius:18px;overflow:hidden;background:var(--input-bg);margin-bottom:12px;">
     {% if profile_user.cover %}
     <img src="{{ profile_user.cover }}" style="width:100%;height:100%;object-fit:cover;">
     {% else %}
-    <div style="width:100%;height:100%;background:linear-gradient(135deg,#f0f0f0,#e0e0e0);"></div>
+    <div style="width:100%;height:100%;background:linear-gradient(135deg,#1a1a1a,#2a2a2a);"></div>
     {% endif %}
     {% if user and user.id == profile_user.id %}
-    <a href="/settings" style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.5);color:white;font-size:12px;padding:5px 12px;border-radius:8px;text-decoration:none;">Изменить</a>
+    <a href="/settings" style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.6);color:white;font-size:12px;padding:5px 12px;border-radius:10px;text-decoration:none;">Изменить</a>
     {% endif %}
 </div>
 
-<div class="card" style="padding: 24px;">
-    <div style="display: flex; align-items: flex-start; gap: 16px;">
-        <div class="avatar-circle" style="width: 72px; height: 72px; border: 3px solid white; flex-shrink:0;">
-            {% if profile_user.avatar %}<img src="{{ profile_user.avatar }}">{% else %}<span style="font-size: 28px;">{{ profile_user.username[0].upper() }}</span>{% endif %}
+<div class="card" style="padding:20px;">
+    <div style="display:flex;align-items:flex-start;gap:16px;">
+        <div class="avatar-circle" style="width:76px;height:76px;border:3px solid var(--card);flex-shrink:0;margin-top:-48px;position:relative;z-index:2;">
+            {% if profile_user.avatar %}<img src="{{ profile_user.avatar }}">{% else %}<span style="font-size:30px;">{{ profile_user.username[0].upper() }}</span>{% endif %}
         </div>
-        <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 2px;">
-                <h2 style="font-size: 18px; font-weight: 700;">{{ profile_user.name or profile_user.username }}</h2>
-                {% if profile_user.emoji_status %}
-                <span style="font-size:18px;">{{ profile_user.emoji_status }}</span>
-                {% endif %}
+        <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px;">
+                <h2 style="font-size:18px;font-weight:800;">{{ profile_user.name or profile_user.username }}</h2>
+                {% if profile_user.emoji_status %}<span style="font-size:18px;">{{ profile_user.emoji_status }}</span>{% endif %}
                 {% if profile_user.is_owner %}{{ owner_badge() }}{% endif %}
                 {% if profile_user.is_verified_badge %}{{ verify_badge() }}{% endif %}
                 {% if profile_user.is_starred %}{{ star_badge() }}{% endif %}
                 {% if profile_user.is_moderator %}{{ mod_badge() }}{% endif %}
                 {% if profile_is_plus %}
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="margin-left:3px;vertical-align:middle;">
-                    <path d="M9 3.5V14.5M3.5 9H14.5" stroke="{{ profile_user.plus_color }}" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="margin-left:2px;"><path d="M9 3.5V14.5M3.5 9H14.5" stroke="{{ profile_user.plus_color }}" stroke-width="2.5" stroke-linecap="round"/></svg>
                 {% endif %}
-                {% if profile_user.is_private %}
-                <span style="font-size:12px;color:#888;">🔒</span>
+                {% if profile_user.is_private %}<span style="font-size:12px;color:var(--text-muted);">🔒</span>{% endif %}
+                {% if is_friend %}<span style="background:rgba(34,197,94,0.1);color:var(--success);font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;">👥 Друг</span>{% endif %}
+            </div>
+            <div style="color:var(--text-secondary);font-size:14px;margin-bottom:6px;">@{{ profile_user.username }}</div>
+            {% if profile_user.bio %}<div style="font-size:14px;margin-bottom:8px;line-height:1.5;">{{ profile_user.bio }}</div>{% endif %}
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;">
+                {% if profile_user.city %}
+                <span style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;">📍 {{ profile_user.city }}</span>
                 {% endif %}
-                {% if is_friend %}
-                <span style="background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;margin-left:4px;">👥 Друг</span>
+                {% if profile_user.birthday %}
+                <span style="font-size:13px;color:var(--text-secondary);">🎂 {{ profile_user.birthday }}</span>
                 {% endif %}
-                {% if profile_user.is_blocked %}
-                <span style="background:#fff3e0;color:#e65100;font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;margin-left:4px;">🚫 Заблокирован</span>
+                {% if profile_user.website %}
+                <a href="{{ profile_user.website }}" target="_blank" style="font-size:13px;color:#1d9bf0;display:flex;align-items:center;gap:4px;">🌐 {{ profile_user.website[:30] }}</a>
+                {% endif %}
+                {% if profile_user.telegram_link %}
+                <a href="{{ profile_user.telegram_link }}" target="_blank" style="font-size:13px;color:#1d9bf0;">✈️ Telegram</a>
+                {% endif %}
+                {% if profile_user.youtube_link %}
+                <a href="{{ profile_user.youtube_link }}" target="_blank" style="font-size:13px;color:#e53935;">▶️ YouTube</a>
+                {% endif %}
+                {% if profile_user.tiktok_link %}
+                <a href="{{ profile_user.tiktok_link }}" target="_blank" style="font-size:13px;color:var(--text);">🎵 TikTok</a>
                 {% endif %}
             </div>
-            <div style="color:#888;font-size:14px;margin-bottom:6px;">@{{ profile_user.username }}</div>
-            {% if profile_user.bio %}<div style="font-size:14px;margin-bottom:8px;">{{ profile_user.bio }}</div>{% endif %}
-            {% if profile_user.website %}
-            <div style="margin-bottom:6px;">
-                <a href="{{ profile_user.website }}" target="_blank" style="font-size:13px;color:#1d9bf0;text-decoration:none;display:flex;align-items:center;gap:4px;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    {{ profile_user.website[:40] }}{% if profile_user.website|length > 40 %}...{% endif %}
-                </a>
-            </div>
-            {% endif %}
-            {% if profile_user.birthday %}
-            <div style="font-size:13px;color:#888;margin-bottom:8px;">🎂 {{ profile_user.birthday }}</div>
-            {% endif %}
             <div style="display:flex;gap:16px;font-size:14px;margin-bottom:14px;">
-                <span><b>{{ posts|length }}</b> <span style="color:#888">постов</span></span>
-                <span><b>{{ profile_user.followers|length }}</b> <span style="color:#888">подписчиков</span></span>
-                <span><b>{{ profile_user.following|length }}</b> <span style="color:#888">подписок</span></span>
+                <span><b>{{ posts|length }}</b> <span style="color:var(--text-secondary);">постов</span></span>
+                <span><b>{{ profile_user.followers|length }}</b> <span style="color:var(--text-secondary);">подписчиков</span></span>
+                <span><b>{{ profile_user.following|length }}</b> <span style="color:var(--text-secondary);">подписок</span></span>
             </div>
-
             {% if user and user.username != profile_user.username %}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <form method="post" action="/follow/{{ profile_user.username }}">
-                    {% if is_following %}<button class="btn-unfollow">Отписаться</button>
-                    {% else %}<button class="btn-follow">Подписаться</button>{% endif %}
+                    {% if is_following %}<button class="btn-unfollow">Отписаться</button>{% else %}<button class="btn-follow">Подписаться</button>{% endif %}
                 </form>
                 <a href="/messages/{{ profile_user.username }}"><button class="btn-outline" style="border-radius:20px;">✉️ Написать</button></a>
-                <a href="/qr/{{ profile_user.username }}"><button class="btn-outline" style="border-radius:20px;">QR</button></a>
+                <a href="/qr/{{ profile_user.username }}"><button class="btn-outline" style="border-radius:20px;font-size:13px;">QR</button></a>
                 {% if not already_reported %}
-                <a href="/report/{{ profile_user.username }}">
-                    <button class="btn-outline" style="border-radius:20px;color:#e53935;border-color:#ffd0d0;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">🚩</button>
-                </a>
+                <a href="/report/{{ profile_user.username }}"><button class="btn-outline" style="border-radius:20px;color:var(--danger);border-color:rgba(229,57,53,0.3);font-size:13px;">🚩</button></a>
                 {% endif %}
                 <form method="post" action="/block_user/{{ profile_user.username }}">
-                    <button class="btn-outline" style="border-radius:20px;font-size:12px;{% if is_user_blocked_by_me %}color:#e53935;border-color:#ffd0d0;{% endif %}" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">
-                        {% if is_user_blocked_by_me %}🚫 Разблокировать{% else %}🚫 Заблокировать{% endif %}
-                    </button>
+                    <button class="btn-outline" style="border-radius:20px;font-size:13px;{% if is_user_blocked_by_me %}color:var(--danger);border-color:rgba(229,57,53,0.3);{% endif %}">{% if is_user_blocked_by_me %}Разблокировать{% else %}🚫{% endif %}</button>
                 </form>
             </div>
-            {% if request.query_params.get('reported') %}
-            <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:10px;padding:10px 14px;margin-top:8px;color:#276749;font-size:13px;">✔ Жалоба отправлена.</div>
             {% endif %}
-            {% if user.is_owner %}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;">
-                <span style="font-size:12px;color:#888;width:100%;">Инструменты владельца:</span>
-                <form method="post" action="/admin/star/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size:12px;padding:6px 12px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button>
-                </form>
-                <form method="post" action="/admin/verify/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size:12px;padding:6px 12px;">{% if profile_user.is_verified_badge %}Убрать ✔{% else %}Дать ✔{% endif %}</button>
-                </form>
-                <form method="post" action="/admin/mod/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size:12px;padding:6px 12px;">{% if profile_user.is_moderator %}Убрать мод{% else %}Дать 🛡️ мод{% endif %}</button>
-                </form>
-                {% if profile_user.is_blocked %}
-                <form method="post" action="/admin/unblock/{{ profile_user.username }}">
-                    <button class="btn-outline" style="font-size:12px;padding:6px 12px;color:#2e7d32;border-color:#2e7d32;">✅ Разблокировать</button>
-                </form>
-                {% else %}
-                <form method="post" action="/admin/block/{{ profile_user.username }}" style="display:flex;gap:6px;align-items:center;">
-                    <select name="days" style="padding:4px 8px;border-radius:6px;border:1.5px solid #e0e0e0;font-size:12px;">
-                        <option value="1">1 день</option>
-                        <option value="3">3 дня</option>
-                        <option value="7">7 дней</option>
-                        <option value="30">30 дней</option>
-                        <option value="365">1 год</option>
-                    </select>
-                    <button class="btn-outline" style="font-size:12px;padding:6px 12px;color:#e53935;border-color:#e53935;">🚫 Заблокировать</button>
-                </form>
-                {% endif %}
-            </div>
-            {% endif %}
-            {% endif %}
-
             {% if user and user.id == profile_user.id %}
-            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <a href="/settings"><button class="btn-outline" style="font-size:13px;padding:7px 14px;">⚙️ Настройки</button></a>
                 <a href="/qr/{{ profile_user.username }}"><button class="btn-outline" style="font-size:13px;padding:7px 14px;">QR-код</button></a>
-                {% if not pending_request %}
-                <a href="/special_request"><button class="btn-outline" style="font-size:13px;padding:7px 14px;">💎 Заявка</button></a>
-                {% else %}
-                <span style="font-size:12px;background:#fff8e1;color:#92400e;padding:6px 12px;border-radius:8px;font-weight:600;">⏳ Заявка на рассмотрении</span>
-                {% endif %}
+                <a href="/tasks"><button class="btn-outline" style="font-size:13px;padding:7px 14px;">⚡ {{ user.total_points or 0 }} очков</button></a>
+            </div>
+            {% endif %}
+            {% if user and user.is_owner and user.username != profile_user.username %}
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Инструменты владельца:</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <form method="post" action="/admin/star/{{ profile_user.username }}"><button class="btn-outline" style="font-size:12px;padding:5px 10px;">{% if profile_user.is_starred %}Убрать ⭐{% else %}Дать ⭐{% endif %}</button></form>
+                    <form method="post" action="/admin/verify/{{ profile_user.username }}"><button class="btn-outline" style="font-size:12px;padding:5px 10px;">{% if profile_user.is_verified_badge %}Убрать ✔{% else %}Дать ✔{% endif %}</button></form>
+                    <form method="post" action="/admin/mod/{{ profile_user.username }}"><button class="btn-outline" style="font-size:12px;padding:5px 10px;">{% if profile_user.is_moderator %}Убрать мод{% else %}Дать 🛡️{% endif %}</button></form>
+                    {% if profile_user.is_blocked %}
+                    <form method="post" action="/admin/unblock/{{ profile_user.username }}"><button class="btn-outline" style="font-size:12px;padding:5px 10px;color:var(--success);">✅ Разблок</button></form>
+                    {% else %}
+                    <form method="post" action="/admin/block/{{ profile_user.username }}" style="display:flex;gap:4px;align-items:center;">
+                        <select name="days" style="padding:4px 6px;font-size:11px;margin:0;width:auto;">
+                            <option value="1">1д</option><option value="3">3д</option><option value="7">7д</option><option value="30">30д</option>
+                        </select>
+                        <button class="btn-outline" style="font-size:12px;padding:5px 10px;color:var(--danger);">🚫 Блок</button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
@@ -136,18 +109,18 @@
 <div class="card" style="text-align:center;padding:48px 24px;">
     <div style="font-size:40px;margin-bottom:12px;">🔒</div>
     <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Закрытый профиль</div>
-    <div style="font-size:14px;color:#888;">Подпишись чтобы видеть посты этого пользователя</div>
+    <div style="font-size:14px;color:var(--text-secondary);">Подпишись чтобы видеть посты</div>
 </div>
 {% else %}
 
 {% if friends %}
 <div class="card">
-    <div style="font-weight:600;font-size:15px;margin-bottom:12px;">👥 Друзья</div>
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">👥 Друзья</div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;">
         {% for friend in friends %}
-        <a href="/profile/{{ friend.username }}" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;border:1px solid #e8e8e8;font-size:13px;">
+        <a href="/profile/{{ friend.username }}" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;border:1px solid var(--border);font-size:13px;">
             <div class="avatar-circle" style="width:24px;height:24px;">
-                {% if friend.avatar %}<img src="{{ friend.avatar }}">{% else %}<span style="font-size:10px;">{{ friend.username[0].upper() }}</span>{% endif %}
+                {% if friend.avatar %}<img src="{{ friend.avatar }}">{% else %}<span style="font-size:9px;">{{ friend.username[0].upper() }}</span>{% endif %}
             </div>
             {{ friend.name or friend.username }}
         </a>
@@ -158,10 +131,10 @@
 
 {% if user_achievements %}
 <div class="card">
-    <div style="font-weight:600;font-size:15px;margin-bottom:12px;">🎖️ Достижения</div>
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">🎖️ Достижения</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;">
         {% for ua in user_achievements %}
-        <div style="display:flex;align-items:center;gap:6px;background:#f8f8f8;border-radius:10px;padding:6px 12px;font-size:13px;" title="{{ ua.achievement.description }}">
+        <div style="display:flex;align-items:center;gap:6px;background:var(--input-bg);border-radius:12px;padding:6px 12px;font-size:13px;" title="{{ ua.achievement.description }}">
             <span>{{ ua.achievement.emoji }}</span>
             <span style="font-weight:600;">{{ ua.achievement.name }}</span>
         </div>
@@ -170,97 +143,111 @@
 </div>
 {% endif %}
 
+{% if reels %}
+<div class="card">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">🎬 Рилсы</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+        {% for reel in reels %}
+        <a href="/reels" style="position:relative;aspect-ratio:9/16;border-radius:10px;overflow:hidden;display:block;background:#000;">
+            <video src="{{ reel.video_url }}" style="width:100%;height:100%;object-fit:cover;" muted preload="metadata"></video>
+            <div style="position:absolute;bottom:4px;left:4px;font-size:11px;color:white;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.8);">❤️ {{ reel.likes|length }}</div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% if is_plus and user and user.id == profile_user.id %}
-<div class="card" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-color:#ddd6fe;">
+<div class="card" style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(99,102,241,0.1));border-color:rgba(168,85,247,0.3);">
     <div style="display:flex;align-items:center;gap:10px;">
         <svg width="20" height="20" viewBox="0 0 18 18" fill="none"><path d="M9 3.5V14.5M3.5 9H14.5" stroke="{{ user.plus_color or '#a855f7' }}" stroke-width="2.5" stroke-linecap="round"/></svg>
         <div>
             <div style="font-weight:700;font-size:14px;">Quant Plus активен</div>
-            <div style="font-size:12px;color:#888;">{% if profile_user.plus_until %}До {{ profile_user.plus_until.strftime("%d.%m.%Y") }}{% else %}Бессрочно{% endif %} · Просмотров: {{ total_views }}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">{% if profile_user.plus_until %}До {{ profile_user.plus_until.strftime("%d.%m.%Y") }}{% else %}Бессрочно{% endif %} · 👁 {{ total_views }} просмотров</div>
         </div>
     </div>
 </div>
 {% endif %}
 
 {% if pinned_post %}
-<div style="font-size:13px;color:#888;margin-bottom:6px;display:flex;align-items:center;gap:6px;padding:0 4px;">📌 Закреплённый пост</div>
-<div class="card" style="border-left:3px solid #0f0f0f;">
+<div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:6px;padding:0 4px;">📌 Закреплённый пост</div>
+<div class="card" style="border-left:3px solid var(--accent);">
     <div class="post-content">{{ render_content(pinned_post.content) | safe }}</div>
     {% if pinned_post.image %}
     <div style="margin-bottom:12px;border-radius:12px;overflow:hidden;">
         {% if pinned_post.media_type == 'video' %}
-        <video src="{{ pinned_post.image }}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:400px;width:auto;margin:0 auto;"></video>
+        <video src="{{ pinned_post.image }}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:360px;width:100%;"></video>
         {% else %}
-        <img src="{{ pinned_post.image }}" loading="lazy" style="display:block;max-width:100%;max-height:400px;width:auto;margin:0 auto;cursor:pointer;" onclick="window.open(this.src,'_blank')">
+        <img src="{{ pinned_post.image }}" loading="lazy" style="display:block;max-width:100%;max-height:360px;width:100%;object-fit:cover;cursor:pointer;" onclick="window.open(this.src,'_blank')">
         {% endif %}
     </div>
     {% endif %}
     <div class="post-footer">
-        <span style="color:#888;font-size:13px;">❤️ {{ pinned_post.likes|length }}</span>
-        <span style="color:#ccc;">·</span>
-        <span style="color:#888;font-size:13px;">💬 {{ pinned_post.comments|length }}</span>
-        <span style="color:#ccc;">·</span>
-        <span style="color:#888;font-size:13px;">{{ pinned_post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+        <span style="color:var(--text-secondary);font-size:13px;">❤️ {{ pinned_post.likes|length }}</span>
+        <span style="color:var(--border);">·</span>
+        <span style="color:var(--text-secondary);font-size:13px;">💬 {{ pinned_post.comments|length }}</span>
+        <span style="color:var(--border);">·</span>
+        <span style="color:var(--text-secondary);font-size:13px;">{{ pinned_post.created_at.strftime("%d.%m.%Y") }}</span>
         {% if user and user.id == profile_user.id %}
         <form method="post" action="/pin/{{ pinned_post.id }}" style="margin-left:auto;">
-            <button style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">Открепить</button>
+            <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;">Открепить</button>
         </form>
         {% endif %}
     </div>
 </div>
-{% endif %}
-
-{% if scheduled_posts and user and user.id == profile_user.id %}
-<div style="font-size:13px;color:#888;margin-bottom:6px;padding:0 4px;">📅 Запланированные посты ({{ scheduled_posts|length }})</div>
-{% for post in scheduled_posts %}
-<div class="card" style="border-left:3px solid #1d9bf0;opacity:0.8;">
-    <div class="post-content">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</div>
-    <div style="font-size:12px;color:#888;">Публикация: {{ post.scheduled_at.strftime("%d.%m.%Y %H:%M") if post.scheduled_at else "—" }}</div>
-</div>
-{% endfor %}
 {% endif %}
 
 {% for post in posts %}
 <div class="card">
     <div class="post-content">{{ render_content(post.content) | safe }}</div>
     {% if post.image %}
-    <div style="margin-bottom:12px;border-radius:12px;overflow:hidden;max-width:100%;">
+    <div style="margin-bottom:12px;border-radius:12px;overflow:hidden;">
         {% if post.media_type == 'video' %}
-        <video src="{{ post.image }}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:500px;width:auto;margin:0 auto;"></video>
+        <video src="{{ post.image }}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:400px;width:100%;"></video>
         {% else %}
-        <img src="{{ post.image }}" alt="" loading="lazy" style="display:block;max-width:100%;max-height:500px;width:auto;margin:0 auto;cursor:pointer;" onclick="window.open(this.src,'_blank')">
+        <img src="{{ post.image }}" loading="lazy" style="display:block;max-width:100%;max-height:400px;width:100%;object-fit:cover;cursor:pointer;" onclick="window.open(this.src,'_blank')">
         {% endif %}
     </div>
     {% endif %}
     <div class="post-footer">
-        {% set user_liked = false %}
-        {% if user %}{% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}{% endif %}
-        <form method="post" action="/like/{{ post.id }}" style="margin:0;">
-            <button type="submit" class="like-btn {% if user_liked %}liked{% endif %}">{% if user_liked %}❤️{% else %}🤍{% endif %} {{ post.likes|length }}</button>
-        </form>
-        <span>🐋 {{ post.whales|length }}</span>
-        <span style="color:#ccc">·</span>
-        <span>💬 {{ post.comments|length }}</span>
-        <span style="color:#ccc">·</span>
-        <span style="color:#888">{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+        {% set user_liked = post.id in liked_ids %}
+        <button class="action-btn {% if user_liked %}liked{% endif %}" onclick="toggleLikeProfile({{ post.id }}, this)">
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span id="like-count-{{ post.id }}">{{ post.likes|length }}</span>
+        </button>
+        <span style="color:var(--text-secondary);font-size:13px;display:flex;align-items:center;gap:4px;">🐋 {{ post.whales|length }}</span>
+        <span style="color:var(--border);">·</span>
+        <a href="/post/{{ post.id }}" style="color:var(--text-secondary);font-size:13px;">💬 {{ post.comments|length }}</a>
+        <span style="color:var(--border);">·</span>
+        <span style="color:var(--text-secondary);font-size:13px;">{{ post.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
         {% if is_plus and user and user.id == profile_user.id %}
-        <span style="color:#bbb;font-size:12px;margin-left:4px;">👁 {{ post.views or 0 }}</span>
+        <span style="color:var(--text-muted);font-size:12px;margin-left:4px;">👁 {{ post.views or 0 }}</span>
         {% endif %}
         {% if user and (user.id == post.author.id or user.is_owner or user.is_moderator) %}
-        <form method="post" action="/delete/{{ post.id }}" style="margin-left:auto;" onsubmit="return confirm('Удалить пост?')">
-            <button style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+        <form method="post" action="/delete/{{ post.id }}" style="margin-left:auto;" onsubmit="return confirm('Удалить?')">
+            <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px 6px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">×</button>
         </form>
         {% endif %}
         {% if user and user.id == profile_user.id %}
         <form method="post" action="/pin/{{ post.id }}">
-            <button style="background:none;border:none;color:{% if user.pinned_post_id == post.id %}#0f0f0f{% else %}#ccc{% endif %};cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;" title="Закрепить">📌</button>
+            <button style="background:none;border:none;color:{% if user.pinned_post_id == post.id %}var(--accent){% else %}var(--text-muted){% endif %};cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;" title="Закрепить">📌</button>
         </form>
         {% endif %}
     </div>
 </div>
 {% else %}
-<div style="text-align:center;color:#888;padding:40px 0">Пока нет постов</div>
+<div style="text-align:center;color:var(--text-muted);padding:40px 0;">Пока нет постов</div>
 {% endfor %}
 
 {% endif %}
+
+<script>
+async function toggleLikeProfile(postId, btn) {
+    const res = await fetch(`/like/${postId}`, {method:'POST'});
+    const data = await res.json();
+    const countEl = document.getElementById(`like-count-${postId}`);
+    if (data.liked) btn.classList.add('liked'); else btn.classList.remove('liked');
+    if (countEl) countEl.textContent = data.count;
+}
+</script>
 {% endblock %}

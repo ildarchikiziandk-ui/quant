@@ -1,77 +1,206 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quant</title>
     <style>
+        :root {
+            --bg: #f0f0f0;
+            --card: #ffffff;
+            --border: #e4e4e4;
+            --text: #0f0f0f;
+            --text-secondary: #888;
+            --text-muted: #bbb;
+            --input-bg: #f5f5f5;
+            --hover: rgba(0,0,0,0.05);
+            --accent: #0f0f0f;
+            --accent-text: #ffffff;
+            --like: #e0245e;
+            --whale: #0ea5e9;
+            --online: #22c55e;
+            --danger: #e53935;
+            --success: #22c55e;
+            --plus: #a855f7;
+        }
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card: #141414;
+            --border: #2a2a2a;
+            --text: #f0f0f0;
+            --text-secondary: #888;
+            --text-muted: #555;
+            --input-bg: #1e1e1e;
+            --hover: rgba(255,255,255,0.05);
+            --accent: #f0f0f0;
+            --accent-text: #0f0f0f;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f0f0; color: #0f0f0f; }
-        .layout { display: flex; min-height: 100vh; max-width: 1120px; margin: 0 auto; gap: 28px; padding: 0 16px; }
-        .sidebar { width: 220px; padding: 20px 0; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; overflow-y: auto; }
-        .sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; text-decoration: none; padding: 8px 12px; border-radius: 14px; transition: background 0.15s; }
-        .sidebar-logo:hover { background: rgba(0,0,0,0.05); }
-        .sidebar-logo-img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; }
-        .sidebar-logo-text { font-size: 22px; font-weight: 800; color: #0f0f0f; letter-spacing: -1px; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; text-decoration: none; color: #555; font-size: 14px; font-weight: 500; transition: all 0.15s; position: relative; }
-        .nav-item:hover { background: rgba(0,0,0,0.06); color: #0f0f0f; }
-        .nav-icon { width: 20px; height: 20px; flex-shrink: 0; }
-        .nav-label { font-size: 14px; font-weight: 500; }
-        .nav-badge { background: #e53935; color: white; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; margin-left: auto; }
-        .nav-plus-item { background: linear-gradient(135deg, #1a1a1a, #333); color: white !important; }
-        .nav-plus-item:hover { background: linear-gradient(135deg, #222, #444) !important; color: white !important; }
-        .nav-plus-item svg { stroke: white !important; }
-        .nav-logout { color: #e53935 !important; }
-        .nav-logout:hover { background: #fff0f0 !important; }
-        .nav-logout svg { stroke: #e53935 !important; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+        .layout { display: flex; min-height: 100vh; max-width: 1120px; margin: 0 auto; gap: 24px; padding: 0 16px; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px; padding: 20px 0;
+            position: sticky; top: 0; height: 100vh;
+            display: flex; flex-direction: column; gap: 2px;
+            flex-shrink: 0; overflow-y: auto;
+        }
+        .sidebar::-webkit-scrollbar { width: 0; }
+        .sidebar-logo {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 24px; text-decoration: none;
+            padding: 10px 14px; border-radius: 16px;
+            transition: background 0.15s;
+        }
+        .sidebar-logo:hover { background: var(--hover); }
+        .sidebar-logo-img { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; }
+        .sidebar-logo-text { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 14px;
+            padding: 12px 14px; border-radius: 14px;
+            text-decoration: none; color: var(--text-secondary);
+            font-size: 15px; font-weight: 500;
+            transition: all 0.15s; position: relative;
+        }
+        .nav-item:hover { background: var(--hover); color: var(--text); }
+        .nav-item.active { color: var(--text); font-weight: 700; }
+        .nav-icon { width: 22px; height: 22px; flex-shrink: 0; }
+        .nav-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .nav-label { font-size: 15px; }
+        .nav-badge { background: var(--danger); color: white; font-size: 10px; font-weight: 700; border-radius: 8px; padding: 2px 6px; margin-left: auto; }
+        .nav-logout { color: var(--danger) !important; }
+        .nav-logout:hover { background: rgba(229,57,53,0.08) !important; }
+
+        /* MAIN */
         .main { flex: 1; max-width: 600px; padding: 24px 0; min-width: 0; }
-        .right { width: 280px; padding: 24px 0; flex-shrink: 0; }
-        .card { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 10px; border: 1px solid #e4e4e4; }
-        .btn { background: #0f0f0f; color: #fff; border: none; padding: 10px 22px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; font-family: inherit; }
-        .btn:hover { background: #2a2a2a; }
-        .btn-outline { background: transparent; color: #0f0f0f; border: 1.5px solid #d4d4d4; padding: 9px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; font-family: inherit; }
-        .btn-outline:hover { border-color: #0f0f0f; background: #f5f5f5; }
-        .btn-follow { background: #0f0f0f; color: #fff; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s; }
-        .btn-follow:hover { background: #2a2a2a; }
-        .btn-unfollow { background: transparent; color: #0f0f0f; border: 1.5px solid #d4d4d4; padding: 7px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-family: inherit; }
-        input, textarea { width: 100%; padding: 11px 14px; border: 1.5px solid #e4e4e4; border-radius: 10px; font-size: 14px; margin-bottom: 12px; outline: none; transition: border 0.15s; font-family: inherit; background: #fff; color: #0f0f0f; }
-        input:focus, textarea:focus { border-color: #0f0f0f; }
+        .right { width: 300px; padding: 24px 0; flex-shrink: 0; }
+
+        /* CARDS */
+        .card {
+            background: var(--card); border-radius: 18px;
+            padding: 18px; margin-bottom: 10px;
+            border: 1px solid var(--border);
+            transition: border-color 0.15s;
+        }
+
+        /* BUTTONS */
+        .btn {
+            background: var(--accent); color: var(--accent-text);
+            border: none; padding: 10px 22px; border-radius: 12px;
+            cursor: pointer; font-size: 14px; font-weight: 600;
+            transition: all 0.15s; font-family: inherit;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-outline {
+            background: transparent; color: var(--text);
+            border: 1.5px solid var(--border); padding: 9px 20px;
+            border-radius: 12px; cursor: pointer; font-size: 14px;
+            font-weight: 500; transition: all 0.15s; font-family: inherit;
+        }
+        .btn-outline:hover { border-color: var(--text); background: var(--hover); }
+        .btn-follow { background: var(--accent); color: var(--accent-text); border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.15s; }
+        .btn-follow:hover { opacity: 0.85; }
+        .btn-unfollow { background: transparent; color: var(--text); border: 1.5px solid var(--border); padding: 7px 20px; border-radius: 20px; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.15s; }
+        .btn-unfollow:hover { border-color: var(--danger); color: var(--danger); }
+
+        /* INPUTS */
+        input, textarea, select {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid var(--border); border-radius: 12px;
+            font-size: 14px; margin-bottom: 12px; outline: none;
+            transition: border 0.15s; font-family: inherit;
+            background: var(--card); color: var(--text);
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--accent); }
         textarea { resize: vertical; min-height: 80px; }
-        .post-content { margin-bottom: 14px; line-height: 1.65; font-size: 15px; color: #1a1a1a; }
-        .post-footer { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-        .action-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; font-size: 13px; color: #888; padding: 7px 10px; border-radius: 20px; transition: all 0.15s; font-family: inherit; font-weight: 500; }
-        .action-btn:hover { background: #f5f5f5; color: #0f0f0f; }
+
+        /* ACTION BUTTONS */
+        .action-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: none; border: none; cursor: pointer;
+            font-size: 13px; color: var(--text-secondary);
+            padding: 7px 10px; border-radius: 20px;
+            transition: all 0.15s; font-family: inherit; font-weight: 500;
+        }
+        .action-btn:hover { background: var(--hover); color: var(--text); }
         .action-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-        .action-btn.liked { color: #e0245e; }
-        .action-btn.liked:hover { background: #fff0f5; }
-        .action-btn.whaled { color: #0ea5e9; }
+        .action-btn.liked { color: var(--like); }
+        .action-btn.liked:hover { background: rgba(224,36,94,0.08); }
+        .action-btn.liked svg { fill: var(--like); stroke: var(--like); }
+        .action-btn.whaled { color: var(--whale); }
+        .action-btn.whaled svg { fill: var(--whale); stroke: var(--whale); }
         .action-btn.bookmarked { color: #f59e0b; }
-        .alert-error { background: #fff5f5; border: 1px solid #ffd0d0; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; color: #cc0000; font-size: 14px; }
-        a { color: inherit; text-decoration: none; }
-        .badge-owner { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #0f0f0f; border-radius: 4px; margin-left: 3px; vertical-align: middle; }
-        .badge-verify { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #1d9bf0; border-radius: 50%; margin-left: 3px; vertical-align: middle; }
+        .action-btn.bookmarked svg { fill: #f59e0b; stroke: #f59e0b; }
+
+        /* ALERTS */
+        .alert-error { background: rgba(229,57,53,0.08); border: 1px solid rgba(229,57,53,0.2); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; color: var(--danger); font-size: 14px; }
+        .alert-success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; color: var(--success); font-size: 14px; }
+
+        /* POST */
+        .post-content { margin-bottom: 14px; line-height: 1.65; font-size: 15px; color: var(--text); }
+        .post-footer { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+
+        /* BADGES */
+        .badge-owner { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: var(--text); border-radius: 5px; margin-left: 3px; vertical-align: middle; }
+        .badge-verify { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #1d9bf0; border-radius: 50%; margin-left: 3px; vertical-align: middle; }
         .badge-star { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 3px; vertical-align: middle; }
         .badge-mod { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 3px; vertical-align: middle; }
-        .right-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #e4e4e4; }
-        .right-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #0f0f0f; }
-        .avatar-circle { border-radius: 50%; overflow: hidden; background: #1a1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* AVATAR */
+        .avatar-circle {
+            border-radius: 50%; overflow: hidden;
+            background: linear-gradient(135deg, #1a1a1a, #444);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
         .avatar-circle span { color: white; font-weight: 700; }
+
+        /* RIGHT CARD */
+        .right-card { background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+        .right-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+
+        a { color: inherit; text-decoration: none; }
         .hide-mobile { display: inline; }
-        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid #e8e8e8; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
-        .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; height: 58px; padding: 0 8px; }
-        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #bbb; flex: 1; height: 58px; position: relative; transition: color 0.15s; gap: 3px; }
-        .mobile-nav-item svg { width: 22px; height: 22px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-        .mobile-nav-item span.label { font-size: 9px; font-weight: 600; }
-        .mobile-nav-item:hover { color: #0f0f0f; }
-        .mobile-nav-item.plus-btn { flex: 0 0 52px; }
-        .mobile-nav-item.plus-btn .plus-inner { width: 44px; height: 44px; background: #0f0f0f; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .mobile-nav-badge { position: absolute; top: 7px; right: calc(50% - 20px); background: #e53935; color: white; font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1px 4px; min-width: 14px; text-align: center; line-height: 1.4; }
-        @media (max-width: 900px) { .right { display: none; } .sidebar { width: 72px; } .sidebar-logo-text { display: none; } .nav-label { display: none; } .sidebar-logo-img { width: 36px; height: 36px; } }
-        @media (max-width: 640px) { .sidebar { display: none; } .mobile-nav { display: block; } .layout { padding: 0 10px; } .main { padding: 12px 0 74px 0; } .hide-mobile { display: none !important; } .card { border-radius: 14px; padding: 14px; } }
+
+        /* MOBILE NAV */
+        .mobile-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--card);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border); z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; height: 56px; padding: 0 4px; }
+        .mobile-nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-decoration: none; color: var(--text-muted); flex: 1; height: 56px;
+            position: relative; transition: color 0.15s; gap: 3px; border-radius: 12px;
+        }
+        .mobile-nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .mobile-nav-item span.label { font-size: 9px; font-weight: 600; letter-spacing: 0.2px; }
+        .mobile-nav-item:hover, .mobile-nav-item.active { color: var(--text); }
+        .mobile-nav-item.plus-btn { flex: 0 0 56px; }
+        .mobile-nav-item.plus-btn .plus-inner { width: 46px; height: 46px; background: var(--accent); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .mobile-nav-item.plus-btn .plus-inner svg { stroke: var(--accent-text); }
+        .mobile-nav-badge { position: absolute; top: 6px; right: calc(50% - 18px); background: var(--danger); color: white; font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1px 4px; min-width: 14px; text-align: center; line-height: 1.4; }
+
+        @media (max-width: 1000px) { .right { display: none; } .sidebar { width: 72px; } .sidebar-logo-text, .nav-label { display: none; } }
+        @media (max-width: 640px) { .sidebar { display: none; } .mobile-nav { display: block; } .layout { padding: 0 8px; } .main { padding: 8px 0 70px 0; } .hide-mobile { display: none !important; } .card { border-radius: 14px; padding: 14px; } }
     </style>
 </head>
 <body>
+<script>
+    const theme = localStorage.getItem('theme') || '{{ user.theme if user else "light" }}';
+    document.documentElement.setAttribute('data-theme', theme);
+</script>
 <div class="layout">
     <div class="sidebar">
         <a href="/" class="sidebar-logo">
@@ -79,121 +208,102 @@
             <span class="sidebar-logo-text">Quant</span>
         </a>
         {% if user %}
-            <a href="/" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span class="nav-label">Лента</span>
-            </a>
-            <a href="/reels" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-                <span class="nav-label">Рилсы</span>
-            </a>
-            <a href="/search" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <span class="nav-label">Поиск</span>
-            </a>
-            <a href="/notifications" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span class="nav-label">Уведомления</span>
-                {% if unread > 0 %}<span class="nav-badge">{{ unread }}</span>{% endif %}
-            </a>
-            <a href="/tasks" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                <span class="nav-label">Задания</span>
-            </a>
-            <a href="/messages" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span class="nav-label">Сообщения</span>
-                {% if unread_msg > 0 %}<span class="nav-badge">{{ unread_msg }}</span>{% endif %}
-            </a>
-            <a href="/profile/{{ user.username }}" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span class="nav-label">Профиль</span>
-            </a>
-            {% if is_plus is defined and is_plus %}
-            <a href="/bookmarks" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                <span class="nav-label">Закладки</span>
-            </a>
-            {% endif %}
-            <a href="/plus" class="nav-item nav-plus-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span class="nav-label">Quant Plus</span>
-            </a>
-            <a href="/settings" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span class="nav-label">Настройки</span>
-            </a>
-            <a href="/support" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span class="nav-label">Поддержка</span>
-            </a>
-            <a href="/logout" class="nav-item nav-logout" onclick="return confirm('Выйти из аккаунта?')">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span class="nav-label">Выйти</span>
-            </a>
+            <a href="/" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-label">Лента</span></a>
+            <a href="/reels" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span><span class="nav-label">Рилсы</span></a>
+            <a href="/search" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><span class="nav-label">Поиск</span></a>
+            <a href="/notifications" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span class="nav-label">Уведомления</span>{% if unread > 0 %}<span class="nav-badge">{{ unread }}</span>{% endif %}</a>
+            <a href="/messages" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="nav-label">Сообщения</span>{% if unread_msg > 0 %}<span class="nav-badge">{{ unread_msg }}</span>{% endif %}</a>
+            <a href="/tasks" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="nav-label">Задания</span></a>
+            <a href="/profile/{{ user.username }}" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span class="nav-label">Профиль</span></a>
+            <a href="/trends" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><span class="nav-label">Тренды</span></a>
+            {% if is_plus is defined and is_plus %}<a href="/bookmarks" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span class="nav-label">Закладки</span></a>{% endif %}
+            <a href="/settings" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="nav-label">Настройки</span></a>
+            <a href="/support" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span class="nav-label">Поддержка</span></a>
+            <a href="/logout" class="nav-item nav-logout" onclick="return confirm('Выйти?')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span><span class="nav-label">Выйти</span></a>
         {% else %}
-            <a href="/login" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                <span class="nav-label">Войти</span>
-            </a>
-            <a href="/register" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                <span class="nav-label">Регистрация</span>
-            </a>
-            <a href="/plus" class="nav-item nav-plus-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span class="nav-label">Quant Plus</span>
-            </a>
-            <a href="/support" class="nav-item">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span class="nav-label">Поддержка</span>
-            </a>
+            <a href="/login" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span><span class="nav-label">Войти</span></a>
+            <a href="/register" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></span><span class="nav-label">Регистрация</span></a>
+            <a href="/support" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><span class="nav-label">Поддержка</span></a>
         {% endif %}
     </div>
 
-    <div class="main">
-        {% block content %}{% endblock %}
-    </div>
+    <div class="main">{% block content %}{% endblock %}</div>
 
     {% if user %}
     <div class="right">
         <div class="right-card">
             <div style="display:flex;align-items:center;gap:12px;">
                 <div style="position:relative;">
-                    <div class="avatar-circle" style="width:42px;height:42px;">
+                    <div class="avatar-circle" style="width:44px;height:44px;">
                         {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:16px;">{{ user.username[0].upper() }}</span>{% endif %}
                     </div>
-                    <div style="position:absolute;bottom:1px;right:1px;width:11px;height:11px;background:#22c55e;border-radius:50%;border:2px solid white;"></div>
+                    <div style="position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:var(--online);border-radius:50%;border:2px solid var(--card);"></div>
                 </div>
                 <div>
-                    <div style="font-weight:700;font-size:14px;">{{ user.name or user.username }}</div>
-                    <div style="color:#888;font-size:13px;">@{{ user.username }}</div>
+                    <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:4px;">{{ user.name or user.username }}
+                        {% if is_plus is defined and is_plus %}<svg width="13" height="13" viewBox="0 0 18 18" fill="none"><path d="M9 3.5V14.5M3.5 9H14.5" stroke="{{ user.plus_color or '#a855f7' }}" stroke-width="2.5" stroke-linecap="round"/></svg>{% endif %}
+                    </div>
+                    <div style="color:var(--text-secondary);font-size:13px;">@{{ user.username }}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">⚡ {{ user.total_points or 0 }} · Ур. {{ user.level or 1 }}</div>
                 </div>
             </div>
         </div>
         <div class="right-card">
-            <h3>Поиск</h3>
+            <h3>🔍 Поиск</h3>
             <form method="get" action="/search">
                 <input type="text" name="q" placeholder="Люди, посты, теги..." style="margin-bottom:0;">
             </form>
         </div>
         {% if daily_tasks is defined and daily_tasks %}
         <div class="right-card">
-            <h3>⚡ Задания дня</h3>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <h3 style="margin-bottom:0;">⚡ Задания</h3>
+                <a href="/tasks" style="font-size:12px;color:#1d9bf0;">Все →</a>
+            </div>
             {% set completed = daily_tasks | selectattr('is_completed') | list | length %}
             {% set total = daily_tasks | length %}
-            <div style="background:#f5f5f5;border-radius:8px;height:6px;margin-bottom:10px;overflow:hidden;">
-                <div style="height:100%;background:#0f0f0f;border-radius:8px;width:{{ (completed / total * 100) | int }}%;transition:width 0.3s;"></div>
+            <div style="background:var(--border);border-radius:6px;height:5px;margin-bottom:10px;overflow:hidden;">
+                <div style="height:100%;background:var(--accent);border-radius:6px;width:{{ ((completed / total * 100) | int) if total > 0 else 0 }}%;transition:width 0.5s;"></div>
             </div>
-            <div style="font-size:12px;color:#888;margin-bottom:10px;">{{ completed }}/{{ total }} выполнено</div>
             {% for ut in daily_tasks[:4] %}
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                <span style="font-size:14px;">{{ ut.task.emoji }}</span>
-                <span style="font-size:13px;color:{% if ut.is_completed %}#888;text-decoration:line-through{% else %}#333{% endif %};">{{ ut.task.title }}</span>
-                {% if ut.is_completed %}<span style="margin-left:auto;color:#22c55e;font-size:14px;">✓</span>{% endif %}
+                <span>{{ ut.task.emoji }}</span>
+                <span style="font-size:13px;flex:1;{% if ut.is_completed %}color:var(--text-muted);text-decoration:line-through;{% endif %}">{{ ut.task.title }}</span>
+                <span style="font-size:11px;font-weight:700;color:{% if ut.is_completed %}var(--success){% else %}var(--text-muted){% endif %};">{% if ut.is_completed %}✓{% else %}+{{ ut.task.points }}{% endif %}</span>
             </div>
             {% endfor %}
-            <a href="/tasks" style="display:block;text-align:center;margin-top:10px;font-size:13px;color:#1d9bf0;font-weight:600;">Все задания →</a>
+        </div>
+        {% endif %}
+        {% if trends is defined and trends %}
+        <div class="right-card">
+            <h3>🔥 Тренды</h3>
+            {% for trend in trends %}
+            <a href="/hashtag/{{ trend.tag }}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);text-decoration:none;">
+                <span style="font-size:14px;color:#1d9bf0;font-weight:600;">#{{ trend.tag }}</span>
+                <span style="font-size:12px;color:var(--text-muted);">{{ trend.count }} постов</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if suggested_users is defined and suggested_users %}
+        <div class="right-card">
+            <h3>👥 Кого подписаться</h3>
+            {% for su in suggested_users %}
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <a href="/profile/{{ su.username }}">
+                    <div class="avatar-circle" style="width:36px;height:36px;">
+                        {% if su.avatar %}<img src="{{ su.avatar }}">{% else %}<span style="font-size:13px;">{{ su.username[0].upper() }}</span>{% endif %}
+                    </div>
+                </a>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ su.name or su.username }}</div>
+                    <div style="font-size:12px;color:var(--text-secondary);">{{ su.followers|length }} подписчиков</div>
+                </div>
+                <form method="post" action="/follow/{{ su.username }}">
+                    <button class="btn-follow" style="font-size:12px;padding:5px 12px;">Подписаться</button>
+                </form>
+            </div>
+            {% endfor %}
         </div>
         {% endif %}
     </div>
@@ -203,34 +313,25 @@
 {% if user %}
 <div class="mobile-nav">
     <div class="mobile-nav-inner">
-        <a href="/" class="mobile-nav-item">
-            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span class="label">Лента</span>
-        </a>
-        <a href="/reels" class="mobile-nav-item">
-            <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-            <span class="label">Рилсы</span>
-        </a>
-        <a href="/tasks" class="mobile-nav-item">
-            <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <span class="label">Задания</span>
-        </a>
-        <a href="/plus" class="mobile-nav-item plus-btn">
-            <div class="plus-inner">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </div>
-        </a>
-        <a href="/notifications" class="mobile-nav-item">
-            {% if unread > 0 %}<span class="mobile-nav-badge">{{ unread }}</span>{% endif %}
-            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="label">Звонки</span>
-        </a>
-        <a href="/profile/{{ user.username }}" class="mobile-nav-item">
-            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span class="label">Профиль</span>
-        </a>
+        <a href="/" class="mobile-nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="label">Лента</span></a>
+        <a href="/reels" class="mobile-nav-item"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="label">Рилсы</span></a>
+        <a href="/tasks" class="mobile-nav-item plus-btn"><div class="plus-inner"><svg width="22" height="22" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div></a>
+        <a href="/notifications" class="mobile-nav-item">{% if unread > 0 %}<span class="mobile-nav-badge">{{ unread }}</span>{% endif %}<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="label">Уведомления</span></a>
+        <a href="/messages" class="mobile-nav-item">{% if unread_msg > 0 %}<span class="mobile-nav-badge">{{ unread_msg }}</span>{% endif %}<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="label">Чаты</span></a>
+        <a href="/profile/{{ user.username }}" class="mobile-nav-item"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="label">Профиль</span></a>
     </div>
 </div>
 {% endif %}
+
+<script>
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+}
+setInterval(() => fetch('/api/ping'), 30000);
+</script>
 </body>
 </html>

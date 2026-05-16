@@ -1,172 +1,185 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card" style="max-width: 480px; margin: 0 auto;">
-    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.3px;">Настройки профиля</h2>
-    <p style="color: #888; font-size: 14px; margin-bottom: 24px;">Измени информацию о себе</p>
+<div class="card" style="max-width:520px;margin:0 auto;">
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:6px;">Настройки</h2>
+    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:24px;">Управляй своим профилем</p>
 
     {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
-    {% if success %}
-    <div style="background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; color: #276749; font-size: 14px;">✔ {{ success }}</div>
-    {% endif %}
+    {% if success %}<div class="alert-success">✔ {{ success }}</div>{% endif %}
 
     <form method="post" action="/settings" enctype="multipart/form-data">
-        <!-- ОБЛОЖКА -->
         <div style="margin-bottom:20px;">
-            <label style="font-size:13px;color:#555;margin-bottom:6px;display:block;font-weight:600;">Обложка профиля</label>
-            <div style="position:relative;height:120px;border-radius:12px;overflow:hidden;background:#f0f0f0;margin-bottom:8px;cursor:pointer;" onclick="document.getElementById('cover-input').click()">
+            <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;font-weight:600;">Обложка профиля</label>
+            <div style="position:relative;height:120px;border-radius:14px;overflow:hidden;background:var(--input-bg);cursor:pointer;" onclick="document.getElementById('cover-input').click()">
                 {% if user.cover %}
                 <img id="cover-preview" src="{{ user.cover }}" style="width:100%;height:100%;object-fit:cover;">
                 {% else %}
                 <img id="cover-preview" style="display:none;width:100%;height:100%;object-fit:cover;">
-                <div id="cover-placeholder" style="display:flex;align-items:center;justify-content:center;height:100%;color:#bbb;font-size:14px;">Нажми чтобы добавить обложку</div>
+                <div id="cover-placeholder" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;">Нажми чтобы добавить обложку</div>
                 {% endif %}
-                <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:12px;padding:4px 10px;border-radius:6px;">Изменить</div>
+                <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:12px;padding:4px 10px;border-radius:8px;">Изменить</div>
             </div>
             <input type="file" id="cover-input" name="cover" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewCover(this)">
         </div>
 
-        <!-- АВАТАР -->
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
-            <div id="avatar-preview-wrap" style="width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: #0f0f0f; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                {% if user.avatar %}
-                    <img id="avatar-preview" src="{{ user.avatar }}" style="width: 100%; height: 100%; object-fit: cover;">
-                {% else %}
-                    <span id="avatar-letter" style="color: white; font-size: 26px; font-weight: 600;">{{ user.username[0].upper() }}</span>
-                    <img id="avatar-preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                {% endif %}
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+            <div style="position:relative;">
+                <div id="avatar-wrap" style="width:76px;height:76px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#1a1a1a,#444);display:flex;align-items:center;justify-content:center;">
+                    {% if user.avatar %}<img id="avatar-preview" src="{{ user.avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span id="avatar-letter" style="color:white;font-size:28px;font-weight:700;">{{ user.username[0].upper() }}</span><img id="avatar-preview" style="display:none;width:100%;height:100%;object-fit:cover;">{% endif %}
+                </div>
             </div>
             <div>
-                <button type="button" onclick="document.getElementById('avatar-input').click()" class="btn-outline" style="font-size: 13px; padding: 7px 14px;">Загрузить фото</button>
-                <p style="font-size: 12px; color: #999; margin-top: 6px;">JPG, PNG или WEBP, до 10 МБ</p>
+                <button type="button" onclick="document.getElementById('avatar-input').click()" class="btn-outline" style="font-size:13px;padding:8px 16px;">Загрузить фото</button>
+                <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">JPG, PNG, WEBP до 10 МБ</p>
             </div>
-            <input type="file" id="avatar-input" name="avatar" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="previewAvatar(this)">
+            <input type="file" id="avatar-input" name="avatar" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewAvatar(this)">
         </div>
 
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">Имя</label>
         <input type="text" name="name" value="{{ user.name or '' }}" placeholder="Твоё имя" required>
 
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">Никнейм</label>
         <input type="text" name="username" value="{{ user.username }}" required>
-        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
 
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">О себе</label>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">О себе</label>
         <textarea name="bio" placeholder="Расскажи о себе...">{{ user.bio or '' }}</textarea>
 
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🌐 Сайт или ссылка</label>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">🌐 Сайт</label>
         <input type="text" name="website" value="{{ user.website or '' }}" placeholder="https://example.com">
 
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🎂 День рождения</label>
-        <input type="date" name="birthday" value="{{ user.birthday or '' }}" style="margin-bottom:16px;">
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">✈️ Telegram</label>
+        <input type="text" name="telegram_link" value="{{ user.telegram_link or '' }}" placeholder="https://t.me/username">
 
-        <label style="font-size: 13px; color: #555; margin-bottom: 8px; display: block;">Эмодзи-статус</label>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">▶️ YouTube</label>
+        <input type="text" name="youtube_link" value="{{ user.youtube_link or '' }}" placeholder="https://youtube.com/@channel">
+
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">🎵 TikTok</label>
+        <input type="text" name="tiktok_link" value="{{ user.tiktok_link or '' }}" placeholder="https://tiktok.com/@username">
+
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">🎂 День рождения</label>
+        <input type="date" name="birthday" value="{{ user.birthday or '' }}">
+
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">🏙️ Город</label>
+        <input type="text" name="city" value="{{ user.city or '' }}" placeholder="Москва">
+
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;display:block;font-weight:600;">Эмодзи-статус</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
             {% for emoji in ['', '🔥', '❤️', '😎', '🚀', '💎', '⭐', '🎮', '🎵', '📚', '💻', '🌍'] %}
             <label style="cursor:pointer;">
-                <input type="radio" name="emoji_status" value="{{ emoji }}" {% if (user.emoji_status or '') == emoji %}checked{% endif %} style="display:none;" onchange="updateEmojiBorders(this)">
-                <div style="width:38px;height:38px;border-radius:10px;border:2px solid {% if (user.emoji_status or '') == emoji %}#0f0f0f{% else %}#e4e4e4{% endif %};display:flex;align-items:center;justify-content:center;font-size:20px;transition:border 0.15s;">
-                    {% if emoji %}{{ emoji }}{% else %}<span style="color:#bbb;font-size:12px;">✕</span>{% endif %}
+                <input type="radio" name="emoji_status" value="{{ emoji }}" {% if (user.emoji_status or '') == emoji %}checked{% endif %} style="display:none;">
+                <div style="width:40px;height:40px;border-radius:12px;border:2px solid {% if (user.emoji_status or '') == emoji %}var(--accent){% else %}var(--border){% endif %};display:flex;align-items:center;justify-content:center;font-size:20px;transition:border 0.15s;cursor:pointer;" onclick="this.parentElement.querySelector('input').checked=true;updateEmojiBorders();">
+                    {% if emoji %}{{ emoji }}{% else %}<span style="color:var(--text-muted);font-size:12px;">✕</span>{% endif %}
                 </div>
             </label>
             {% endfor %}
         </div>
 
-        <!-- ЗАКРЫТЫЙ ПРОФИЛЬ -->
-        <div style="display:flex;align-items:center;justify-content:space-between;background:#f8f8f8;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
             <div>
                 <div style="font-size:14px;font-weight:600;">🔒 Закрытый профиль</div>
-                <div style="font-size:12px;color:#888;margin-top:2px;">Посты видны только подписчикам</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Посты видны только подписчикам</div>
             </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
-                <input type="checkbox" name="is_private" {% if user.is_private %}checked{% endif %} style="display:none;" onchange="this.parentElement.querySelector('.slider').style.background=this.checked?'#0f0f0f':'#e0e0e0';this.parentElement.querySelector('.knob').style.transform=this.checked?'translateX(20px)':'translateX(0)'">
-                <div class="slider" style="position:absolute;inset:0;border-radius:24px;background:{% if user.is_private %}#0f0f0f{% else %}#e0e0e0{% endif %};transition:background 0.2s;"></div>
-                <div class="knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s;transform:{% if user.is_private %}translateX(20px){% else %}translateX(0){% endif %};"></div>
+            <label style="position:relative;display:inline-block;width:46px;height:26px;cursor:pointer;">
+                <input type="checkbox" name="is_private" {% if user.is_private %}checked{% endif %} style="display:none;" id="private-toggle">
+                <div id="private-slider" style="position:absolute;inset:0;border-radius:26px;background:{% if user.is_private %}var(--accent){% else %}var(--border){% endif %};transition:background 0.2s;"></div>
+                <div id="private-knob" style="position:absolute;top:3px;left:{% if user.is_private %}23px{% else %}3px{% endif %};width:20px;height:20px;border-radius:50%;background:white;transition:left 0.2s;"></div>
             </label>
         </div>
 
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+            <div>
+                <div style="font-size:14px;font-weight:600;">🌙 Тёмная тема</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Переключить оформление</div>
+            </div>
+            <button type="button" onclick="toggleTheme()" class="btn-outline" style="font-size:13px;padding:6px 14px;">Переключить</button>
+        </div>
+
         {% if is_plus %}
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">🎨 Цвет значка Quant Plus</label>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <input type="color" name="plus_color" value="{{ user.plus_color or '#a855f7' }}" style="width:48px;height:36px;padding:2px;border-radius:6px;cursor:pointer;margin-bottom:0;">
-            <span style="font-size:13px;color:#888;">Выбери цвет своего значка +</span>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;font-weight:600;">🎨 Цвет значка Plus</label>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <input type="color" name="plus_color" value="{{ user.plus_color or '#a855f7' }}" style="width:52px;height:40px;padding:2px;border-radius:10px;cursor:pointer;margin-bottom:0;">
+            <span style="font-size:13px;color:var(--text-secondary);">Выбери цвет своего значка +</span>
         </div>
         {% endif %}
 
-        <button class="btn" style="width: 100%;">Сохранить</button>
+        <button class="btn" style="width:100%;padding:12px;">Сохранить изменения</button>
     </form>
 
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">Сменить пароль</h3>
+        <form method="post" action="/settings/password">
+            <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Старый пароль</label>
+            <input type="password" name="old_password" placeholder="Введи старый пароль" required>
+            <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Новый пароль</label>
+            <input type="password" name="new_password" placeholder="Минимум 8 символов" required>
+            <button class="btn-outline" style="width:100%;">Сменить пароль</button>
+        </form>
+    </div>
+
     {% if not is_plus %}
-    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">✨ Quant Plus</h3>
-        <p style="font-size: 13px; color: #888; margin-bottom: 16px;">Активируй подписку промокодом — получи дополнительные реакции, значок и ранний доступ к новым функциям.</p>
-        <a href="/plus"><button class="btn" style="width:100%;">Узнать больше</button></a>
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <div style="background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:16px;padding:20px;color:white;margin-bottom:16px;">
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">✨ Quant Plus</div>
+            <div style="font-size:13px;opacity:0.9;margin-bottom:16px;">Реакции, закладки, статистика, анимированный аватар и многое другое</div>
+            <a href="/plus"><button style="background:white;color:#a855f7;border:none;padding:9px 20px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Узнать больше</button></a>
+        </div>
+        <form method="post" action="/activate_plus" style="display:flex;gap:10px;">
+            <input type="text" name="code" placeholder="Промокод" style="margin-bottom:0;flex:1;">
+            <button class="btn">Активировать</button>
+        </form>
     </div>
     {% else %}
-    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-        <div style="background: linear-gradient(135deg, #a855f7, #6366f1); border-radius: 12px; padding: 16px; color: white;">
-            <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">✨ Quant Plus активен</div>
-            <div style="font-size: 13px; opacity: 0.9;">Действует до: {{ user.plus_until.strftime("%d.%m.%Y") if user.plus_until else "бессрочно" }}</div>
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <div style="background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:16px;padding:16px;color:white;">
+            <div style="font-weight:700;font-size:16px;margin-bottom:4px;">✨ Quant Plus активен</div>
+            <div style="font-size:13px;opacity:0.9;">До: {{ user.plus_until.strftime("%d.%m.%Y") if user.plus_until else "бессрочно" }}</div>
         </div>
     </div>
     {% endif %}
 
-    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Сменить пароль</h3>
-        <form method="post" action="/settings/password">
-            <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Старый пароль</label>
-            <input type="password" name="old_password" placeholder="Введи старый пароль" required>
-            <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Новый пароль</label>
-            <input type="password" name="new_password" placeholder="Минимум 8 символов" required>
-            <button class="btn-outline" style="width: 100%;">Сменить пароль</button>
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">🔐 Активные сессии</h3>
+        <form method="post" action="/sessions/revoke_all" style="margin-bottom:14px;">
+            <button class="btn-outline" style="font-size:13px;padding:7px 14px;color:var(--danger);border-color:rgba(229,57,53,0.3);">Завершить все кроме текущей</button>
         </form>
-    </div>
-
-    <!-- УСТРОЙСТВА -->
-    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <h3 style="font-size: 16px; font-weight: 600;">🔐 Активные сессии</h3>
-            <form method="post" action="/sessions/revoke_all">
-                <button class="btn-outline" style="font-size:12px;padding:5px 12px;color:#e53935;border-color:#ffd0d0;">Завершить все</button>
-            </form>
-        </div>
         {% if sessions %}
         {% for session in sessions %}
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;">
-            <div style="width:36px;height:36px;background:#f5f5f5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
-                {% if 'Мобильный' in session.device %}📱{% else %}💻{% endif %}
-            </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="width:38px;height:38px;background:var(--input-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">{% if 'Мобильный' in session.device %}📱{% else %}💻{% endif %}</div>
             <div style="flex:1;min-width:0;">
                 <div style="font-size:13px;font-weight:600;">{{ session.device }}</div>
-                <div style="font-size:12px;color:#888;">{{ session.ip }} · {{ session.last_active.strftime("%d.%m.%Y %H:%M") }}</div>
+                <div style="font-size:12px;color:var(--text-muted);">{{ session.ip }} · {{ session.last_active.strftime("%d.%m.%Y %H:%M") }}</div>
             </div>
             {% if session.token_hash == current_hash %}
-            <span style="font-size:11px;background:#f0fff4;color:#276749;padding:3px 8px;border-radius:6px;font-weight:600;">Текущая</span>
+            <span style="font-size:11px;background:rgba(34,197,94,0.1);color:var(--success);padding:3px 8px;border-radius:8px;font-weight:600;">Текущая</span>
             {% else %}
             <form method="post" action="/sessions/revoke/{{ session.id }}">
-                <button style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">✕</button>
+                <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;">✕</button>
             </form>
             {% endif %}
         </div>
         {% endfor %}
-        {% else %}
-        <div style="color:#888;font-size:14px;">Нет активных сессий</div>
         {% endif %}
     </div>
 
-    <!-- ДОПОЛНИТЕЛЬНО -->
-    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #f0f0f0;">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 14px;">Дополнительно</h3>
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;">Дополнительно</h3>
         <div style="display:flex;flex-direction:column;gap:8px;">
-            <a href="/special_request" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8f8f8;border-radius:10px;text-decoration:none;color:#0f0f0f;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
-                <span style="font-size:14px;">💎 Подать заявку на статус</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <a href="/special_request" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--input-bg);border-radius:14px;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='var(--input-bg)'">
+                <span style="font-size:14px;">💎 Заявка на особый статус</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <a href="/blocked" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8f8f8;border-radius:10px;text-decoration:none;color:#0f0f0f;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
+            <a href="/blocked" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--input-bg);border-radius:14px;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='var(--input-bg)'">
                 <span style="font-size:14px;">🚫 Заблокированные пользователи</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <a href="/mentions" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8f8f8;border-radius:10px;text-decoration:none;color:#0f0f0f;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f8f8f8'">
+            <a href="/mentions" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--input-bg);border-radius:14px;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='var(--input-bg)'">
                 <span style="font-size:14px;">📣 Мои упоминания</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <a href="/qr/{{ user.username }}" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--input-bg);border-radius:14px;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='var(--input-bg)'">
+                <span style="font-size:14px;">QR-код профиля</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
         </div>
     </div>
@@ -174,31 +187,33 @@
 
 <script>
 function previewAvatar(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    const img = document.getElementById('avatar-preview');
-    const letter = document.getElementById('avatar-letter');
-    img.src = url;
-    img.style.display = 'block';
-    if (letter) letter.style.display = 'none';
+    const file=input.files[0]; if (!file) return;
+    const url=URL.createObjectURL(file);
+    const img=document.getElementById('avatar-preview');
+    const letter=document.getElementById('avatar-letter');
+    img.src=url; img.style.display='block';
+    if (letter) letter.style.display='none';
 }
-
 function previewCover(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    const img = document.getElementById('cover-preview');
-    const placeholder = document.getElementById('cover-placeholder');
-    img.src = url;
-    img.style.display = 'block';
-    if (placeholder) placeholder.style.display = 'none';
+    const file=input.files[0]; if (!file) return;
+    const img=document.getElementById('cover-preview');
+    const ph=document.getElementById('cover-placeholder');
+    img.src=URL.createObjectURL(file); img.style.display='block';
+    if (ph) ph.style.display='none';
 }
-
-function updateEmojiBorders(input) {
-    document.querySelectorAll('input[name="emoji_status"]').forEach(r => {
-        const div = r.nextElementSibling;
-        if (div) div.style.borderColor = r.checked ? '#0f0f0f' : '#e4e4e4';
+function updateEmojiBorders() {
+    document.querySelectorAll('input[name="emoji_status"]').forEach(r=>{
+        const div=r.nextElementSibling;
+        if (div) div.style.borderColor=r.checked?'var(--accent)':'var(--border)';
+    });
+}
+const privToggle=document.getElementById('private-toggle');
+const privSlider=document.getElementById('private-slider');
+const privKnob=document.getElementById('private-knob');
+if (privToggle) {
+    privToggle.addEventListener('change',()=>{
+        privSlider.style.background=privToggle.checked?'var(--accent)':'var(--border)';
+        privKnob.style.left=privToggle.checked?'23px':'3px';
     });
 }
 </script>

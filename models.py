@@ -16,6 +16,10 @@ class User(Base):
     website = Column(String, default="")
     birthday = Column(String, default="")
     emoji_status = Column(String, default="")
+    city = Column(String, default="")
+    telegram_link = Column(String, default="")
+    youtube_link = Column(String, default="")
+    tiktok_link = Column(String, default="")
     is_verified = Column(Boolean, default=False)
     is_owner = Column(Boolean, default=False)
     is_starred = Column(Boolean, default=False)
@@ -32,7 +36,13 @@ class User(Base):
     daily_points = Column(Integer, default=0)
     weekly_points = Column(Integer, default=0)
     total_points = Column(Integer, default=0)
-    last_daily_reset = Column(DateTime, nullable=True)
+    level = Column(Integer, default=1)
+    streak_days = Column(Integer, default=0)
+    last_streak_date = Column(String, default="")
+    two_factor_enabled = Column(Boolean, default=False)
+    two_factor_secret = Column(String, default="")
+    email_verified = Column(Boolean, default=False)
+    theme = Column(String, default="light")
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -56,11 +66,14 @@ class Post(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     is_repost = Column(Boolean, default=False)
     repost_id = Column(Integer, nullable=True)
+    original_comment = Column(Text, default="")
     scheduled_at = Column(DateTime, nullable=True)
     is_published = Column(Boolean, default=True)
+    is_draft = Column(Boolean, default=False)
     views = Column(Integer, default=0)
     is_exclusive = Column(Boolean, default=False)
     exclusive_until = Column(DateTime, nullable=True)
+    is_long = Column(Boolean, default=False)
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
@@ -78,6 +91,36 @@ class PostMedia(Base):
     position = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     post = relationship("Post", back_populates="media_items")
+
+class Reel(Base):
+    __tablename__ = "reels"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    video_url = Column(String)
+    thumbnail_url = Column(String, default="")
+    caption = Column(Text, default="")
+    views = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    author = relationship("User")
+    likes = relationship("ReelLike", back_populates="reel")
+    comments = relationship("ReelComment", back_populates="reel")
+
+class ReelLike(Base):
+    __tablename__ = "reel_likes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    reel_id = Column(Integer, ForeignKey("reels.id"))
+    reel = relationship("Reel", back_populates="likes")
+
+class ReelComment(Base):
+    __tablename__ = "reel_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    reel_id = Column(Integer, ForeignKey("reels.id"))
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    author = relationship("User")
+    reel = relationship("Reel", back_populates="comments")
 
 class Follow(Base):
     __tablename__ = "follows"
@@ -116,8 +159,10 @@ class Comment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
     post_id = Column(Integer, ForeignKey("posts.id"))
+    parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
     author = relationship("User")
     post = relationship("Post", back_populates="comments")
+    replies = relationship("Comment", foreign_keys=[parent_id])
 
 class Message(Base):
     __tablename__ = "messages"
@@ -125,20 +170,28 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"))
     content = Column(Text, default="")
+    content_encrypted = Column(Text, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
     file_url = Column(String, default="")
     file_name = Column(String, default="")
     file_size = Column(Integer, default=0)
     is_video_circle = Column(Boolean, default=False)
+    reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    is_edited = Column(Boolean, default=False)
+    edited_at = Column(DateTime, nullable=True)
+    disappear_at = Column(DateTime, nullable=True)
+    is_pinned = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     is_delivered = Column(Boolean, default=False)
     forwarded_from_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_deleted = Column(Boolean, default=False)
+    is_muted = Column(Boolean, default=False)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
     forwarded_from = relationship("User", foreign_keys=[forwarded_from_id])
+    reply_to = relationship("Message", foreign_keys=[reply_to_id], remote_side="Message.id")
     msg_reactions = relationship("MessageReaction", back_populates="message")
 
 class MessageReaction(Base):
@@ -155,6 +208,13 @@ class PinnedChat(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     pinned_user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class MutedChat(Base):
+    __tablename__ = "muted_chats"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    muted_user_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Notification(Base):
@@ -177,6 +237,7 @@ class VerificationCode(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, index=True)
     code = Column(String)
+    purpose = Column(String, default="register")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Promocode(Base):
@@ -263,6 +324,7 @@ class Achievement(Base):
     name = Column(String)
     description = Column(String)
     emoji = Column(String)
+    points_reward = Column(Integer, default=0)
 
 class UserAchievement(Base):
     __tablename__ = "user_achievements"
@@ -334,8 +396,6 @@ class UserBlock(Base):
     blocker = relationship("User", foreign_keys=[blocker_id], back_populates="blocked_users")
     blocked = relationship("User", foreign_keys=[blocked_id])
 
-# ===== ГЕЙМИФИКАЦИЯ =====
-
 class DailyTask(Base):
     __tablename__ = "daily_tasks"
     id = Column(Integer, primary_key=True, index=True)
@@ -382,3 +442,19 @@ class RaffleEntry(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     raffle = relationship("WeeklyRaffle", back_populates="entries")
     user = relationship("User", back_populates="raffle_entries")
+
+class Trend(Base):
+    __tablename__ = "trends"
+    id = Column(Integer, primary_key=True, index=True)
+    tag = Column(String, unique=True, index=True)
+    count = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+class Draft(Base):
+    __tablename__ = "drafts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text, default="")
+    image = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)

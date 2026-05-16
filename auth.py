@@ -35,3 +35,20 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         return None
     user = db.query(models.User).filter(models.User.username == username).first()
     return user
+
+def encrypt_message(content: str) -> str:
+    if not content:
+        return ""
+    key = 42
+    encrypted = ''.join(chr(ord(c) ^ key) for c in content)
+    return encrypted.encode('latin-1').hex()
+
+def decrypt_message(encrypted: str) -> str:
+    if not encrypted:
+        return ""
+    try:
+        key = 42
+        decoded = bytes.fromhex(encrypted).decode('latin-1')
+        return ''.join(chr(ord(c) ^ key) for c in decoded)
+    except Exception:
+        return encrypted
