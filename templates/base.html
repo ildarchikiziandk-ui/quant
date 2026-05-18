@@ -86,8 +86,7 @@
         .mobile-nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; text-decoration:none; color:var(--text-muted); flex:1; height:56px; position:relative; transition:color 0.15s; gap:3px; border-radius:12px; }
         .mobile-nav-item svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
         .mobile-nav-item span.label { font-size:9px; font-weight:600; }
-        .mobile-nav-item:hover { color:var(--text); }
-        .mobile-nav-item.active { color:var(--text); }
+        .mobile-nav-item:hover, .mobile-nav-item.active { color:var(--text); }
         .mobile-nav-item.plus-btn .plus-inner { width:46px; height:46px; background:var(--accent); border-radius:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
         .mobile-nav-item.plus-btn .plus-inner svg { stroke:var(--accent-text); }
         .mobile-nav-badge { position:absolute; top:6px; right:calc(50% - 18px); background:var(--danger); color:white; font-size:9px; font-weight:700; border-radius:6px; padding:1px 4px; min-width:14px; text-align:center; line-height:1.4; }
@@ -230,7 +229,7 @@
         <a href="/notifications" class="mobile-nav-item">
             {% if unread > 0 %}<span class="mobile-nav-badge">{{ unread }}</span>{% endif %}
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="label">Уведомления</span>
+            <span class="label">Звонки</span>
         </a>
         <a href="/reels" class="mobile-nav-item">
             <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
@@ -265,15 +264,29 @@ function setFont(size) {
     localStorage.setItem('font', size);
 }
 
-// Подсветка активного пункта меню
-const path = window.location.pathname;
+// Подсветка активного пункта
+const currentPath = window.location.pathname;
 document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(a => {
     const href = a.getAttribute('href');
-    if (href && (path === href || (href !== '/' && path.startsWith(href)))) {
+    if (href && (currentPath === href || (href !== '/' && currentPath.startsWith(href)))) {
         a.style.color = 'var(--text)';
-        a.style.background = 'var(--hover)';
+        if (a.classList.contains('nav-item')) a.style.background = 'var(--hover)';
     }
 });
+
+// Запрос разрешений
+async function requestPermissions() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+        stream.getTracks().forEach(t => t.stop());
+    } catch(e) {}
+}
+{% if user %}
+setTimeout(requestPermissions, 2000);
+{% endif %}
 
 // Service Worker + Push
 if ('serviceWorker' in navigator && 'PushManager' in window) {
