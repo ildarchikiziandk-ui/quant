@@ -1507,7 +1507,17 @@ def ping(request: Request, db: Session=Depends(get_db)):
     user = auth.get_current_user(request, db)
     if user: user.last_seen=datetime.utcnow(); db.commit()
     return JSONResponse({"ok":True})
-
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request, db: Session=Depends(get_db)):
+    ctx, user = base_ctx(request, db)
+    if not user or not can_mod(user): return RedirectResponse("/", 302)
+    users = db.query(models.User).order_by(models.User.created_at.desc()).all()
+    reports = db.query(models.PostReport).filter(models.PostReport.status=="new").all()
+    total_posts = db.query(models.Post).count()
+    total_users = db.query(models.User).count()
+    total_messages = db.query(models.Message).count()
+    ctx.update({"all_users":users, "reports":reports, "total_posts":total_posts, "total_users":total_users, "total_messages":total_messages})
+    return templates.TemplateResponse(request, "admin.html", ctx)
 @app.get("/offline", response_class=HTMLResponse)
 def offline_page(request: Request):
     return templates.TemplateResponse(request, "offline.html", {})

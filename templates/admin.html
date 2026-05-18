@@ -1,341 +1,84 @@
 {% extends "base.html" %}
 {% block content %}
-<style>
-.admin-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px; }
-.admin-tab { padding:8px 16px; border-radius:10px; font-size:13px; font-weight:600; text-decoration:none; color:#888; background:#fff; border:1px solid #e4e4e4; transition:all 0.15s; }
-.admin-tab:hover { background:#f5f5f5; color:#0f0f0f; }
-.admin-tab.active { background:#0f0f0f; color:white; border-color:#0f0f0f; }
-.stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
-.stat-card { background:#fff; border-radius:14px; padding:16px; border:1px solid #e4e4e4; }
-.stat-card .num { font-size:28px; font-weight:800; letter-spacing:-1px; color:#0f0f0f; }
-.stat-card .label { font-size:12px; color:#888; margin-top:2px; }
-.user-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f5f5f5; flex-wrap:wrap; }
-.user-row:last-child { border-bottom:none; }
-.badge-btn { font-size:11px; padding:4px 10px; border-radius:8px; border:1px solid #e4e4e4; background:#fff; cursor:pointer; font-family:inherit; transition:all 0.15s; }
-.badge-btn:hover { background:#f5f5f5; border-color:#0f0f0f; }
-.badge-btn.active { background:#0f0f0f; color:white; border-color:#0f0f0f; }
-.post-row { padding:12px 0; border-bottom:1px solid #f5f5f5; }
-.post-row:last-child { border-bottom:none; }
-.promo-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f5f5f5; flex-wrap:wrap; }
-.promo-row:last-child { border-bottom:none; }
-.tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; }
-.tag-green { background:#f0fff4; color:#276749; }
-.tag-red { background:#fff5f5; color:#cc0000; }
-.tag-blue { background:#f0f7ff; color:#0369a1; }
-.tag-yellow { background:#fffbeb; color:#92400e; }
-</style>
+<h2 style="font-size:20px;font-weight:800;margin-bottom:16px;">⚙️ Админ-панель</h2>
 
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-    <div style="width:40px;height:40px;background:#0f0f0f;border-radius:12px;display:flex;align-items:center;justify-content:center;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+    <div class="card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;font-weight:800;">{{ total_users }}</div>
+        <div style="font-size:13px;color:var(--text-secondary);">пользователей</div>
     </div>
-    <div>
-        <h1 style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">Админ-панель</h1>
-        <div style="font-size:13px;color:#888;">Только для @rubl</div>
+    <div class="card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;font-weight:800;">{{ total_posts }}</div>
+        <div style="font-size:13px;color:var(--text-secondary);">постов</div>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;font-weight:800;">{{ total_messages }}</div>
+        <div style="font-size:13px;color:var(--text-secondary);">сообщений</div>
     </div>
 </div>
 
-<div class="admin-tabs">
-    <a href="/admin?tab=stats" class="admin-tab {% if tab=='stats' %}active{% endif %}">📊 Статистика</a>
-    <a href="/admin?tab=users" class="admin-tab {% if tab=='users' %}active{% endif %}">👥 Пользователи</a>
-    <a href="/admin?tab=posts" class="admin-tab {% if tab=='posts' %}active{% endif %}">📝 Посты</a>
-    <a href="/admin?tab=reports" class="admin-tab {% if tab=='reports' %}active{% endif %}">🚩 Жалобы{% if new_reports_count > 0 %}<span style="background:#e53935;color:white;border-radius:6px;padding:1px 6px;font-size:10px;margin-left:4px;">{{ new_reports_count }}</span>{% endif %}</a>
-    <a href="/admin?tab=requests" class="admin-tab {% if tab=='requests' %}active{% endif %}">💎 Заявки{% if new_requests_count > 0 %}<span style="background:#e53935;color:white;border-radius:6px;padding:1px 6px;font-size:10px;margin-left:4px;">{{ new_requests_count }}</span>{% endif %}</a>
-    <a href="/admin?tab=promocodes" class="admin-tab {% if tab=='promocodes' %}active{% endif %}">🎟 Промокоды</a>
-    <a href="/admin?tab=notify" class="admin-tab {% if tab=='notify' %}active{% endif %}">🔔 Уведомления</a>
-    <a href="/admin?tab=settings" class="admin-tab {% if tab=='settings' %}active{% endif %}">⚙️ Настройки</a>
+{% if reports %}
+<div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">🚩 Жалобы на посты ({{ reports|length }})</div>
+    {% for r in reports %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+            <div style="font-size:13px;font-weight:600;">Пост #{{ r.post_id }}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">{{ r.reason }}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+            <a href="/post/{{ r.post_id }}"><button class="btn-outline" style="font-size:12px;padding:5px 10px;">Открыть</button></a>
+            <form method="post" action="/post/{{ r.post_id }}/delete"><button class="btn-outline" style="font-size:12px;padding:5px 10px;color:var(--danger);border-color:var(--danger);">Удалить</button></form>
+        </div>
+    </div>
+    {% endfor %}
 </div>
-
-<!-- СТАТИСТИКА -->
-{% if tab == 'stats' %}
-<div class="stat-grid">
-    <div class="stat-card"><div class="num">{{ stats.total_users }}</div><div class="label">Всего пользователей</div></div>
-    <div class="stat-card"><div class="num">{{ stats.new_today }}</div><div class="label">Новых сегодня</div></div>
-    <div class="stat-card"><div class="num">{{ stats.new_week }}</div><div class="label">Новых за неделю</div></div>
-    <div class="stat-card"><div class="num">{{ stats.active_24h }}</div><div class="label">Активных за 24ч</div></div>
-    <div class="stat-card"><div class="num">{{ stats.total_posts }}</div><div class="label">Всего постов</div></div>
-    <div class="stat-card"><div class="num">{{ stats.posts_today }}</div><div class="label">Постов сегодня</div></div>
-    <div class="stat-card"><div class="num">{{ stats.total_messages }}</div><div class="label">Сообщений</div></div>
-    <div class="stat-card"><div class="num">{{ stats.plus_users }}</div><div class="label">Plus пользователей</div></div>
-</div>
-<div class="card" style="text-align:center;color:#888;padding:24px;">Добро пожаловать в админ-панель Quant</div>
 {% endif %}
 
-<!-- ПОЛЬЗОВАТЕЛИ -->
-{% if tab == 'users' %}
-<div class="card" style="margin-bottom:10px;">
-    <form method="get" action="/admin" style="display:flex;gap:10px;">
-        <input type="hidden" name="tab" value="users">
-        <input type="text" name="q" value="{{ q }}" placeholder="Поиск по нику, имени, email..." style="margin-bottom:0;flex:1;">
-        <button class="btn" style="padding:10px 20px;flex-shrink:0;">Найти</button>
-    </form>
-</div>
 <div class="card">
-    <div style="font-size:13px;color:#888;margin-bottom:12px;">Найдено: {{ users|length }}</div>
-    {% for u in users %}
-    <div class="user-row">
-        <div class="avatar-circle" style="width:38px;height:38px;flex-shrink:0;">
-            {% if u.avatar %}<img src="{{ u.avatar }}">{% else %}<span style="font-size:14px;">{{ u.username[0].upper() }}</span>{% endif %}
-        </div>
-        <div style="flex:1;min-width:140px;">
-            <div style="font-weight:700;font-size:14px;">{{ u.name or u.username }}</div>
-            <div style="color:#888;font-size:12px;">@{{ u.username }} · {{ u.email }}</div>
-            <div style="font-size:11px;color:#bbb;margin-top:2px;">
-                Зарегистрирован {{ u.created_at.strftime("%d.%m.%Y") if u.created_at else "—" }}
-                {% if u.is_blocked %}<span class="tag tag-red" style="margin-left:4px;">заблокирован{% if u.blocked_until %} до {{ u.blocked_until.strftime("%d.%m.%Y") }}{% endif %}</span>{% endif %}
-                {% if u.is_plus %}<span class="tag tag-blue" style="margin-left:4px;">Plus{% if u.plus_until %} до {{ u.plus_until.strftime("%d.%m.%Y") }}{% endif %}</span>{% endif %}
-                {% if u.is_moderator %}<span class="tag tag-green" style="margin-left:4px;">мод</span>{% endif %}
-                {% if u.is_owner %}<span class="tag" style="background:#0f0f0f;color:white;margin-left:4px;">владелец</span>{% endif %}
+    <div style="font-weight:700;font-size:15px;margin-bottom:12px;">👥 Все пользователи</div>
+    <input type="text" id="user-search" placeholder="Поиск..." oninput="filterUsers(this.value)" style="margin-bottom:12px;">
+    <div id="users-list">
+    {% for u in all_users %}
+    <div class="user-row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);" data-name="{{ (u.name or u.username)|lower }}">
+        <a href="/profile/{{ u.username }}">
+            <div class="avatar-circle" style="width:36px;height:36px;flex-shrink:0;">
+                {% if u.avatar %}<img src="{{ u.avatar }}">{% else %}<span style="font-size:13px;">{{ u.username[0].upper() }}</span>{% endif %}
             </div>
+        </a>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;">{{ u.name or u.username }} <span style="color:var(--text-muted);font-weight:400;">@{{ u.username }}</span></div>
+            <div style="font-size:11px;color:var(--text-muted);">{{ u.email }} · {{ u.created_at.strftime("%d.%m.%Y") }}{% if u.is_plus %} · Plus{% endif %}{% if u.is_blocked %} · 🚫{% endif %}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <form method="post" action="/admin/verify/{{ u.username }}" style="margin:0;">
-                <button class="badge-btn {% if u.is_verified_badge %}active{% endif %}" title="Верификация">✔</button>
-            </form>
-            <form method="post" action="/admin/star/{{ u.username }}" style="margin:0;">
-                <button class="badge-btn {% if u.is_starred %}active{% endif %}" title="Звезда">⭐</button>
-            </form>
-            <form method="post" action="/admin/mod/{{ u.username }}" style="margin:0;">
-                <button class="badge-btn {% if u.is_moderator %}active{% endif %}" title="Модератор">🛡️</button>
-            </form>
-            <form method="post" action="/admin/give_plus/{{ u.username }}" style="margin:0;display:flex;gap:4px;align-items:center;">
-                <select name="days" style="padding:4px 6px;border-radius:6px;border:1px solid #e4e4e4;font-size:11px;margin:0;width:auto;">
-                    <option value="7">7д</option>
-                    <option value="30" selected>30д</option>
-                    <option value="90">90д</option>
-                    <option value="365">1г</option>
-                </select>
-                <button class="badge-btn {% if u.is_plus %}active{% endif %}" title="Выдать Plus">💎</button>
-            </form>
-            {% if not u.is_blocked %}
-            <form method="post" action="/admin/block/{{ u.username }}" style="margin:0;display:flex;gap:4px;align-items:center;">
-                <select name="days" style="padding:4px 6px;border-radius:6px;border:1px solid #e4e4e4;font-size:11px;margin:0;width:auto;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+            <form method="post" action="/admin/verify/{{ u.username }}"><button class="btn-outline" style="font-size:11px;padding:4px 8px;">{% if u.is_verified_badge %}–✔{% else %}+✔{% endif %}</button></form>
+            <form method="post" action="/admin/star/{{ u.username }}"><button class="btn-outline" style="font-size:11px;padding:4px 8px;">{% if u.is_starred %}–⭐{% else %}+⭐{% endif %}</button></form>
+            <form method="post" action="/admin/mod/{{ u.username }}"><button class="btn-outline" style="font-size:11px;padding:4px 8px;">{% if u.is_moderator %}–🛡️{% else %}+🛡️{% endif %}</button></form>
+            {% if u.is_blocked %}
+            <form method="post" action="/admin/unblock/{{ u.username }}"><button class="btn-outline" style="font-size:11px;padding:4px 8px;color:var(--success);border-color:var(--success);">Разблок</button></form>
+            {% else %}
+            <form method="post" action="/admin/block/{{ u.username }}" style="display:flex;gap:4px;align-items:center;">
+                <select name="days" style="padding:3px 6px;border-radius:6px;border:1.5px solid var(--border);font-size:11px;margin-bottom:0;width:auto;">
                     <option value="1">1д</option>
                     <option value="3">3д</option>
                     <option value="7">7д</option>
                     <option value="30">30д</option>
-                    <option value="365">1г</option>
                 </select>
-                <button class="badge-btn" style="color:#e53935;border-color:#ffd0d0;" title="Заблокировать">🚫</button>
-            </form>
-            {% else %}
-            <form method="post" action="/admin/unblock/{{ u.username }}" style="margin:0;">
-                <button class="badge-btn" style="color:#276749;border-color:#c6f6d5;" title="Разблокировать">✅</button>
+                <button class="btn-outline" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger);">Блок</button>
             </form>
             {% endif %}
-            <a href="/profile/{{ u.username }}" class="badge-btn" target="_blank">↗</a>
         </div>
     </div>
-    {% else %}
-    <div style="text-align:center;color:#bbb;padding:24px 0;font-size:14px;">Введи запрос для поиска</div>
     {% endfor %}
-</div>
-{% endif %}
-
-<!-- ПОСТЫ -->
-{% if tab == 'posts' %}
-<div class="card">
-    <div style="font-size:13px;color:#888;margin-bottom:12px;">Последние 50 постов</div>
-    {% for post in posts %}
-    <div class="post-row">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-            <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-                    <a href="/profile/{{ post.author.username }}" style="font-weight:700;font-size:13px;">@{{ post.author.username }}</a>
-                    <span style="color:#bbb;font-size:11px;">{{ post.created_at.strftime("%d.%m.%Y %H:%M") if post.created_at else "—" }}</span>
-                    <span style="color:#888;font-size:11px;">❤️ {{ post.likes|length }} 💬 {{ post.comments|length }} 👁 {{ post.views or 0 }}</span>
-                </div>
-                <div style="font-size:14px;color:#333;line-height:1.5;overflow:hidden;max-height:60px;">{{ post.content[:200] }}</div>
-            </div>
-            <form method="post" action="/admin/delete_post/{{ post.id }}" onsubmit="return confirm('Удалить пост?')" style="flex-shrink:0;">
-                <button style="background:none;border:none;color:#e53935;cursor:pointer;padding:4px 8px;border-radius:8px;font-size:13px;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">Удалить</button>
-            </form>
-        </div>
     </div>
-    {% else %}
-    <div style="text-align:center;color:#bbb;padding:24px 0;">Постов нет</div>
-    {% endfor %}
 </div>
-{% endif %}
 
-<!-- ЖАЛОБЫ -->
-{% if tab == 'reports' %}
-<div class="card">
-    <div style="font-size:13px;color:#888;margin-bottom:12px;">Всего жалоб: {{ reports|length }}</div>
-    {% for report in reports %}
-    <div style="padding:16px 0;border-bottom:1px solid #f5f5f5;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-            <div style="flex:1;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-                    <a href="/profile/{{ report.reporter.username }}" style="font-weight:700;font-size:13px;">@{{ report.reporter.username }}</a>
-                    <span style="color:#888;font-size:12px;">→ пожаловался на</span>
-                    <a href="/profile/{{ report.target.username }}" style="font-weight:700;font-size:13px;color:#e53935;">@{{ report.target.username }}</a>
-                    <span style="color:#bbb;font-size:11px;">{{ report.created_at.strftime("%d.%m.%Y %H:%M") if report.created_at else "—" }}</span>
-                    {% if report.status == 'new' %}<span class="tag tag-yellow">новая</span>
-                    {% elif report.status == 'block' %}<span class="tag tag-red">заблокирован</span>
-                    {% elif report.status == 'warn' %}<span class="tag tag-blue">предупреждён</span>
-                    {% elif report.status == 'reject' %}<span class="tag tag-green">отклонена</span>{% endif %}
-                </div>
-                <div style="font-size:13px;color:#555;margin-bottom:4px;"><b>Причина:</b>
-                    {% if report.reason == 'spam' %}Спам
-                    {% elif report.reason == 'abuse' %}Оскорбления
-                    {% elif report.reason == 'fake' %}Фейк
-                    {% elif report.reason == 'scam' %}Мошенничество
-                    {% elif report.reason == 'violence' %}Насилие
-                    {% elif report.reason == 'copyright' %}Авторские права
-                    {% else %}Другое{% endif %}
-                </div>
-                {% if report.text %}<div style="background:#f8f8f8;border-radius:8px;padding:10px 12px;font-size:13px;color:#333;margin-bottom:8px;">{{ report.text[:300] }}</div>{% endif %}
-                {% if report.image_1 or report.image_2 or report.image_3 %}
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                    {% for img in [report.image_1, report.image_2, report.image_3, report.image_4, report.image_5] %}
-                    {% if img %}<a href="{{ img }}" target="_blank"><img src="{{ img }}" style="height:60px;width:60px;object-fit:cover;border-radius:8px;border:1px solid #e4e4e4;"></a>{% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% if report.status == 'new' %}
-        <form method="post" action="/admin/report/action/{{ report.id }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-            <input type="text" name="comment" placeholder="Комментарий..." style="margin-bottom:0;flex:1;min-width:200px;font-size:13px;padding:8px 12px;">
-            <button name="action" value="block" class="badge-btn" style="color:#e53935;border-color:#ffd0d0;" onclick="return confirm('Заблокировать?')">🚫 Блок</button>
-            <button name="action" value="warn" class="badge-btn" style="color:#92400e;border-color:#ffe082;">⚠️ Предупреждение</button>
-            <button name="action" value="reject" class="badge-btn" style="color:#276749;border-color:#c6f6d5;">✅ Отклонить</button>
-        </form>
-        {% else %}
-        <div style="font-size:12px;color:#bbb;">Рассмотрена{% if report.admin_comment %} · {{ report.admin_comment }}{% endif %}</div>
-        {% endif %}
-    </div>
-    {% else %}
-    <div style="text-align:center;color:#bbb;padding:24px 0;">Жалоб нет</div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- ЗАЯВКИ НА СТАТУС -->
-{% if tab == 'requests' %}
-<div class="card">
-    <div style="font-size:13px;color:#888;margin-bottom:12px;">Всего заявок: {{ special_requests|length }}</div>
-    {% for req in special_requests %}
-    <div style="padding:16px 0;border-bottom:1px solid #f5f5f5;">
-        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
-            <div class="avatar-circle" style="width:40px;height:40px;flex-shrink:0;">
-                {% if req.user.avatar %}<img src="{{ req.user.avatar }}">{% else %}<span style="font-size:15px;">{{ req.user.username[0].upper() }}</span>{% endif %}
-            </div>
-            <div style="flex:1;">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-                    <a href="/profile/{{ req.user.username }}" style="font-weight:700;font-size:14px;">@{{ req.user.username }}</a>
-                    <span style="font-size:13px;">хочет получить
-                        {% if req.type == 'verify' %}<b>верификацию ✔</b>
-                        {% elif req.type == 'star' %}<b>особый статус ⭐</b>
-                        {% elif req.type == 'mod' %}<b>модератора 🛡️</b>{% endif %}
-                    </span>
-                    <span style="color:#bbb;font-size:11px;">{{ req.created_at.strftime("%d.%m.%Y %H:%M") if req.created_at else "—" }}</span>
-                    {% if req.status == 'new' %}<span class="tag tag-yellow">новая</span>
-                    {% elif req.status == 'approve' %}<span class="tag tag-green">одобрена</span>
-                    {% elif req.status == 'reject' %}<span class="tag tag-red">отклонена</span>{% endif %}
-                </div>
-                <div style="background:#f8f8f8;border-radius:8px;padding:10px 12px;font-size:13px;color:#333;margin-bottom:8px;">{{ req.reason[:400] }}</div>
-                {% if req.links %}
-                <div style="font-size:12px;color:#888;">🔗 {{ req.links[:200] }}</div>
-                {% endif %}
-            </div>
-        </div>
-        {% if req.status == 'new' %}
-        <form method="post" action="/admin/special_request/action/{{ req.id }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-            <input type="text" name="comment" placeholder="Комментарий для пользователя..." style="margin-bottom:0;flex:1;min-width:200px;font-size:13px;padding:8px 12px;">
-            <button name="action" value="approve" class="badge-btn" style="color:#276749;border-color:#c6f6d5;" onclick="return confirm('Одобрить заявку?')">✅ Одобрить</button>
-            <button name="action" value="reject" class="badge-btn" style="color:#e53935;border-color:#ffd0d0;">❌ Отклонить</button>
-        </form>
-        {% else %}
-        <div style="font-size:12px;color:#bbb;">Рассмотрена{% if req.admin_comment %} · {{ req.admin_comment }}{% endif %}</div>
-        {% endif %}
-    </div>
-    {% else %}
-    <div style="text-align:center;color:#bbb;padding:24px 0;">Заявок нет</div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- ПРОМОКОДЫ -->
-{% if tab == 'promocodes' %}
-<div class="card" style="margin-bottom:10px;">
-    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Создать промокод</div>
-    <form method="post" action="/admin/create_promo" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
-        <div style="flex:1;min-width:120px;">
-            <div style="font-size:12px;color:#888;margin-bottom:4px;">Код</div>
-            <input type="text" name="code" placeholder="EXAMPLE2025" required style="margin-bottom:0;text-transform:uppercase;">
-        </div>
-        <div>
-            <div style="font-size:12px;color:#888;margin-bottom:4px;">Дней</div>
-            <select name="days" style="padding:11px 12px;border-radius:10px;border:1.5px solid #e4e4e4;font-size:14px;font-family:inherit;background:#fff;">
-                <option value="7">7</option>
-                <option value="30" selected>30</option>
-                <option value="90">90</option>
-                <option value="365">365</option>
-            </select>
-        </div>
-        <div>
-            <div style="font-size:12px;color:#888;margin-bottom:4px;">Активаций</div>
-            <input type="number" name="max_uses" value="1" min="1" max="10000" style="margin-bottom:0;width:90px;">
-        </div>
-        <button class="btn">Создать</button>
-    </form>
-</div>
-<div class="card">
-    {% for promo in promocodes %}
-    <div class="promo-row">
-        <code style="background:#f5f5f5;padding:4px 10px;border-radius:8px;font-size:14px;font-weight:700;flex-shrink:0;">{{ promo.code }}</code>
-        <span style="font-size:13px;color:#555;">{{ promo.days }} дн.</span>
-        <span style="font-size:13px;color:#555;">{{ promo.uses }}/{{ promo.max_uses }}</span>
-        {% if promo.is_active %}<span class="tag tag-green">активен</span>{% else %}<span class="tag tag-red">исчерпан</span>{% endif %}
-        <span style="font-size:11px;color:#bbb;margin-left:auto;">{{ promo.created_at.strftime("%d.%m.%Y") if promo.created_at else "—" }}</span>
-    </div>
-    {% else %}
-    <div style="text-align:center;color:#bbb;padding:24px 0;">Промокодов нет</div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- УВЕДОМЛЕНИЯ -->
-{% if tab == 'notify' %}
-{% if request.query_params.get('sent') %}
-<div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:12px;padding:12px 16px;margin-bottom:12px;color:#276749;font-size:14px;">✔ Уведомление отправлено всем пользователям</div>
-{% endif %}
-<div class="card">
-    <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Массовое уведомление</div>
-    <div style="font-size:13px;color:#888;margin-bottom:14px;">Отправит уведомление всем пользователям сети</div>
-    <form method="post" action="/admin/notify_all">
-        <textarea name="text" placeholder="Текст уведомления..." required style="min-height:100px;"></textarea>
-        <button class="btn" onclick="return confirm('Отправить всем?')">Отправить всем</button>
-    </form>
-</div>
-{% endif %}
-
-<!-- НАСТРОЙКИ -->
-{% if tab == 'settings' %}
-<div class="card" style="margin-bottom:10px;">
-    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Стоп-слова</div>
-    <div style="font-size:13px;color:#888;margin-bottom:14px;">Посты и комментарии с этими словами блокируются</div>
-    <form method="post" action="/admin/stopword/add" style="display:flex;gap:10px;margin-bottom:16px;">
-        <input type="text" name="word" placeholder="Добавить слово..." required style="margin-bottom:0;flex:1;">
-        <button class="btn" style="flex-shrink:0;">Добавить</button>
-    </form>
-    {% if stop_words %}
-    <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        {% for sw in stop_words %}
-        <form method="post" action="/admin/stopword/delete/{{ sw.id }}" style="margin:0;">
-            <button style="display:flex;align-items:center;gap:6px;background:#f5f5f5;border:1px solid #e4e4e4;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-family:inherit;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#f5f5f5'">
-                {{ sw.word }}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </form>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div style="color:#bbb;font-size:14px;">Стоп-слов нет</div>
-    {% endif %}
-</div>
-{% endif %}
-
+<script>
+function filterUsers(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.user-row').forEach(row => {
+        row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+}
+</script>
 {% endblock %}
