@@ -1,10 +1,9 @@
-const CACHE_NAME = 'quant-v2';
-const OFFLINE_URL = '/offline';
+const CACHE_NAME = 'quant-v3';
 
 self.addEventListener('install', e => {
     e.waitUntil(
         caches.open(CACHE_NAME).then(cache =>
-            cache.addAll(['/static/icon-192.png', '/'])
+            cache.addAll(['/static/icon-192.png', '/offline'])
         )
     );
     self.skipWaiting();
@@ -23,7 +22,7 @@ self.addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
     e.respondWith(
         fetch(e.request).catch(() =>
-            caches.match(e.request).then(r => r || caches.match('/'))
+            caches.match(e.request).then(r => r || caches.match('/offline'))
         )
     );
 });
@@ -37,12 +36,22 @@ self.addEventListener('push', e => {
             icon: '/static/icon-192.png',
             badge: '/static/icon-192.png',
             data: { url: data.url || '/' },
-            vibrate: [200, 100, 200]
+            vibrate: [200, 100, 200],
+            tag: 'quant-notification',
+            renotify: true
         })
     );
 });
 
 self.addEventListener('notificationclick', e => {
     e.notification.close();
-    e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
+    e.waitUntil(
+        clients.matchAll({type:'window'}).then(cs => {
+            const url = e.notification.data.url || '/';
+            for (const c of cs) {
+                if (c.url === url && 'focus' in c) return c.focus();
+            }
+            if (clients.openWindow) return clients.openWindow(url);
+        })
+    );
 });

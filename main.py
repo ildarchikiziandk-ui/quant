@@ -1518,6 +1518,29 @@ def admin_page(request: Request, db: Session=Depends(get_db)):
     total_messages = db.query(models.Message).count()
     ctx.update({"all_users":users, "reports":reports, "total_posts":total_posts, "total_users":total_users, "total_messages":total_messages})
     return templates.TemplateResponse(request, "admin.html", ctx)
+from push_service import send_push_to_user, VAPID_PUBLIC_KEY as VAPID_PUB
+@app.get("/api/vapid-public-key")
+def vapid_key():
+    return JSONResponse({"key": VAPID_PUB})
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(request: Request, db: Session=Depends(get_db)):
+    user = auth.get_current_user(request, db)
+    if not user: return JSONResponse({"error":"auth"}, 401)
+    data = await request.json()
+    existing = db.query(models.PushSubscription).filter(
+        models.PushSubscription.user_id==user.id,
+        models.PushSubscription.endpoint==data.get("endpoint")
+    ).first()
+    if not existing:
+        db.add(models.PushSubscription(
+            user_id=user.id,
+            endpoint=data.get("endpoint",""),
+            p256dh=data.get("p256dh",""),
+            auth=data.get("auth","")
+        ))
+        db.commit()
+    return JSONResponse({"ok":True})
 @app.get("/offline", response_class=HTMLResponse)
 def offline_page(request: Request):
     return templates.TemplateResponse(request, "offline.html", {})
