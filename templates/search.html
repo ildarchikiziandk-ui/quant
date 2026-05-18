@@ -1,37 +1,66 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-    <form method="get" action="/search" style="display: flex; gap: 10px; align-items: center;">
-        <input type="text" name="q" value="{{ q }}" placeholder="Поиск пользователей..." style="margin-bottom: 0; flex: 1;" autofocus>
-        <button class="btn" style="padding: 10px 20px;">Найти</button>
+<div class="card" style="margin-bottom:10px;">
+    <form method="get" action="/search" style="display:flex;gap:10px;align-items:center;">
+        <div style="position:relative;flex:1;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" name="q" value="{{ q }}" placeholder="Люди, посты, теги..." style="margin-bottom:0;padding-left:42px;" autofocus>
+        </div>
+        <button class="btn" style="padding:10px 20px;">Найти</button>
     </form>
 </div>
 
 {% if q %}
-    {% if results %}
-        <div style="color: #888; font-size: 13px; margin-bottom: 10px; padding: 0 4px;">
-            Найдено: {{ results|length }}
+{% if user_results %}
+<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding:0 4px;">Люди</div>
+{% for u in user_results %}
+<a href="/profile/{{ u.username }}" style="text-decoration:none;">
+    <div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;padding:12px 16px;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='var(--card)'">
+        <div class="avatar-circle" style="width:46px;height:46px;">
+            {% if u.avatar %}<img src="{{ u.avatar }}">{% else %}<span style="font-size:17px;">{{ u.username[0].upper() }}</span>{% endif %}
         </div>
-        {% for u in results %}
-        <a href="/profile/{{ u.username }}">
-            <div class="card" style="display: flex; align-items: center; gap: 14px; cursor: pointer; transition: border 0.15s;" onmouseover="this.style.borderColor='#0f0f0f'" onmouseout="this.style.borderColor='#e8e8e8'">
-                <div style="width: 48px; height: 48px; background: #0f0f0f; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 600; flex-shrink: 0;">
-                    {{ u.username[0].upper() }}
-                </div>
-                <div>
-                    <div style="font-weight: 600; font-size: 15px;">{{ u.name or u.username }}</div>
-                    <div style="color: #888; font-size: 13px;">@{{ u.username }}</div>
-                </div>
-                <div style="margin-left: auto; color: #888; font-size: 13px;">
-                    {{ u.followers|length }} подписчиков
-                </div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:15px;">{{ u.name or u.username }}</div>
+            <div style="color:var(--text-secondary);font-size:13px;">@{{ u.username }}</div>
+            {% if u.bio %}<div style="font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;">{{ u.bio[:50] }}</div>{% endif %}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);">{{ u.followers|length }} подп.</div>
+    </div>
+</a>
+{% endfor %}
+{% endif %}
+
+{% if post_results %}
+<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;padding:0 4px;">Посты</div>
+{% for post in post_results %}
+<div class="card">
+    <div style="display:flex;gap:10px;align-items:flex-start;">
+        <a href="/profile/{{ post.author.username }}">
+            <div class="avatar-circle" style="width:34px;height:34px;flex-shrink:0;">
+                {% if post.author.avatar %}<img src="{{ post.author.avatar }}">{% else %}<span style="font-size:12px;">{{ post.author.username[0].upper() }}</span>{% endif %}
             </div>
         </a>
-        {% endfor %}
-    {% else %}
-        <div style="text-align: center; color: #888; padding: 40px 0; font-size: 15px;">
-            Никого не найдено по запросу "{{ q }}"
+        <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <a href="/profile/{{ post.author.username }}" style="font-weight:700;font-size:13px;">{{ post.author.name or post.author.username }}</a>
+                <span style="color:var(--text-muted);font-size:12px;">{{ post.created_at.strftime("%d.%m.%Y") }}</span>
+            </div>
+            <a href="/post/{{ post.id }}" style="font-size:14px;color:var(--text);line-height:1.5;display:block;">{{ post.content[:200] }}</a>
         </div>
-    {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if not user_results and not post_results %}
+<div style="text-align:center;color:var(--text-secondary);padding:48px 0;font-size:15px;">
+    Ничего не найдено по запросу "{{ q }}"
+</div>
+{% endif %}
+{% else %}
+<div style="text-align:center;color:var(--text-secondary);padding:48px 0;font-size:15px;">
+    <div style="font-size:40px;margin-bottom:12px;">🔍</div>
+    <div>Введи запрос для поиска</div>
+</div>
 {% endif %}
 {% endblock %}

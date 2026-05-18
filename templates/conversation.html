@@ -1,200 +1,83 @@
 {% extends "base.html" %}
 {% block content %}
-
-<div style="background:#fff;border-radius:16px;border:1px solid #e4e4e4;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:10px;position:sticky;top:0;z-index:10;">
-    <a href="/messages" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+<div style="background:var(--card);border-radius:16px;border:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:10px;position:sticky;top:0;z-index:10;">
+    <a href="/messages" style="color:var(--text-secondary);display:flex;align-items:center;padding:6px;border-radius:8px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </a>
-    <a href="/profile/{{ other.username }}" style="flex-shrink:0;">
-        <div class="avatar-circle" style="width:38px;height:38px;">
-            {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:14px;">{{ other.username[0].upper() }}</span>{% endif %}
+    <a href="/profile/{{ other.username }}">
+        <div style="position:relative;">
+            <div class="avatar-circle" style="width:38px;height:38px;">
+                {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:14px;">{{ other.username[0].upper() }}</span>{% endif %}
+            </div>
+            <div id="online-dot" style="display:none;position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:var(--online);border-radius:50%;border:2px solid var(--card);"></div>
         </div>
     </a>
     <div style="flex:1;">
         <div style="font-weight:700;font-size:15px;">{{ other.name or other.username }}</div>
-        <div id="typing-status" style="color:#888;font-size:12px;">@{{ other.username }}</div>
+        <div id="status-line" style="color:var(--text-muted);font-size:12px;">@{{ other.username }}</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-        <a href="/messages/{{ other.username }}/search" style="color:#888;display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <div style="display:flex;gap:6px;">
+        <a href="/call/{{ other.username }}?type=voice" style="color:var(--text-secondary);padding:7px;border-radius:10px;background:var(--input-bg);display:flex;align-items:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         </a>
-        <form method="post" action="/messages/pin/{{ other.username }}">
-            <button style="background:none;border:none;cursor:pointer;color:{% if is_pinned %}#0f0f0f{% else %}#bbb{% endif %};display:flex;align-items:center;padding:6px;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'" title="{% if is_pinned %}Открепить{% else %}Закрепить{% endif %}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
-            </button>
-        </form>
+        <a href="/call/{{ other.username }}?type=video" style="color:var(--text-secondary);padding:7px;border-radius:10px;background:var(--input-bg);display:flex;align-items:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </a>
     </div>
 </div>
 
-<div class="card" id="messages-box" style="min-height:420px;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:16px;scroll-behavior:smooth;">
+<div class="card" id="messages-box" style="min-height:420px;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:14px;scroll-behavior:smooth;">
     {% if messages %}
-        {% for msg in messages %}
-        <div class="msg-item" data-id="{{ msg.id }}" style="display:flex;flex-direction:column;{% if msg.sender_id == user.id %}align-items:flex-end{% else %}align-items:flex-start{% endif %};gap:2px;">
-
-            {% if msg.is_deleted %}
-            <div style="padding:8px 14px;border-radius:16px;background:#f5f5f5;color:#bbb;font-size:13px;font-style:italic;display:flex;align-items:center;gap:6px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                Сообщение удалено
+    {% for msg in messages %}
+    <div class="msg-item" data-id="{{ msg.id }}" style="display:flex;flex-direction:column;{% if msg.sender_id == user.id %}align-items:flex-end{% else %}align-items:flex-start{% endif %};gap:2px;">
+        {% if msg.sender_id != user.id %}
+        <div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">
+            <div class="avatar-circle" style="width:26px;height:26px;flex-shrink:0;">
+                {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:10px;">{{ other.username[0].upper() }}</span>{% endif %}
             </div>
-            {% else %}
-
-            {% if msg.forwarded_from %}
-            <div style="font-size:11px;color:#aaa;padding:0 4px;margin-bottom:2px;">
-                ↪ от <a href="/profile/{{ msg.forwarded_from.username }}" style="color:#1d9bf0;font-weight:600;">{{ msg.forwarded_from.name or msg.forwarded_from.username }}</a>
-            </div>
-            {% endif %}
-
-            {% if msg.sender_id != user.id %}
-            <div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">
-                <div class="avatar-circle" style="width:26px;height:26px;flex-shrink:0;">
-                    {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:10px;">{{ other.username[0].upper() }}</span>{% endif %}
-                </div>
-                <div>
-                    {% if msg.image %}
-                        {% if msg.is_video_circle %}
-                        <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;margin-bottom:3px;border:3px solid #f0f0f0;">
-                            <video src="{{ msg.image }}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>
-                        </div>
-                        {% else %}
-                        <div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>
-                        {% endif %}
-                    {% endif %}
-                    {% if msg.voice %}<div style="background:#f5f5f5;border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;"></audio></div>{% endif %}
-                    {% if msg.file_url %}
-                    <a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:12px;padding:10px 14px;text-decoration:none;color:#0f0f0f;max-width:220px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        <div><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">{{ msg.file_name }}</div><div style="font-size:11px;color:#888;">{{ (msg.file_size / 1024) | int }} КБ</div></div>
-                    </a>
-                    {% endif %}
-                    {% if msg.content %}<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:#f5f5f5;color:#0f0f0f;font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
-                </div>
-            </div>
-            {% else %}
-            <div style="max-width:72%;">
-                {% if msg.image %}
-                    {% if msg.is_video_circle %}
-                    <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;margin-bottom:3px;border:3px solid #333;">
-                        <video src="{{ msg.image }}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>
-                    </div>
-                    {% else %}
-                    <div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>
-                    {% endif %}
-                {% endif %}
-                {% if msg.voice %}<div style="background:#1a1a1a;border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>{% endif %}
-                {% if msg.file_url %}
-                <a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:12px;padding:10px 14px;text-decoration:none;color:white;max-width:220px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <div><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">{{ msg.file_name }}</div><div style="font-size:11px;color:#888;">{{ (msg.file_size / 1024) | int }} КБ</div></div>
-                </a>
-                {% endif %}
-                {% if msg.content %}<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
-            </div>
-            {% endif %}
-
-            {% if msg.msg_reactions %}
-            <div style="display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;">
-                {% set reaction_counts = {} %}
-                {% for r in msg.msg_reactions %}{% if r.emoji not in reaction_counts %}{% set _ = reaction_counts.update({r.emoji: 1}) %}{% else %}{% set _ = reaction_counts.update({r.emoji: reaction_counts[r.emoji] + 1}) %}{% endif %}{% endfor %}
-                {% for emoji, count in reaction_counts.items() %}
-                <span style="background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;" onclick="toggleReaction({{ msg.id }}, '{{ emoji }}')">{{ emoji }} {{ count }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endif %}
-
-            <div style="font-size:11px;color:#bbb;padding:0 4px;display:flex;align-items:center;gap:5px;">
-                {{ msg.created_at.strftime("%H:%M") }}
-                {% if msg.sender_id == user.id and not msg.is_deleted %}
-                    {% if msg.is_read %}<span style="color:#1d9bf0;font-size:12px;font-weight:600;">✓✓</span>
-                    {% elif msg.is_delivered %}<span style="color:#bbb;font-size:12px;">✓✓</span>
-                    {% else %}<span style="color:#bbb;font-size:12px;">✓</span>{% endif %}
-                {% endif %}
-                {% if not msg.is_deleted %}
-                <span class="msg-actions" style="display:none;gap:3px;align-items:center;">
-                    <button onclick="showReactionPicker({{ msg.id }}, this)" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;">😊</button>
-                    <button onclick="showForwardDialog({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#aaa;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
-                    </button>
-                    {% if msg.sender_id == user.id %}
-                    <button onclick="deleteMessage({{ msg.id }})" style="background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:6px;color:#e53935;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                    </button>
-                    {% endif %}
-                </span>
-                {% endif %}
+            <div>
+                {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:240px;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
+                {% if msg.voice %}<div style="background:var(--input-bg);border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;"></audio></div>{% endif %}
+                {% if msg.file_url %}<a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--input-bg);border-radius:12px;padding:10px 14px;color:var(--text);max-width:220px;">📎 {{ msg.file_name }}</a>{% endif %}
+                {% if msg.content %}<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:var(--input-bg);color:var(--text);font-size:14px;line-height:1.5;max-width:300px;word-break:break-word;">{{ msg.content }}</div>{% endif %}
             </div>
         </div>
-        {% endfor %}
+        {% else %}
+        <div style="max-width:72%;">
+            {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:240px;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
+            {% if msg.voice %}<div style="background:var(--accent);border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>{% endif %}
+            {% if msg.file_url %}<a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--accent);border-radius:12px;padding:10px 14px;color:var(--accent-text);max-width:220px;">📎 {{ msg.file_name }}</a>{% endif %}
+            {% if msg.content %}<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:var(--accent);color:var(--accent-text);font-size:14px;line-height:1.5;max-width:300px;word-break:break-word;">{{ msg.content }}</div>{% endif %}
+        </div>
+        {% endif %}
+        <div style="font-size:11px;color:var(--text-muted);padding:0 4px;display:flex;align-items:center;gap:4px;">
+            {{ msg.created_at.strftime("%H:%M") }}
+            {% if msg.sender_id == user.id %}{% if msg.is_read %}<span style="color:#1d9bf0;">✔✔</span>{% else %}<span>✔</span>{% endif %}{% endif %}
+            {% if msg.is_edited %}<span style="font-size:10px;">✎</span>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
     {% else %}
-        <div id="empty-msg" style="text-align:center;color:#bbb;margin:auto;font-size:14px;padding:40px 0;">
-            Начни диалог с @{{ other.username }}
-        </div>
+    <div id="empty-msg" style="text-align:center;color:var(--text-muted);margin:auto;font-size:14px;padding:40px 0;">Начни диалог с @{{ other.username }} 👋</div>
     {% endif %}
 </div>
 
-<!-- Пикер реакций -->
-<div id="reaction-picker" style="display:none;position:fixed;background:#fff;border:1px solid #e4e4e4;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.12);padding:10px 12px;z-index:300;gap:6px;">
-    {% for emoji in ["❤️","😂","😮","👍","🔥","😢"] %}
-    <span style="cursor:pointer;padding:5px;border-radius:8px;font-size:22px;" onclick="pickReaction('{{ emoji }}')">{{ emoji }}</span>
-    {% endfor %}
-</div>
-
-<!-- Диалог пересылки -->
-<div id="forward-dialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:20px;padding:24px;width:320px;max-width:90vw;">
-        <div style="font-weight:700;font-size:16px;margin-bottom:16px;">Переслать сообщение</div>
-        <input type="text" id="forward-username" placeholder="@username" style="margin-bottom:8px;">
-        <div id="forward-error" style="color:#e53935;font-size:13px;margin-bottom:10px;display:none;"></div>
-        <div style="display:flex;gap:10px;">
-            <button class="btn" onclick="confirmForward()" style="flex:1;">Переслать</button>
-            <button class="btn-outline" onclick="closeForwardDialog()" style="flex:1;">Отмена</button>
-        </div>
-    </div>
-</div>
-
-<!-- Превью прикреплений -->
-<div id="img-preview-wrap" style="display:none;padding:8px 16px 0;">
+<div id="img-preview-wrap" style="display:none;padding:8px 16px;">
     <div style="position:relative;display:inline-block;">
-        <img id="img-preview" style="max-height:100px;max-width:180px;border-radius:10px;border:1px solid #e4e4e4;">
-        <button onclick="clearImage()" style="position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;">×</button>
+        <img id="img-preview" style="max-height:120px;max-width:200px;border-radius:12px;border:1px solid var(--border);">
+        <button onclick="clearImage()" style="position:absolute;top:-8px;right:-8px;background:var(--danger);color:white;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;">×</button>
     </div>
 </div>
 
-<div id="file-preview-wrap" style="display:none;padding:8px 16px 0;">
-    <div style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:12px;padding:8px 14px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span id="file-preview-name" style="font-size:13px;color:#555;"></span>
-        <button onclick="clearFile()" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;font-weight:600;">✕</button>
-    </div>
-</div>
-
-<div id="voice-preview-wrap" style="display:none;padding:8px 16px 0;">
-    <div style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:20px;padding:8px 14px;">
-        <span style="font-size:13px;color:#555;">🎙 Голосовое записано</span>
-        <button onclick="clearVoice()" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:13px;font-weight:600;">Удалить</button>
-    </div>
-</div>
-
-<div class="card" style="padding:12px 16px;margin-top:8px;">
-    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" id="msg-form" style="display:flex;gap:8px;align-items:center;">
-        <div class="avatar-circle" style="width:32px;height:32px;flex-shrink:0;">
-            {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:12px;">{{ user.username[0].upper() }}</span>{% endif %}
-        </div>
-        <button type="button" onclick="document.getElementById('img-input').click()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;" title="Фото">
+<div class="card" style="padding:12px 14px;margin-top:8px;">
+    <form method="post" action="/messages/{{ other.username }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;" id="msg-form">
+        <button type="button" onclick="document.getElementById('img-input').click()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;flex-shrink:0;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         </button>
-        <button type="button" onclick="document.getElementById('file-input').click()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;" title="Файл">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </button>
         <input type="file" id="img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewImage(this)">
-        <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;" onchange="previewFile(this)">
-        <input type="file" id="voice-input" name="voice" accept="audio/*,video/*" style="display:none;" onchange="previewVoice(this)">
-        <input type="text" name="content" id="msg-input" placeholder="Сообщение..." style="margin-bottom:0;flex:1;padding:10px 16px;border-radius:24px;background:#f5f5f5;border:1px solid #ebebeb;font-size:14px;" autocomplete="off">
-        <button type="button" id="voice-btn" onclick="toggleVoiceRecording()" style="background:none;border:none;cursor:pointer;color:#aaa;flex-shrink:0;padding:4px;" title="Голосовое">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
-        <button class="btn" style="border-radius:20px;padding:10px 16px;flex-shrink:0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <input type="text" name="content" id="msg-input" placeholder="Написать..." style="margin-bottom:0;flex:1;padding:10px 16px;border-radius:24px;background:var(--input-bg);border:1px solid var(--border);font-size:14px;" autocomplete="off">
+        <button class="btn" style="border-radius:20px;padding:10px 14px;flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
     </form>
 </div>
@@ -203,193 +86,49 @@
 const box = document.getElementById('messages-box');
 const otherUsername = "{{ other.username }}";
 const currentUserId = {{ user.id }};
-const otherAvatar = "{{ other.avatar or '' }}";
-const otherInitial = "{{ other.username[0].upper() }}";
 
-function scrollToBottom() { box.scrollTop = box.scrollHeight; }
-scrollToBottom();
-
-document.querySelectorAll('.msg-item').forEach(item => {
-    item.addEventListener('mouseenter', () => { const a = item.querySelector('.msg-actions'); if (a) a.style.display='flex'; });
-    item.addEventListener('mouseleave', () => { const a = item.querySelector('.msg-actions'); if (a) a.style.display='none'; });
-});
-
-let currentReactionMsgId = null;
-let reactionPickerAnchor = null;
-
-function showReactionPicker(msgId, btn) {
-    currentReactionMsgId = msgId;
-    const picker = document.getElementById('reaction-picker');
-    const rect = btn.getBoundingClientRect();
-    picker.style.display = 'flex';
-    picker.style.top = (rect.top - 60) + 'px';
-    picker.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
-    reactionPickerAnchor = btn;
-}
-function pickReaction(emoji) {
-    if (!currentReactionMsgId) return;
-    document.getElementById('reaction-picker').style.display = 'none';
-    toggleReaction(currentReactionMsgId, emoji);
-}
-async function toggleReaction(msgId, emoji) {
-    const res = await fetch(`/api/message/react/${msgId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({emoji}) });
-    const data = await res.json();
-    if (data.ok) updateReactionsUI(msgId, data.reactions);
-}
-function updateReactionsUI(msgId, reactions) {
-    const item = document.querySelector(`.msg-item[data-id="${msgId}"]`); if (!item) return;
-    let reactionsDiv = item.querySelector('.msg-reactions-dynamic');
-    if (!reactionsDiv) {
-        reactionsDiv = document.createElement('div');
-        reactionsDiv.className = 'msg-reactions-dynamic';
-        reactionsDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;';
-        const timeDiv = item.querySelector('div[style*="font-size:11px"]');
-        if (timeDiv) item.insertBefore(reactionsDiv, timeDiv);
-    }
-    reactionsDiv.innerHTML = '';
-    for (const [emoji, count] of Object.entries(reactions)) {
-        if (count > 0) {
-            const span = document.createElement('span');
-            span.style.cssText = 'background:#f0f0f0;border-radius:20px;padding:3px 9px;font-size:13px;cursor:pointer;';
-            span.textContent = `${emoji} ${count}`;
-            span.onclick = () => toggleReaction(msgId, emoji);
-            reactionsDiv.appendChild(span);
-        }
-    }
-}
-document.addEventListener('click', e => {
-    const picker = document.getElementById('reaction-picker');
-    if (picker.style.display !== 'none' && !picker.contains(e.target) && e.target !== reactionPickerAnchor) picker.style.display = 'none';
-});
-
-async function deleteMessage(msgId) {
-    if (!confirm('Удалить сообщение?')) return;
-    const res = await fetch(`/api/message/delete/${msgId}`, {method:'POST'});
-    const data = await res.json();
-    if (data.ok) {
-        const item = document.querySelector(`.msg-item[data-id="${msgId}"]`);
-        if (item) item.innerHTML = `<div style="padding:8px 14px;border-radius:16px;background:#f5f5f5;color:#bbb;font-size:13px;font-style:italic;">🗑 Сообщение удалено</div>`;
-    }
-}
-
-let forwardMsgId = null;
-function showForwardDialog(msgId) { forwardMsgId=msgId; document.getElementById('forward-username').value=''; document.getElementById('forward-error').style.display='none'; document.getElementById('forward-dialog').style.display='flex'; }
-function closeForwardDialog() { document.getElementById('forward-dialog').style.display='none'; forwardMsgId=null; }
-async function confirmForward() {
-    const username = document.getElementById('forward-username').value.trim(); if (!username) return;
-    const res = await fetch(`/api/message/forward/${forwardMsgId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({to_username:username}) });
-    const data = await res.json();
-    if (data.ok) { closeForwardDialog(); alert(`Переслано @${data.to}`); }
-    else { const err=document.getElementById('forward-error'); err.textContent=data.error||'Ошибка'; err.style.display='block'; }
-}
+box.scrollTop = box.scrollHeight;
 
 function previewImage(input) {
-    const file=input.files[0]; if (!file) return;
-    document.getElementById('img-preview').src=URL.createObjectURL(file);
-    document.getElementById('img-preview-wrap').style.display='block';
+    const file = input.files[0]; if (!file) return;
+    document.getElementById('img-preview').src = URL.createObjectURL(file);
+    document.getElementById('img-preview-wrap').style.display = 'block';
 }
-function clearImage() { document.getElementById('img-input').value=''; document.getElementById('img-preview-wrap').style.display='none'; }
-
-function previewFile(input) {
-    const file=input.files[0]; if (!file) return;
-    document.getElementById('file-preview-name').textContent=file.name;
-    document.getElementById('file-preview-wrap').style.display='block';
-}
-function clearFile() { document.getElementById('file-input').value=''; document.getElementById('file-preview-wrap').style.display='none'; }
-
-function previewVoice(input) { if (!input.files[0]) return; document.getElementById('voice-preview-wrap').style.display='flex'; }
-function clearVoice() { document.getElementById('voice-input').value=''; document.getElementById('voice-preview-wrap').style.display='none'; }
-
-let mediaRecorder=null, audioChunks=[], isRecording=false;
-async function toggleVoiceRecording() {
-    const btn=document.getElementById('voice-btn');
-    if (!isRecording) {
-        try {
-            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-            audioChunks=[]; mediaRecorder=new MediaRecorder(stream);
-            mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
-            mediaRecorder.onstop=()=>{
-                const blob=new Blob(audioChunks,{type:'audio/webm'});
-                const file=new File([blob],'voice.webm',{type:'audio/webm'});
-                const dt=new DataTransfer(); dt.items.add(file);
-                document.getElementById('voice-input').files=dt.files;
-                previewVoice(document.getElementById('voice-input'));
-                stream.getTracks().forEach(t=>t.stop());
-            };
-            mediaRecorder.start(); isRecording=true;
-            btn.style.color='#e53935';
-        } catch(e) { alert('Нет доступа к микрофону'); }
-    } else { mediaRecorder.stop(); isRecording=false; btn.style.color='#aaa'; }
+function clearImage() {
+    document.getElementById('img-input').value = '';
+    document.getElementById('img-preview-wrap').style.display = 'none';
 }
 
-const msgInput=document.getElementById('msg-input');
-msgInput.addEventListener('input',()=>fetch(`/api/typing/${otherUsername}`,{method:'POST'}));
-
-let lastMsgId=0;
-const msgs=document.querySelectorAll('.msg-item');
-if (msgs.length>0) lastMsgId=parseInt(msgs[msgs.length-1].dataset.id)||0;
-
-function avatarHtml(size) {
-    if (otherAvatar) return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><img src="${otherAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`;
-    return `<div class="avatar-circle" style="width:${size}px;height:${size}px;flex-shrink:0;"><span style="font-size:${size*0.4}px;color:white;font-weight:700;">${otherInitial}</span></div>`;
-}
+let lastMsgId = 0;
+const msgs = document.querySelectorAll('.msg-item');
+if (msgs.length > 0) lastMsgId = parseInt(msgs[msgs.length-1].dataset.id) || 0;
 
 async function pollMessages() {
     try {
-        const res=await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`); if (!res.ok) return;
-        const data=await res.json();
-        if (data.messages&&data.messages.length>0) {
-            const empty=document.getElementById('empty-msg'); if (empty) empty.remove();
-            const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
-            data.messages.forEach(msg=>{
-                lastMsgId=Math.max(lastMsgId,msg.id); if (msg.is_deleted) return;
-                const div=document.createElement('div'); div.className='msg-item'; div.dataset.id=msg.id;
-                const isMine=msg.sender_id===currentUserId;
-                div.style.cssText=`display:flex;flex-direction:column;${isMine?'align-items:flex-end':'align-items:flex-start'};gap:2px;`;
-                let fwd='';
-                if (msg.forwarded_from_name) fwd=`<div style="font-size:11px;color:#aaa;padding:0 4px;margin-bottom:2px;">↪ от <span style="color:#1d9bf0;font-weight:600;">${msg.forwarded_from_name}</span></div>`;
-                let inner=fwd;
-                if (isMine) {
-                    inner+=`<div style="max-width:72%;">`;
-                    if (msg.image) {
-                        if (msg.is_video_circle) inner+=`<div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid #333;"><video src="${msg.image}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`;
-                        else inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
-                    }
-                    if (msg.voice) inner+=`<div style="background:#1a1a1a;border-radius:16px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>`;
-                    if (msg.file_url) inner+=`<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#1a1a1a;border-radius:12px;padding:10px 14px;color:white;text-decoration:none;">📎 ${msg.file_name}</a>`;
-                    if (msg.content) inner+=`<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:#0f0f0f;color:white;font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                    inner+=`</div>`;
-                } else {
-                    inner+=`<div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">${avatarHtml(26)}<div>`;
-                    if (msg.image) {
-                        if (msg.is_video_circle) inner+=`<div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid #f0f0f0;"><video src="${msg.image}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`;
-                        else inner+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="${msg.image}" style="max-width:100%;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>`;
-                    }
-                    if (msg.voice) inner+=`<div style="background:#f5f5f5;border-radius:16px;padding:10px 14px;"><audio src="${msg.voice}" controls style="height:32px;max-width:220px;"></audio></div>`;
-                    if (msg.file_url) inner+=`<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:12px;padding:10px 14px;color:#0f0f0f;text-decoration:none;">📎 ${msg.file_name}</a>`;
-                    if (msg.content) inner+=`<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:#f5f5f5;color:#0f0f0f;font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                    inner+=`</div></div>`;
-                }
-                inner+=`<div style="font-size:11px;color:#bbb;padding:0 4px;">${msg.time}</div>`;
-                div.innerHTML=inner;
-                div.addEventListener('mouseenter',()=>{ const a=div.querySelector('.msg-actions'); if(a) a.style.display='flex'; });
-                div.addEventListener('mouseleave',()=>{ const a=div.querySelector('.msg-actions'); if(a) a.style.display='none'; });
+        const res = await fetch(`/api/messages/${otherUsername}?after=${lastMsgId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+            const empty = document.getElementById('empty-msg');
+            if (empty) empty.remove();
+            const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+            data.messages.forEach(msg => {
+                lastMsgId = Math.max(lastMsgId, msg.id);
+                const div = document.createElement('div');
+                div.className = 'msg-item'; div.dataset.id = msg.id;
+                const isMine = msg.sender_id === currentUserId;
+                div.style.cssText = `display:flex;flex-direction:column;${isMine ? 'align-items:flex-end' : 'align-items:flex-start'};gap:2px;`;
+                let inner = isMine
+                    ? `<div style="max-width:72%;"><div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:var(--accent);color:var(--accent-text);font-size:14px;line-height:1.5;word-break:break-word;">${msg.content}</div></div>`
+                    : `<div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;"><div style="width:26px;height:26px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;flex-shrink:0;">${otherUsername[0].toUpperCase()}</div><div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:var(--input-bg);color:var(--text);font-size:14px;line-height:1.5;word-break:break-word;">${msg.content}</div></div>`;
+                inner += `<div style="font-size:11px;color:var(--text-muted);padding:0 4px;">${msg.time}</div>`;
+                div.innerHTML = inner;
                 box.appendChild(div);
             });
-            if (wasAtBottom) scrollToBottom();
+            if (wasAtBottom) box.scrollTop = box.scrollHeight;
         }
     } catch(e) {}
 }
-
-async function pollTyping() {
-    try {
-        const res=await fetch(`/api/typing/${otherUsername}`); const data=await res.json();
-        const el=document.getElementById('typing-status');
-        el.innerHTML=data.typing?'<span style="color:#1d9bf0;font-size:12px;">печатает...</span>':'@'+otherUsername;
-    } catch(e) {}
-}
-
 setInterval(pollMessages, 3000);
-setInterval(pollTyping, 2000);
 </script>
 {% endblock %}

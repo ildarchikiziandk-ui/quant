@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <h2 style="font-size:20px;font-weight:800;">👥 Группы</h2>
+    <button class="btn" onclick="document.getElementById('create-group-wrap').style.display='block'">+ Создать</button>
+</div>
+
+<div id="create-group-wrap" style="display:none;" class="card">
+    <div style="font-weight:700;font-size:16px;margin-bottom:14px;">Создать группу</div>
+    <form method="post" action="/groups/create" enctype="multipart/form-data">
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Название группы</label>
+        <input type="text" name="name" placeholder="Название" required>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Описание</label>
+        <textarea name="description" placeholder="О чём эта группа..." style="min-height:60px;"></textarea>
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Аватар группы</label>
+        <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" style="margin-bottom:12px;">
+        <div style="display:flex;gap:10px;">
+            <button class="btn" style="flex:1;">Создать</button>
+            <button type="button" class="btn-outline" onclick="document.getElementById('create-group-wrap').style.display='none'" style="flex:1;">Отмена</button>
+        </div>
+    </form>
+</div>
+
+{% if groups %}
+{% for group in groups %}
+<a href="/groups/{{ group.id }}" style="text-decoration:none;">
+    <div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='var(--card)'">
+        <div class="avatar-circle" style="width:50px;height:50px;border-radius:14px;flex-shrink:0;">
+            {% if group.avatar %}<img src="{{ group.avatar }}" style="border-radius:14px;">{% else %}<span style="font-size:20px;">👥</span>{% endif %}
+        </div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:15px;">{{ group.name }}</div>
+            <div style="color:var(--text-secondary);font-size:13px;">{{ group.members|length }} участников</div>
+            {% if group.description %}<div style="font-size:13px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ group.description[:60] }}</div>{% endif %}
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+</a>
+{% endfor %}
+{% else %}
+<div class="card" style="text-align:center;padding:48px 24px;color:var(--text-secondary);">
+    <div style="font-size:48px;margin-bottom:12px;">👥</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Нет групп</div>
+    <div style="font-size:14px;">Создай первую группу!</div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,186 +1,118 @@
 {% extends "base.html" %}
 {% block content %}
-<style>
-.reels-wrap { position:fixed; inset:0; background:#000; z-index:200; overflow:hidden; touch-action:none; }
-.reel-item { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; transition:transform 0.4s cubic-bezier(0.4,0,0.2,1); }
-.reel-video { width:100%; height:100%; object-fit:cover; }
-.reel-overlay { position:absolute; bottom:0; left:0; right:0; padding:24px 16px 80px; background:linear-gradient(transparent,rgba(0,0,0,0.75)); color:white; }
-.reel-side { position:absolute; right:16px; bottom:120px; display:flex; flex-direction:column; align-items:center; gap:20px; }
-.reel-btn { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; color:white; border:none; background:none; font-family:inherit; }
-.reel-btn svg { width:28px; height:28px; stroke:white; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
-.reel-btn span { font-size:12px; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,0.5); }
-.reel-progress-wrap { position:absolute; top:0; left:0; right:0; height:3px; background:rgba(255,255,255,0.3); }
-.reel-progress-bar { height:100%; background:white; width:0%; transition:width 0.1s linear; }
-.reel-close { position:absolute; top:16px; left:16px; color:white; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(0,0,0,0.4); z-index:10; text-decoration:none; font-size:20px; }
-</style>
-
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
     <h2 style="font-size:20px;font-weight:800;">🎬 Рилсы</h2>
     {% if user %}
-    <button class="btn" onclick="document.getElementById('reel-upload-wrap').style.display='block'">+ Загрузить рилс</button>
+    <button class="btn" onclick="document.getElementById('reel-upload-wrap').style.display='block'">+ Загрузить</button>
     {% endif %}
 </div>
 
-{% if user %}
 <div id="reel-upload-wrap" style="display:none;" class="card">
     <div style="font-weight:700;font-size:16px;margin-bottom:14px;">Загрузить рилс</div>
     <form method="post" action="/reels/upload" enctype="multipart/form-data">
         <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Видео (MP4, до 100 МБ)</label>
         <input type="file" name="video" accept="video/mp4,video/quicktime" required style="margin-bottom:12px;">
         <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Подпись</label>
-        <textarea name="caption" placeholder="Расскажи о своём рилсе..." style="min-height:60px;margin-bottom:12px;"></textarea>
+        <textarea name="caption" placeholder="Опиши своё видео..." style="min-height:60px;"></textarea>
         <div style="display:flex;gap:10px;">
             <button class="btn" style="flex:1;">Опубликовать</button>
             <button type="button" class="btn-outline" onclick="document.getElementById('reel-upload-wrap').style.display='none'" style="flex:1;">Отмена</button>
         </div>
     </form>
 </div>
-{% endif %}
 
-{% if reels %}
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:16px;">
-    {% for reel in reels %}
-    <div style="position:relative;aspect-ratio:9/16;border-radius:12px;overflow:hidden;cursor:pointer;background:#000;" onclick="openReels({{ loop.index0 }})">
-        <video src="{{ reel.video_url }}" style="width:100%;height:100%;object-fit:cover;" muted preload="metadata"></video>
-        <div style="position:absolute;inset:0;background:linear-gradient(transparent,rgba(0,0,0,0.6));display:flex;flex-direction:column;justify-content:flex-end;padding:8px;">
-            <div style="display:flex;align-items:center;gap:6px;">
-                <div class="avatar-circle" style="width:24px;height:24px;">
-                    {% if reel.author.avatar %}<img src="{{ reel.author.avatar }}">{% else %}<span style="font-size:9px;">{{ reel.author.username[0].upper() }}</span>{% endif %}
-                </div>
-                <span style="color:white;font-size:11px;font-weight:600;">@{{ reel.author.username }}</span>
-            </div>
-            <div style="color:rgba(255,255,255,0.8);font-size:11px;margin-top:4px;display:flex;align-items:center;gap:8px;">
-                <span>❤️ {{ reel.likes|length }}</span>
-                <span>💬 {{ reel.comments|length }}</span>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-
-<div class="reels-wrap" id="reels-fullscreen" style="display:none;">
-    <a href="/reels" class="reel-close" id="reels-close-btn">✕</a>
-    <div class="reel-progress-wrap"><div class="reel-progress-bar" id="reel-progress"></div></div>
-    {% for reel in reels %}
-    <div class="reel-item" id="reel-item-{{ loop.index0 }}" style="transform:translateY({{ loop.index0 * 100 }}%);">
-        <video class="reel-video" src="{{ reel.video_url }}" playsinline loop preload="metadata"></video>
-        <div class="reel-overlay">
-            <a href="/profile/{{ reel.author.username }}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:white;margin-bottom:10px;">
-                <div class="avatar-circle" style="width:40px;height:40px;border:2px solid white;">
-                    {% if reel.author.avatar %}<img src="{{ reel.author.avatar }}">{% else %}<span style="font-size:15px;">{{ reel.author.username[0].upper() }}</span>{% endif %}
-                </div>
+<div id="reels-feed">
+{% for reel in reels %}
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px;">
+    <div style="background:#000;position:relative;aspect-ratio:9/16;max-height:560px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <video src="{{ reel.video_url }}" playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;" id="reel-{{ reel.id }}" onclick="togglePlay({{ reel.id }})"></video>
+        <button onclick="togglePlay({{ reel.id }})" id="play-btn-{{ reel.id }}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.5);border:none;border-radius:50%;width:56px;height:56px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity 0.2s;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,0.8));color:white;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <a href="/profile/{{ reel.author.username }}">
+                    <div class="avatar-circle" style="width:36px;height:36px;border:2px solid white;flex-shrink:0;">
+                        {% if reel.author.avatar %}<img src="{{ reel.author.avatar }}">{% else %}<span style="font-size:13px;">{{ reel.author.username[0].upper() }}</span>{% endif %}
+                    </div>
+                </a>
                 <div>
-                    <div style="font-weight:700;font-size:14px;">{{ reel.author.name or reel.author.username }}</div>
-                    <div style="font-size:12px;opacity:0.8;">@{{ reel.author.username }}</div>
+                    <a href="/profile/{{ reel.author.username }}" style="font-weight:700;font-size:14px;color:white;">{{ reel.author.name or reel.author.username }}</a>
+                    <div style="font-size:12px;opacity:0.8;">{{ reel.created_at.strftime("%d.%m.%Y") }}</div>
                 </div>
-            </a>
-            {% if reel.caption %}<div style="font-size:14px;line-height:1.5;text-shadow:0 1px 3px rgba(0,0,0,0.5);">{{ reel.caption[:100] }}{% if reel.caption|length > 100 %}...{% endif %}</div>{% endif %}
-        </div>
-        <div class="reel-side">
-            <button class="reel-btn {% if reel.id in liked_reel_ids %}liked-reel{% endif %}" id="reel-like-{{ reel.id }}" onclick="likeReel({{ reel.id }}, this)">
-                <svg viewBox="0 0 24 24" id="reel-like-svg-{{ reel.id }}" {% if reel.id in liked_reel_ids %}style="fill:red;stroke:red;"{% endif %}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                <span id="reel-like-count-{{ reel.id }}">{{ reel.likes|length }}</span>
-            </button>
-            <a href="/post/{{ reel.id }}" class="reel-btn">
-                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>{{ reel.comments|length }}</span>
-            </a>
-            <button class="reel-btn" onclick="shareReel({{ reel.id }})">
-                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                <span>Поделиться</span>
-            </button>
+            </div>
+            {% if reel.caption %}<div style="font-size:14px;line-height:1.4;margin-bottom:8px;">{{ reel.caption[:100] }}</div>{% endif %}
+            <div style="display:flex;gap:16px;align-items:center;font-size:13px;">
+                <form method="post" action="/reels/like/{{ reel.id }}" style="margin:0;">
+                    {% set user_liked = user and (reel.likes | selectattr('user_id', 'equalto', user.id) | list | length > 0) %}
+                    <button type="submit" style="background:none;border:none;cursor:pointer;color:{% if user_liked %}#e0245e{% else %}white{% endif %};font-size:14px;display:flex;align-items:center;gap:6px;font-family:inherit;">
+                        {% if user_liked %}❤️{% else %}🤍{% endif %} {{ reel.likes|length }}
+                    </button>
+                </form>
+                <span style="opacity:0.8;">💬 {{ reel.comments|length }}</span>
+                <span style="opacity:0.8;">👁 {{ reel.views }}</span>
+            </div>
         </div>
     </div>
-    {% endfor %}
+    {% if reel.comments %}
+    <div style="padding:12px 16px;">
+        {% for comment in reel.comments[:2] %}
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;">
+            <a href="/profile/{{ comment.author.username }}">
+                <div class="avatar-circle" style="width:28px;height:28px;flex-shrink:0;">
+                    {% if comment.author.avatar %}<img src="{{ comment.author.avatar }}">{% else %}<span style="font-size:10px;">{{ comment.author.username[0].upper() }}</span>{% endif %}
+                </div>
+            </a>
+            <div style="background:var(--input-bg);border-radius:10px;padding:7px 12px;flex:1;">
+                <span style="font-weight:700;font-size:13px;">{{ comment.author.name or comment.author.username }}</span>
+                <span style="font-size:13px;color:var(--text);margin-left:6px;">{{ comment.content }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if user %}
+    <div style="padding:0 16px 14px;display:flex;gap:8px;align-items:center;">
+        <div class="avatar-circle" style="width:28px;height:28px;flex-shrink:0;">
+            {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:10px;">{{ user.username[0].upper() }}</span>{% endif %}
+        </div>
+        <form method="post" action="/reels/comment/{{ reel.id }}" style="display:flex;gap:8px;flex:1;">
+            <input type="text" name="content" placeholder="Комментарий..." style="margin-bottom:0;flex:1;padding:7px 12px;font-size:13px;border-radius:20px;background:var(--input-bg);border:1px solid var(--border);">
+            <button class="btn" style="padding:7px 12px;border-radius:20px;font-size:13px;">→</button>
+        </form>
+    </div>
+    {% endif %}
 </div>
-
 {% else %}
-<div class="card" style="text-align:center;padding:60px 24px;color:var(--text-secondary);">
-    <div style="font-size:56px;margin-bottom:16px;">🎬</div>
-    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Рилсов пока нет</div>
-    <div style="font-size:14px;margin-bottom:24px;">Загрузи первый рилс и стань популярным!</div>
+<div class="card" style="text-align:center;padding:48px 24px;color:var(--text-secondary);">
+    <div style="font-size:48px;margin-bottom:12px;">🎬</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Нет рилсов</div>
+    <div style="font-size:14px;">Загрузи первый!</div>
 </div>
-{% endif %}
+{% endfor %}
+</div>
 
 <script>
-const totalReels = {{ reels|length }};
-let currentReel = 0;
-let startY = 0;
-let progInterval = null;
-let autoTimer = null;
-
-function openReels(index) {
-    document.getElementById('reels-fullscreen').style.display = 'block';
-    document.body.style.overflow = 'hidden';
-    goToReel(index);
-}
-
-function getVideo(i) {
-    const item = document.getElementById('reel-item-' + i);
-    return item ? item.querySelector('video') : null;
-}
-
-function goToReel(index) {
-    if (index < 0 || index >= totalReels) return;
-    const oldVid = getVideo(currentReel);
-    if (oldVid) { oldVid.pause(); oldVid.currentTime = 0; }
-    clearInterval(progInterval); clearTimeout(autoTimer);
-    document.getElementById('reel-progress').style.width = '0%';
-    for (let i = 0; i < totalReels; i++) {
-        const item = document.getElementById('reel-item-' + i);
-        if (item) item.style.transform = `translateY(${(i - index) * 100}%)`;
-    }
-    currentReel = index;
-    const newVid = getVideo(currentReel);
-    if (newVid) {
-        newVid.play().catch(()=>{});
-        const startProg = () => {
-            clearInterval(progInterval);
-            const bar = document.getElementById('reel-progress');
-            progInterval = setInterval(() => {
-                if (newVid.duration) {
-                    const pct = (newVid.currentTime / newVid.duration) * 100;
-                    bar.style.width = pct + '%';
-                    if (pct >= 99) { clearInterval(progInterval); setTimeout(() => goToReel(currentReel + 1), 300); }
-                }
-            }, 100);
-        };
-        if (newVid.readyState >= 1) startProg();
-        else newVid.addEventListener('loadedmetadata', startProg, {once:true});
-        newVid.addEventListener('ended', () => goToReel(currentReel + 1));
+function togglePlay(id) {
+    const video = document.getElementById('reel-' + id);
+    const btn = document.getElementById('play-btn-' + id);
+    if (video.paused) {
+        document.querySelectorAll('video').forEach(v => { if (v !== video) v.pause(); });
+        video.play();
+        btn.style.opacity = '0';
+    } else {
+        video.pause();
+        btn.style.opacity = '1';
     }
 }
-
-document.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
-document.addEventListener('touchend', e => {
-    if (document.getElementById('reels-fullscreen').style.display !== 'block') return;
-    const diff = startY - e.changedTouches[0].clientY;
-    if (Math.abs(diff) > 50) { if (diff > 0) goToReel(currentReel + 1); else goToReel(currentReel - 1); }
-});
-document.addEventListener('keydown', e => {
-    if (document.getElementById('reels-fullscreen').style.display !== 'block') return;
-    if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goToReel(currentReel + 1); }
-    if (e.key === 'ArrowUp') { e.preventDefault(); goToReel(currentReel - 1); }
-    if (e.key === 'Escape') { document.getElementById('reels-fullscreen').style.display='none'; document.body.style.overflow=''; const v=getVideo(currentReel); if(v) v.pause(); }
-});
-document.getElementById('reels-close-btn')?.addEventListener('click', e => {
-    e.preventDefault();
-    document.getElementById('reels-fullscreen').style.display='none';
-    document.body.style.overflow='';
-    const v=getVideo(currentReel); if(v) v.pause();
-});
-
-async function likeReel(reelId, btn) {
-    const res = await fetch(`/reels/like/${reelId}`, {method:'POST'});
-    const data = await res.json();
-    const svg = document.getElementById(`reel-like-svg-${reelId}`);
-    const count = document.getElementById(`reel-like-count-${reelId}`);
-    if (data.liked) { svg.style.fill='red'; svg.style.stroke='red'; } else { svg.style.fill='none'; svg.style.stroke='white'; }
-    if (count) count.textContent = data.count;
-}
-
-function shareReel(id) {
-    navigator.clipboard.writeText(window.location.origin + '/post/' + id).then(() => alert('Ссылка скопирована!'));
-}
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        const video = e.target.querySelector('video');
+        if (!video) return;
+        if (e.isIntersecting) { video.play().catch(()=>{}); }
+        else { video.pause(); }
+    });
+}, { threshold: 0.7 });
+document.querySelectorAll('#reels-feed .card').forEach(card => observer.observe(card));
 </script>
 {% endblock %}

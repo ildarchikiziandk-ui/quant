@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.story-overlay { position:fixed;inset:0;background:#000;z-index:300;display:flex;align-items:center;justify-content:center; }
+.story-container { width:100%;max-width:420px;height:100vh;max-height:740px;position:relative;overflow:hidden; }
+.story-progress { position:absolute;top:12px;left:12px;right:12px;display:flex;gap:4px;z-index:10; }
+.story-progress-bar { flex:1;height:3px;background:rgba(255,255,255,0.4);border-radius:2px;overflow:hidden; }
+.story-progress-fill { height:100%;background:white;border-radius:2px; }
+.story-header { position:absolute;top:28px;left:12px;right:12px;display:flex;align-items:center;gap:10px;z-index:10; }
+.story-media { width:100%;height:100%;object-fit:cover;position:absolute;inset:0; }
+</style>
+
+<div class="story-overlay" id="story-overlay">
+    <div class="story-container">
+        <div class="story-progress" id="progress-bars">
+            {% for story in stories %}
+            <div class="story-progress-bar" id="bar-{{ loop.index0 }}">
+                <div class="story-progress-fill" id="fill-{{ loop.index0 }}" style="width:{% if loop.index0 < current_index %}100%{% else %}0%{% endif %};"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="story-header">
+            <a href="/profile/{{ story_user.username }}">
+                <div class="avatar-circle" style="width:36px;height:36px;border:2px solid white;flex-shrink:0;">
+                    {% if story_user.avatar %}<img src="{{ story_user.avatar }}">{% else %}<span style="font-size:13px;">{{ story_user.username[0].upper() }}</span>{% endif %}
+                </div>
+            </a>
+            <div style="flex:1;">
+                <div style="font-weight:700;font-size:14px;color:white;">{{ story_user.name or story_user.username }}</div>
+                <div id="story-time" style="font-size:12px;color:rgba(255,255,255,0.7);"></div>
+            </div>
+            <a href="/" style="color:white;padding:6px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </a>
+        </div>
+
+        {% for story in stories %}
+        <div id="story-{{ loop.index0 }}" style="position:absolute;inset:0;display:{% if loop.index0 == current_index %}flex{% else %}none{% endif %};align-items:center;justify-content:center;background:#111;">
+            {% if story.media_type == 'video' %}
+            <video src="{{ story.media_url }}" class="story-media" autoplay playsinline muted loop></video>
+            {% else %}
+            <img src="{{ story.media_url }}" class="story-media">
+            {% endif %}
+            {% if story.text_overlay %}
+            <div style="position:absolute;bottom:100px;left:0;right:0;text-align:center;padding:0 20px;">
+                <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:10px 16px;display:inline-block;color:white;font-size:18px;font-weight:700;backdrop-filter:blur(8px);">{{ story.text_overlay }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;z-index:10;">
+            {% if user and user.username != story_user.username %}
+            <form method="post" action="/stories/react/{{ stories[current_index].id if stories else 0 }}" style="display:flex;gap:10px;align-items:center;">
+                <input type="hidden" name="emoji" value="❤️" id="react-emoji">
+                <div style="display:flex;gap:8px;">
+                    {% for emoji in ['❤️','😍','🔥','😂','😮','👏'] %}
+                    <button type="submit" name="emoji" value="{{ emoji }}" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;backdrop-filter:blur(8px);">{{ emoji }}</button>
+                    {% endfor %}
+                </div>
+            </form>
+            {% endif %}
+            {% if user and user.username == story_user.username %}
+            <div style="color:rgba(255,255,255,0.7);font-size:13px;text-align:center;">👁 {{ stories[current_index].views|length if stories else 0 }} просмотров</div>
+            {% endif %}
+        </div>
+
+        <div onclick="prevStory()" style="position:absolute;left:0;top:0;width:40%;height:100%;cursor:pointer;z-index:5;"></div>
+        <div onclick="nextStory()" style="position:absolute;right:0;top:0;width:60%;height:100%;cursor:pointer;z-index:5;"></div>
+    </div>
+</div>
+
+<script>
+const stories = {{ stories_json | safe }};
+let current = {{ current_index }};
+let timer = null;
+const DURATION = 5000;
+
+function showStory(idx) {
+    if (idx < 0) { window.history.back(); return; }
+    if (idx >= stories.length) { window.location.href = '/'; return; }
+    document.querySelectorAll('[id^="story-"]').forEach((el, i) => {
+        el.style.display = i === idx ? 'flex' : 'none';
+    });
+    document.querySelectorAll('[id^="fill-"]').forEach((el, i) => {
+        el.style.width = i < idx ? '100%' : '0%';
+        el.style.transition = 'none';
+    });
+    clearTimeout(timer);
+    const fill = document.getElementById('fill-' + idx);
+    if (fill) {
+        setTimeout(() => {
+            fill.style.transition = `width ${DURATION}ms linear`;
+            fill.style.width = '100%';
+        }, 50);
+    }
+    current = idx;
+    timer = setTimeout(() => nextStory(), DURATION);
+}
+
+function nextStory() { showStory(current + 1); }
+function prevStory() { showStory(current - 1); }
+
+showStory(current);
+</script>
+{% endblock %}

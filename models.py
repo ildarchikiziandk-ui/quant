@@ -43,6 +43,11 @@ class User(Base):
     two_factor_secret = Column(String, default="")
     email_verified = Column(Boolean, default=False)
     theme = Column(String, default="light")
+    font_size = Column(String, default="medium")
+    who_can_message = Column(String, default="all")
+    who_can_see_stories = Column(String, default="all")
+    hide_likes = Column(Boolean, default=False)
+    language = Column(String, default="ru")
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -55,6 +60,7 @@ class User(Base):
     blocked_users = relationship("UserBlock", foreign_keys="UserBlock.blocker_id", back_populates="blocker")
     daily_tasks = relationship("UserDailyTask", back_populates="user")
     raffle_entries = relationship("RaffleEntry", back_populates="user")
+    stickers = relationship("UserSticker", back_populates="user")
 
 class Post(Base):
     __tablename__ = "posts"
@@ -74,6 +80,7 @@ class Post(Base):
     is_exclusive = Column(Boolean, default=False)
     exclusive_until = Column(DateTime, nullable=True)
     is_long = Column(Boolean, default=False)
+    pinned_comment_id = Column(Integer, nullable=True)
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
@@ -81,6 +88,7 @@ class Post(Base):
     reactions = relationship("Reaction", back_populates="post")
     poll = relationship("Poll", back_populates="post", uselist=False)
     media_items = relationship("PostMedia", back_populates="post")
+    post_reports = relationship("PostReport", back_populates="post")
 
 class PostMedia(Base):
     __tablename__ = "post_media"
@@ -160,6 +168,7 @@ class Comment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     post_id = Column(Integer, ForeignKey("posts.id"))
     parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
+    is_pinned = Column(Boolean, default=False)
     author = relationship("User")
     post = relationship("Post", back_populates="comments")
     replies = relationship("Comment", foreign_keys=[parent_id])
@@ -168,7 +177,8 @@ class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"))
-    receiver_id = Column(Integer, ForeignKey("users.id"))
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     content = Column(Text, default="")
     content_encrypted = Column(Text, default="")
     image = Column(String, default="")
@@ -176,6 +186,8 @@ class Message(Base):
     file_url = Column(String, default="")
     file_name = Column(String, default="")
     file_size = Column(Integer, default=0)
+    sticker_id = Column(Integer, ForeignKey("stickers.id"), nullable=True)
+    gif_url = Column(String, default="")
     is_video_circle = Column(Boolean, default=False)
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     is_edited = Column(Boolean, default=False)
@@ -193,6 +205,48 @@ class Message(Base):
     forwarded_from = relationship("User", foreign_keys=[forwarded_from_id])
     reply_to = relationship("Message", foreign_keys=[reply_to_id], remote_side="Message.id")
     msg_reactions = relationship("MessageReaction", back_populates="message")
+    sticker = relationship("Sticker", foreign_keys=[sticker_id])
+
+class GroupChat(Base):
+    __tablename__ = "group_chats"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    avatar = Column(String, default="")
+    description = Column(String, default="")
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    owner = relationship("User", foreign_keys=[owner_id])
+    members = relationship("GroupMember", back_populates="group")
+    messages = relationship("GroupMessage", back_populates="group")
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("group_chats.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    is_admin = Column(Boolean, default=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    group = relationship("GroupChat", back_populates="members")
+    user = relationship("User")
+
+class GroupMessage(Base):
+    __tablename__ = "group_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("group_chats.id"))
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text, default="")
+    image = Column(String, default="")
+    voice = Column(String, default="")
+    file_url = Column(String, default="")
+    file_name = Column(String, default="")
+    sticker_id = Column(Integer, ForeignKey("stickers.id"), nullable=True)
+    gif_url = Column(String, default="")
+    reply_to_id = Column(Integer, ForeignKey("group_messages.id"), nullable=True)
+    is_deleted = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    group = relationship("GroupChat", back_populates="messages")
+    sender = relationship("User", foreign_keys=[sender_id])
+    sticker = relationship("Sticker", foreign_keys=[sticker_id])
 
 class MessageReaction(Base):
     __tablename__ = "message_reactions"
@@ -207,14 +261,54 @@ class PinnedChat(Base):
     __tablename__ = "pinned_chats"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    pinned_user_id = Column(Integer, ForeignKey("users.id"))
+    pinned_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    pinned_group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class MutedChat(Base):
     __tablename__ = "muted_chats"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    muted_user_id = Column(Integer, ForeignKey("users.id"))
+    muted_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    muted_group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Sticker(Base):
+    __tablename__ = "stickers"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    emoji = Column(String, default="")
+    image_url = Column(String, default="")
+    pack_id = Column(Integer, ForeignKey("sticker_packs.id"), nullable=True)
+    is_animated = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    pack = relationship("StickerPack", foreign_keys=[pack_id])
+
+class StickerPack(Base):
+    __tablename__ = "sticker_packs"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    description = Column(String, default="")
+    cover_url = Column(String, default="")
+    is_free = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    stickers = relationship("Sticker", foreign_keys="Sticker.pack_id")
+
+class UserSticker(Base):
+    __tablename__ = "user_stickers"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    pack_id = Column(Integer, ForeignKey("sticker_packs.id"))
+    added_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="stickers")
+    pack = relationship("StickerPack")
+
+class StoryReaction(Base):
+    __tablename__ = "story_reactions"
+    id = Column(Integer, primary_key=True, index=True)
+    story_id = Column(Integer, ForeignKey("stories.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    emoji = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Notification(Base):
@@ -256,10 +350,13 @@ class Story(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     media_url = Column(String)
     media_type = Column(String, default="image")
+    text_overlay = Column(String, default="")
+    music_url = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     author = relationship("User")
     views = relationship("StoryView", back_populates="story")
+    reactions = relationship("StoryReaction")
 
 class StoryView(Base):
     __tablename__ = "story_views"
@@ -299,7 +396,8 @@ class TypingStatus(Base):
     __tablename__ = "typing_status"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    target_id = Column(Integer, ForeignKey("users.id"))
+    target_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
 class StopWord(Base):
@@ -361,6 +459,17 @@ class Report(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     reporter = relationship("User", foreign_keys=[reporter_id])
     target = relationship("User", foreign_keys=[target_id])
+
+class PostReport(Base):
+    __tablename__ = "post_reports"
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"))
+    post_id = Column(Integer, ForeignKey("posts.id"))
+    reason = Column(String, default="")
+    status = Column(String, default="new")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    reporter = relationship("User", foreign_keys=[reporter_id])
+    post = relationship("Post", back_populates="post_reports")
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -458,3 +567,40 @@ class Draft(Base):
     image = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+class CallLog(Base):
+    __tablename__ = "call_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    caller_id = Column(Integer, ForeignKey("users.id"))
+    receiver_id = Column(Integer, ForeignKey("users.id"))
+    call_type = Column(String, default="voice")
+    status = Column(String, default="missed")
+    duration = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    caller = relationship("User", foreign_keys=[caller_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
+
+class WeeklyChallenge(Base):
+    __tablename__ = "weekly_challenges"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    description = Column(String)
+    emoji = Column(String, default="🏆")
+    points = Column(Integer, default=100)
+    task_type = Column(String)
+    target_count = Column(Integer, default=1)
+    week_start = Column(DateTime)
+    week_end = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class UserWeeklyChallenge(Base):
+    __tablename__ = "user_weekly_challenges"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    challenge_id = Column(Integer, ForeignKey("weekly_challenges.id"))
+    progress = Column(Integer, default=0)
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    user = relationship("User")
+    challenge = relationship("WeeklyChallenge")

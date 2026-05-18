@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:480px;margin:0 auto;">
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:6px;">Новая история</h2>
+    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;">Фото или видео на 24 часа</p>
+
+    {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
+
+    <form method="post" action="/stories/create" enctype="multipart/form-data">
+        <div id="preview-wrap" style="display:none;margin-bottom:16px;border-radius:16px;overflow:hidden;aspect-ratio:9/16;max-height:400px;background:#111;position:relative;">
+            <img id="preview-img" style="display:none;width:100%;height:100%;object-fit:cover;">
+            <video id="preview-video" style="display:none;width:100%;height:100%;object-fit:cover;" controls></video>
+        </div>
+
+        <div id="upload-area" style="border:2px dashed var(--border);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;margin-bottom:16px;" onclick="document.getElementById('media-input').click()">
+            <div style="font-size:40px;margin-bottom:12px;">📸</div>
+            <div style="font-weight:600;font-size:15px;margin-bottom:6px;">Загрузить фото или видео</div>
+            <div style="font-size:13px;color:var(--text-muted);">JPG, PNG, MP4 · до 50 МБ</div>
+        </div>
+        <input type="file" id="media-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" style="display:none;" onchange="previewMedia(this)" required>
+
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Текст поверх (необязательно)</label>
+        <input type="text" name="text_overlay" placeholder="Напиши что-нибудь..." maxlength="100">
+
+        <button class="btn" style="width:100%;">Опубликовать историю</button>
+    </form>
+</div>
+
+<script>
+function previewMedia(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { alert('Файл слишком большой (макс. 50 МБ)'); input.value=''; return; }
+    const url = URL.createObjectURL(file);
+    document.getElementById('upload-area').style.display = 'none';
+    document.getElementById('preview-wrap').style.display = 'block';
+    if (file.type.startsWith('image/')) {
+        document.getElementById('preview-img').src = url;
+        document.getElementById('preview-img').style.display = 'block';
+        document.getElementById('preview-video').style.display = 'none';
+    } else {
+        document.getElementById('preview-video').src = url;
+        document.getElementById('preview-video').style.display = 'block';
+        document.getElementById('preview-img').style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

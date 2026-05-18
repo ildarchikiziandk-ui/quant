@@ -1,0 +1,20 @@
+{
+    "name": "Quant",
+    "short_name": "Quant",
+    "description": "Социальная сеть Quant",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0f0f0f",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/static/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["social"],
+    "lang": "ru"
+}
