@@ -1,46 +1,68 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 style="font-size:20px;font-weight:800;margin-bottom:4px;">⚡ Задания</h2>
-<p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Выполняй задания, зарабатывай очки и выигрывай Quant Plus</p>
+<div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">Выполняй ежедневные задания и зарабатывай очки</div>
 
-<div class="card" style="background:linear-gradient(135deg,var(--accent),#444);border:none;">
-    <div style="color:var(--accent-text);opacity:0.8;font-size:13px;margin-bottom:4px;">Твои очки сегодня</div>
-    <div style="font-size:36px;font-weight:800;color:var(--accent-text);margin-bottom:4px;">{{ daily_points }}</div>
-    <div style="display:flex;gap:16px;font-size:13px;color:var(--accent-text);opacity:0.8;">
-        <span>🔥 Стрик: {{ user.streak_days }} дн.</span>
-        <span>⚡ Всего: {{ user.total_points }}</span>
-        <span>🏅 Ур. {{ user.level }}</span>
+<div class="card" style="background:linear-gradient(135deg,#1a1a1a,#333);color:white;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+            <div style="font-size:13px;opacity:0.7;margin-bottom:4px;">Уровень {{ user.level or 1 }}</div>
+            <div style="font-size:28px;font-weight:800;">⚡ {{ user.total_points or 0 }}</div>
+            <div style="font-size:13px;opacity:0.7;">всего очков</div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:32px;">🔥</div>
+            <div style="font-size:22px;font-weight:800;">{{ user.streak_days or 0 }}</div>
+            <div style="font-size:12px;opacity:0.7;">стрик дней</div>
+        </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.15);border-radius:8px;height:8px;overflow:hidden;">
+        {% set lvl_progress = ((user.total_points or 0) % 500) %}
+        <div style="height:100%;background:white;border-radius:8px;width:{{ (lvl_progress / 500 * 100)|int }}%;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;opacity:0.6;">
+        <span>{{ lvl_progress }}/500 до след. уровня</span>
+        <span>Ур. {{ (user.level or 1) + 1 }}</span>
     </div>
 </div>
 
 {% if daily_tasks %}
+{% set completed_count = namespace(value=0) %}
+{% set total_count = namespace(value=0) %}
+{% for ut in daily_tasks %}
+    {% set total_count.value = total_count.value + 1 %}
+    {% if ut.is_completed %}{% set completed_count.value = completed_count.value + 1 %}{% endif %}
+{% endfor %}
 <div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Ежедневные задания</div>
-    {% set completed_count = daily_tasks | selectattr('is_completed') | list | length %}
-    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">Выполнено: {{ completed_count }}/{{ daily_tasks|length }}</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-weight:700;font-size:15px;">📋 Ежедневные задания</div>
+        <div style="font-size:13px;color:var(--text-secondary);">{{ completed_count.value }}/{{ total_count.value }}</div>
+    </div>
     <div style="background:var(--border);border-radius:8px;height:6px;margin-bottom:16px;overflow:hidden;">
-        <div style="height:100%;background:var(--accent);border-radius:8px;width:{{ ((completed_count / daily_tasks|length * 100) | int) if daily_tasks|length > 0 else 0 }}%;transition:width 0.5s;"></div>
+        <div style="height:100%;background:var(--success);border-radius:8px;width:{{ ((completed_count.value / total_count.value * 100)|int) if total_count.value > 0 else 0 }}%;transition:width 0.5s;"></div>
     </div>
     {% for ut in daily_tasks %}
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
-        <div style="width:44px;height:44px;border-radius:12px;background:{% if ut.is_completed %}rgba(34,197,94,0.12){% else %}var(--input-bg){% endif %};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">{{ ut.task.emoji }}</div>
-        <div style="flex:1;">
-            <div style="font-weight:600;font-size:14px;{% if ut.is_completed %}color:var(--text-muted);text-decoration:line-through;{% endif %}">{{ ut.task.title }}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">{{ ut.task.description }}</div>
-            {% if ut.task.target_count > 1 and not ut.is_completed %}
-            <div style="background:var(--border);border-radius:4px;height:3px;margin-top:6px;overflow:hidden;max-width:160px;">
-                <div style="height:100%;background:#1d9bf0;width:{{ ((ut.progress / ut.task.target_count * 100) | int) if ut.task.target_count > 0 else 0 }}%;"></div>
+    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);{% if loop.last %}border-bottom:none;{% endif %}">
+        <div style="width:42px;height:42px;background:{% if ut.is_completed %}rgba(34,197,94,0.1){% else %}var(--input-bg){% endif %};border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">{{ ut.task.emoji }}</div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;{% if ut.is_completed %}color:var(--text-muted);text-decoration:line-through;{% endif %}">{{ ut.task.title }}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ ut.task.description }}</div>
+            {% if not ut.is_completed and ut.task.target_count > 1 %}
+            <div style="margin-top:6px;">
+                <div style="background:var(--border);border-radius:4px;height:4px;overflow:hidden;">
+                    <div style="height:100%;background:var(--accent);border-radius:4px;width:{{ ((ut.progress / ut.task.target_count * 100)|int) }}%;"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ ut.progress }}/{{ ut.task.target_count }}</div>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ ut.progress }}/{{ ut.task.target_count }}</div>
             {% endif %}
         </div>
         <div style="text-align:right;flex-shrink:0;">
             {% if ut.is_completed %}
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
+            <div style="color:var(--success);font-size:20px;">✓</div>
+            <div style="font-size:11px;color:var(--success);">+{{ ut.task.points }}</div>
             {% else %}
-            <div style="font-size:13px;font-weight:700;color:#f59e0b;">+{{ ut.task.points }}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-secondary);">+{{ ut.task.points }}</div>
+            <div style="font-size:11px;color:var(--text-muted);">очков</div>
             {% endif %}
         </div>
     </div>
@@ -48,46 +70,65 @@
 </div>
 {% endif %}
 
-{% if raffle %}
-<div class="card" style="border:1.5px solid var(--plus);">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <div style="font-size:32px;">🎰</div>
-        <div>
-            <div style="font-weight:700;font-size:16px;">Еженедельный розыгрыш</div>
-            <div style="font-size:13px;color:var(--text-secondary);">Приз: {{ raffle.prize }}</div>
+{% if weekly_challenge %}
+<div class="card" style="border:2px solid var(--plus);background:rgba(168,85,247,0.04);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-weight:700;font-size:15px;">🏆 Испытание недели</div>
+        <div style="font-size:12px;color:var(--text-muted);">до {{ weekly_challenge.challenge.week_end.strftime("%d.%m") }}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+        <div style="font-size:36px;">{{ weekly_challenge.challenge.emoji }}</div>
+        <div style="flex:1;">
+            <div style="font-size:15px;font-weight:700;margin-bottom:4px;">{{ weekly_challenge.challenge.title }}</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">{{ weekly_challenge.challenge.description }}</div>
+            <div style="background:var(--border);border-radius:6px;height:6px;overflow:hidden;">
+                <div style="height:100%;background:var(--plus);border-radius:6px;width:{{ ((weekly_challenge.progress / weekly_challenge.challenge.target_count * 100)|int) }}%;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                <span style="font-size:12px;color:var(--text-muted);">{{ weekly_challenge.progress }}/{{ weekly_challenge.challenge.target_count }}</span>
+                <span style="font-size:12px;font-weight:700;color:var(--plus);">+{{ weekly_challenge.challenge.points }} очков</span>
+            </div>
         </div>
     </div>
-    <div style="display:flex;gap:16px;font-size:14px;margin-bottom:12px;">
-        <span>🎫 Твои билеты: <b>{{ my_tickets }}</b></span>
-        <span>👥 Участников: <b>{{ raffle.entries|length }}</b></span>
+</div>
+{% endif %}
+
+{% if raffle %}
+<div class="card">
+    <div style="display:flex;align-items:center;gap:14px;">
+        <div style="font-size:36px;">🎰</div>
+        <div style="flex:1;">
+            <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Еженедельный розыгрыш</div>
+            <div style="font-size:13px;color:var(--text-secondary);">Приз: {{ raffle.prize }}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">До {{ raffle.week_end.strftime("%d.%m.%Y") }}</div>
+            {% if my_tickets > 0 %}
+            <div style="margin-top:8px;font-size:13px;color:var(--success);font-weight:600;">🎟 У тебя {{ my_tickets }} билетов</div>
+            {% else %}
+            <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Выполняй задания, чтобы получить билеты</div>
+            {% endif %}
+        </div>
     </div>
-    {% if my_tickets == 0 %}
-    <form method="post" action="/raffle/enter">
-        <button class="btn" style="width:100%;">Участвовать (100 очков)</button>
-    </form>
-    {% else %}
-    <div style="background:rgba(168,85,247,0.1);border-radius:10px;padding:12px;text-align:center;font-size:14px;color:var(--plus);font-weight:600;">✅ Ты участвуешь в розыгрыше!</div>
-    {% endif %}
 </div>
 {% endif %}
 
 {% if leaderboard %}
 <div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:14px;">🏆 Таблица лидеров</div>
-    {% for i, lu in enumerate(leaderboard) %}
-    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);">
-        <div style="width:28px;text-align:center;font-size:{% if i < 3 %}18{% else %}14{% endif %}px;font-weight:700;flex-shrink:0;">
-            {% if i == 0 %}🥇{% elif i == 1 %}🥈{% elif i == 2 %}🥉{% else %}{{ i + 1 }}{% endif %}
+    <div style="font-weight:700;font-size:15px;margin-bottom:14px;">🏅 Таблица лидеров</div>
+    {% for lu in leaderboard %}
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+        <div style="width:28px;text-align:center;font-size:16px;font-weight:800;flex-shrink:0;color:{% if loop.index==1 %}#f59e0b{% elif loop.index==2 %}#9ca3af{% elif loop.index==3 %}#cd7c2f{% else %}var(--text-muted){% endif %};">
+            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
         </div>
         <a href="/profile/{{ lu.username }}">
-            <div class="avatar-circle" style="width:36px;height:36px;">
-                {% if lu.avatar %}<img src="{{ lu.avatar }}">{% else %}<span style="font-size:13px;">{{ lu.username[0].upper() }}</span>{% endif %}
+            <div class="avatar-circle" style="width:34px;height:34px;">
+                {% if lu.avatar %}<img src="{{ lu.avatar }}">{% else %}<span style="font-size:12px;">{{ lu.username[0].upper() }}</span>{% endif %}
             </div>
         </a>
-        <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;">{{ lu.name or lu.username }}</div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ lu.name or lu.username }}</div>
+            <div style="font-size:12px;color:var(--text-muted);">Ур. {{ lu.level or 1 }}</div>
         </div>
-        <div style="font-size:13px;font-weight:700;color:#f59e0b;">⚡ {{ lu.weekly_points }}</div>
+        <div style="font-size:14px;font-weight:700;">⚡ {{ lu.total_points or 0 }}</div>
     </div>
     {% endfor %}
 </div>
