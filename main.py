@@ -1383,7 +1383,7 @@ def support_reply(notif_id: int, request: Request, reply: str=Form(...), db: Ses
 @app.post("/admin/block/{username}")
 def admin_block(username: str, request: Request, days: int=Form(1), db: Session=Depends(get_db)):
     user = auth.get_current_user(request, db)
-    if not user or not can_mod(user): return RedirectResponse("/", 302)
+    if not user or not user.is_owner: return RedirectResponse("/", 302)
     target = db.query(models.User).filter(models.User.username==username).first()
     if target and not target.is_owner:
         target.is_blocked=True; target.blocked_until=datetime.utcnow()+timedelta(days=days); db.commit()
@@ -1392,7 +1392,7 @@ def admin_block(username: str, request: Request, days: int=Form(1), db: Session=
 @app.post("/admin/unblock/{username}")
 def admin_unblock(username: str, request: Request, db: Session=Depends(get_db)):
     user = auth.get_current_user(request, db)
-    if not user or not can_mod(user): return RedirectResponse("/", 302)
+    if not user or not user.is_owner: return RedirectResponse("/", 302)
     target = db.query(models.User).filter(models.User.username==username).first()
     if target: target.is_blocked=False; target.blocked_until=None; db.commit()
     return RedirectResponse(f"/profile/{username}", 302)
@@ -1510,7 +1510,7 @@ def ping(request: Request, db: Session=Depends(get_db)):
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request, db: Session=Depends(get_db)):
     ctx, user = base_ctx(request, db)
-    if not user or not can_mod(user): return RedirectResponse("/", 302)
+    if not user or not user.is_owner: return RedirectResponse("/", 302)
     users = db.query(models.User).order_by(models.User.created_at.desc()).all()
     reports = db.query(models.PostReport).filter(models.PostReport.status=="new").all()
     total_posts = db.query(models.Post).count()
