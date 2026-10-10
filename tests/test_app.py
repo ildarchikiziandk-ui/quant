@@ -73,7 +73,7 @@ def test_session_revocation(alice):
 def test_logged_in_pages(owner, alice, bob):
     pid = create_post(alice)
     for url in ["/", "/?tab=following", "/explore", "/notifications", "/messages", "/groups", "/tasks", "/bookmarks", "/drafts",
-                "/settings", "/mentions", "/achievements", "/leaderboard?by=weekly", "/calls", "/stories/create", "/close-friends",
+                "/settings", "/mentions", "/achievements", "/leaderboard?by=weekly", "/stories/create", "/close-friends",
                 "/follow-requests", "/special-request", "/messages/search?q=hi", "/profile/alice", "/profile/alice?tab=media",
                 "/profile/alice?tab=likes", "/profile/alice?tab=reels", "/profile/alice?tab=replies", "/profile/alice/followers",
                 "/profile/alice/following", f"/post/{pid}", f"/post/{pid}/stats", "/qr/alice", "/qr-code/alice.svg", "/report/bob",
@@ -319,25 +319,6 @@ def test_support_and_requests(owner, alice, anon):
     r = alice.post("/report/owner", data={"reason": "Спам", "text": "test"}, files=[("images", ("x.png", png_bytes(), "image/png"))])
     assert "Жалоба отправлена" in r.text
 
-
-def test_calls_signaling(alice, bob):
-    r = alice.get("/call/video/bob")
-    assert r.status_code == 200
-    call_id = re.search(r'const CALL="([^"]+)"', r.text).group(1)
-    inc = bob.get("/api/calls/incoming").json()["call"]
-    assert inc and inc["id"] == call_id
-    assert bob.get(f"/call/join/{call_id}").status_code == 200
-    assert alice.post(f"/api/call/{call_id}/offer", json={"offer": {"type": "offer", "sdp": "x"}}).json()["ok"]
-    assert bob.get(f"/api/call/{call_id}/status").json()["offer"]["sdp"] == "x"
-    assert bob.post(f"/api/call/{call_id}/answer", json={"answer": {"type": "answer", "sdp": "y"}}).json()["ok"]
-    alice.post(f"/api/call/{call_id}/ice", json={"candidate": {"c": 1}})
-    st = bob.get(f"/api/call/{call_id}/status?since=0").json()
-    assert st["ice"] == [{"c": 1}] and st["next"] == 1
-    assert alice.get(f"/api/call/{call_id}/status").json()["answer"]["sdp"] == "y"
-    stranger = register(make_client(), "spy")
-    assert stranger.get(f"/api/call/{call_id}/status").json()["status"] == "ended"
-    alice.post(f"/api/call/{call_id}/end")
-    assert "Видео" in alice.get("/calls").text
 
 
 def test_export_and_delete_account(alice, bob):

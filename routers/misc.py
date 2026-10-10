@@ -104,6 +104,12 @@ async def special_request_submit(request: Request, db: Session = Depends(get_db)
     return render(request, db, "special_request.html", types=SPECIAL_TYPES, mine=mine, success=True)
 
 
+@router.get("/calls")
+@router.get("/call/{call_type}/{username}")
+def calls_removed(call_type: str = "", username: str = ""):
+    return redirect(f"/messages/{username}" if username else "/messages", 301)
+
+
 @router.get("/reels")
 @router.get("/reels/{reel_id}")
 def reels_removed(reel_id: int = 0):

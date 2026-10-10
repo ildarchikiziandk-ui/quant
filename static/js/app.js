@@ -343,7 +343,7 @@
 
   if (!ME.user) return;
 
-  // ---------- Счётчики, онлайн, входящие звонки ----------
+  // ---------- Счётчики и онлайн ----------
   function setBadge(sel, n) { $$(sel).forEach(b => { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n); }); }
   let lastNotif = ME.unread || 0;
   async function poll() {
@@ -360,24 +360,6 @@
   setInterval(poll, 20000);
   function beep() { try { const c = new AudioContext(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.setValueAtTime(.08, c.currentTime); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime + .25); o.start(); o.stop(c.currentTime + .25); } catch (e) {} }
 
-  let shownCall = null;
-  async function checkCalls() {
-    if (document.hidden || location.pathname.startsWith('/call')) return;
-    try {
-      const r = await (await fetch('/api/calls/incoming')).json();
-      const box = $('#incoming-call');
-      if (r.call && r.call.id !== shownCall) {
-        shownCall = r.call.id;
-        $('.ic-name', box).textContent = r.call.from;
-        $('.ic-type', box).textContent = r.call.type === 'video' ? 'Видеозвонок' : 'Аудиозвонок';
-        $('.ic-av', box).innerHTML = avatarHtml(r.call, 46);
-        $('.ic-accept', box).href = '/call/join/' + r.call.id;
-        $('.ic-reject', box).onclick = async () => { await fetch(`/api/call/${r.call.id}/reject`, { method: 'POST' }); box.classList.remove('open'); };
-        box.classList.add('open'); beep();
-      } else if (!r.call) { box?.classList.remove('open'); shownCall = null; }
-    } catch (e) {}
-  }
-  setInterval(checkCalls, 4000); setTimeout(checkCalls, 800);
 
   // ---------- Горячие клавиши ----------
   let gPressed = false;

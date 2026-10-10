@@ -25,9 +25,7 @@ from services import ratelimit  # noqa: E402
 def _fresh_state():
     import migrations
     from database import Base, SessionLocal, engine
-    from routers import calls
     ratelimit.reset()
-    calls.CALLS.clear()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     s = SessionLocal()

@@ -3,7 +3,7 @@
 {% block title %}Сообщения — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">💬 Сообщения</div>
-  <div class="row"><a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><a href="/calls" class="icon-btn" title="Звонки">{{ icon("phone") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
+  <div class="row"><a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
 <input type="search" placeholder="Поиск по чатам…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('.chat-list .chat').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')" class="mb">
 <div class="card flat chat-list">
   {% for c in chats %}

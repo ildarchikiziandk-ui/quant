@@ -39,7 +39,7 @@
       {% endif %}
     </div>
     <div class="profile-name">{{ pu.name or pu.username }}{{ badges(pu) }}</div>
-    <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if pu.pronouns %} · {{ pu.pronouns }}{% endif %}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
+    <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span style="color:var(--online);font-weight:700">● онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
     {% if pu.bio %}<div style="margin-top:10px;white-space:normal">{{ pu.bio|rich }}</div>{% endif %}
     <div class="profile-links">

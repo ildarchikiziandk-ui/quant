@@ -132,12 +132,6 @@
   <a href="/messages">{{ icon("chat") }}<span>Чаты</span><span class="mbadge {% if not unread_msg %}hidden{% endif %}" data-badge="messages">{{ unread_msg }}</span></a>
   <a href="/profile/{{ user.username }}">{{ icon("user") }}<span>Профиль</span></a>
 </div></nav>
-<div class="incoming-call" id="incoming-call">
-  <span class="ic-av"></span>
-  <div class="grow"><b class="ic-name"></b><div class="small muted ic-type"></div></div>
-  <button class="btn danger sm ic-reject">✕</button>
-  <a class="btn sm ic-accept" href="#" style="background:var(--success)">📞</a>
-</div>
 {% endif %}
 {% endblock %}
 <div id="toasts"></div>

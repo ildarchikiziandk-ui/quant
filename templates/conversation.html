@@ -12,10 +12,6 @@
       <div style="min-width:0"><div>{{ name(other, link=false) }}</div>
         <div class="tiny muted" id="chat-status">{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
     </a>
-    {% if can_send %}
-    <a class="icon-btn" href="/call/voice/{{ other.username }}" title="Аудиозвонок">{{ icon("phone") }}</a>
-    <a class="icon-btn" href="/call/video/{{ other.username }}" title="Видеозвонок">{{ icon("video") }}</a>
-    {% endif %}
     <div class="menu-wrap" style="margin-left:0">
       <button class="icon-btn" data-menu>{{ icon("more") }}</button>
       <div class="menu">

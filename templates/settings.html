@@ -29,7 +29,6 @@
   <label class="field"><span>О себе <span class="faint" id="bio-n"></span></span><textarea name="bio" maxlength="300" oninput="document.getElementById('bio-n').textContent=300-this.value.length">{{ user.bio or '' }}</textarea></label>
   <div class="form-row">
     <label class="field"><span>Город</span><input name="city" value="{{ user.city or '' }}" maxlength="60"></label>
-    <label class="field"><span>Местоимения</span><input name="pronouns" value="{{ user.pronouns or '' }}" maxlength="20" placeholder="он/его, она/её…"></label>
   </div>
   <div class="form-row">
     <label class="field"><span>Сайт</span><input name="website" value="{{ user.website or '' }}" maxlength="100" placeholder="example.com"></label>

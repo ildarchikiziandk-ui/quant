@@ -82,7 +82,6 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
     bday = _clean(form, "birthday", 10)
     user.birthday = bday if re.match(r"^\d{4}-\d{2}-\d{2}$", bday) else ""
     user.emoji_status = _clean(form, "emoji_status", 8)
-    user.pronouns = _clean(form, "pronouns", 20)
     user.telegram_link = _clean(form, "telegram_link", 100)
     user.youtube_link = _clean(form, "youtube_link", 100)
     user.tiktok_link = _clean(form, "tiktok_link", 100)
@@ -377,7 +376,7 @@ def export_data(request: Request, db: Session = Depends(get_db)):
     posts = db.query(models.Post).filter_by(user_id=user.id).all()
     data = {
         "exported_at": dt(datetime.utcnow()), "service": config.BRAND_NAME,
-        "profile": {k: getattr(user, k) for k in ("username", "name", "email", "bio", "website", "city", "birthday", "pronouns",
+        "profile": {k: getattr(user, k) for k in ("username", "name", "email", "bio", "website", "city", "birthday",
                                                    "telegram_link", "youtube_link", "tiktok_link", "total_points", "level", "streak_days")},
         "created_at": dt(user.created_at),
         "posts": [{"id": p.id, "content": p.content, "media": p.image, "created_at": dt(p.created_at), "views": p.views,

@@ -72,11 +72,6 @@ YANDEX_CLIENT_ID = env("YANDEX_CLIENT_ID", "")
 YANDEX_CLIENT_SECRET = env("YANDEX_CLIENT_SECRET", "")
 YANDEX_REDIRECT_URI = env("YANDEX_REDIRECT_URI", f"{SITE_URL}/auth/yandex/callback")
 
-# --- Звонки (WebRTC) -----------------------------------------------------
-TURN_URL = env("TURN_URL", "")
-TURN_USERNAME = env("TURN_USERNAME", "")
-TURN_CREDENTIAL = env("TURN_CREDENTIAL", "")
-
 # --- Лимиты --------------------------------------------------------------
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
 MAX_VIDEO_SIZE = 100 * 1024 * 1024
