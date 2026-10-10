@@ -2,6 +2,7 @@
 # HTTPS для Nuvora через nginx + Let's Encrypt (certbot). Работает с российских серверов.
 # Использование:  bash /opt/nuvora/deploy/https.sh nvra.ru
 set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 DOMAIN="${1:?Укажите домен, например: nvra.ru}"
 
 # убрать репозиторий Caddy, если он остался от прошлой попытки (иначе apt update ругается)

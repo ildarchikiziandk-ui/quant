@@ -4,6 +4,7 @@
 # Домен DuckDNS:   sudo bash deploy/install.sh quantru <токен-duckdns>
 # Другая ветка:    BRANCH=main sudo -E bash deploy/install.sh nvra.ru
 set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 
 ARG="${1:?Укажите домен, например: nvra.ru}"
 TOKEN="${2:-}"
