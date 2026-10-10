@@ -34,7 +34,7 @@ def env_bool(name, default=False):
 
 # --- Бренд ---------------------------------------------------------------
 # Ребрендинг делается здесь: имя проекта подставляется во все шаблоны, письма и пуши.
-BRAND_NAME = env("BRAND_NAME", "Nova")
+BRAND_NAME = env("BRAND_NAME", "Nuvora")
 BRAND_TAGLINE = env("BRAND_TAGLINE", "Соцсеть, где светятся идеи")
 BRAND_PLUS = env("BRAND_PLUS", f"{BRAND_NAME}+")
 BRAND_EMAIL = env("BRAND_EMAIL", "support@example.com")

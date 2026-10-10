@@ -24,7 +24,7 @@ def test_public_pages(anon):
                 "/?tab=latest", "/?tab=media", "/welcome"]:
         r = anon.get(url)
         assert r.status_code == 200, (url, r.status_code, r.text[:300])
-    assert "Nova" in anon.get("/").text
+    assert "Nuvora" in anon.get("/").text
     assert "Quant" not in anon.get("/").text
 
 

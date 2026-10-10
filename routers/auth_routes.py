@@ -15,7 +15,7 @@ from services import mailer, ratelimit
 
 router = APIRouter()
 
-RESERVED = {"admin", "api", "static", "uploads", "login", "logout", "register", "settings", "support", "nova", "root", "system"}
+RESERVED = {"admin", "api", "static", "uploads", "login", "logout", "register", "settings", "support", "nuvora", "root", "system"}
 
 
 def validate_username(u):
