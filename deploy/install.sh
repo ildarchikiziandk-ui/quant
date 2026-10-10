@@ -19,7 +19,7 @@ if [[ "$ARG" == *.* ]]; then
   echo "   IP сервера: ${MY_IP:-?}, домен сейчас указывает на: ${DNS_IP:-не найден}"
   if [ -n "$MY_IP" ] && [ "$MY_IP" != "$DNS_IP" ]; then
     echo "   ВНИМАНИЕ: A-запись домена ещё не указывает на этот сервер. HTTPS-сертификат выпустится,"
-    echo "   как только DNS обновится (Caddy будет пробовать сам). Проверить: ping ${DOMAIN}"
+    echo "   только когда DNS обновится. Проверить: ping ${DOMAIN}, затем: bash ${APP_DIR}/deploy/https.sh ${DOMAIN}"
   fi
 else
   SUB="$ARG"
@@ -36,14 +36,9 @@ EOS
   ( crontab -l 2>/dev/null | grep -v duckdns/update.sh; echo "*/5 * * * * /opt/duckdns/update.sh >/dev/null 2>&1" ) | crontab -
 fi
 
-echo "==> 2/6 Ставлю пакеты (python, git, caddy)"
+echo "==> 2/6 Ставлю пакеты (python, git)"
 apt-get update -qq
-apt-get install -y -qq python3 python3-venv python3-pip git curl cron debian-keyring debian-archive-keyring apt-transport-https gnupg >/dev/null
-if ! command -v caddy >/dev/null; then
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
-  apt-get update -qq && apt-get install -y -qq caddy >/dev/null
-fi
+apt-get install -y -qq python3 python3-venv python3-pip git curl cron >/dev/null
 
 echo "==> 3/6 Код приложения в ${APP_DIR} (ветка ${BRANCH})"
 id nuvora >/dev/null 2>&1 || useradd --system --home "${APP_DIR}" --shell /usr/sbin/nologin nuvora
@@ -87,24 +82,8 @@ systemctl daemon-reload
 systemctl enable -q --now nuvora
 systemctl restart nuvora
 
-echo "==> 6/6 HTTPS через Caddy (сертификат Let's Encrypt выпустится сам)"
-if [[ "$DOMAIN" == *.duckdns.org ]]; then WWW=""; else WWW="www.${DOMAIN} {
-    redir https://${DOMAIN}{uri} permanent
-}
-"; fi
-cat > /etc/caddy/Caddyfile <<EOS
-${WWW}${DOMAIN} {
-    encode gzip
-    request_body {
-        max_size 110MB
-    }
-    reverse_proxy 127.0.0.1:8000
-}
-EOS
-systemctl enable -q caddy
-systemctl reload caddy || systemctl restart caddy
-
-if command -v ufw >/dev/null && ufw status | grep -q active; then ufw allow 80,443/tcp >/dev/null; fi
+echo "==> 6/6 HTTPS через nginx + Let's Encrypt"
+bash "${APP_DIR}/deploy/https.sh" "${DOMAIN}"
 
 echo
 echo "Готово! Откройте https://${DOMAIN}"

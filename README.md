@@ -71,7 +71,7 @@ tests/             — pytest
    sudo bash quant/deploy/install.sh quantru ВАШ_ТОКЕН      # DuckDNS
    sudo bash quant/deploy/install.sh nvra.ru                # или свой домен (A-записи @ и www → IP сервера)
    ```
-   Скрипт привяжет домен к IP сервера (и будет обновлять его каждые 5 минут), установит приложение в `/opt/nuvora`, создаст `.env` со случайным `SECRET_KEY`, запустит службу `nuvora` и поднимет HTTPS через Caddy.
+   Скрипт привяжет домен к IP сервера (и будет обновлять его каждые 5 минут), установит приложение в `/opt/nuvora`, создаст `.env` со случайным `SECRET_KEY`, запустит службу `nuvora` и поднимет HTTPS через nginx и Let's Encrypt.
 4. Сайт будет доступен на `https://quantru.duckdns.org`.
 
 Обновление: `sudo bash /opt/nuvora/deploy/update.sh`. Бэкап: `sudo bash /opt/nuvora/deploy/backup.sh`. Логи: `journalctl -u nuvora -f`.
