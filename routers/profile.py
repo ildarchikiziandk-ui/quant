@@ -35,7 +35,7 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
         pu.profile_views = (pu.profile_views or 0) + 1
         db.commit()
     q = social.visible_posts(db, user, hide_muted=False).filter(models.Post.user_id == pu.id)
-    posts, reels, liked_posts = [], [], []
+    posts, liked_posts = [], []
     if can_see:
         if tab == "media":
             posts = feed.with_loads(q.filter(models.Post.image != "", models.Post.image != None)).order_by(models.Post.created_at.desc()).limit(60).all()
@@ -47,8 +47,6 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
                 posts = feed.with_loads(social.visible_posts(db, user, hide_muted=False)).filter(models.Post.id.in_(liked_ids or [-1])).all()
                 order = {pid: i for i, pid in enumerate(liked_ids)}
                 posts.sort(key=lambda p: order.get(p.id, 0))
-        elif tab == "reels":
-            reels = db.query(models.Reel).filter_by(user_id=pu.id).order_by(models.Reel.created_at.desc()).all()
         elif tab == "replies":
             liked_posts = (db.query(models.Comment).filter_by(user_id=pu.id).order_by(models.Comment.created_at.desc()).limit(50).all())
             liked_posts = [c for c in liked_posts if social.can_view_post(db, user, c.post)]
@@ -85,7 +83,7 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
     has_story = db.query(models.Story.id).filter(models.Story.user_id == pu.id, models.Story.expires_at > datetime.utcnow()).first() is not None if can_see else False
     ctx = feed.feed_context(db, user, ([pinned] if pinned else []) + posts)
     ctx["posts"] = posts
-    return render(request, db, "profile.html", profile_user=pu, tab=tab, can_see=can_see, pinned_post=pinned, reels=reels,
+    return render(request, db, "profile.html", profile_user=pu, tab=tab, can_see=can_see, pinned_post=pinned,
                   replies=liked_posts, stats=stats, rel=rel, mutual=mutual, achievements=achievements, highlights=highlights,
                   has_story=has_story, level=gamification.level_progress(pu), profile_is_plus=social.is_plus(pu), **ctx)
 

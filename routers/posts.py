@@ -113,6 +113,8 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         return json_error("auth", 401) if wants_json(request) else login_redirect(request)
     if social.is_active_block(user):
         return json_error("Аккаунт заблокирован", 403) if wants_json(request) else blocked_page(request, db, user)
+    if social.needs_email(user):
+        return json_error(social.VERIFY_MSG, 403)
     if not ratelimit.hit(f"post:{user.id}", 20, 600):
         return json_error("Слишком часто. Подождите немного.", 429)
     form = await request.form()
@@ -360,6 +362,8 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
         return err if wants_json(request) else login_redirect(request)
     if social.is_active_block(user):
         return json_error("Аккаунт заблокирован", 403)
+    if social.needs_email(user):
+        return json_error(social.VERIFY_MSG, 403)
     if post.comments_disabled and post.user_id != user.id:
         return json_error("Автор отключил комментарии", 403)
     if not ratelimit.hit(f"comment:{user.id}", 30, 300):

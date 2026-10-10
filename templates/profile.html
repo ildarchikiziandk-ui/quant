@@ -90,13 +90,10 @@
   <a href="?tab=posts" class="{% if tab == 'posts' %}active{% endif %}">Посты</a>
   <a href="?tab=replies" class="{% if tab == 'replies' %}active{% endif %}">Ответы</a>
   <a href="?tab=media" class="{% if tab == 'media' %}active{% endif %}">Медиа</a>
-  <a href="?tab=reels" class="{% if tab == 'reels' %}active{% endif %}">Рилсы</a>
   {% if not pu.hide_likes or me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}">Лайки</a>{% endif %}
 </div>
 {% if tab == "media" %}
   <div class="grid-3">{% for p in posts %}<a href="/post/{{ p.id }}" class="media-tile">{% if p.media_type == 'video' %}<video src="{{ p.image }}" muted preload="metadata"></video><span class="over">▶</span>{% else %}<img src="{{ p.image }}" alt="" loading="lazy">{% endif %}<span class="over" style="left:6px;right:auto">❤ {{ p.likes|length }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Медиа пока нет</div>{% endfor %}</div>
-{% elif tab == "reels" %}
-  <div class="grid-3">{% for r in reels %}<a href="/reels/{{ r.id }}" class="media-tile" style="aspect-ratio:9/16"><video src="{{ r.video_url }}" muted preload="metadata"></video><span class="over">▶ {{ r.views or 0 }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Рилсов пока нет{% if me %} — <a href="/reels" style="color:var(--link)">загрузить</a>{% endif %}</div>{% endfor %}</div>
 {% elif tab == "replies" %}
   {% for c in replies %}<a class="card" href="/post/{{ c.post_id }}#comment-{{ c.id }}" style="display:block"><div class="tiny muted mb">в ответ на пост {{ c.post.author.name or c.post.author.username }} · {{ c.created_at|ago }}</div><div>{{ c.content }}</div></a>{% else %}<div class="card empty">Ответов пока нет</div>{% endfor %}
 {% else %}

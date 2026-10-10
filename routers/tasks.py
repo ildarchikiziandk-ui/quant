@@ -55,5 +55,5 @@ def achievements_page(request: Request, username: str = "", db: Session = Depend
     if not target:
         return login_redirect(request)
     earned = {ua.achievement_id: ua.earned_at for ua in db.query(models.UserAchievement).filter_by(user_id=target.id)}
-    all_ach = db.query(models.Achievement).order_by(models.Achievement.points_reward.asc()).all()
+    all_ach = db.query(models.Achievement).filter(models.Achievement.code != "videographer").order_by(models.Achievement.points_reward.asc()).all()
     return render(request, db, "achievements.html", target=target, achievements=all_ach, earned=earned)

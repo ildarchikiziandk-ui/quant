@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import current_user, login_redirect, render
+from deps import current_user, login_redirect, redirect, render
 from services import feed, social
 
 router = APIRouter()
@@ -52,11 +52,8 @@ def hashtag_page(tag: str, request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/trends")
-def trends_page(request: Request, db: Session = Depends(get_db)):
-    all_trends = db.query(models.Trend).filter(models.Trend.count > 0).order_by(models.Trend.count.desc()).limit(50).all()
-    fresh = (db.query(models.Trend).filter(models.Trend.count > 0, models.Trend.updated_at > datetime.utcnow() - timedelta(days=1))
-             .order_by(models.Trend.count.desc()).limit(10).all())
-    return render(request, db, "trends.html", all_trends=all_trends, fresh=fresh)
+def trends_page():
+    return redirect("/explore", 301)
 
 
 @router.get("/explore")
@@ -74,11 +71,8 @@ def explore_page(request: Request, db: Session = Depends(get_db)):
                  .filter(~models.User.id.in_(hidden or {-1}), models.User.is_blocked == False).group_by(models.User.id)
                  .order_by(func.count(models.Follow.id).desc()).limit(8).all())
     new_users = (db.query(models.User).filter(~models.User.id.in_(hidden or {-1})).order_by(models.User.created_at.desc()).limit(8).all())
-    tags = db.query(models.Trend).filter(models.Trend.count > 0).order_by(models.Trend.count.desc()).limit(12).all()
-    reels = db.query(models.Reel).order_by(models.Reel.views.desc()).limit(6).all()
-    reels = [r for r in reels if r.author and social.can_see_content(db, user, r.author)]
-    return render(request, db, "explore.html", hot=hot, media=media, top_users=top_users, new_users=new_users, tags=tags,
-                  top_reels=reels, following=social.following_ids(db, user), **feed.feed_context(db, user, hot))
+    return render(request, db, "explore.html", hot=hot, media=media, top_users=top_users, new_users=new_users,
+                  following=social.following_ids(db, user), **feed.feed_context(db, user, hot))
 
 
 @router.get("/mentions")

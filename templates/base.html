@@ -22,7 +22,7 @@
 </script>
 {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18181b"/><stop offset="1" stop-color="#18181b"/></linearGradient></defs></svg>
 {% block body %}
 <div class="mobile-top">
@@ -42,7 +42,6 @@
     <a href="/search" class="nav-item"><span class="ico">{{ icon("search") }}</span><span class="nav-label">Поиск</span></a>
     <a href="/notifications" class="nav-item"><span class="ico">{{ icon("bell") }}</span><span class="nav-label">Уведомления</span><span class="badge-count {% if not unread %}hidden{% endif %}" data-badge="notifications">{{ unread }}</span></a>
     <a href="/messages" class="nav-item"><span class="ico">{{ icon("chat") }}</span><span class="nav-label">Сообщения</span><span class="badge-count {% if not unread_msg %}hidden{% endif %}" data-badge="messages">{{ unread_msg }}</span></a>
-    <a href="/reels" class="nav-item"><span class="ico">{{ icon("film") }}</span><span class="nav-label">Рилсы</span></a>
     <a href="/groups" class="nav-item"><span class="ico">{{ icon("users") }}</span><span class="nav-label">Группы</span></a>
     <a href="/bookmarks" class="nav-item"><span class="ico">{{ icon("bookmark") }}</span><span class="nav-label">Закладки</span></a>
     <a href="/tasks" class="nav-item"><span class="ico">{{ icon("target") }}</span><span class="nav-label">Задания</span></a>
@@ -68,6 +67,7 @@
 
   <main class="main">
     {% if announcement %}<div class="announce {{ announcement.level }}">📣 <span>{{ announcement.text }}</span></div>{% endif %}
+    {% if needs_email %}<div class="alert info">📧 Подтвердите email <b>{{ user.email }}</b>, чтобы публиковать посты и писать сообщения. <a href="/verify" style="color:var(--link);font-weight:600">Ввести код →</a></div>{% endif %}
     {% if user and user.is_blocked and user.blocked_until and user.blocked_until > now %}<div class="alert error">Ваш аккаунт ограничен до {{ user.blocked_until.strftime("%d.%m.%Y %H:%M") }}. <a href="/special-request" style="text-decoration:underline">Подать апелляцию</a></div>{% endif %}
     {% block content %}{% endblock %}
   </main>
@@ -104,14 +104,6 @@
     {% if birthdays %}
     <div class="card"><div class="card-title">🎂 Дни рождения сегодня</div>
       {% for b in birthdays %}<a href="/messages/{{ b.username }}" class="row small" style="padding:4px 0">{{ avatar(b, 28) }}<span class="grow">{{ b.name or b.username }}</span><span class="tag-pill">Поздравить</span></a>{% endfor %}
-    </div>
-    {% endif %}
-    {% if trends %}
-    <div class="card">
-      <div class="card-title">🔥 Тренды <a href="/trends">Все →</a></div>
-      {% for t in trends %}
-      <a href="/hashtag/{{ t.tag }}" class="row" style="justify-content:space-between;padding:6px 0"><span><span class="tiny faint">{{ loop.index }} · в тренде</span><br><b>#{{ t.tag }}</b></span><span class="tiny muted">{{ plural(t.count, "пост", "поста", "постов") }}</span></a>
-      {% endfor %}
     </div>
     {% endif %}
     {% if suggested_users %}

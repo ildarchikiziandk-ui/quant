@@ -21,7 +21,6 @@
   <div class="stat-tile"><b>{{ stats.messages }}</b><span>Сообщений</span></div>
   <div class="stat-tile"><b>{{ stats.groups }}</b><span>Групп</span></div>
   <div class="stat-tile"><b>{{ stats.stories }}</b><span>Активных историй</span></div>
-  <div class="stat-tile"><b>{{ stats.reels }}</b><span>Рилсов</span></div>
   <div class="stat-tile"><b>{{ stats.plus }}</b><span>С {{ brand_plus }}</span></div>
   <div class="stat-tile"><b>{{ stats.banned }}</b><span>Заблокировано</span></div>
 </div>
@@ -48,6 +47,7 @@
         <form method="post" action="/admin/star/{{ u.username }}"><button>{{ "Снять" if u.is_starred else "Дать" }} звезду</button></form>
         <form method="post" action="/admin/mod/{{ u.username }}"><button>{{ "Снять" if u.is_moderator else "Сделать" }} модератором</button></form>
         <form method="post" action="/admin/plus/{{ u.username }}"><input type="hidden" name="days" value="30"><button>Подарить Plus 30 дн.</button></form>
+        <form method="post" action="/admin/reset-password/{{ u.username }}" onsubmit="return confirm('Сбросить пароль @{{ u.username }}?')"><button>🔑 Сбросить пароль</button></form>
         <form method="post" action="/admin/points/{{ u.username }}"><input type="hidden" name="points" value="100"><button>+100 очков</button></form>
         <form method="post" action="/admin/delete-user/{{ u.username }}" onsubmit="return confirm('Удалить @{{ u.username }} со всеми данными?')"><button class="danger">Удалить аккаунт</button></form>
         {% endif %}

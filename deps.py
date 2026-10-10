@@ -53,10 +53,10 @@ def base_context(request: Request, db: Session, sidebar=True):
     unread, unread_msg = unread_counts(user, db)
     ctx = {"request": request, "user": user, "unread": unread, "unread_msg": unread_msg,
            "is_plus": social.is_plus(user), "can_mod": social.can_mod(user), "now": datetime.utcnow(),
+           "needs_email": social.needs_email(user),
            "announcement": db.query(models.Announcement).filter(models.Announcement.is_active == True)
                              .order_by(models.Announcement.created_at.desc()).first()}
     if sidebar:
-        ctx["trends"] = db.query(models.Trend).order_by(models.Trend.count.desc()).limit(5).all()
         ctx["daily_tasks"] = gamification.get_daily_tasks(user, db)
         if user:
             excl = social.following_ids(db, user) | social.blocked_ids(db, user) | {user.id}

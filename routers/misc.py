@@ -104,6 +104,12 @@ async def special_request_submit(request: Request, db: Session = Depends(get_db)
     return render(request, db, "special_request.html", types=SPECIAL_TYPES, mine=mine, success=True)
 
 
+@router.get("/reels")
+@router.get("/reels/{reel_id}")
+def reels_removed(reel_id: int = 0):
+    return redirect("/", 301)
+
+
 @router.get("/offline")
 def offline_page(request: Request):
     return templates.TemplateResponse(request, "offline.html", {})

@@ -119,6 +119,8 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
         return err
     if social.is_active_block(user):
         return json_error("Аккаунт заблокирован", 403)
+    if social.needs_email(user):
+        return json_error(social.VERIFY_MSG, 403)
     if not ratelimit.hit(f"gmsg:{user.id}", 40, 60):
         return json_error("Слишком часто", 429)
     form = await request.form()

@@ -7,8 +7,8 @@
 {% if success %}<div class="alert success">{{ success }}</div>{% endif %}
 <form method="post" action="/login">
   <input type="hidden" name="next" value="{{ next or '/' }}">
-  <label class="field"><span>Логин или email</span><input name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></label>
-  <label class="field"><span>Пароль</span><input type="password" name="password" autocomplete="current-password" required></label>
+  <label class="field"><span>Логин или email</span><input name="username" value="{{ username or '' }}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required autofocus></label>
+  <label class="field"><span>Пароль</span><div style="position:relative"><input type="password" name="password" id="pw" autocomplete="current-password" required style="padding-right:44px"><button type="button" class="icon-btn" style="position:absolute;right:4px;top:2px" onclick="const p=document.getElementById('pw');p.type=p.type==='password'?'text':'password'" title="Показать пароль">👁</button></div></label>
   <button class="btn block">Войти</button>
 </form>
 <div class="row mt small" style="justify-content:space-between"><a href="/forgot" class="muted">Забыли пароль?</a><a href="/register" style="color:var(--link);font-weight:600">Создать аккаунт</a></div>

@@ -155,6 +155,8 @@ def _precheck(db, user, other):
         return json_error("Пользователь не найден", 404)
     if social.is_active_block(user):
         return json_error("Аккаунт заблокирован", 403)
+    if social.needs_email(user):
+        return json_error(social.VERIFY_MSG, 403)
     ok, reason = social.can_message(db, user, other)
     if not ok:
         return json_error(reason, 403)

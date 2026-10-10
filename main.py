@@ -11,7 +11,7 @@ import migrations
 from database import SessionLocal
 from deps import templates
 from routers import (admin, api, auth_routes, calls, explore, feed, groups, messages, misc, notifications, posts,
-                     profile, reels, settings, stories, tasks)
+                     profile, settings, stories, tasks)
 
 migrations.run()
 
@@ -22,15 +22,25 @@ app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
+def _norm_host(h: str) -> str:
+    h = (h or "").lower().split(":")[0]
+    return h[4:] if h.startswith("www.") else h
+
+
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
     # Защита от CSRF: небезопасные запросы с чужого Origin/Referer отклоняются.
     if request.method not in SAFE_METHODS:
         origin = request.headers.get("origin") or request.headers.get("referer")
         if origin and origin != "null":
-            allowed = {request.headers.get("host", ""), request.headers.get("x-forwarded-host", ""), urlparse(config.SITE_URL).netloc}
-            if urlparse(origin).netloc not in allowed:
-                return JSONResponse({"ok": False, "error": "csrf"}, status_code=403)
+            allowed = {_norm_host(h) for h in (request.headers.get("host", ""), request.headers.get("x-forwarded-host", ""),
+                                               urlparse(config.SITE_URL).netloc) if h}
+            if _norm_host(urlparse(origin).netloc) not in allowed:
+                print(f"[csrf] blocked {request.method} {request.url.path} origin={origin!r} host={request.headers.get('host')!r}")
+                if "application/json" in request.headers.get("accept", "") or request.headers.get("x-requested-with"):
+                    return JSONResponse({"ok": False, "error": "Запрос отклонён. Обновите страницу и попробуйте снова."}, status_code=403)
+                return HTMLResponse("<meta charset='utf-8'><p style='font-family:sans-serif;padding:24px'>Запрос отклонён из соображений безопасности. "
+                                    "<a href='/'>Вернитесь на сайт</a>, обновите страницу и попробуйте снова.</p>", status_code=403)
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
@@ -39,7 +49,7 @@ async def security_middleware(request: Request, call_next):
     return response
 
 
-for r in (auth_routes, feed, posts, profile, settings, messages, groups, stories, reels, explore, notifications,
+for r in (auth_routes, feed, posts, profile, settings, messages, groups, stories, explore, notifications,
           tasks, admin, calls, api, misc):
     app.include_router(r.router)
 

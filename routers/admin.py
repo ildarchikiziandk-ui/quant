@@ -47,7 +47,7 @@ def admin_page(request: Request, tab: str = "dashboard", q: str = "", db: Sessio
         "dau": db.query(models.User).filter(models.User.last_seen > day).count(),
         "posts": db.query(models.Post).count(), "posts_day": db.query(models.Post).filter(models.Post.created_at > day).count(),
         "messages": db.query(models.Message).count(), "comments": db.query(models.Comment).count(),
-        "stories": db.query(models.Story).filter(models.Story.expires_at > now).count(), "reels": db.query(models.Reel).count(),
+        "stories": db.query(models.Story).filter(models.Story.expires_at > now).count(),
         "groups": db.query(models.GroupChat).count(), "plus": db.query(models.User).filter(models.User.is_plus == True,
                                                                                            or_(models.User.plus_until == None, models.User.plus_until > now)).count(),
         "banned": db.query(models.User).filter(models.User.is_blocked == True).count(),
@@ -162,6 +162,22 @@ async def admin_points(username: str, request: Request, db: Session = Depends(ge
         log_mod(db, user, "points", target.username, str(pts))
         db.commit()
     return _back(request)
+
+
+@router.post("/admin/reset-password/{username}")
+def admin_reset_password(username: str, request: Request, db: Session = Depends(get_db)):
+    user = _owner(request, db)
+    target = _target(db, username)
+    if not user or not target:
+        return redirect("/admin?tab=users")
+    import auth
+    temp = secrets.token_urlsafe(6).replace("-", "x").replace("_", "y") + "7"
+    target.password = auth.hash_password(temp)
+    db.query(models.UserSession).filter_by(user_id=target.id).update({"is_active": False})
+    log_mod(db, user, "reset_password", target.username)
+    db.commit()
+    return render(request, db, "error.html", sidebar=False, code="🔑", title=f"Новый пароль для @{target.username}",
+                  text=f"Временный пароль: {temp} — передайте его пользователю. Сменить его можно в Настройки → Аккаунт.")
 
 
 @router.post("/admin/delete-user/{username}")

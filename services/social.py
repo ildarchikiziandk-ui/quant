@@ -37,6 +37,14 @@ def is_plus(user):
     return True
 
 
+def needs_email(user):
+    """Почта настроена, а пользователь ещё не подтвердил email — писать нельзя."""
+    return bool(config.EMAIL_ENABLED and user and not user.email_verified and not user.is_owner)
+
+
+VERIFY_MSG = "Подтвердите email, чтобы писать — код отправлен на вашу почту (страница /verify)"
+
+
 def can_mod(user):
     return bool(user and (user.is_owner or user.is_moderator))
 

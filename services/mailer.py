@@ -22,19 +22,28 @@ def _wrap(title, body_html):
 
 
 def _send_sync(to_email, subject, body):
+    """Отправляет письмо. Возвращает None при успехе или текст ошибки."""
     try:
+        from email.header import Header
+        from email.utils import formataddr
         msg = MIMEMultipart()
-        msg["From"] = config.SMTP_USER
+        msg["From"] = formataddr((str(Header(config.BRAND_NAME, "utf-8")), config.SMTP_USER))
         msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "html"))
-        server = smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT, timeout=10)
-        server.starttls()
+        msg["Subject"] = Header(subject, "utf-8")
+        msg.attach(MIMEText(body, "html", "utf-8"))
+        if config.SMTP_PORT == 465:
+            server = smtplib.SMTP_SSL(config.SMTP_HOST, config.SMTP_PORT, timeout=15)
+        else:
+            server = smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT, timeout=15)
+            server.starttls()
         server.login(config.SMTP_USER, config.SMTP_PASSWORD)
-        server.sendmail(config.SMTP_USER, to_email, msg.as_string())
+        server.sendmail(config.SMTP_USER, [to_email], msg.as_string())
         server.quit()
+        print(f"[mail] sent to={to_email} subject={subject!r}")
+        return None
     except Exception as e:
-        print(f"Email error: {e}")
+        print(f"[mail] error to={to_email}: {e}")
+        return str(e)
 
 
 def send(to_email, subject, body):

@@ -64,16 +64,35 @@ def login_page(request: Request, next: str = "/", db: Session = Depends(get_db))
     return render(request, db, "login.html", sidebar=False, next=next)
 
 
+def _find_user(db, ident):
+    ident = ident.strip().lstrip("@").strip()
+    return db.query(models.User).filter(or_(func.lower(models.User.username) == ident.lower(),
+                                            func.lower(models.User.email) == ident.lower())).first()
+
+
 @router.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...), next: str = Form("/"),
           db: Session = Depends(get_db)):
-    ident = username.strip().lstrip("@")
-    if not ratelimit.hit(f"login:{_client_ip(request)}", 10, 300):
+    ident = username.strip().lstrip("@").strip()
+    ip = _client_ip(request)
+    if not ratelimit.hit(f"login:{ip}:{ident.lower()}", 10, 300):
+        print(f"[login] rate-limited ip={ip} ident={ident!r}")
         return render(request, db, "login.html", sidebar=False, error="Слишком много попыток. Подождите 5 минут.", username=ident, next=next)
-    user = db.query(models.User).filter(or_(func.lower(models.User.username) == ident.lower(),
-                                            func.lower(models.User.email) == ident.lower())).first()
-    if not user or not auth.verify_password(password, user.password):
-        return render(request, db, "login.html", sidebar=False, error="Неверный логин или пароль", username=ident, next=next)
+    user = _find_user(db, ident)
+    if not user:
+        print(f"[login] no such user ident={ident!r} ip={ip}")
+        return render(request, db, "login.html", sidebar=False, username=ident, next=next,
+                      error="Аккаунт с таким логином или email не найден. Вводите именно логин (тот, что после @), а не имя.")
+    ok = auth.verify_password(password, user.password)
+    if not ok and password != password.strip():
+        # телефонные клавиатуры иногда добавляют пробел в конце
+        ok = auth.verify_password(password.strip(), user.password)
+        password = password.strip() if ok else password
+    if not ok:
+        print(f"[login] wrong password user={user.username} ip={ip}")
+        return render(request, db, "login.html", sidebar=False, username=ident, next=next,
+                      error="Неверный пароль. Проверьте раскладку и Caps Lock или нажмите «Забыли пароль?».")
+    print(f"[login] ok user={user.username} ip={ip} ua={request.headers.get('user-agent', '')[:80]!r}")
     if auth.needs_rehash(user.password):
         user.password = auth.hash_password(password)
         db.commit()
@@ -110,7 +129,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
              confirm_password: str = Form(...), agree: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
              db: Session = Depends(get_db)):
     username, email = username.strip().lstrip("@"), email.strip().lower()
-    form = {"username": username, "email": email, "name": name, "beta": bool(config.BETA_CODE)}
+    form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE)}
 
     def fail(msg):
         return render(request, db, "register.html", sidebar=False, error=msg, **form)

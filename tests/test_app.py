@@ -20,7 +20,7 @@ def create_post(client, content="Привет #мир @bob", files=None, **extra
 
 def test_public_pages(anon):
     for url in ["/", "/login", "/register", "/explore", "/search?q=x", "/trends", "/terms", "/about", "/plus", "/support",
-                "/forgot", "/offline", "/leaderboard", "/reels", "/manifest.webmanifest", "/sw.js", "/robots.txt", "/healthz",
+                "/forgot", "/offline", "/leaderboard", "/manifest.webmanifest", "/sw.js", "/robots.txt", "/healthz",
                 "/?tab=latest", "/?tab=media", "/welcome"]:
         r = anon.get(url)
         assert r.status_code == 200, (url, r.status_code, r.text[:300])
@@ -54,7 +54,7 @@ def test_login_logout_and_legacy_password(anon, alice):
     s.close()
     assert anon.get("/settings").status_code == 200
     bad = make_client().post("/login", data={"username": "alice", "password": "nope"})
-    assert "Неверный логин" in bad.text
+    assert "Неверный пароль" in bad.text
     anon.post("/logout")
     r = anon.get("/settings", follow_redirects=False)
     assert r.status_code == 303
@@ -234,15 +234,6 @@ def test_stories(alice, bob):
     assert alice.post(f"/stories/{sid}/delete", headers=J).json()["ok"]
 
 
-def test_reels(alice, bob):
-    r = alice.post("/reels/upload", data={"caption": "мой рилс"}, files={"video": ("r.mp4", b"\x00\x00\x00\x18ftypmp42" + b"0" * 100, "video/mp4")}, headers=J)
-    rid = r.json()["id"]
-    assert bob.post(f"/reels/{rid}/like", headers=J).json()["liked"]
-    assert bob.post(f"/reels/{rid}/comment", json={"content": "огонь"}, headers=J).json()["ok"]
-    assert bob.get(f"/reels/{rid}/comments").json()["comments"][0]["content"] == "огонь"
-    assert bob.get(f"/reels/{rid}").status_code == 200
-    assert bob.post(f"/reels/{rid}/delete", headers=J).status_code == 403
-
 
 def test_follow_and_achievements(alice, bob):
     assert bob.post("/follow/alice", headers=J).json()["state"] == "following"
@@ -386,3 +377,56 @@ def test_infinite_feed(alice):
     assert "data-more" in page1
     page2 = alice.get("/feed/more?tab=latest&page=2").text
     assert "пост номер" in page2
+
+
+def test_register_form_keeps_name_and_no_macro_leak(anon):
+    r = anon.get("/register")
+    assert "Macro" not in r.text
+    r = anon.post("/register", data={"username": "ab", "name": "Иван", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1"})
+    assert 'value="Иван"' in r.text and "Macro" not in r.text
+
+
+def test_login_variants(alice):
+    c = make_client()
+    r = c.post("/login", data={"username": " @ALICE ", "password": "secret123 "}, follow_redirects=False)
+    assert r.status_code == 303, "uppercase login, @ and trailing spaces should be accepted"
+    assert "не найден" in make_client().post("/login", data={"username": "Alice Liddell", "password": "x"}).text
+    assert "Неверный пароль" in make_client().post("/login", data={"username": "alice", "password": "nope"}).text
+    c2 = make_client()
+    r = c2.post("/login", data={"username": "alice@example.com", "password": "secret123"}, headers={"Origin": "https://www.testserver"}, follow_redirects=False)
+    assert r.status_code == 303, "www-origin must pass CSRF check"
+    assert c2.get("/settings").status_code == 200 and alice.get("/settings").status_code == 200
+
+
+def test_removed_sections(alice):
+    assert alice.get("/trends", follow_redirects=False).status_code == 301
+    assert alice.get("/reels", follow_redirects=False).status_code == 301
+    home = alice.get("/").text
+    assert 'href="/reels"' not in home and "Тренды" not in home
+
+
+def test_email_verification_required(monkeypatch, anon):
+    import config
+    from services import mailer
+    sent = {}
+    monkeypatch.setattr(config, "EMAIL_ENABLED", True)
+    monkeypatch.setattr(mailer, "send", lambda to, subj, body: sent.setdefault("body", body) or True)
+    r = anon.post("/register", data={"username": "veri", "email": "veri@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1"}, follow_redirects=False)
+    assert r.headers["location"] == "/verify"
+    assert anon.post("/post/create", data={"content": "hi"}, headers=J).status_code == 403
+    code = re.search(r"letter-spacing:8px;\">(\d{6})<", sent["body"]).group(1)
+    anon.post("/verify", data={"code": code})
+    assert anon.post("/post/create", data={"content": "hi"}, headers=J).status_code == 200
+    # сброс пароля по коду
+    sent.clear()
+    anon.post("/forgot", data={"email": "veri@example.com"})
+    code = re.search(r"letter-spacing:8px;\">(\d{6})<", sent["body"]).group(1)
+    r = anon.post("/forgot/reset", data={"email": "veri@example.com", "code": code, "password": "newpass123"})
+    assert "Пароль изменён" in r.text
+    assert make_client().post("/login", data={"username": "veri", "password": "newpass123"}, follow_redirects=False).status_code == 303
+
+
+def test_admin_reset_password(owner, alice):
+    r = owner.post("/admin/reset-password/alice")
+    temp = re.search(r"Временный пароль: (\S+) ", r.text).group(1)
+    assert make_client().post("/login", data={"username": "alice", "password": temp}, follow_redirects=False).status_code == 303

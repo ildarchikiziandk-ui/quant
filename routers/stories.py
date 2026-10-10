@@ -69,8 +69,8 @@ async def create_story(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
-    if social.is_active_block(user):
-        return redirect("/")
+    if social.is_active_block(user) or social.needs_email(user):
+        return redirect("/verify" if social.needs_email(user) else "/")
     form = await request.form()
     text = (form.get("text_overlay") or "").strip()[:300]
     bg = form.get("bg_color") if re.match(r"^#[0-9a-fA-F]{6}$", form.get("bg_color") or "") else ""
