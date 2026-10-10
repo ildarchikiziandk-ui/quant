@@ -68,7 +68,8 @@ tests/             — pytest
 3. На сервере:
    ```bash
    git clone -b claude/happy-wozniak-vvu5w4 https://github.com/ildarchikiziandk-ui/quant.git
-   sudo bash quant/deploy/install.sh quantru ВАШ_ТОКЕН
+   sudo bash quant/deploy/install.sh quantru ВАШ_ТОКЕН      # DuckDNS
+   sudo bash quant/deploy/install.sh nvra.ru                # или свой домен (A-записи @ и www → IP сервера)
    ```
    Скрипт привяжет домен к IP сервера (и будет обновлять его каждые 5 минут), установит приложение в `/opt/nuvora`, создаст `.env` со случайным `SECRET_KEY`, запустит службу `nuvora` и поднимет HTTPS через Caddy.
 4. Сайт будет доступен на `https://quantru.duckdns.org`.

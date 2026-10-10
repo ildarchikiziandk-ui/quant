@@ -1,29 +1,44 @@
 #!/usr/bin/env bash
 # Установка Nuvora на чистый сервер Ubuntu 22.04/24.04 (или Debian 12).
-# Использование:  sudo bash deploy/install.sh <поддомен-duckdns> <токен-duckdns> [ветка]
-# Пример:         sudo bash deploy/install.sh quantru 1a2b3c4d-....
+# Свой домен:      sudo bash deploy/install.sh nvra.ru
+# Домен DuckDNS:   sudo bash deploy/install.sh quantru <токен-duckdns>
+# Другая ветка:    BRANCH=main sudo -E bash deploy/install.sh nvra.ru
 set -euo pipefail
 
-SUB="${1:?Укажите поддомен DuckDNS, например: quantru}"
-TOKEN="${2:?Укажите токен DuckDNS (на странице duckdns.org вверху)}"
-BRANCH="${3:-claude/happy-wozniak-vvu5w4}"
-DOMAIN="${SUB}.duckdns.org"
+ARG="${1:?Укажите домен, например: nvra.ru}"
+TOKEN="${2:-}"
+BRANCH="${BRANCH:-claude/happy-wozniak-vvu5w4}"
 APP_DIR=/opt/nuvora
 REPO="https://github.com/ildarchikiziandk-ui/quant.git"
 
-echo "==> 1/6 Обновляю DuckDNS: ${DOMAIN} -> IP этого сервера"
-mkdir -p /opt/duckdns
-cat > /opt/duckdns/update.sh <<EOS
+if [[ "$ARG" == *.* ]]; then
+  DOMAIN="$ARG"
+  echo "==> 1/6 Свой домен ${DOMAIN}"
+  MY_IP=$(curl -fsS https://api.ipify.org || true)
+  DNS_IP=$(getent ahostsv4 "$DOMAIN" | awk 'NR==1{print $1}' || true)
+  echo "   IP сервера: ${MY_IP:-?}, домен сейчас указывает на: ${DNS_IP:-не найден}"
+  if [ -n "$MY_IP" ] && [ "$MY_IP" != "$DNS_IP" ]; then
+    echo "   ВНИМАНИЕ: A-запись домена ещё не указывает на этот сервер. HTTPS-сертификат выпустится,"
+    echo "   как только DNS обновится (Caddy будет пробовать сам). Проверить: ping ${DOMAIN}"
+  fi
+else
+  SUB="$ARG"
+  DOMAIN="${SUB}.duckdns.org"
+  [ -n "$TOKEN" ] || { echo "Для DuckDNS укажите токен вторым аргументом"; exit 1; }
+  echo "==> 1/6 Обновляю DuckDNS: ${DOMAIN} -> IP этого сервера"
+  mkdir -p /opt/duckdns
+  cat > /opt/duckdns/update.sh <<EOS
 #!/bin/sh
 curl -fsS "https://www.duckdns.org/update?domains=${SUB}&token=${TOKEN}&ip=" -o /opt/duckdns/last.log
 EOS
-chmod 700 /opt/duckdns/update.sh
-/opt/duckdns/update.sh && echo "   ответ DuckDNS: $(cat /opt/duckdns/last.log)"
-( crontab -l 2>/dev/null | grep -v duckdns/update.sh; echo "*/5 * * * * /opt/duckdns/update.sh >/dev/null 2>&1" ) | crontab -
+  chmod 700 /opt/duckdns/update.sh
+  /opt/duckdns/update.sh && echo "   ответ DuckDNS: $(cat /opt/duckdns/last.log)"
+  ( crontab -l 2>/dev/null | grep -v duckdns/update.sh; echo "*/5 * * * * /opt/duckdns/update.sh >/dev/null 2>&1" ) | crontab -
+fi
 
 echo "==> 2/6 Ставлю пакеты (python, git, caddy)"
 apt-get update -qq
-apt-get install -y -qq python3 python3-venv python3-pip git curl debian-keyring debian-archive-keyring apt-transport-https gnupg >/dev/null
+apt-get install -y -qq python3 python3-venv python3-pip git curl cron debian-keyring debian-archive-keyring apt-transport-https gnupg >/dev/null
 if ! command -v caddy >/dev/null; then
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
@@ -73,8 +88,12 @@ systemctl enable -q --now nuvora
 systemctl restart nuvora
 
 echo "==> 6/6 HTTPS через Caddy (сертификат Let's Encrypt выпустится сам)"
+if [[ "$DOMAIN" == *.duckdns.org ]]; then WWW=""; else WWW="www.${DOMAIN} {
+    redir https://${DOMAIN}{uri} permanent
+}
+"; fi
 cat > /etc/caddy/Caddyfile <<EOS
-${DOMAIN} {
+${WWW}${DOMAIN} {
     encode gzip
     request_body {
         max_size 110MB
