@@ -34,26 +34,45 @@ PY
   fi
 }
 set_var SMTP_HOST "$HOST"
-set_var SMTP_PORT "$PORT"
 set_var SMTP_USER "$USER_EMAIL"
 set_var SMTP_PASSWORD "$PASS"
 set_var BRAND_EMAIL "$USER_EMAIL"
 chown nuvora:nuvora "$ENV"; chmod 600 "$ENV"
 
-echo "==> Отправляю тестовое письмо на $USER_EMAIL ..."
 cd "$APP_DIR"
-RESULT=$(sudo -u nuvora "$APP_DIR/venv/bin/python" -c "
+PORTS="$PORT"; [ "$PORT" = 465 ] && PORTS="465 587"; [ "$PORT" = 587 ] && PORTS="587 465"
+RESULT="ERR не проверено"
+for P in $PORTS; do
+  set_var SMTP_PORT "$P"
+  chown nuvora:nuvora "$ENV"; chmod 600 "$ENV"
+  echo "==> Пробую отправить тестовое письмо через $HOST:$P ..."
+  RESULT=$(sudo -u nuvora "$APP_DIR/venv/bin/python" -c "
 import config
 from services import mailer
 err = mailer._send_sync(config.SMTP_USER, 'Проверка почты — ' + config.BRAND_NAME, mailer._wrap('Почта работает ✅', '<p>Письма с сайта теперь отправляются.</p>'))
 print('OK' if err is None else 'ERR ' + err)
 " 2>/dev/null | tail -1)
+  [[ "$RESULT" == OK ]] && break
+  echo "   не вышло: ${RESULT#ERR }"
+done
+
 if [[ "$RESULT" == OK ]]; then
   systemctl restart nuvora
-  echo "✅ Готово! Тестовое письмо отправлено, сайт перезапущен. Подтверждение email и восстановление пароля работают."
+  echo "✅ Готово! Тестовое письмо отправлено на $USER_EMAIL, сайт перезапущен."
+  echo "   Подтверждение email и восстановление пароля работают."
 else
-  echo "❌ Не получилось отправить письмо: ${RESULT#ERR }"
-  echo "Чаще всего причина — нужен именно «пароль для внешних приложений», а не обычный пароль от почты."
-  echo "Запустите скрипт ещё раз после исправления."
+  echo
+  echo "❌ Письмо отправить не удалось."
+  case "$RESULT" in
+    *535*|*uthentication*|*Invalid*|*password*|*Username*)
+      echo "Почта отклонила пароль. Нужен «пароль для внешних приложений» из настроек почты,"
+      echo "а не обычный пароль. Создайте его и запустите скрипт ещё раз." ;;
+    *unreachable*|*timed\ out*|*Timeout*|*refused*|*101*|*110*|*111*)
+      echo "Сервер не может подключиться к почтовому серверу — похоже, хостинг закрыл порты 465 и 587."
+      echo "Напишите в поддержку Рег.облака: «Прошу открыть исходящие порты 465 и 587 (SMTP) на сервере $(curl -fsS https://api.ipify.org 2>/dev/null)»."
+      echo "Когда откроют — запустите этот скрипт ещё раз." ;;
+    *)
+      echo "Ответ сервера: ${RESULT#ERR }" ;;
+  esac
   exit 1
 fi

@@ -2,6 +2,7 @@
 import html
 import random
 import smtplib
+import socket
 import string
 import threading
 from email.mime.multipart import MIMEMultipart
@@ -21,6 +22,31 @@ def _wrap(title, body_html):
 <p style="color:#888;font-size:13px;margin-top:24px;">— Команда {html.escape(config.BRAND_NAME)}</p></div>"""
 
 
+def _connect_ipv4(host, port, timeout):
+    """Подключение только по IPv4: на многих VPS нет IPv6, и smtplib падает с «Network is unreachable»."""
+    last = OSError(f"не удалось найти IPv4-адрес для {host}")
+    for family, stype, proto, _, addr in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
+        sock = socket.socket(family, stype, proto)
+        sock.settimeout(timeout)
+        try:
+            sock.connect(addr)
+            return sock
+        except OSError as e:
+            sock.close()
+            last = e
+    raise last
+
+
+class _SMTP4(smtplib.SMTP):
+    def _get_socket(self, host, port, timeout):
+        return _connect_ipv4(host, port, timeout)
+
+
+class _SMTPSSL4(smtplib.SMTP_SSL):
+    def _get_socket(self, host, port, timeout):
+        return self.context.wrap_socket(_connect_ipv4(host, port, timeout), server_hostname=self._host)
+
+
 def _send_sync(to_email, subject, body):
     """Отправляет письмо. Возвращает None при успехе или текст ошибки."""
     try:
@@ -32,9 +58,9 @@ def _send_sync(to_email, subject, body):
         msg["Subject"] = Header(subject, "utf-8")
         msg.attach(MIMEText(body, "html", "utf-8"))
         if config.SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(config.SMTP_HOST, config.SMTP_PORT, timeout=15)
+            server = _SMTPSSL4(config.SMTP_HOST, config.SMTP_PORT, timeout=15)
         else:
-            server = smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT, timeout=15)
+            server = _SMTP4(config.SMTP_HOST, config.SMTP_PORT, timeout=15)
             server.starttls()
         server.login(config.SMTP_USER, config.SMTP_PASSWORD)
         server.sendmail(config.SMTP_USER, [to_email], msg.as_string())
