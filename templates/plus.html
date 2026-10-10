@@ -5,7 +5,7 @@
   <div style="font-size:44px">✨</div>
   <h1 style="font-size:30px;font-weight:800;letter-spacing:-1px">{{ brand_plus }}</h1>
   <p class="muted">Больше возможностей и стиля в {{ brand }}</p>
-  {% if is_plus %}<div class="alert success mt" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">У вас активен {{ brand_plus }}{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %} 💜</div>{% endif %}
+  {% if is_plus %}<div class="alert success mt">У вас активен {{ brand_plus }}{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %} 💜</div>{% endif %}
 </div>
 <div class="grid-2">
   {% for e, t, d in [("💜","PLUS-бейдж","Яркая отметка рядом с именем во всех постах и комментариях"),("🎨","Свой цвет","Выберите цвет бейджа и обложки профиля"),("🚀","Ранний доступ","Новые функции — раньше всех"),("🏆","Достижение","Эксклюзивная отметка в профиле"),("🎟","Розыгрыши","Каждую неделю разыгрываем подписку среди активных"),("🛟","Приоритет","Обращения в поддержку рассматриваются первыми")] %}
@@ -13,7 +13,7 @@
   {% endfor %}
 </div>
 <div class="card"><div class="card-title">Как получить?</div>
-  <p class="small muted mb">Активируйте промокод от администрации или выиграйте в еженедельном розыгрыше, выполняя <a href="/tasks" style="color:var(--brand)">задания</a>.</p>
+  <p class="small muted mb">Активируйте промокод от администрации или выиграйте в еженедельном розыгрыше, выполняя <a href="/tasks" style="color:var(--link)">задания</a>.</p>
   {% if user %}<form method="post" action="/settings/promocode" class="row"><input name="code" placeholder="Промокод" required style="margin:0;text-transform:uppercase"><button class="btn">Активировать</button></form>
   {% else %}<a href="/register" class="btn">Создать аккаунт</a>{% endif %}
 </div>

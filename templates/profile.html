@@ -6,7 +6,7 @@
 {% block meta %}<meta property="og:title" content="{{ pu.name or pu.username }} в {{ brand }}"><meta property="og:description" content="{{ pu.bio or '' }}">{% if pu.avatar %}<meta property="og:image" content="{{ site_url }}{{ pu.avatar }}">{% endif %}{% endblock %}
 {% block content %}
 <div class="card flat">
-  <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus and pu.plus_color %}background:linear-gradient(135deg,{{ pu.plus_color }},#ec4899);{% endif %}">
+  <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus and pu.plus_color %}background:{{ pu.plus_color }};{% endif %}">
     {% if me %}<form method="post" action="/settings/cover" enctype="multipart/form-data" style="position:absolute;right:12px;bottom:12px"><label class="btn soft sm" style="cursor:pointer;background:rgba(0,0,0,.45);color:#fff">{{ icon("image") }} Обложка<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>{% endif %}
   </div>
   <div class="profile-top">
@@ -96,12 +96,12 @@
 {% if tab == "media" %}
   <div class="grid-3">{% for p in posts %}<a href="/post/{{ p.id }}" class="media-tile">{% if p.media_type == 'video' %}<video src="{{ p.image }}" muted preload="metadata"></video><span class="over">▶</span>{% else %}<img src="{{ p.image }}" alt="" loading="lazy">{% endif %}<span class="over" style="left:6px;right:auto">❤ {{ p.likes|length }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Медиа пока нет</div>{% endfor %}</div>
 {% elif tab == "reels" %}
-  <div class="grid-3">{% for r in reels %}<a href="/reels/{{ r.id }}" class="media-tile" style="aspect-ratio:9/16"><video src="{{ r.video_url }}" muted preload="metadata"></video><span class="over">▶ {{ r.views or 0 }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Рилсов пока нет{% if me %} — <a href="/reels" style="color:var(--brand)">загрузить</a>{% endif %}</div>{% endfor %}</div>
+  <div class="grid-3">{% for r in reels %}<a href="/reels/{{ r.id }}" class="media-tile" style="aspect-ratio:9/16"><video src="{{ r.video_url }}" muted preload="metadata"></video><span class="over">▶ {{ r.views or 0 }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Рилсов пока нет{% if me %} — <a href="/reels" style="color:var(--link)">загрузить</a>{% endif %}</div>{% endfor %}</div>
 {% elif tab == "replies" %}
   {% for c in replies %}<a class="card" href="/post/{{ c.post_id }}#comment-{{ c.id }}" style="display:block"><div class="tiny muted mb">в ответ на пост {{ c.post.author.name or c.post.author.username }} · {{ c.created_at|ago }}</div><div>{{ c.content }}</div></a>{% else %}<div class="card empty">Ответов пока нет</div>{% endfor %}
 {% else %}
   {% if pinned_post %}<div class="tiny muted" style="padding:0 6px 6px">📌 Закреплённый пост</div>{{ post_card(pinned_post, user, st, originals, repost_counts, can_mod) }}{% endif %}
-  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">📝</div>{% if me %}Здесь появятся ваши посты. <a href="/#compose" style="color:var(--brand);font-weight:700">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
+  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">📝</div>{% if me %}Здесь появятся ваши посты. <a href="/#compose" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
 {% endif %}
 {% endif %}
 

@@ -18,7 +18,7 @@
       <a href="/" class="icon-btn" title="Закрыть">✕</a>
     </div>
     {% for s in stories %}
-    <div class="story-media hidden" data-i="{{ loop.index0 }}" data-id="{{ s.id }}" data-type="{{ s.media_type }}" data-ago="{{ s.created_at|ago }}" style="{% if not s.media_url %}background:{{ s.bg_color or '#7c3aed' }}{% endif %}">
+    <div class="story-media hidden" data-i="{{ loop.index0 }}" data-id="{{ s.id }}" data-type="{{ s.media_type }}" data-ago="{{ s.created_at|ago }}" style="{% if not s.media_url %}background:{{ s.bg_color or '#18181b' }}{% endif %}">
       {% if s.media_type == 'video' %}<video src="{{ s.media_url }}" playsinline preload="metadata"></video>
       {% elif s.media_url %}<img src="{{ s.media_url }}" alt="">{% endif %}
       {% if s.text_overlay %}<div class="story-text {% if s.media_url %}over{% endif %}">{{ s.text_overlay }}</div>{% endif %}

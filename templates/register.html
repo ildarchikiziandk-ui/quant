@@ -14,9 +14,9 @@
   </div>
   <p class="tiny muted mb">Минимум 8 символов, буквы и цифры.</p>
   {% if beta %}<label class="field"><span>Инвайт-код</span><input name="beta_code" required></label>{% endif %}
-  <label class="check"><input type="checkbox" name="agree" value="1" required><span class="small">Я принимаю <a href="/terms" target="_blank" style="color:var(--brand);font-weight:700">пользовательское соглашение</a> {{ brand }}</span></label>
+  <label class="check"><input type="checkbox" name="agree" value="1" required><span class="small">Я принимаю <a href="/terms" target="_blank" style="color:var(--link);font-weight:600">пользовательское соглашение</a> {{ brand }}</span></label>
   <button class="btn block mt">Зарегистрироваться</button>
 </form>
-<p class="center mt small">Уже есть аккаунт? <a href="/login" style="color:var(--brand);font-weight:700">Войти</a></p>
+<p class="center mt small">Уже есть аккаунт? <a href="/login" style="color:var(--link);font-weight:600">Войти</a></p>
 {% if yandex_enabled %}<div class="or">или</div><a href="/auth/yandex" class="btn ghost block">Через Яндекс</a>{% endif %}
 {% endblock %}

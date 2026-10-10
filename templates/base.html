@@ -14,7 +14,7 @@
 <meta property="og:site_name" content="{{ brand }}">
 {% block meta %}<meta property="og:title" content="{{ brand }}"><meta property="og:image" content="{{ site_url }}/static/icon-512.png">{% endblock %}
 <link rel="stylesheet" href="/static/css/app.css?v={{ static_v }}">
-{% if user and user.accent_color %}<style>:root{--brand:{{ user.accent_color }};--brand-2:color-mix(in srgb, {{ user.accent_color }} 60%, #ec4899);}</style>{% endif %}
+{% if user and user.accent_color %}<style>:root,[data-theme="dark"]{--link:{{ user.accent_color }};}</style>{% endif %}
 <script>
   (function(){var t='{{ user.theme if user and user.theme else "light" }}';try{t=localStorage.getItem('theme')||t}catch(e){}
   if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);})();
@@ -23,7 +23,7 @@
 {% block head %}{% endblock %}
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs></svg>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18181b"/><stop offset="1" stop-color="#18181b"/></linearGradient></defs></svg>
 {% block body %}
 <div class="mobile-top">
   <a href="/" class="logo" style="margin:0;padding:0"><img src="/static/icon-192.png" alt="" style="width:32px;height:32px"><span class="logo-text" style="font-size:20px">{{ brand }}</span></a>
@@ -124,7 +124,7 @@
     <div class="card hero">
       <div style="font-size:20px;font-weight:800;margin-bottom:6px">Впервые в {{ brand }}?</div>
       <div class="muted small mb">{{ brand_tagline }}. Регистрация займёт минуту.</div>
-      <a href="/register" class="btn block" style="background:#fff;color:var(--brand)">Создать аккаунт</a>
+      <a href="/register" class="btn block">Создать аккаунт</a>
     </div>
     {% endif %}
     <div class="tiny faint" style="padding:0 6px"><a href="/about">О {{ brand }}</a> · <a href="/terms">Правила</a> · <a href="/leaderboard">Рейтинг</a> · <a href="/support">Поддержка</a> · Нажмите <span class="kbd">?</span> для горячих клавиш</div>

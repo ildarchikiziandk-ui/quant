@@ -15,7 +15,7 @@ from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
 STORY_REACTIONS = ["❤️", "🔥", "😂", "😮", "😢", "👏"]
-STORY_BG = ["#7c3aed", "#ec4899", "#0ea5e9", "#10b981", "#f59e0b", "#111827"]
+STORY_BG = ["#18181b", "#334155", "#1e3a8a", "#14532d", "#7f1d1d", "#78350f"]
 
 
 def can_see_story(db, viewer, story, close_cache=None):
@@ -81,7 +81,7 @@ async def create_story(request: Request, db: Session = Depends(get_db)):
             return render(request, db, "stories_create.html", bg_colors=STORY_BG, error=mtype)
     elif not text:
         return render(request, db, "stories_create.html", bg_colors=STORY_BG, error="Добавьте фото, видео или текст")
-    story = models.Story(user_id=user.id, media_url=url, media_type=mtype, text_overlay=text, bg_color=bg or "#7c3aed",
+    story = models.Story(user_id=user.id, media_url=url, media_type=mtype, text_overlay=text, bg_color=bg or "#18181b",
                          audience="close" if form.get("audience") == "close" else "all",
                          expires_at=datetime.utcnow() + timedelta(hours=24))
     db.add(story)

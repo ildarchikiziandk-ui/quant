@@ -27,7 +27,7 @@
   <img src="/static/icon-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:12px">
   <h2 style="font-size:26px;font-weight:800;letter-spacing:-.6px">Добро пожаловать в {{ brand }}</h2>
   <p class="muted" style="margin:6px 0 18px">{{ brand_tagline }}. Посты, истории, рилсы, чаты и звонки — в одном месте.</p>
-  <div class="row" style="justify-content:center"><a href="/register" class="btn" style="background:#fff;color:var(--brand)">Создать аккаунт</a><a href="/login" class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.5)">Войти</a></div>
+  <div class="row" style="justify-content:center"><a href="/register" class="btn">Создать аккаунт</a><a href="/login" class="btn ghost">Войти</a></div>
 </div>
 {% endif %}
 
@@ -44,7 +44,7 @@
 {% else %}
 <div class="card empty">
   <div class="big">{% if tab == 'following' %}👀{% else %}✨{% endif %}</div>
-  {% if tab == 'following' %}Подпишитесь на кого-нибудь, чтобы видеть их посты. <a href="/explore" style="color:var(--brand);font-weight:700">Найти людей →</a>
+  {% if tab == 'following' %}Подпишитесь на кого-нибудь, чтобы видеть их посты. <a href="/explore" style="color:var(--link);font-weight:600">Найти людей →</a>
   {% else %}Пока нет постов. Будьте первым!{% endif %}
 </div>
 {% endif %}

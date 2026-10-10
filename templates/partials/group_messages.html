@@ -1,6 +1,6 @@
 {%- for m in messages %}{% set mine = m.sender_id == user.id %}
 <div class="msg {% if mine %}mine{% endif %}" id="gmsg-{{ m.id }}" data-id="{{ m.id }}" data-raw="{{ m.content or '' }}">
-  {% if not mine and m.sender %}<div class="tiny" style="font-weight:700;color:var(--brand);padding:0 8px"><a href="/profile/{{ m.sender.username }}">{{ m.sender.name or m.sender.username }}</a></div>{% endif %}
+  {% if not mine and m.sender %}<div class="tiny" style="font-weight:700;color:var(--text-2);padding:0 8px"><a href="/profile/{{ m.sender.username }}">{{ m.sender.name or m.sender.username }}</a></div>{% endif %}
   {% if not m.is_deleted and (mine or group.owner_id == user.id) %}<div class="msg-tools"><button data-gdel="{{ m.id }}" title="Удалить">🗑</button></div>{% endif %}
   <div class="bubble {% if m.is_deleted %}deleted{% endif %}">
     {%- if m.is_deleted %}Сообщение удалено{% else %}

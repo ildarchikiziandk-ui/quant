@@ -145,7 +145,7 @@
 <div class="card hero">
   <div style="font-size:22px;font-weight:800">✨ {{ brand_plus }}</div>
   {% if is_plus %}<div class="muted">Активен{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
-  {% else %}<div class="muted">Цветной бейдж, цвет обложки, ранний доступ к функциям. <a href="/plus" style="color:#fff;text-decoration:underline">Подробнее</a></div>{% endif %}
+  {% else %}<div class="muted">Цветной бейдж, цвет обложки, ранний доступ к функциям. <a href="/plus" style="color:var(--link)">Подробнее</a></div>{% endif %}
 </div>
 <form class="card" method="post" action="/settings/promocode">
   <div class="card-title">Активировать промокод</div>

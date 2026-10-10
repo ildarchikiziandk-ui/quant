@@ -11,6 +11,6 @@
   <label class="field"><span>Пароль</span><input type="password" name="password" autocomplete="current-password" required></label>
   <button class="btn block">Войти</button>
 </form>
-<div class="row mt small" style="justify-content:space-between"><a href="/forgot" class="muted">Забыли пароль?</a><a href="/register" style="color:var(--brand);font-weight:700">Создать аккаунт</a></div>
+<div class="row mt small" style="justify-content:space-between"><a href="/forgot" class="muted">Забыли пароль?</a><a href="/register" style="color:var(--link);font-weight:600">Создать аккаунт</a></div>
 {% if yandex_enabled %}<div class="or">или</div><a href="/auth/yandex" class="btn ghost block">Войти через Яндекс</a>{% endif %}
 {% endblock %}

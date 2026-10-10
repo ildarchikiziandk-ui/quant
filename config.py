@@ -38,7 +38,7 @@ BRAND_NAME = env("BRAND_NAME", "Nova")
 BRAND_TAGLINE = env("BRAND_TAGLINE", "Соцсеть, где светятся идеи")
 BRAND_PLUS = env("BRAND_PLUS", f"{BRAND_NAME}+")
 BRAND_EMAIL = env("BRAND_EMAIL", "support@example.com")
-BRAND_COLOR = env("BRAND_COLOR", "#7c3aed")
+BRAND_COLOR = env("BRAND_COLOR", "#18181b")
 SITE_URL = env("SITE_URL", "http://localhost:8000").rstrip("/")
 
 # --- База и файлы --------------------------------------------------------

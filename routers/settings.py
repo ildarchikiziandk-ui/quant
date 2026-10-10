@@ -22,7 +22,7 @@ router = APIRouter()
 
 SECTIONS = ("profile", "account", "privacy", "notifications", "appearance", "security", "plus", "data")
 THEMES = ("light", "dark", "auto")
-ACCENTS = ["#7c3aed", "#2563eb", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#111827"]
+ACCENTS = ["#2563eb", "#0d9488", "#16a34a", "#ca8a04", "#dc2626", "#9333ea", "#475569"]
 
 
 def _settings(request, db, user, section="profile", **extra):

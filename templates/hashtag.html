@@ -3,6 +3,6 @@
 {% block title %}#{{ tag }} — {{ brand }}{% endblock %}
 {% block content %}
 <div class="card hero"><div style="font-size:28px;font-weight:800">#{{ tag }}</div><div class="muted">{{ plural(posts|length, "пост", "поста", "постов") }}{% if trend %} · упоминаний всего: {{ trend.count }}{% endif %}</div>
-{% if user %}<a href="/#compose" class="btn sm mt" style="background:#fff;color:var(--brand)" onclick="try{localStorage.setItem('composer-draft','#{{ tag }} ')}catch(e){}">Написать с #{{ tag }}</a>{% endif %}</div>
+{% if user %}<a href="/#compose" class="btn sm mt" onclick="try{localStorage.setItem('composer-draft','#{{ tag }} ')}catch(e){}">Написать с #{{ tag }}</a>{% endif %}</div>
 {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty">Постов с этим тегом пока нет</div>{% endfor %}
 {% endblock %}
