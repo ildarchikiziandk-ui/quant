@@ -1,0 +1,14 @@
+{%- for m in messages %}{% set mine = m.sender_id == user.id %}
+<div class="msg {% if mine %}mine{% endif %}" id="gmsg-{{ m.id }}" data-id="{{ m.id }}" data-raw="{{ m.content or '' }}">
+  {% if not mine and m.sender %}<div class="tiny" style="font-weight:700;color:var(--brand);padding:0 8px"><a href="/profile/{{ m.sender.username }}">{{ m.sender.name or m.sender.username }}</a></div>{% endif %}
+  {% if not m.is_deleted and (mine or group.owner_id == user.id) %}<div class="msg-tools"><button data-gdel="{{ m.id }}" title="Удалить">🗑</button></div>{% endif %}
+  <div class="bubble {% if m.is_deleted %}deleted{% endif %}">
+    {%- if m.is_deleted %}Сообщение удалено{% else %}
+    {%- if m.image %}<img class="att" src="{{ m.image }}" alt="" data-zoom>{% endif %}
+    {%- if m.voice %}<audio src="{{ m.voice }}" controls></audio>{% endif %}
+    {%- if m.file_url %}<a class="file" href="{{ m.file_url }}" target="_blank" download="{{ m.file_name }}">📎 {{ m.file_name or "Файл" }}</a>{% endif %}
+    {%- if m.content %}{{ m.content|rich }}{% endif %}{% endif %}
+  </div>
+  <div class="msg-meta">{{ m.created_at.strftime("%d.%m %H:%M") }}</div>
+</div>
+{%- endfor %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import post_card, user_row, avatar %}
+{% block title %}Обзор — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">🧭 Обзор</div><div class="page-sub">Лучшее в {{ brand }} прямо сейчас</div>
+{% if tags %}<div class="chips">{% for t in tags %}<a class="chip" href="/hashtag/{{ t.tag }}">#{{ t.tag }}</a>{% endfor %}</div>{% endif %}
+{% if media %}<div class="card"><div class="card-title">📷 Популярные фото</div><div class="grid-3">{% for p in media[:9] %}<a href="/post/{{ p.id }}" class="media-tile"><img src="{{ p.image }}" alt="" loading="lazy"><span class="over">❤ {{ p.likes|length }}</span></a>{% endfor %}</div></div>{% endif %}
+{% if top_reels %}<div class="card"><div class="card-title">🎬 Популярные рилсы <a href="/reels">Смотреть →</a></div><div class="grid-3">{% for r in top_reels %}<a href="/reels/{{ r.id }}" class="media-tile" style="aspect-ratio:9/16"><video src="{{ r.video_url }}" muted preload="metadata"></video><span class="over">▶ {{ r.views or 0 }}</span></a>{% endfor %}</div></div>{% endif %}
+<div class="grid-2">
+  <div class="card"><div class="card-title">🌟 Популярные авторы</div>{% for u, n in top_users %}<a href="/profile/{{ u.username }}" class="row small" style="padding:6px 0">{{ avatar(u, 34) }}<span class="grow ellipsis"><b>{{ u.name or u.username }}</b><br><span class="muted">{{ plural(n, "подписчик", "подписчика", "подписчиков") }}</span></span></a>{% endfor %}</div>
+  <div class="card"><div class="card-title">👋 Новички</div>{% for u in new_users %}<a href="/profile/{{ u.username }}" class="row small" style="padding:6px 0">{{ avatar(u, 34) }}<span class="grow ellipsis"><b>{{ u.name or u.username }}</b><br><span class="muted">{{ u.created_at|ago }}</span></span></a>{% endfor %}</div>
+</div>
+<div class="page-title" style="font-size:18px;margin:8px 0 10px">🔥 Горячее</div>
+{% for p in hot %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty">Пока пусто</div>{% endfor %}
+{% endblock %}

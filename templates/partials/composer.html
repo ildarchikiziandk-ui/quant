@@ -1,0 +1,37 @@
+{% from "partials/icons.html" import icon %}{% from "partials/macros.html" import avatar %}
+<form class="card composer" id="composer" enctype="multipart/form-data" autocomplete="off">
+  <a id="compose"></a>
+  <div class="row" style="align-items:flex-start;gap:12px">
+    <a href="/profile/{{ user.username }}">{{ avatar(user, 44) }}</a>
+    <div class="grow">
+      <textarea name="content" maxlength="5000" placeholder="Что нового, {{ user.name or user.username }}? Используйте #теги и @упоминания" data-suggest rows="2"></textarea>
+      <input type="hidden" name="draft_id" value="">
+      <div class="previews hidden" id="composer-previews"></div>
+      <div class="composer-extra hidden" id="panel-poll">
+        <input name="poll_question" maxlength="200" placeholder="Вопрос опроса">
+        <div id="poll-options"><input name="poll_options" maxlength="100" placeholder="Вариант 1"><input name="poll_options" maxlength="100" placeholder="Вариант 2"></div>
+        <div class="row"><button type="button" class="btn soft sm" id="add-poll-option">+ вариант</button>
+          <select name="poll_days" style="width:auto;margin:0"><option value="0">Без срока</option><option value="1">1 день</option><option value="3">3 дня</option><option value="7">7 дней</option></select></div>
+      </div>
+      <div class="composer-extra hidden" id="panel-settings">
+        <div class="form-row">
+          <label class="field"><span>Кто видит</span><select name="visibility"><option value="all">Все</option><option value="followers">Только подписчики</option></select></label>
+          <label class="field"><span>Отложить публикацию (UTC)</span><input type="datetime-local" name="scheduled_at"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="comments_disabled" value="1"><span><b>Отключить комментарии</b></span></label>
+      </div>
+      <div class="composer-extra hidden" id="panel-emoji"><div class="emoji-panel">{% for e in ['😀','😂','😍','🥰','😎','🤔','😭','😅','🔥','✨','❤️','👍','👏','🙏','🎉','💯','🚀','🌚','🐋','⚡'] %}<button type="button" data-emoji-insert>{{ e }}</button>{% endfor %}</div></div>
+      <div class="composer-tools">
+        <div class="tools">
+          <button type="button" class="tool" title="Фото/видео (до 10)" onclick="document.getElementById('composer-files').click()">{{ icon("image") }}</button>
+          <button type="button" class="tool" title="Опрос" data-panel="panel-poll">{{ icon("poll") }}</button>
+          <button type="button" class="tool" title="Эмодзи" data-panel="panel-emoji">{{ icon("smile") }}</button>
+          <button type="button" class="tool" title="Аудитория и отложенная публикация" data-panel="panel-settings">{{ icon("clock") }}</button>
+          <button type="button" class="tool" title="Сохранить черновик" id="save-draft">{{ icon("draft") }}</button>
+          <input type="file" id="composer-files" name="media" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" class="hidden">
+        </div>
+        <div class="row"><span class="counter" id="composer-counter"></span><button class="btn" id="composer-submit" type="submit">Опубликовать</button></div>
+      </div>
+    </div>
+  </div>
+</form>

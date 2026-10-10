@@ -1,34 +1,22 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="card" style="max-width: 400px; margin: 40px auto;">
-    <div style="text-align:center; margin-bottom: 24px;">
-        <img src="/static/icon-192.png" style="width:56px;height:56px;border-radius:14px;margin-bottom:12px;">
-        <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">Регистрация</h2>
-        <div style="display:inline-block;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:6px 14px;margin-top:8px;">
-            <span style="font-size:12px;color:#92400e;font-weight:600;">🔒 Закрытое бета-тестирование</span>
-        </div>
-    </div>
-
-    {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
-
-    <form method="post" action="/register">
-        <input type="hidden" name="beta" value="{{ beta_code }}">
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
-        <input type="text" name="name" placeholder="Например: Ильдар" required>
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
-        <input type="text" name="username" placeholder="Например: ildar_99" required>
-        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Email</label>
-        <input type="email" name="email" placeholder="example@mail.ru" required>
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Пароль</label>
-        <input type="password" name="password" placeholder="Минимум 8 символов" required>
-        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 16px;">Минимум 8 символов, хотя бы одна буква и одна цифра.</p>
-        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; background: #f9f9f9; padding: 12px; border-radius: 8px;">
-            <input type="checkbox" name="agree" id="agree" required style="width: auto; margin: 0; margin-top: 2px; flex-shrink: 0;">
-            <label for="agree" style="font-size: 13px; color: #555; cursor: pointer;">Я прочитал(а) и соглашаюсь с <a href="/terms" target="_blank" style="color: #0f0f0f; font-weight: 600; text-decoration: underline;">Пользовательским соглашением</a> Quant</label>
-        </div>
-        <button class="btn" style="width: 100%;">Зарегистрироваться</button>
-    </form>
-    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">Уже есть аккаунт? <a href="/login?beta={{ beta_code }}" style="font-weight: 600;">Войти</a></p>
-</div>
+{% extends "bare.html" %}
+{% block title %}Регистрация — {{ brand }}{% endblock %}
+{% block card %}
+<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">Создайте аккаунт</h1>
+<p class="center muted small mb">{{ brand_tagline }}</p>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<form method="post" action="/register">
+  <label class="field"><span>Имя</span><input name="name" value="{{ name or '' }}" maxlength="60" placeholder="Как вас называть"></label>
+  <label class="field"><span>Логин</span><input name="username" value="{{ username or '' }}" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" placeholder="латиница, цифры и _" autocomplete="username" required></label>
+  <label class="field"><span>Email</span><input type="email" name="email" value="{{ email or '' }}" autocomplete="email" required></label>
+  <div class="form-row">
+    <label class="field"><span>Пароль</span><input type="password" name="password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
+    <label class="field"><span>Повторите</span><input type="password" name="confirm_password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
+  </div>
+  <p class="tiny muted mb">Минимум 8 символов, буквы и цифры.</p>
+  {% if beta %}<label class="field"><span>Инвайт-код</span><input name="beta_code" required></label>{% endif %}
+  <label class="check"><input type="checkbox" name="agree" value="1" required><span class="small">Я принимаю <a href="/terms" target="_blank" style="color:var(--brand);font-weight:700">пользовательское соглашение</a> {{ brand }}</span></label>
+  <button class="btn block mt">Зарегистрироваться</button>
+</form>
+<p class="center mt small">Уже есть аккаунт? <a href="/login" style="color:var(--brand);font-weight:700">Войти</a></p>
+{% if yandex_enabled %}<div class="or">или</div><a href="/auth/yandex" class="btn ghost block">Через Яндекс</a>{% endif %}
 {% endblock %}

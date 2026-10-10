@@ -1,141 +1,171 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}{% from "partials/icons.html" import icon %}
+{% block title %}Настройки — {{ brand }}{% endblock %}
 {% block content %}
-<h2 style="font-size:20px;font-weight:800;margin-bottom:16px;">⚙️ Настройки</h2>
+<div class="page-title">⚙️ Настройки</div>
+<div class="settings-nav">
+  {% for key, label in [("profile","👤 Профиль"),("account","🔑 Аккаунт"),("privacy","🔒 Приватность"),("notifications","🔔 Уведомления"),("appearance","🎨 Оформление"),("security","🛡 Безопасность"),("plus","✨ " ~ brand_plus),("data","📦 Данные")] %}
+  <a href="/settings?section={{ key }}" class="chip {% if section == key %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+{% if success %}<div class="alert success">{{ success }}</div>{% endif %}
 
-{% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
-{% if success %}<div class="alert-success">✔ {{ success }}</div>{% endif %}
-
+{% if section == "profile" %}
 <div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:16px;">Основное</div>
-    <form method="post" action="/settings" enctype="multipart/form-data">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-            <div style="position:relative;">
-                <div class="avatar-circle" style="width:72px;height:72px;" id="avatar-wrap">
-                    {% if user.avatar %}<img id="avatar-preview" src="{{ user.avatar }}">{% else %}<span id="avatar-letter" style="font-size:26px;font-weight:700;">{{ user.username[0].upper() }}</span>{% if user.avatar %}<img id="avatar-preview" style="display:none;" src="{{ user.avatar }}">{% else %}<img id="avatar-preview" style="display:none;">{% endif %}{% endif %}
-                </div>
-            </div>
-            <div>
-                <button type="button" onclick="document.getElementById('avatar-input').click()" class="btn-outline" style="font-size:13px;padding:7px 14px;">Загрузить фото</button>
-                <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">JPG, PNG, WEBP до 10 МБ</p>
-            </div>
-            <input type="file" id="avatar-input" name="avatar" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="previewAvatar(this)">
-        </div>
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Имя</label>
-        <input type="text" name="name" value="{{ user.name or '' }}" placeholder="Твоё имя" required>
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Никнейм</label>
-        <input type="text" name="username" value="{{ user.username }}" required>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:-8px;margin-bottom:12px;">Буквы, цифры, точка, дефис, подчёркивание. 3–30 символов.</p>
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">О себе</label>
-        <textarea name="bio" placeholder="Расскажи о себе...">{{ user.bio or '' }}</textarea>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:120px;">
-                <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Город</label>
-                <input type="text" name="city" value="{{ user.city or '' }}" placeholder="Москва">
-            </div>
-            <div style="flex:1;min-width:120px;">
-                <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Сайт</label>
-                <input type="text" name="website" value="{{ user.website or '' }}" placeholder="https://...">
-            </div>
-        </div>
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Эмодзи-статус</label>
-        <input type="text" name="emoji_status" value="{{ user.emoji_status or '' }}" placeholder="😎" maxlength="8">
-        {% if is_plus %}
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">🎨 Цвет значка Plus</label>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <input type="color" name="plus_color" value="{{ user.plus_color or '#a855f7' }}" style="width:48px;height:36px;padding:2px;border-radius:8px;cursor:pointer;margin-bottom:0;flex-shrink:0;">
-            <span style="font-size:13px;color:var(--text-secondary);">Цвет значка +</span>
-        </div>
-        {% endif %}
-        <button class="btn" style="width:100%;">Сохранить</button>
-    </form>
+  <div class="card-title">Фото профиля и обложка</div>
+  <div class="row wrap">
+    {{ avatar(user, 72) }}
+    <form method="post" action="/settings/avatar" enctype="multipart/form-data"><label class="btn soft sm" style="cursor:pointer">Загрузить аватар<input type="file" name="avatar" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>
+    {% if user.avatar %}<form method="post" action="/settings/remove-media/avatar"><button class="btn ghost sm">Удалить</button></form>{% endif %}
+    <form method="post" action="/settings/cover" enctype="multipart/form-data"><label class="btn soft sm" style="cursor:pointer">Загрузить обложку<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>
+    {% if user.cover %}<form method="post" action="/settings/remove-media/cover"><button class="btn ghost sm">Убрать обложку</button></form>{% endif %}
+  </div>
+</div>
+<form class="card" method="post" action="/settings/profile">
+  <div class="card-title">Информация</div>
+  <div class="form-row"><label class="field"><span>Имя</span><input name="name" value="{{ user.name or '' }}" maxlength="60"></label>
+  <label class="field" style="max-width:120px"><span>Эмодзи-статус</span><input name="emoji_status" value="{{ user.emoji_status or '' }}" maxlength="8" placeholder="🌙"></label></div>
+  <label class="field"><span>О себе <span class="faint" id="bio-n"></span></span><textarea name="bio" maxlength="300" oninput="document.getElementById('bio-n').textContent=300-this.value.length">{{ user.bio or '' }}</textarea></label>
+  <div class="form-row">
+    <label class="field"><span>Город</span><input name="city" value="{{ user.city or '' }}" maxlength="60"></label>
+    <label class="field"><span>Местоимения</span><input name="pronouns" value="{{ user.pronouns or '' }}" maxlength="20" placeholder="он/его, она/её…"></label>
+  </div>
+  <div class="form-row">
+    <label class="field"><span>Сайт</span><input name="website" value="{{ user.website or '' }}" maxlength="100" placeholder="example.com"></label>
+    <label class="field"><span>День рождения</span><input type="date" name="birthday" value="{{ user.birthday or '' }}"></label>
+  </div>
+  <div class="form-row">
+    <label class="field"><span>Telegram</span><input name="telegram_link" value="{{ user.telegram_link or '' }}" maxlength="100" placeholder="@username"></label>
+    <label class="field"><span>YouTube</span><input name="youtube_link" value="{{ user.youtube_link or '' }}" maxlength="100"></label>
+    <label class="field"><span>TikTok</span><input name="tiktok_link" value="{{ user.tiktok_link or '' }}" maxlength="100"></label>
+  </div>
+  <button class="btn">Сохранить</button>
+</form>
+
+{% elif section == "account" %}
+<form class="card" method="post" action="/settings/username">
+  <div class="card-title">Логин</div>
+  <p class="small muted mb">Сейчас: <b>@{{ user.username }}</b>. После смены старые ссылки на профиль перестанут работать.</p>
+  <div class="form-row"><label class="field"><span>Новый логин</span><input name="username" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" required></label>
+  <label class="field"><span>Пароль</span><input type="password" name="password" required></label></div>
+  <button class="btn">Сменить логин</button>
+</form>
+<form class="card" method="post" action="/settings/email">
+  <div class="card-title">Email {% if user.email_verified %}<span class="tag-pill">подтверждён</span>{% else %}<a href="/verify">подтвердить →</a>{% endif %}</div>
+  <div class="form-row"><label class="field"><span>Новый email</span><input type="email" name="email" value="{{ user.email }}" required></label>
+  <label class="field"><span>Пароль</span><input type="password" name="password" required></label></div>
+  <button class="btn">Сохранить email</button>
+</form>
+<form class="card" method="post" action="/settings/password">
+  <div class="card-title">Пароль</div>
+  <label class="field"><span>Текущий пароль</span><input type="password" name="old_password" autocomplete="current-password" required></label>
+  <div class="form-row"><label class="field"><span>Новый пароль</span><input type="password" name="new_password" minlength="8" autocomplete="new-password" required></label>
+  <label class="field"><span>Повторите</span><input type="password" name="confirm_password" minlength="8" autocomplete="new-password" required></label></div>
+  <button class="btn">Изменить пароль</button>
+</form>
+<div class="card"><div class="card-title">Заявки</div>
+  <div class="row wrap"><a class="btn soft sm" href="/special-request">Запросить верификацию</a>{% if user.is_private %}<a class="btn soft sm" href="/follow-requests">Заявки на подписку{% if pending_requests %} ({{ pending_requests }}){% endif %}</a>{% endif %}<a class="btn soft sm" href="/close-friends">Близкие друзья</a></div>
 </div>
 
+{% elif section == "privacy" %}
+<form class="card" method="post" action="/settings/privacy">
+  <div class="card-title">Приватность</div>
+  <label class="check"><input type="checkbox" name="is_private" {% if user.is_private %}checked{% endif %}><span><b>Закрытый профиль</b><small>Посты и истории видят только одобренные подписчики</small></span></label>
+  <label class="check"><input type="checkbox" name="hide_likes" {% if user.hide_likes %}checked{% endif %}><span><b>Скрывать лайки</b><small>Другие не увидят число лайков на ваших постах и вкладку «Лайки»</small></span></label>
+  <label class="check"><input type="checkbox" name="show_online" {% if user.show_online is not sameas false %}checked{% endif %}><span><b>Показывать статус «онлайн»</b><small>и время последнего визита</small></span></label>
+  <div class="form-row mt">
+    <label class="field"><span>Кто может писать мне</span><select name="who_can_message">{% for v, l in [("all","Все"),("followers","Те, на кого я подписан"),("nobody","Никто")] %}<option value="{{ v }}" {% if user.who_can_message == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Кто видит истории</span><select name="who_can_see_stories">{% for v, l in [("all","Все"),("followers","Подписчики"),("close","Близкие друзья")] %}<option value="{{ v }}" {% if user.who_can_see_stories == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+  </div>
+  <button class="btn">Сохранить</button>
+</form>
+<div class="card"><div class="card-title">Заблокированные · {{ blocked_users|length }}</div>
+  {% for b in blocked_users %}<div class="user-row">{{ avatar(b, 36) }}<div class="info"><b>{{ b.name or b.username }}</b><div class="bio">@{{ b.username }}</div></div><form method="post" action="/unblock/{{ b.username }}"><button class="btn ghost sm">Разблокировать</button></form></div>
+  {% else %}<div class="muted small">Никого</div>{% endfor %}
+</div>
+<div class="card"><div class="card-title">Скрытые из ленты · {{ muted_users|length }}</div>
+  {% for b in muted_users %}<div class="user-row">{{ avatar(b, 36) }}<div class="info"><b>{{ b.name or b.username }}</b><div class="bio">@{{ b.username }}</div></div><button class="btn ghost sm" data-act="toggle" data-url="/mute/{{ b.username }}" data-reload="1">Вернуть</button></div>
+  {% else %}<div class="muted small">Никого</div>{% endfor %}
+</div>
+
+{% elif section == "notifications" %}
+<form class="card" method="post" action="/settings/notifications">
+  <div class="card-title">Какие уведомления получать</div>
+  {% for key, title, desc in [("notify_likes","Лайки, киты и реакции","Когда оценивают ваши посты и комментарии"),("notify_comments","Комментарии и ответы",""),("notify_follows","Подписки","Новые подписчики и заявки"),("notify_mentions","Упоминания","Когда вас отмечают через @"),("notify_messages","Push о сообщениях","Уведомления о новых личных сообщениях")] %}
+  <label class="check"><input type="checkbox" name="{{ key }}" {% if user[key] is not sameas false %}checked{% endif %}><span><b>{{ title }}</b>{% if desc %}<small>{{ desc }}</small>{% endif %}</span></label>
+  {% endfor %}
+  <button class="btn mt">Сохранить</button>
+</form>
+{% if push_enabled %}<div class="card"><div class="card-title">Push-уведомления на этом устройстве</div><p class="small muted mb">Получайте уведомления, даже когда сайт закрыт.</p><button class="btn soft" onclick="window.enablePush ? enablePush() : App.toast('Браузер не поддерживает push', true)">🔔 Включить push</button></div>{% endif %}
+
+{% elif section == "appearance" %}
+<form class="card" method="post" action="/settings/appearance">
+  <div class="card-title">Тема</div>
+  <div class="row wrap mb">{% for v, l in [("light","☀️ Светлая"),("dark","🌙 Тёмная"),("auto","🖥 Как в системе")] %}<label class="chip {% if user.theme == v %}active{% endif %}"><input type="radio" name="theme" value="{{ v }}" class="hidden" {% if user.theme == v %}checked{% endif %} onchange="try{localStorage.setItem('theme','{{ v }}')}catch(e){};this.form.submit()">{{ l }}</label>{% endfor %}</div>
+  <div class="card-title">Размер текста</div>
+  <div class="row wrap mb">{% for v, l in [("small","Мелкий"),("medium","Обычный"),("large","Крупный")] %}<label class="chip {% if (user.font_size or 'medium') == v %}active{% endif %}"><input type="radio" name="font_size" value="{{ v }}" class="hidden" {% if (user.font_size or 'medium') == v %}checked{% endif %} onchange="this.form.submit()">{{ l }}</label>{% endfor %}</div>
+  <div class="card-title">Акцентный цвет</div>
+  <div class="row wrap mb">
+    <label class="chip {% if not user.accent_color %}active{% endif %}"><input type="radio" name="accent_color" value="" class="hidden" onchange="this.form.submit()" {% if not user.accent_color %}checked{% endif %}>По умолчанию</label>
+    {% for c in accents %}<label title="{{ c }}" style="cursor:pointer"><input type="radio" name="accent_color" value="{{ c }}" class="hidden" onchange="this.form.submit()" {% if user.accent_color == c %}checked{% endif %}><span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:{{ c }};{% if user.accent_color == c %}box-shadow:0 0 0 3px var(--card),0 0 0 5px {{ c }};{% endif %}"></span></label>{% endfor %}
+  </div>
+  <noscript><button class="btn">Сохранить</button></noscript>
+</form>
+
+{% elif section == "security" %}
 <div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:16px;">🎨 Внешний вид</div>
-    <label style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;display:block;">Тема</label>
-    <div style="display:flex;gap:10px;margin-bottom:16px;">
-        <button onclick="setThemeAndSave('light')" class="btn-outline" style="flex:1;font-size:13px;">☀️ Светлая</button>
-        <button onclick="setThemeAndSave('dark')" class="btn-outline" style="flex:1;font-size:13px;">🌙 Тёмная</button>
+  <div class="card-title">🔐 Двухфакторная аутентификация {% if user.two_factor_enabled %}<span class="tag-pill">включена</span>{% endif %}</div>
+  {% if user.two_factor_enabled %}
+  <p class="small muted mb">При входе потребуется код из приложения-аутентификатора.</p>
+  <form method="post" action="/settings/2fa/disable" class="row"><input type="password" name="password" placeholder="Пароль" required style="margin:0"><button class="btn danger ghost">Отключить</button></form>
+  {% else %}
+  <p class="small muted mb">1. Установите Google Authenticator, Яндекс Ключ или аналог. 2. Отсканируйте QR или введите ключ вручную. 3. Введите код.</p>
+  <div class="row wrap" style="align-items:flex-start">
+    <div class="qr-box" style="padding:10px"><img src="/settings/2fa/qr.svg" width="160" height="160" alt="QR" onerror="this.parentElement.style.display='none'"></div>
+    <div class="grow">
+      <div class="small muted">Ключ:</div><div class="kbd" style="font-size:14px;word-break:break-all">{{ totp_secret }}</div>
+      <form method="post" action="/settings/2fa/enable" class="row mt"><input name="code" inputmode="numeric" maxlength="7" placeholder="Код из приложения" required style="margin:0"><button class="btn">Включить</button></form>
     </div>
-    <label style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;display:block;">Размер шрифта</label>
-    <div style="display:flex;gap:10px;">
-        <button onclick="setFont('small')" class="btn-outline" style="flex:1;font-size:12px;">Маленький</button>
-        <button onclick="setFont('medium')" class="btn-outline" style="flex:1;font-size:14px;">Средний</button>
-        <button onclick="setFont('large')" class="btn-outline" style="flex:1;font-size:16px;">Большой</button>
-    </div>
+  </div>
+  {% endif %}
 </div>
-
 <div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:16px;">🔒 Приватность</div>
-    <form method="post" action="/settings/privacy">
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Кто может писать сообщения</label>
-        <select name="who_can_message" style="margin-bottom:12px;">
-            <option value="all" {% if user.who_can_message == 'all' %}selected{% endif %}>Все</option>
-            <option value="followers" {% if user.who_can_message == 'followers' %}selected{% endif %}>Только подписчики</option>
-            <option value="nobody" {% if user.who_can_message == 'nobody' %}selected{% endif %}>Никто</option>
-        </select>
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Кто видит истории</label>
-        <select name="who_can_see_stories" style="margin-bottom:12px;">
-            <option value="all" {% if user.who_can_see_stories == 'all' %}selected{% endif %}>Все</option>
-            <option value="followers" {% if user.who_can_see_stories == 'followers' %}selected{% endif %}>Только подписчики</option>
-        </select>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-            <input type="checkbox" name="hide_likes" id="hide_likes" {% if user.hide_likes %}checked{% endif %} style="width:auto;margin:0;">
-            <label for="hide_likes" style="font-size:14px;cursor:pointer;">Скрывать количество лайков</label>
-        </div>
-        <button class="btn" style="width:100%;">Сохранить</button>
-    </form>
+  <div class="card-title">💻 Активные сеансы · {{ sessions|length }}
+    {% if sessions|length > 1 %}<form method="post" action="/settings/sessions/revoke-others"><button class="btn ghost sm">Завершить все другие</button></form>{% endif %}</div>
+  {% for s in sessions %}
+  <div class="user-row"><span style="font-size:24px">{% if 'iPhone' in s.device or 'Android' in s.device %}📱{% else %}💻{% endif %}</span>
+    <div class="info"><b>{{ s.device or "Устройство" }}</b>{% if s.id == current_session_id %} <span class="tag-pill">это устройство</span>{% endif %}<div class="bio">{{ s.ip }} · активность {{ s.last_active|ago }}</div></div>
+    {% if s.id != current_session_id %}<form method="post" action="/settings/sessions/{{ s.id }}/revoke"><button class="btn ghost sm">Завершить</button></form>{% endif %}
+  </div>
+  {% else %}<div class="small muted">Нет записей о сеансах</div>{% endfor %}
 </div>
 
-{% if not is_plus %}
-<div class="card" style="border:1.5px solid var(--plus);">
-    <div style="font-weight:700;font-size:16px;margin-bottom:8px;">✨ Quant Plus</div>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Получи значок +, дополнительные реакции, закладки, анимированный аватар и приоритет в рекомендациях.</p>
-    <form method="post" action="/activate_plus" style="display:flex;gap:10px;">
-        <input type="text" name="code" placeholder="Введи промокод" style="margin-bottom:0;flex:1;">
-        <button class="btn">Активировать</button>
-    </form>
+{% elif section == "plus" %}
+<div class="card hero">
+  <div style="font-size:22px;font-weight:800">✨ {{ brand_plus }}</div>
+  {% if is_plus %}<div class="muted">Активен{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
+  {% else %}<div class="muted">Цветной бейдж, цвет обложки, ранний доступ к функциям. <a href="/plus" style="color:#fff;text-decoration:underline">Подробнее</a></div>{% endif %}
 </div>
-{% else %}
-<div class="card" style="background:linear-gradient(135deg,#a855f7,#6366f1);border:none;">
-    <div style="font-weight:700;font-size:16px;color:white;margin-bottom:4px;">✨ Quant Plus активен</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.8);">До: {{ user.plus_until.strftime("%d.%m.%Y") if user.plus_until else "бессрочно" }}</div>
-</div>
+<form class="card" method="post" action="/settings/promocode">
+  <div class="card-title">Активировать промокод</div>
+  <div class="row"><input name="code" placeholder="PROMO2026" style="margin:0;text-transform:uppercase" required><button class="btn">Активировать</button></div>
+</form>
+{% if is_plus %}
+<form class="card" method="post" action="/settings/plus-color">
+  <div class="card-title">Цвет PLUS-бейджа и обложки</div>
+  <div class="row"><input type="color" name="color" value="{{ user.plus_color or '#a855f7' }}"><button class="btn">Сохранить</button></div>
+</form>
 {% endif %}
 
-<div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:16px;">🔑 Сменить пароль</div>
-    <form method="post" action="/settings/password">
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Старый пароль</label>
-        <input type="password" name="old_password" placeholder="Старый пароль" required>
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;display:block;">Новый пароль</label>
-        <input type="password" name="new_password" placeholder="Минимум 8 символов" required>
-        <button class="btn-outline" style="width:100%;">Сменить пароль</button>
-    </form>
+{% elif section == "data" %}
+<div class="card"><div class="card-title">📦 Экспорт данных</div><p class="small muted mb">Скачайте архив своих постов, комментариев, подписок и сообщений в формате JSON.</p><a class="btn soft" href="/export-data">Скачать мои данные</a></div>
+<div class="card" style="border-color:color-mix(in srgb,var(--danger) 40%,transparent)">
+  <div class="card-title" style="color:var(--danger)">Удалить аккаунт</div>
+  <p class="small muted mb">Все посты, истории, рилсы, сообщения и подписки будут удалены безвозвратно.</p>
+  <form method="post" action="/settings/delete_account" onsubmit="return confirm('Удалить аккаунт навсегда? Это действие нельзя отменить.')" class="row">
+    <input type="password" name="password" placeholder="Введите пароль" required style="margin:0"><button class="btn danger">Удалить навсегда</button>
+  </form>
 </div>
-
-<div class="card">
-    <div style="font-weight:700;font-size:16px;margin-bottom:12px;">⚠️ Опасная зона</div>
-    <form method="post" action="/settings/delete_account" onsubmit="return confirm('Удалить аккаунт навсегда? Это действие нельзя отменить.')">
-        <input type="password" name="password" placeholder="Введи пароль для подтверждения" required>
-        <button class="btn-outline" style="width:100%;color:var(--danger);border-color:var(--danger);">🗑️ Удалить аккаунт</button>
-    </form>
-</div>
-
-<script>
-function previewAvatar(input) {
-    const file = input.files[0]; if (!file) return;
-    const url = URL.createObjectURL(file);
-    let img = document.getElementById('avatar-preview');
-    const letter = document.getElementById('avatar-letter');
-    if (!img) { img = document.createElement('img'); img.id='avatar-preview'; img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'; document.getElementById('avatar-wrap').appendChild(img); }
-    img.src = url; img.style.display = 'block';
-    if (letter) letter.style.display = 'none';
-}
-function setThemeAndSave(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    localStorage.setItem('theme', t);
-    fetch('/api/settings/theme', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({theme:t}) });
-}
-</script>
+{% endif %}
 {% endblock %}

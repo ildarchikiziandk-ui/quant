@@ -1,0 +1,170 @@
+{% from "partials/icons.html" import icon %}
+
+{% macro avatar(u, size=40, online=false) -%}
+{%- if u -%}
+<span class="av-wrap"><span class="av" style="width:{{ size }}px;height:{{ size }}px;">
+{%- if u.avatar %}<img src="{{ u.avatar }}" alt="" loading="lazy">{% else %}<span style="font-size:{{ (size * 0.4)|int }}px;">{{ (u.name or u.username or "?")[0]|upper }}</span>{% endif -%}
+</span>{% if online and is_online(u) %}<span class="dot"></span>{% endif %}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro badges(u) -%}
+{%- if u.is_owner %}<span class="badge" title="Основатель"><svg viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="url(#bg-grad)"/><path d="M12 4.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z" fill="#fff"/></svg></span>{% endif -%}
+{%- if u.is_verified_badge %}<span class="badge" title="Подтверждённый аккаунт"><svg viewBox="0 0 24 24"><path fill="#1d9bf0" d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/><path fill="#fff" d="M10.54 16.2 6.8 12.46l1.41-1.41 2.26 2.26 4.8-5.23 1.47 1.36z"/></svg></span>{% endif -%}
+{%- if u.is_starred %}<span class="badge" title="Звезда автора"><svg viewBox="0 0 24 24"><polygon fill="#f59e0b" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>{% endif -%}
+{%- if u.is_moderator and not u.is_owner %}<span class="badge" title="Модератор"><svg viewBox="0 0 24 24"><path fill="#10b981" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path fill="#fff" d="m10.5 15.2-3-3 1.4-1.4 1.6 1.6 4.1-4.1 1.4 1.4z"/></svg></span>{% endif -%}
+{%- if user_is_plus(u) %}<span class="plus-tag" style="{% if u.plus_color %}background:{{ u.plus_color }}{% endif %}">PLUS</span>{% endif -%}
+{%- if u.emoji_status %}<span class="emoji-status">{{ u.emoji_status }}</span>{% endif -%}
+{%- endmacro %}
+
+{% macro name(u, link=true) -%}
+{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis">{{ u.name or u.username }}</span>{{ badges(u) }}</a>
+{%- else %}<span class="name-line"><span class="ellipsis">{{ u.name or u.username }}</span>{{ badges(u) }}</span>{% endif -%}
+{%- endmacro %}
+
+{% macro follow_btn(u, user, following, small=true) -%}
+{%- if user and u.id != user.id -%}
+{%- set on = u.id in following -%}
+<button class="btn {% if on %}ghost{% endif %} btn-follow" data-act="follow" data-user="{{ u.username }}">{% if on %}Вы подписаны{% else %}Подписаться{% endif %}</button>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro user_row(u, user=None, following=(), extra="") -%}
+<div class="user-row">
+  <a href="/profile/{{ u.username }}">{{ avatar(u, 44, online=true) }}</a>
+  <div class="info">
+    <div>{{ name(u) }}</div>
+    <div class="bio">@{{ u.username }}{% if u.bio %} · {{ u.bio }}{% endif %}</div>
+    {% if extra %}<div class="tiny faint">{{ extra }}</div>{% endif %}
+  </div>
+  {{ follow_btn(u, user, following) }}
+</div>
+{%- endmacro %}
+
+{% macro media_block(p) -%}
+{%- set items = p.media_items|sort(attribute="position") -%}
+{%- if items|length > 1 -%}
+<div class="media-grid {% if items|length == 2 %}n2{% elif items|length == 3 %}n3{% elif items|length == 4 %}n4{% else %}nmany{% endif %}">
+  {%- for it in items[:4] %}
+  {%- if it.media_type == "video" %}<video src="{{ it.media_url }}" controls playsinline preload="metadata"></video>
+  {%- else %}<img src="{{ it.media_url }}" alt="" loading="lazy" data-zoom>{% endif %}
+  {%- endfor %}
+</div>
+{%- if items|length > 4 %}<div class="tiny muted mb">+ ещё {{ items|length - 4 }} в посте</div>{% endif %}
+{%- elif p.image -%}
+<div class="media">
+  {%- if p.media_type == "video" %}<video src="{{ p.image }}" controls playsinline preload="metadata"></video>
+  {%- else %}<img src="{{ p.image }}" alt="" loading="lazy" data-zoom>{% endif %}
+</div>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro poll_block(p, user, st) -%}
+{%- set poll = p.poll -%}
+{%- set total = namespace(n=0) -%}{% for o in poll.options %}{% set total.n = total.n + o.votes|length %}{% endfor %}
+{%- set my = st.voted.get(poll.id) if st else None -%}
+{%- set ended = poll.ends_at and poll.ends_at < utcnow() -%}
+{%- set show = my or ended or not user or (user and user.id == p.user_id) -%}
+<div class="poll">
+  <div class="poll-q">📊 {{ poll.question }}</div>
+  {%- for o in poll.options %}
+  {%- set pct = ((o.votes|length) / total.n * 100)|round|int if total.n else 0 %}
+  <button type="button" class="poll-opt {% if show %}done{% endif %} {% if my == o.id %}mine{% endif %}" data-opt="{{ o.id }}" {% if not show %}data-act="vote" data-id="{{ o.id }}"{% endif %}>
+    <span class="bar" style="width:{{ pct if show else 0 }}%"></span>
+    <span class="lbl"><span>{{ o.text }}{% if my == o.id %} ✓{% endif %}</span><b class="pct">{% if show %}{{ pct }}%{% endif %}</b></span>
+  </button>
+  {%- endfor %}
+  <div class="tiny muted"><span class="poll-total">{{ total.n }} голос(ов)</span>{% if poll.ends_at %} · {% if ended %}опрос завершён{% else %}до {{ poll.ends_at.strftime("%d.%m %H:%M") }}{% endif %}{% endif %}</div>
+</div>
+{%- endmacro %}
+
+{% macro post_inner(p, user, st, can_mod, full=false) -%}
+{%- if p.content %}
+<div class="post-text {% if p.is_long and not full %}clamp{% endif %}" id="text-{{ p.id }}">{{ p.content|rich }}</div>
+{%- if p.is_long and not full %}<button class="read-more" data-act="expand" data-id="{{ p.id }}">Читать полностью</button>{% endif %}
+{%- endif %}
+{%- if p.poll %}{{ poll_block(p, user, st) }}{% endif %}
+{{ media_block(p) }}
+{%- endmacro %}
+
+{% macro post_card(p, user, st, originals={}, repost_counts={}, can_mod=false, full=false) -%}
+{%- set orig = originals.get(p.repost_id) if p.is_repost else None -%}
+{%- set simple_repost = p.is_repost and not p.original_comment -%}
+{%- set main = orig if (simple_repost and orig) else p -%}
+<article class="card post" id="post-{{ p.id }}">
+  {%- if simple_repost %}<div class="repost-label">{{ icon("repost") }} <a href="/profile/{{ p.author.username }}">{{ p.author.name or p.author.username }}</a> сделал(а) репост</div>{% endif %}
+  {%- if simple_repost and not orig %}<div class="muted small">Оригинальный пост удалён или недоступен</div>
+  {%- else %}
+  <div class="post-head">
+    <a href="/profile/{{ main.author.username }}">{{ avatar(main.author, 44, online=true) }}</a>
+    <div class="post-body">
+      <div class="post-meta">
+        {{ name(main.author) }}
+        <span class="handle">@{{ main.author.username }}</span>
+        <span class="faint">·</span>
+        <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at.strftime('%d.%m.%Y %H:%M') }} UTC">{{ main.created_at|ago }}</a>
+        {%- if main.edited_at %}<span class="faint tiny">· изм.</span>{% endif %}
+        {%- if main.visibility == "followers" %}<span class="faint" title="Только для подписчиков">{{ icon("lock") }}</span>{% endif %}
+        {%- if user and user.pinned_post_id == main.id and main.user_id == user.id %}<span class="pill-info">📌 закреплён</span>{% endif %}
+        <div class="menu-wrap">
+          <button class="icon-btn" data-menu aria-label="Меню">{{ icon("more") }}</button>
+          <div class="menu">
+            <button data-act="copy" data-id="{{ main.id }}">{{ icon("link") }} Копировать ссылку</button>
+            {%- if user and user.id == main.user_id %}
+            <button data-act="edit-post" data-id="{{ main.id }}">{{ icon("edit") }} Редактировать</button>
+            <button data-act="pin-post" data-id="{{ main.id }}">{{ icon("pin") }} Закрепить в профиле</button>
+            <a href="/post/{{ main.id }}/stats">{{ icon("chart") }} Статистика</a>
+            {%- endif %}
+            {%- if user and user.id != main.user_id %}
+            <button data-act="toggle" data-url="/mute/{{ main.author.username }}" data-msg="Готово: показ постов автора изменён">{{ icon("mute") }} Скрыть автора</button>
+            <button data-act="report-post" data-id="{{ main.id }}">{{ icon("flag") }} Пожаловаться</button>
+            {%- endif %}
+            {%- if user and (user.id == main.user_id or can_mod) %}<button class="danger" data-act="delete-post" data-id="{{ main.id }}">{{ icon("trash") }} Удалить</button>{% endif %}
+            {%- if user and user.id == p.user_id and p.id != main.id %}<button class="danger" data-act="delete-post" data-id="{{ p.id }}">{{ icon("trash") }} Удалить репост</button>{% endif %}
+          </div>
+        </div>
+      </div>
+      {%- if user and user.id == main.user_id %}<textarea class="hidden" id="raw-{{ main.id }}">{{ main.content or "" }}</textarea>{% endif %}
+      {%- if p.is_repost and p.original_comment %}
+        <div class="post-text">{{ p.original_comment|rich }}</div>
+        {%- if orig %}
+        <a href="/post/{{ orig.id }}" class="quote" style="display:block;">
+          <div class="row small mb">{{ avatar(orig.author, 22) }} <b>{{ orig.author.name or orig.author.username }}</b> <span class="muted">@{{ orig.author.username }} · {{ orig.created_at|ago }}</span></div>
+          {{ post_inner(orig, user, st, can_mod) }}
+        </a>
+        {%- else %}<div class="quote muted small">Оригинал удалён или недоступен</div>{% endif %}
+      {%- else %}
+        {{ post_inner(main, user, st, can_mod, full) }}
+      {%- endif %}
+      {%- set rc = {} -%}
+      {%- for r in main.reactions %}{% set _ = rc.update({r.emoji: rc.get(r.emoji, 0) + 1}) %}{% endfor %}
+      <div class="reaction-bar" id="reactions-{{ main.id }}">{% for em, n in rc.items() %}<button class="reaction-pill {% if st.my_reactions.get(main.id) == em %}mine{% endif %}" data-act="react" data-id="{{ main.id }}" data-emoji="{{ em }}">{{ em }} <b>{{ n }}</b></button>{% endfor %}</div>
+      <div class="post-actions">
+        {%- set hide = main.author.hide_likes and not (user and user.id == main.user_id) %}
+        <button class="act like {% if main.id in st.liked %}on{% endif %}" data-act="like" data-id="{{ main.id }}" title="Нравится">{{ icon("heart") }}<span class="n">{% if not hide %}{{ main.likes|length }}{% endif %}</span></button>
+        <a class="act" href="/post/{{ main.id }}#comments" title="Комментарии">{{ icon("comment") }}<span>{{ main.comments|length }}</span></a>
+        <span class="menu-wrap" style="margin-left:0">
+          <button class="act repost {% if main.id in st.reposted %}on{% endif %}" data-menu title="Репост">{{ icon("repost") }}<span class="n">{{ repost_counts.get(main.id, 0) }}</span></button>
+          <div class="menu" style="left:0;right:auto;">
+            <button data-act="repost" data-id="{{ main.id }}">{{ icon("repost") }} {% if main.id in st.reposted %}Отменить репост{% else %}Репост{% endif %}</button>
+            <button data-act="quote" data-id="{{ main.id }}">{{ icon("edit") }} Цитировать</button>
+          </div>
+        </span>
+        <button class="act whale {% if main.id in st.whaled %}on{% endif %}" data-act="whale" data-id="{{ main.id }}" title="Кит — суперлайк">🐋<span class="n">{{ main.whales|length }}</span></button>
+        <span style="position:relative"><button class="act" data-act="react-open" data-id="{{ main.id }}" title="Реакция">{{ icon("smile") }}</button></span>
+        <span class="act faint hide-mobile" title="Просмотры" style="cursor:default">{{ icon("eye") }}{{ (main.views or 0)|compact }}</span>
+        <button class="act {% if main.id in st.bookmarked %}on{% endif %} bm" data-act="bookmark" data-id="{{ main.id }}" title="В закладки" style="margin-left:auto">{{ icon("bookmark") }}</button>
+        <button class="act" data-act="share" data-id="{{ main.id }}" title="Поделиться">{{ icon("share") }}</button>
+      </div>
+      {%- if not full and main.comments and not main.comments_disabled %}
+      {%- set last = (main.comments|sort(attribute="created_at"))[-1] %}
+      {%- if last.author %}
+      <a href="/post/{{ main.id }}#comment-{{ last.id }}" class="row small mt" style="background:var(--input);border-radius:12px;padding:8px 12px;">
+        {{ avatar(last.author, 22) }}<span class="grow ellipsis"><b>{{ last.author.name or last.author.username }}</b> <span class="muted">{{ last.content }}</span></span>
+      </a>
+      {%- endif %}{% endif %}
+    </div>
+  </div>
+  {%- endif %}
+</article>
+{%- endmacro %}

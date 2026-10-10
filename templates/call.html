@@ -1,299 +1,101 @@
-<!DOCTYPE html>
-<html lang="ru" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Звонок — Quant</title>
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#000; color:white; height:100vh; height:100dvh; overflow:hidden; }
-        #remote-video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; background:#111; }
-        #local-video { position:fixed; top:env(safe-area-inset-top,16px); right:16px; width:100px; height:150px; border-radius:16px; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,0.3); z-index:10; transform:scaleX(-1); }
-        .overlay { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:env(safe-area-inset-top,40px) 0 env(safe-area-inset-bottom,40px) 0; background:linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.7) 100%); }
-        .top-info { text-align:center; padding-top:20px; }
-        .avatar-wrap { width:100px; height:100px; border-radius:50%; overflow:hidden; background:#333; margin:0 auto 16px; border:3px solid rgba(255,255,255,0.4); }
-        .avatar-wrap img { width:100%; height:100%; object-fit:cover; }
-        .avatar-letter { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:700; }
-        .caller-name { font-size:24px; font-weight:800; margin-bottom:6px; text-shadow:0 2px 8px rgba(0,0,0,0.5); }
-        .call-status { font-size:15px; opacity:0.8; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
-        .timer { font-size:20px; font-weight:600; display:none; }
-        .controls { display:flex; gap:20px; align-items:center; justify-content:center; padding-bottom:10px; flex-wrap:wrap; }
-        .ctrl-btn { display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; }
-        .ctrl-btn .icon { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; transition:transform 0.15s, opacity 0.15s; }
-        .ctrl-btn .icon:hover { transform:scale(1.1); opacity:0.9; }
-        .ctrl-btn .label { font-size:12px; opacity:0.8; }
-        .btn-mute .icon { background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
-        .btn-cam .icon { background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
-        .btn-speaker .icon { background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
-        .btn-end .icon { background:#e53935; box-shadow:0 4px 20px rgba(229,57,53,0.5); }
-        .btn-flip .icon { background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); }
-        .active-btn .icon { background:rgba(255,255,255,0.9) !important; }
-        .active-btn .icon span { filter:invert(1); }
-        @media (max-width:640px) {
-            #local-video { width:80px; height:120px; border-radius:12px; }
-            .ctrl-btn .icon { width:52px; height:52px; font-size:20px; }
-            .caller-name { font-size:20px; }
-        }
-    </style>
-</head>
-<body>
-<script>
-    const t = localStorage.getItem('theme') || 'light';
-</script>
-
-<video id="remote-video" autoplay playsinline></video>
-<video id="local-video" autoplay playsinline muted></video>
-
-<div class="overlay">
-    <div class="top-info">
-        <div class="avatar-wrap">
-            {% if other.avatar %}
-            <img src="{{ other.avatar }}">
-            {% else %}
-            <div class="avatar-letter">{{ other.username[0].upper() }}</div>
-            {% endif %}
-        </div>
-        <div class="caller-name">{{ other.name or other.username }}</div>
-        <div class="call-status" id="call-status">
-            {% if call_type == 'video' %}📹 Видеозвонок{% else %}📞 Голосовой звонок{% endif %}
-        </div>
-        <div class="timer" id="call-timer">00:00</div>
-    </div>
-
-    <div class="controls">
-        <div class="ctrl-btn btn-mute" onclick="toggleMute(this)" id="mute-btn">
-            <div class="icon"><span>🎤</span></div>
-            <div class="label">Микрофон</div>
-        </div>
-        {% if call_type == 'video' %}
-        <div class="ctrl-btn btn-cam" onclick="toggleCamera(this)" id="cam-btn">
-            <div class="icon"><span>📷</span></div>
-            <div class="label">Камера</div>
-        </div>
-        <div class="ctrl-btn btn-flip" onclick="flipCamera()">
-            <div class="icon"><span>🔄</span></div>
-            <div class="label">Перевернуть</div>
-        </div>
-        {% endif %}
-        <div class="ctrl-btn btn-speaker" onclick="toggleSpeaker(this)">
-            <div class="icon"><span>🔊</span></div>
-            <div class="label">Динамик</div>
-        </div>
-        <div class="ctrl-btn btn-end" onclick="endCall()">
-            <div class="icon"><span>📵</span></div>
-            <div class="label">Завершить</div>
-        </div>
-    </div>
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Звонок — {{ other.name or other.username }} — {{ brand }}{% endblock %}
+{% block head %}
+<style>
+  .call-wrap{position:fixed;inset:0;background:radial-gradient(800px 500px at 50% 0%,#3b1d6e,#0b0b12);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100}
+  #remote{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;display:none}
+  #local{position:absolute;right:16px;top:16px;width:130px;height:180px;object-fit:cover;border-radius:16px;border:2px solid rgba(255,255,255,.3);display:none;z-index:3;transform:scaleX(-1)}
+  .call-info{position:relative;z-index:2;text-align:center}
+  .call-info .av{box-shadow:0 0 0 0 rgba(168,85,247,.6);animation:pulse 1.6s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 26px rgba(168,85,247,0)}100%{box-shadow:0 0 0 0 rgba(168,85,247,0)}}
+  .call-ctrl{position:absolute;bottom:40px;left:0;right:0;display:flex;gap:16px;justify-content:center;z-index:4}
+  .cbtn{width:62px;height:62px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:24px;cursor:pointer;backdrop-filter:blur(8px)}
+  .cbtn.on{background:#fff;color:#111}.cbtn.red{background:#ef4444}.cbtn.green{background:#22c55e}
+  .connected .call-info{position:absolute;top:24px;left:20px;text-align:left}.connected .call-info .av{display:none}
+</style>
+{% endblock %}
+{% block body %}
+<div class="call-wrap" id="wrap">
+  <video id="remote" autoplay playsinline></video>
+  <video id="local" autoplay playsinline muted></video>
+  <audio id="remote-audio" autoplay></audio>
+  <div class="call-info">
+    {{ avatar(other, 120) }}
+    <h2 style="margin-top:18px;font-size:26px">{{ other.name or other.username }}</h2>
+    <div id="status" style="opacity:.8;margin-top:6px">{% if role == "caller" %}Вызов…{% else %}Входящий {{ "видео" if call_type == "video" else "аудио" }}звонок{% endif %}</div>
+    <div id="timer" style="font-size:20px;font-weight:700;margin-top:4px;display:none">00:00</div>
+  </div>
+  <div class="call-ctrl">
+    {% if role == "callee" %}
+    <button class="cbtn red" id="decline" title="Отклонить">✕</button>
+    <button class="cbtn green" id="accept" title="Принять">📞</button>
+    {% endif %}
+    <button class="cbtn {% if role == 'callee' %}hidden{% endif %}" id="mute" title="Микрофон">🎤</button>
+    {% if call_type == "video" %}<button class="cbtn {% if role == 'callee' %}hidden{% endif %}" id="cam" title="Камера">📷</button><button class="cbtn {% if role == 'callee' %}hidden{% endif %}" id="flip" title="Сменить камеру">🔄</button>{% endif %}
+    <button class="cbtn red {% if role == 'callee' %}hidden{% endif %}" id="hang" title="Завершить">⏹</button>
+  </div>
 </div>
-
+{% endblock %}
+{% block scripts %}
 <script>
-const callType = '{{ call_type }}';
-const otherUsername = '{{ other.username }}';
-const callId = '{{ call_id }}';
-let localStream = null;
-let peerConnection = null;
-let isMuted = false;
-let isCamOff = false;
-let callStartTime = null;
-let timerInterval = null;
-let currentFacingMode = 'user';
-let audioCtx = null;
-let ringtoneNode = null;
-
-const iceConfig = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        {
-            urls: 'turn:147.45.147.124:3478',
-            username: 'quant',
-            credential: 'QuantTurn2026'
-        }
-    ]
-};
-
-function playRingtone() {
-    try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function beep() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(480, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.6);
-        }
-        beep();
-        ringtoneNode = setInterval(beep, 1500);
-    } catch(e) {}
+(function(){
+const CALL={{ call_id|tojson }}, ROLE={{ role|tojson }}, TYPE={{ call_type|tojson }}, BACK='/messages/{{ other.username }}';
+const ICE={iceServers:{{ ice_servers|tojson }}};
+let pc=null, stream=null, since=0, polling=true, started=null, tmr=null, facing='user', ring=null, pendingIce=[], remoteSet=false, ended=false;
+const $=id=>document.getElementById(id);
+function tone(on){ if(!on){ clearInterval(ring); ring=null; return; } const beep=()=>{ try{ const c=new AudioContext(),o=c.createOscillator(),g=c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value=ROLE==='caller'?440:620; g.gain.setValueAtTime(.12,c.currentTime); g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.6); o.start(); o.stop(c.currentTime+.6);}catch(e){} }; beep(); ring=setInterval(beep,1600); }
+async function media(){ stream=await navigator.mediaDevices.getUserMedia(TYPE==='video'?{audio:true,video:{facingMode:facing}}:{audio:true}); if(TYPE==='video'){ $('local').srcObject=stream; $('local').style.display='block'; } }
+function post(path,body){ return fetch(`/api/call/${CALL}/${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); }
+function makePc(){
+  pc=new RTCPeerConnection(ICE);
+  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+  pc.onicecandidate=e=>{ if(e.candidate) post('ice',{candidate:e.candidate}); };
+  pc.ontrack=e=>{ if(TYPE==='video'){ $('remote').srcObject=e.streams[0]; $('remote').style.display='block'; } else $('remote-audio').srcObject=e.streams[0]; };
+  pc.onconnectionstatechange=()=>{ if(pc.connectionState==='connected') onConnected(); if(['failed','closed'].includes(pc.connectionState)) hang('Соединение потеряно'); };
 }
-
-function stopRingtone() {
-    if (ringtoneNode) { clearInterval(ringtoneNode); ringtoneNode = null; }
-    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+function onConnected(){ if(started) return; tone(false); started=Date.now(); $('wrap').classList.add('connected'); $('status').textContent='На связи'; $('timer').style.display='block';
+  tmr=setInterval(()=>{ const s=Math.floor((Date.now()-started)/1000); $('timer').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },1000); }
+async function addIce(list){ for(const c of list){ if(!remoteSet){ pendingIce.push(c); continue; } try{ await pc.addIceCandidate(c); }catch(e){} } }
+async function setRemote(desc){ await pc.setRemoteDescription(desc); remoteSet=true; const q=pendingIce; pendingIce=[]; await addIce(q); }
+async function loop(){
+  while(polling){
+    try{ const r=await (await fetch(`/api/call/${CALL}/status?since=${since}`)).json();
+      if(['ended','rejected','missed'].includes(r.status)){ hang({ended:'Звонок завершён',rejected:'Звонок отклонён',missed:'Нет ответа'}[r.status], true); return; }
+      if(ROLE==='caller' && r.answer && !remoteSet){ await setRemote(r.answer); $('status').textContent='Соединение…'; }
+      if(r.ice && r.ice.length && pc){ since=r.next; await addIce(r.ice); }
+    }catch(e){}
+    await new Promise(res=>setTimeout(res,1000));
+  }
 }
-
-function playConnectSound() {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(523, ctx.currentTime);
-        osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-    } catch(e) {}
+async function startCaller(){
+  tone(true);
+  try{ await media(); }catch(e){ $('status').textContent='Нет доступа к микрофону/камере'; tone(false); post('end'); return; }
+  makePc(); const offer=await pc.createOffer(); await pc.setLocalDescription(offer); await post('offer',{offer:pc.localDescription}); loop();
 }
-
-function updateTimer() {
-    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-    const s = String(elapsed % 60).padStart(2, '0');
-    document.getElementById('call-timer').textContent = `${m}:${s}`;
+async function accept(){
+  tone(false); ['accept','decline'].forEach(id=>$(id)?.classList.add('hidden')); ['mute','cam','flip','hang'].forEach(id=>$(id)?.classList.remove('hidden'));
+  $('status').textContent='Соединение…';
+  try{ await media(); }catch(e){ $('status').textContent='Нет доступа к микрофону/камере'; return; }
+  makePc();
+  let offer=null; for(let k=0;k<15 && !offer;k++){ const r=await (await fetch(`/api/call/${CALL}/status?since=0`)).json(); offer=r.offer; if(!offer) await new Promise(res=>setTimeout(res,700)); }
+  if(!offer){ hang('Звонок недоступен'); return; }
+  await setRemote(offer); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); await post('answer',{answer:pc.localDescription}); loop();
 }
-
-async function startCall() {
-    playRingtone();
-    document.getElementById('call-status').textContent = 'Вызов...';
-    try {
-        const constraints = callType === 'video'
-            ? { video: { facingMode: currentFacingMode }, audio: true }
-            : { audio: true };
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        if (callType === 'video') {
-            document.getElementById('local-video').srcObject = localStream;
-        }
-        peerConnection = new RTCPeerConnection(iceConfig);
-        localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-        peerConnection.ontrack = e => {
-            stopRingtone();
-            playConnectSound();
-            const rv = document.getElementById('remote-video');
-            rv.srcObject = e.streams[0];
-            rv.style.display = 'block';
-            document.getElementById('call-status').style.display = 'none';
-            document.getElementById('call-timer').style.display = 'block';
-            callStartTime = Date.now();
-            timerInterval = setInterval(updateTimer, 1000);
-        };
-        peerConnection.onicecandidate = async e => {
-            if (e.candidate) {
-                await fetch(`/api/call/${callId}/ice`, {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({candidate: e.candidate})
-                });
-            }
-        };
-        peerConnection.onconnectionstatechange = () => {
-            if (['disconnected','failed','closed'].includes(peerConnection.connectionState)) {
-                endCall();
-            }
-        };
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        await fetch(`/api/call/${callId}/offer`, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({offer})
-        });
-        pollStatus();
-    } catch(e) {
-        document.getElementById('call-status').textContent = 'Нет доступа к камере/микрофону';
-        console.error(e);
-    }
+async function hang(msg, remote){
+  if(ended) return; ended=true; polling=false; tone(false); clearInterval(tmr);
+  stream?.getTracks().forEach(t=>t.stop()); pc?.close();
+  if(!remote) await post('end');
+  $('status').textContent=msg||'Звонок завершён'; setTimeout(()=>location.href=BACK,1200);
 }
-
-let polling = true;
-async function pollStatus() {
-    while (polling) {
-        try {
-            const res = await fetch(`/api/call/${callId}/status`);
-            const data = await res.json();
-            if (data.status === 'accepted' && data.answer && peerConnection.signalingState !== 'stable') {
-                stopRingtone();
-                await peerConnection.setRemoteDescription(data.answer);
-            }
-            if (data.status === 'ended' || data.status === 'rejected') {
-                endCall();
-                return;
-            }
-            if (data.ice_candidates && data.ice_candidates.length > 0) {
-                for (const c of data.ice_candidates) {
-                    try { await peerConnection.addIceCandidate(c); } catch(e) {}
-                }
-            }
-        } catch(e) {}
-        await new Promise(r => setTimeout(r, 1000));
-    }
-}
-
-function toggleMute(btn) {
-    isMuted = !isMuted;
-    localStream?.getAudioTracks().forEach(t => t.enabled = !isMuted);
-    btn.querySelector('span').textContent = isMuted ? '🔇' : '🎤';
-    btn.classList.toggle('active-btn', isMuted);
-    btn.querySelector('.label').textContent = isMuted ? 'Включить' : 'Микрофон';
-}
-
-function toggleCamera(btn) {
-    isCamOff = !isCamOff;
-    localStream?.getVideoTracks().forEach(t => t.enabled = !isCamOff);
-    btn.querySelector('span').textContent = isCamOff ? '🚫' : '📷';
-    btn.classList.toggle('active-btn', isCamOff);
-    btn.querySelector('.label').textContent = isCamOff ? 'Включить' : 'Камера';
-}
-
-async function flipCamera() {
-    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    if (localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-            videoTrack.stop();
-            const newStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: currentFacingMode },
-                audio: false
-            });
-            const newVideoTrack = newStream.getVideoTracks()[0];
-            localStream.removeTrack(videoTrack);
-            localStream.addTrack(newVideoTrack);
-            document.getElementById('local-video').srcObject = localStream;
-            if (peerConnection) {
-                const sender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
-                if (sender) sender.replaceTrack(newVideoTrack);
-            }
-        }
-    }
-}
-
-function toggleSpeaker(btn) {
-    btn.classList.toggle('active-btn');
-}
-
-async function endCall() {
-    polling = false;
-    stopRingtone();
-    clearInterval(timerInterval);
-    localStream?.getTracks().forEach(t => t.stop());
-    peerConnection?.close();
-    await fetch(`/api/call/${callId}/end`, { method: 'POST' });
-    window.location.href = `/messages/${otherUsername}`;
-}
-
-startCall();
-
-window.addEventListener('beforeunload', () => {
-    fetch(`/api/call/${callId}/end`, { method: 'POST' });
-});
+$('hang').onclick=()=>hang();
+$('mute').onclick=e=>{ const t=stream?.getAudioTracks()[0]; if(!t) return; t.enabled=!t.enabled; e.target.classList.toggle('on',!t.enabled); e.target.textContent=t.enabled?'🎤':'🔇'; };
+$('cam')?.addEventListener('click',e=>{ const t=stream?.getVideoTracks()[0]; if(!t) return; t.enabled=!t.enabled; e.target.classList.toggle('on',!t.enabled); });
+$('flip')?.addEventListener('click',async()=>{ facing=facing==='user'?'environment':'user'; const ns=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing}}); const nt=ns.getVideoTracks()[0]; const old=stream.getVideoTracks()[0]; stream.removeTrack(old); old.stop(); stream.addTrack(nt); $('local').srcObject=stream; pc?.getSenders().find(s=>s.track&&s.track.kind==='video')?.replaceTrack(nt); });
+if(ROLE==='caller') startCaller();
+else { tone(true); $('accept').onclick=accept; $('decline').onclick=async()=>{ await post('reject'); hang('Отклонено', true); };
+  (async function watch(){ while(!pc && !ended){ const r=await (await fetch(`/api/call/${CALL}/status?since=0`)).json(); if(['ended','missed','rejected'].includes(r.status)){ hang('Звонок завершён', true); return; } await new Promise(res=>setTimeout(res,1500)); } })(); }
+window.addEventListener('pagehide',()=>{ if(!ended) navigator.sendBeacon(`/api/call/${CALL}/end`); });
+})();
 </script>
-</body>
-</html>
+{% endblock %}

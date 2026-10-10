@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar, name %}
+{% block title %}Рейтинг — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">📊 Рейтинг</div>{% if my_rank %}<div class="page-sub">Ваше место: <b>#{{ my_rank }}</b></div>{% endif %}
+<div class="tabs">{% for k, l in [("total","Очки"),("weekly","Неделя"),("streak","Стрики"),("level","Уровни")] %}<a href="/leaderboard?by={{ k }}" class="{% if by == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
+<div class="card">
+{% for u in users %}
+  <div class="row" style="padding:8px 0;{% if not loop.first %}border-top:1px solid var(--border){% endif %}{% if user and u.id == user.id %};background:color-mix(in srgb,var(--brand) 7%,transparent);border-radius:10px{% endif %}">
+    <span class="rank {% if loop.index <= 3 %}top{% endif %}">{{ ["🥇","🥈","🥉"][loop.index0] if loop.index <= 3 else loop.index }}</span>
+    <a href="/profile/{{ u.username }}">{{ avatar(u, 38) }}</a>
+    <div class="grow">{{ name(u) }}<div class="tiny muted">@{{ u.username }} · ур. {{ u.level or 1 }}</div></div>
+    <b>{% if by == "weekly" %}{{ u.weekly_points or 0 }}{% elif by == "streak" %}🔥 {{ u.streak_days or 0 }}{% elif by == "level" %}🏅 {{ u.level or 1 }}{% else %}✨ {{ u.total_points or 0 }}{% endif %}</b>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

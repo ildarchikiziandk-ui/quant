@@ -1,107 +1,75 @@
 {% extends "base.html" %}
-{% block content %}
-<style>
-.story-overlay { position:fixed;inset:0;background:#000;z-index:300;display:flex;align-items:center;justify-content:center; }
-.story-container { width:100%;max-width:420px;height:100vh;max-height:740px;position:relative;overflow:hidden; }
-.story-progress { position:absolute;top:12px;left:12px;right:12px;display:flex;gap:4px;z-index:10; }
-.story-progress-bar { flex:1;height:3px;background:rgba(255,255,255,0.4);border-radius:2px;overflow:hidden; }
-.story-progress-fill { height:100%;background:white;border-radius:2px; }
-.story-header { position:absolute;top:28px;left:12px;right:12px;display:flex;align-items:center;gap:10px;z-index:10; }
-.story-media { width:100%;height:100%;object-fit:cover;position:absolute;inset:0; }
-</style>
-
-<div class="story-overlay" id="story-overlay">
-    <div class="story-container">
-        <div class="story-progress" id="progress-bars">
-            {% for story in stories %}
-            <div class="story-progress-bar" id="bar-{{ loop.index0 }}">
-                <div class="story-progress-fill" id="fill-{{ loop.index0 }}" style="width:{% if loop.index0 < current_index %}100%{% else %}0%{% endif %};"></div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="story-header">
-            <a href="/profile/{{ story_user.username }}">
-                <div class="avatar-circle" style="width:36px;height:36px;border:2px solid white;flex-shrink:0;">
-                    {% if story_user.avatar %}<img src="{{ story_user.avatar }}">{% else %}<span style="font-size:13px;">{{ story_user.username[0].upper() }}</span>{% endif %}
-                </div>
-            </a>
-            <div style="flex:1;">
-                <div style="font-weight:700;font-size:14px;color:white;">{{ story_user.name or story_user.username }}</div>
-                <div id="story-time" style="font-size:12px;color:rgba(255,255,255,0.7);"></div>
-            </div>
-            <a href="/" style="color:white;padding:6px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </a>
-        </div>
-
-        {% for story in stories %}
-        <div id="story-{{ loop.index0 }}" style="position:absolute;inset:0;display:{% if loop.index0 == current_index %}flex{% else %}none{% endif %};align-items:center;justify-content:center;background:#111;">
-            {% if story.media_type == 'video' %}
-            <video src="{{ story.media_url }}" class="story-media" autoplay playsinline muted loop></video>
-            {% else %}
-            <img src="{{ story.media_url }}" class="story-media">
-            {% endif %}
-            {% if story.text_overlay %}
-            <div style="position:absolute;bottom:100px;left:0;right:0;text-align:center;padding:0 20px;">
-                <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:10px 16px;display:inline-block;color:white;font-size:18px;font-weight:700;backdrop-filter:blur(8px);">{{ story.text_overlay }}</div>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;z-index:10;">
-            {% if user and user.username != story_user.username %}
-            <form method="post" action="/stories/react/{{ stories[current_index].id if stories else 0 }}" style="display:flex;gap:10px;align-items:center;">
-                <input type="hidden" name="emoji" value="❤️" id="react-emoji">
-                <div style="display:flex;gap:8px;">
-                    {% for emoji in ['❤️','😍','🔥','😂','😮','👏'] %}
-                    <button type="submit" name="emoji" value="{{ emoji }}" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;backdrop-filter:blur(8px);">{{ emoji }}</button>
-                    {% endfor %}
-                </div>
-            </form>
-            {% endif %}
-            {% if user and user.username == story_user.username %}
-            <div style="color:rgba(255,255,255,0.7);font-size:13px;text-align:center;">👁 {{ stories[current_index].views|length if stories else 0 }} просмотров</div>
-            {% endif %}
-        </div>
-
-        <div onclick="prevStory()" style="position:absolute;left:0;top:0;width:40%;height:100%;cursor:pointer;z-index:5;"></div>
-        <div onclick="nextStory()" style="position:absolute;right:0;top:0;width:60%;height:100%;cursor:pointer;z-index:5;"></div>
+{% from "partials/macros.html" import avatar %}{% from "partials/icons.html" import icon %}
+{% block title %}Истории {{ story_user.name or story_user.username }} — {{ brand }}{% endblock %}
+{% block body %}
+<div class="story-stage">
+  <div class="story-frame" id="frame">
+    <div class="story-bars">{% for s in stories %}<div><i></i></div>{% endfor %}</div>
+    <div class="story-top">
+      <a href="/profile/{{ story_user.username }}" class="row" style="color:#fff">{{ avatar(story_user, 36) }}<b>{{ story_user.name or story_user.username }}</b></a>
+      <span class="tiny" id="s-ago" style="opacity:.8"></span>
+      {% if highlight is defined and highlight %}<span class="tiny" style="opacity:.8">· {{ highlight.title }}</span>{% endif %}
+      <span style="margin-left:auto"></span>
+      <button class="icon-btn" id="s-pause" title="Пауза">⏸</button>
+      {% if user and user.id == story_user.id %}
+      <div class="menu-wrap" style="margin-left:0"><button class="icon-btn" data-menu>{{ icon("more") }}</button>
+        <div class="menu"><button id="s-viewers">{{ icon("eye") }} Кто смотрел</button><button id="s-hl">✨ В актуальное</button>{% if highlight is defined and highlight %}<form method="post" action="/highlights/{{ highlight.id }}/delete"><button class="danger">{{ icon("trash") }} Удалить подборку</button></form>{% endif %}<button class="danger" id="s-del">{{ icon("trash") }} Удалить историю</button></div></div>
+      {% endif %}
+      <a href="/" class="icon-btn" title="Закрыть">✕</a>
     </div>
+    {% for s in stories %}
+    <div class="story-media hidden" data-i="{{ loop.index0 }}" data-id="{{ s.id }}" data-type="{{ s.media_type }}" data-ago="{{ s.created_at|ago }}" style="{% if not s.media_url %}background:{{ s.bg_color or '#7c3aed' }}{% endif %}">
+      {% if s.media_type == 'video' %}<video src="{{ s.media_url }}" playsinline preload="metadata"></video>
+      {% elif s.media_url %}<img src="{{ s.media_url }}" alt="">{% endif %}
+      {% if s.text_overlay %}<div class="story-text {% if s.media_url %}over{% endif %}">{{ s.text_overlay }}</div>{% endif %}
+      {% if s.audience == 'close' %}<span class="tag-pill" style="position:absolute;top:70px;left:14px;background:#22c55e;color:#fff">⭐ близкие</span>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="story-nav prev" id="s-prev"></div><div class="story-nav next" id="s-next"></div>
+    {% if user and user.id != story_user.id %}
+    <div class="story-bottom">
+      <input id="s-reply" placeholder="Ответить {{ story_user.name or story_user.username }}…" maxlength="1000">
+      {% for e in story_reactions[:4] %}<button class="r" data-r="{{ e }}">{{ e }}</button>{% endfor %}
+    </div>
+    {% endif %}
+  </div>
 </div>
-
+{% endblock %}
+{% block scripts %}
 <script>
-const stories = {{ stories_json | safe }};
-let current = {{ current_index }};
-let timer = null;
-const DURATION = 5000;
-
-function showStory(idx) {
-    if (idx < 0) { window.history.back(); return; }
-    if (idx >= stories.length) { window.location.href = '/'; return; }
-    document.querySelectorAll('[id^="story-"]').forEach((el, i) => {
-        el.style.display = i === idx ? 'flex' : 'none';
-    });
-    document.querySelectorAll('[id^="fill-"]').forEach((el, i) => {
-        el.style.width = i < idx ? '100%' : '0%';
-        el.style.transition = 'none';
-    });
-    clearTimeout(timer);
-    const fill = document.getElementById('fill-' + idx);
-    if (fill) {
-        setTimeout(() => {
-            fill.style.transition = `width ${DURATION}ms linear`;
-            fill.style.width = '100%';
-        }, 50);
-    }
-    current = idx;
-    timer = setTimeout(() => nextStory(), DURATION);
+(function(){
+const items=[...document.querySelectorAll('.story-media')], bars=[...document.querySelectorAll('.story-bars i')];
+const NEXT={{ next_user|tojson }}, MY={{ my_reactions|tojson }};
+let i={{ start }}, timer=null, t0=0, dur=5000, paused=false, elapsed=0;
+function show(n){
+  if(n<0) n=0; if(n>=items.length){ location.href = NEXT ? '/stories/'+NEXT : '/'; return; }
+  items.forEach((el,k)=>{ el.classList.toggle('hidden',k!==n); const v=el.querySelector('video'); if(v){ v.pause(); v.currentTime=0; } });
+  bars.forEach((b,k)=>{ b.style.transition='none'; b.style.width = k<n?'100%':'0%'; });
+  i=n; elapsed=0; const el=items[n]; document.getElementById('s-ago').textContent=el.dataset.ago;
+  document.querySelectorAll('.story-bottom .r').forEach(b=>b.classList.toggle('on', MY[el.dataset.id]===b.dataset.r));
+  const v=el.querySelector('video');
+  if(v){ v.muted=false; v.play().catch(()=>{ v.muted=true; v.play(); }); v.onloadedmetadata=()=>{ dur=Math.min((v.duration||15)*1000,60000); run(); }; dur=15000; } else dur=5000;
+  run();
 }
-
-function nextStory() { showStory(current + 1); }
-function prevStory() { showStory(current - 1); }
-
-showStory(current);
+function run(){ clearTimeout(timer); if(paused) return; t0=Date.now(); const b=bars[i]; const left=dur-elapsed;
+  requestAnimationFrame(()=>{ b.style.transition=`width ${left}ms linear`; b.style.width='100%'; });
+  timer=setTimeout(()=>show(i+1), left); }
+function pause(p){ paused=p; const b=bars[i], v=items[i].querySelector('video');
+  if(p){ clearTimeout(timer); elapsed+=Date.now()-t0; const w=getComputedStyle(b).width; b.style.transition='none'; b.style.width=w; v?.pause(); document.getElementById('s-pause').textContent='▶'; }
+  else { v?.play(); document.getElementById('s-pause').textContent='⏸'; run(); } }
+document.getElementById('s-next').onclick=()=>show(i+1);
+document.getElementById('s-prev').onclick=()=>show(i-1);
+document.getElementById('s-pause').onclick=()=>pause(!paused);
+document.addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT') return; if(e.key==='ArrowRight') show(i+1); if(e.key==='ArrowLeft') show(i-1); if(e.key===' '){e.preventDefault();pause(!paused);} if(e.key==='Escape') location.href='/'; });
+const rep=document.getElementById('s-reply');
+if(rep){ rep.addEventListener('focus',()=>pause(true)); rep.addEventListener('blur',()=>{ if(!rep.value) pause(false); });
+  rep.addEventListener('keydown',async e=>{ if(e.key==='Enter' && rep.value.trim()){ await App.api(`/stories/${items[i].dataset.id}/reply`,{text:rep.value.trim()}); rep.value=''; rep.blur(); App.toast('Ответ отправлен в личные сообщения'); } }); }
+document.querySelectorAll('.story-bottom .r').forEach(b=>b.onclick=async()=>{ const id=items[i].dataset.id; await App.api(`/stories/${id}/react`,{emoji:b.dataset.r}); MY[id] = MY[id]===b.dataset.r?null:b.dataset.r; document.querySelectorAll('.story-bottom .r').forEach(x=>x.classList.toggle('on',MY[id]===x.dataset.r)); });
+document.getElementById('s-del')?.addEventListener('click',async()=>{ if(!confirm('Удалить историю?')) return; await App.api(`/stories/${items[i].dataset.id}/delete`); location.reload(); });
+document.getElementById('s-hl')?.addEventListener('click',async()=>{ pause(true); const t=prompt('Название подборки «Актуальное»','Актуальное'); if(t===null){pause(false);return;} await App.api(`/stories/${items[i].dataset.id}/highlight`,{title:t}); App.toast('Добавлено в «'+t+'»'); pause(false); });
+document.getElementById('s-viewers')?.addEventListener('click',async()=>{ pause(true); const r=await App.get(`/stories/${items[i].dataset.id}/viewers`);
+  App.modal('Просмотры · '+r.count, r.users.map(u=>`<a class="user-row" href="/profile/${App.esc(u.username)}">${App.avatarHtml(u,36)}<div class="info"><b>${App.esc(u.name)}</b><div class="bio">@${App.esc(u.username)}</div></div><span style="font-size:20px">${App.esc(u.reaction)}</span></a>`).join('')||'<div class="empty">Пока никто не смотрел</div>'); });
+show(i);
+})();
 </script>
 {% endblock %}

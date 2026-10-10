@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import user_row %}{% from "partials/icons.html" import icon %}
+{% block title %}Статистика поста — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="row"><a href="/post/{{ post.id }}" class="back-link">{{ icon("back") }}</a><span class="page-title" style="margin:0">📊 Статистика поста</span></div></div>
+<div class="card"><div class="muted small mb">«{{ (post.content or '')[:140] }}»</div>
+<div class="grid-4">
+  <div class="stat-tile"><b>{{ views|compact }}</b><span>Просмотры</span></div>
+  <div class="stat-tile"><b>{{ post.likes|length }}</b><span>Лайки</span></div>
+  <div class="stat-tile"><b>{{ post.comments|length }}</b><span>Комментарии</span></div>
+  <div class="stat-tile"><b>{{ reposts }}</b><span>Репосты</span></div>
+  <div class="stat-tile"><b>{{ post.whales|length }}</b><span>Киты 🐋</span></div>
+  <div class="stat-tile"><b>{{ bookmarks }}</b><span>Закладки</span></div>
+  <div class="stat-tile"><b>{{ engagement }}</b><span>Вовлечённость</span></div>
+  <div class="stat-tile"><b>{{ rate }}%</b><span>ER (от просмотров)</span></div>
+</div></div>
+{% if reactions %}<div class="card"><div class="card-title">Реакции</div><div class="reaction-bar">{% for e, n in reactions.items() %}<span class="reaction-pill">{{ e }} <b>{{ n }}</b></span>{% endfor %}</div></div>{% endif %}
+<div class="card"><div class="card-title">❤️ Понравилось</div>{% for u in likers %}{{ user_row(u, user, ()) }}{% else %}<div class="muted small">Пока никто</div>{% endfor %}</div>
+{% endblock %}

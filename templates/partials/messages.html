@@ -1,0 +1,31 @@
+{%- for m in messages %}
+{%- set mine = m.sender_id == user.id %}
+<div class="msg {% if mine %}mine{% endif %}" id="msg-{{ m.id }}" data-id="{{ m.id }}" data-text="{{ (m.content or '')|lower }}" data-raw="{{ m.content or '' }}" data-time="{{ m.created_at.strftime('%Y-%m-%d') }}">
+  {%- if not m.is_deleted %}
+  <div class="msg-tools">
+    {% for e in msg_reactions[:4] %}<button data-mact="react" data-emoji="{{ e }}">{{ e }}</button>{% endfor %}
+    <button data-mact="reply" title="Ответить">↩</button>
+    <button data-mact="forward" title="Переслать">⤳</button>
+    <button data-mact="pin" title="Закрепить">📌</button>
+    {% if m.content %}<button data-mact="copy" title="Копировать">⧉</button>{% endif %}
+    {% if mine and m.content %}<button data-mact="edit" title="Изменить">✎</button>{% endif %}
+    {% if mine %}<button data-mact="delete" title="Удалить">🗑</button>{% endif %}
+  </div>
+  {%- endif %}
+  {%- if m.forwarded_from and not m.is_deleted %}<div class="msg-fwd">↪ Переслано от {{ m.forwarded_from.name or m.forwarded_from.username }}</div>{% endif %}
+  {%- if m.reply_to and not m.is_deleted %}<div class="msg-reply" data-jump="{{ m.reply_to.id }}"><b>{{ m.reply_to.sender.name or m.reply_to.sender.username if m.reply_to.sender else "" }}</b><br>{{ (m.reply_to.content or "вложение")[:70] }}</div>{% endif %}
+  <div class="bubble {% if m.is_deleted %}deleted{% endif %}">
+    {%- if m.is_deleted %}Сообщение удалено
+    {%- else %}
+      {%- if m.image and m.is_video_circle %}<video class="circle" src="{{ m.image }}" controls playsinline></video>
+      {%- elif m.image %}<img class="att" src="{{ m.image }}" alt="" data-zoom loading="lazy">{% endif %}
+      {%- if m.voice %}<audio src="{{ m.voice }}" controls preload="metadata"></audio>{% endif %}
+      {%- if m.file_url %}<a class="file" href="{{ m.file_url }}" target="_blank" rel="noopener" download="{{ m.file_name }}">📎 <span class="ellipsis" style="max-width:200px">{{ m.file_name or "Файл" }}</span></a>{% endif %}
+      {%- if m.content %}<span class="txt">{{ m.content|rich }}</span>{% endif %}
+    {%- endif %}
+  </div>
+  {%- set rx = {} %}{% for r in m.msg_reactions %}{% set _ = rx.update({r.emoji: rx.get(r.emoji, 0) + 1}) %}{% endfor %}
+  {%- if rx %}<div class="msg-reacts">{% for e, n in rx.items() %}<span>{{ e }}{% if n > 1 %} {{ n }}{% endif %}</span>{% endfor %}</div>{% endif %}
+  <div class="msg-meta">{% if m.is_pinned %}📌{% endif %}{% if m.disappear_at %}⏳{% endif %}{% if m.is_edited and not m.is_deleted %}изм. · {% endif %}{{ m.created_at.strftime("%H:%M") }}{% if mine and not m.is_deleted %}<span class="ticks" data-tick="{{ m.id }}">{% if m.is_read %}✓✓{% else %}✓{% endif %}</span>{% endif %}</div>
+</div>
+{%- endfor %}

@@ -1,308 +1,145 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import avatar, name %}{% from "partials/icons.html" import icon %}
+{% block title %}{{ other.name or other.username }} — Сообщения — {{ brand }}{% endblock %}
+{% block layout_class %}wide{% endblock %}
 {% block content %}
-<div style="background:var(--card);border-radius:16px;border:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;position:sticky;top:0;z-index:10;">
-    <a href="/messages" style="color:var(--text-secondary);display:flex;align-items:center;padding:4px;border-radius:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+<div class="convo">
+  <div class="convo-head">
+    <a href="/messages" class="back-link">{{ icon("back") }}</a>
+    <a href="/profile/{{ other.username }}" class="row grow" style="min-width:0">
+      {{ avatar(other, 42, online=true) }}
+      <div style="min-width:0"><div>{{ name(other, link=false) }}</div>
+        <div class="tiny muted" id="chat-status">{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
     </a>
-    <a href="/profile/{{ other.username }}" style="display:flex;align-items:center;gap:10px;flex:1;text-decoration:none;">
-        <div style="position:relative;">
-            <div class="avatar-circle" style="width:38px;height:38px;">
-                {% if other.avatar %}<img src="{{ other.avatar }}">{% else %}<span style="font-size:14px;">{{ other.username[0].upper() }}</span>{% endif %}
-            </div>
-            {% if is_online %}<div style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:var(--online);border-radius:50%;border:2px solid var(--card);"></div>{% endif %}
-        </div>
-        <div>
-            <div style="font-weight:700;font-size:14px;color:var(--text);">{{ other.name or other.username }}</div>
-            <div style="font-size:11px;color:var(--text-secondary);" id="chat-status">{% if is_online %}онлайн{% else %}был(а) {{ other.last_seen.strftime("%d.%m %H:%M") if other.last_seen else "давно" }}{% endif %}</div>
-        </div>
-    </a>
-    <div style="display:flex;gap:4px;">
-        <a href="/call/voice/{{ other.username }}" style="color:var(--text-secondary);padding:6px;border-radius:8px;display:flex;align-items:center;" title="Голосовой звонок">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        </a>
-        <a href="/call/video/{{ other.username }}" style="color:var(--text-secondary);padding:6px;border-radius:8px;display:flex;align-items:center;" title="Видеозвонок">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-        </a>
-        <div style="position:relative;">
-            <button onclick="toggleChatMenu()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-            </button>
-            <div id="chat-menu" style="display:none;position:absolute;right:0;top:34px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:6px;min-width:180px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,0.15);">
-                <button onclick="pinChat()" style="width:100%;text-align:left;padding:8px 12px;border-radius:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text);font-family:inherit;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">📌 Закрепить чат</button>
-                <button onclick="muteChat()" style="width:100%;text-align:left;padding:8px 12px;border-radius:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text);font-family:inherit;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">🔇 Заглушить чат</button>
-                <button onclick="searchInChat()" style="width:100%;text-align:left;padding:8px 12px;border-radius:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text);font-family:inherit;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">🔍 Поиск в чате</button>
-                <button onclick="clearChat()" style="width:100%;text-align:left;padding:8px 12px;border-radius:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--danger);font-family:inherit;" onmouseover="this.style.background='rgba(229,57,53,0.08)'" onmouseout="this.style.background=''">🗑️ Очистить чат</button>
-            </div>
-        </div>
+    {% if can_send %}
+    <a class="icon-btn" href="/call/voice/{{ other.username }}" title="Аудиозвонок">{{ icon("phone") }}</a>
+    <a class="icon-btn" href="/call/video/{{ other.username }}" title="Видеозвонок">{{ icon("video") }}</a>
+    {% endif %}
+    <div class="menu-wrap" style="margin-left:0">
+      <button class="icon-btn" data-menu>{{ icon("more") }}</button>
+      <div class="menu">
+        <button onclick="toggleSearch()">{{ icon("search") }} Поиск в чате</button>
+        <button data-act="toggle" data-url="/chats/pin/{{ other.username }}" data-msg="Готово">{{ icon("pin") }} {% if is_pinned %}Открепить чат{% else %}Закрепить чат{% endif %}</button>
+        <button data-act="toggle" data-url="/chats/mute/{{ other.username }}" data-msg="Готово">{{ icon("mute") }} {% if is_muted %}Включить звук{% else %}Без звука{% endif %}</button>
+        <button onclick="toggleTtl()">⏳ Исчезающие сообщения: <b id="ttl-label">выкл</b></button>
+        <button class="danger" onclick="clearChat()">{{ icon("trash") }} Удалить мои сообщения</button>
+      </div>
     </div>
-</div>
-
-<div id="search-bar" style="display:none;margin-bottom:8px;">
-    <input type="text" id="search-input" placeholder="Поиск в сообщениях..." oninput="searchMessages(this.value)" style="margin-bottom:0;">
-</div>
-
-<div class="card" id="messages-box" style="min-height:400px;max-height:520px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;">
-    {% for msg in messages %}
-    <div class="msg-item" id="msg-{{ msg.id }}" style="display:flex;flex-direction:column;{% if msg.sender_id == user.id %}align-items:flex-end{% else %}align-items:flex-start{% endif %};gap:2px;" data-content="{{ msg.content|lower if msg.content else '' }}">
-        {% if msg.is_deleted %}
-        <div style="padding:8px 14px;border-radius:14px;background:var(--input-bg);color:var(--text-muted);font-size:13px;font-style:italic;">Сообщение удалено</div>
-        {% else %}
-        {% if msg.reply_to %}
-        <div style="padding:6px 12px;border-radius:10px;background:var(--input-bg);border-left:3px solid var(--accent);font-size:12px;color:var(--text-secondary);max-width:280px;margin-bottom:2px;cursor:pointer;" onclick="document.getElementById('msg-{{ msg.reply_to.id }}')?.scrollIntoView({behavior:'smooth'})">
-            <div style="font-weight:600;margin-bottom:2px;">{{ msg.reply_to.sender.name or msg.reply_to.sender.username }}</div>
-            <div>{{ msg.reply_to.content[:60] if msg.reply_to.content else '' }}</div>
-        </div>
-        {% endif %}
-        {% if msg.image %}
-        <div style="border-radius:14px;overflow:hidden;max-width:280px;">
-            {% if msg.is_video_circle %}
-            <video src="{{ msg.image }}" controls style="width:200px;height:200px;border-radius:50%;object-fit:cover;display:block;"></video>
-            {% else %}
-            <img src="{{ msg.image }}" onclick="window.open(this.src,'_blank')" style="max-width:280px;max-height:320px;object-fit:cover;cursor:pointer;display:block;">
-            {% endif %}
-        </div>
-        {% elif msg.voice %}
-        <div style="padding:10px 14px;border-radius:14px;background:{% if msg.sender_id == user.id %}var(--accent){% else %}var(--input-bg){% endif %};">
-            <audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;{% if msg.sender_id == user.id %}filter:invert(1);{% endif %}"></audio>
-        </div>
-        {% elif msg.file_url %}
-        <a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:{% if msg.sender_id == user.id %}var(--accent){% else %}var(--input-bg){% endif %};color:{% if msg.sender_id == user.id %}var(--accent-text){% else %}var(--text){% endif %};max-width:240px;">
-            📎 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">{{ msg.file_name }}</span>
-        </a>
-        {% elif msg.content %}
-        <div style="max-width:72%;padding:10px 14px;border-radius:{% if msg.sender_id == user.id %}16px 4px 16px 16px{% else %}4px 16px 16px 16px{% endif %};background:{% if msg.sender_id == user.id %}var(--accent){% else %}var(--input-bg){% endif %};color:{% if msg.sender_id == user.id %}var(--accent-text){% else %}var(--text){% endif %};font-size:14px;line-height:1.5;" ondblclick="setReply({{ msg.id }},'{{ (msg.sender.name or msg.sender.username)|replace("'","") }}','{{ (msg.content[:50])|replace("'","") }}')">
-            {{ msg.content }}
-            {% if msg.is_edited %}<span style="font-size:10px;opacity:0.6;margin-left:4px;">ред.</span>{% endif %}
-        </div>
-        {% endif %}
-        <div style="display:flex;align-items:center;gap:6px;padding:0 4px;">
-            <span style="font-size:10px;color:var(--text-muted);">{{ msg.created_at.strftime("%H:%M") }}</span>
-            {% if msg.sender_id == user.id %}
-            <span style="font-size:10px;color:var(--text-muted);">{% if msg.is_read %}✓✓{% elif msg.is_delivered %}✓{% else %}○{% endif %}</span>
-            <button onclick="deleteMsg({{ msg.id }})" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);padding:0;opacity:0;transition:opacity 0.15s;" class="msg-del-btn">✕</button>
-            {% endif %}
-            {% if msg.sender_id != user.id %}
-            <button onclick="setReply({{ msg.id }},'{{ (msg.sender.name or msg.sender.username)|replace("'","") }}','{{ (msg.content[:50] if msg.content else '')|replace("'","") }}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);padding:0;opacity:0;transition:opacity 0.15s;" class="msg-del-btn">↩</button>
-            {% endif %}
-        </div>
-        {% endif %}
+  </div>
+  <div id="chat-search" class="hidden" style="margin-bottom:8px"><input type="search" id="chat-search-q" placeholder="Поиск по сообщениям в этом чате…"></div>
+  {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">📌 <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content or "вложение" }}</span></div>{% endif %}
+  <div class="convo-box" id="box">
+    {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">👋</div>Начните диалог с {{ other.name or other.username }}</div>{% endif %}
+  </div>
+  <div class="typing hidden" id="typing" style="padding:4px 10px">{{ other.name or other.username }} печатает…</div>
+  {% if can_send %}
+  <div class="convo-input">
+    <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">✕</button></div>
+    <div class="reply-bar hidden" id="edit-bar">✎ <span class="grow">Редактирование сообщения</span><button class="icon-btn" onclick="cancelEdit()">✕</button></div>
+    <div class="emoji-panel hidden" id="emoji-panel">{% for e in ['😀','😂','🥹','😍','😘','😎','🤔','😭','😡','🥳','👍','👎','👏','🙏','❤️','🔥','✨','💯','🎉','🐋','🌚','🤝','💪','😴'] %}<button type="button" onclick="sendText('{{ e }}')">{{ e }}</button>{% endfor %}</div>
+    <div class="row" style="align-items:flex-end;gap:4px">
+      <button class="icon-btn" title="Фото или файл" onclick="document.getElementById('att').click()">{{ icon("clip") }}</button>
+      <button class="icon-btn" title="Эмодзи" onclick="document.getElementById('emoji-panel').classList.toggle('hidden')">{{ icon("smile") }}</button>
+      <textarea id="inp" rows="1" maxlength="4000" placeholder="Сообщение…" data-suggest></textarea>
+      <button class="icon-btn" id="circle-btn" title="Видеосообщение (кружок)">{{ icon("video") }}</button>
+      <button class="icon-btn" id="voice-btn" title="Голосовое (нажмите для записи)">{{ icon("mic") }}</button>
+      <button class="btn pill" id="send-btn" title="Отправить (Enter)" style="padding:10px 14px">{{ icon("send") }}</button>
     </div>
-    {% else %}
-    <div style="text-align:center;color:var(--text-muted);margin:auto;padding:40px 0;font-size:14px;">Начни диалог с {{ other.name or other.username }} 👋</div>
-    {% endfor %}
+    <div class="row hidden small" id="rec-bar" style="padding:6px 8px"><span class="rec-dot"></span><span id="rec-time">0:00</span><span class="muted grow">Идёт запись — нажмите ещё раз, чтобы отправить</span><button class="btn ghost sm" onclick="cancelRec()">Отмена</button></div>
+    <video id="circle-preview" class="hidden" muted playsinline style="width:160px;height:160px;border-radius:50%;object-fit:cover;margin:6px auto;display:block"></video>
+    <input type="file" id="att" class="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.xlsx,.pptx">
+  </div>
+  {% else %}
+  <div class="alert info mt">{{ block_reason or "Отправка сообщений недоступна" }}</div>
+  {% endif %}
 </div>
-
-<div id="reply-bar" style="display:none;background:var(--input-bg);border-radius:12px 12px 0 0;padding:8px 14px;margin-top:4px;border-left:3px solid var(--accent);">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div>
-            <div style="font-size:12px;font-weight:600;color:var(--accent)" id="reply-name"></div>
-            <div style="font-size:12px;color:var(--text-secondary)" id="reply-preview"></div>
-        </div>
-        <button onclick="clearReply()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">✕</button>
-    </div>
-</div>
-
-<div class="card" style="padding:10px 14px;margin-top:4px;">
-    <div style="display:flex;gap:8px;align-items:flex-end;">
-        <div style="display:flex;gap:4px;flex-shrink:0;">
-            <button onclick="document.getElementById('msg-img').click()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;" title="Фото">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </button>
-            <button onclick="document.getElementById('msg-file').click()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;" title="Файл">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-            </button>
-            <button onclick="toggleStickers()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;" title="Стикеры">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-            </button>
-        </div>
-        <textarea id="msg-input" placeholder="Сообщение..." style="flex:1;resize:none;min-height:40px;max-height:120px;border-radius:20px;padding:10px 16px;background:var(--input-bg);border:1px solid var(--border);font-size:14px;margin-bottom:0;" oninput="autoResizeMsg(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
-        <button onclick="startVoiceRecord()" id="voice-btn" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;flex-shrink:0;" title="Голосовое">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
-        <button class="btn" onclick="sendMessage()" style="border-radius:20px;padding:10px 16px;flex-shrink:0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-    </div>
-
-    <div id="sticker-panel" style="display:none;padding:12px 0 0 0;border-top:1px solid var(--border);margin-top:8px;">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            {% set emojis = ['😀','😂','😍','😎','🥺','😭','🔥','❤️','👍','👏','🎉','🤔','😅','🙈','💀','✨','🌊','💪','🎵','🐳'] %}
-            {% for e in emojis %}
-            <button onclick="sendSticker('{{ e }}')" style="background:var(--input-bg);border:none;cursor:pointer;font-size:28px;padding:6px;border-radius:10px;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">{{ e }}</button>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
-<input type="file" id="msg-img" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="sendImage(this)">
-<input type="file" id="msg-file" accept=".pdf,.doc,.docx,.txt,.zip" style="display:none;" onchange="sendFile(this)">
-
+{% endblock %}
+{% block right %}{% endblock %}
+{% block scripts %}
 <script>
-const box = document.getElementById('messages-box');
-box.scrollTop = box.scrollHeight;
-const otherUsername = '{{ other.username }}';
-let replyToId = null;
-let mediaRecorder = null;
-let isRecording = false;
-
-document.querySelectorAll('.msg-item').forEach(item => {
-    item.addEventListener('mouseenter', () => item.querySelectorAll('.msg-del-btn').forEach(b => b.style.opacity='1'));
-    item.addEventListener('mouseleave', () => item.querySelectorAll('.msg-del-btn').forEach(b => b.style.opacity='0'));
+(function(){
+const OTHER = {{ other.username|tojson }};
+const box = document.getElementById('box'), inp = document.getElementById('inp');
+let lastId = {{ (messages[-1].id if messages else 0) }}, replyTo = null, editId = null, ttl = 0;
+const toBottom = () => box.scrollTop = box.scrollHeight;
+toBottom();
+function addDaySeps(){ let prev=null; box.querySelectorAll('.day-sep').forEach(d=>d.remove());
+  box.querySelectorAll('.msg').forEach(m=>{ const d=m.dataset.time; if(d!==prev){ const s=document.createElement('div'); s.className='day-sep'; const dt=new Date(d+'T00:00:00'); const today=new Date(); s.textContent = dt.toDateString()===today.toDateString()?'Сегодня':dt.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); m.before(s); prev=d; } }); }
+addDaySeps();
+async function poll(){
+  try{
+    const r = await (await fetch(`/messages/poll/${OTHER}?after=${lastId}`)).json();
+    if(!r.ok) return;
+    if(r.html){ document.getElementById('empty-chat')?.remove(); const near = box.scrollHeight-box.scrollTop-box.clientHeight<120;
+      const tmp=document.createElement('div'); tmp.innerHTML=r.html;
+      tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else box.appendChild(m); });
+      lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); }
+    document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto) t.textContent='✓✓'; });
+    document.getElementById('typing').classList.toggle('hidden', !r.typing);
+    const st=document.getElementById('chat-status'); if(r.online) st.innerHTML='<span style="color:var(--online)">в сети</span>';
+  }catch(e){}
+}
+setInterval(()=>{ if(!document.hidden) poll(); }, 2500);
+async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`); const tmp=document.createElement('div'); tmp.innerHTML=r.html; document.getElementById('msg-'+id)?.replaceWith(tmp.firstElementChild); }
+if(inp){
+  inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; typingPing(); });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey && !document.querySelector('.suggest.open')){ e.preventDefault(); submit(); } if(e.key==='ArrowUp' && !inp.value){ const mine=[...box.querySelectorAll('.msg.mine')].pop(); if(mine) startEdit(mine.dataset.id, mine.dataset.raw); } });
+  document.getElementById('send-btn').onclick = submit;
+}
+let lastTyping=0; function typingPing(){ const n=Date.now(); if(n-lastTyping>3000){ lastTyping=n; fetch(`/messages/typing/${OTHER}`,{method:'POST'}); } }
+async function submit(){
+  const text = inp.value.trim(); if(!text) return;
+  if(editId){ await App.api(`/messages/${editId}/edit`,{content:text}); await refreshMsg(editId); cancelEdit(); return; }
+  inp.value=''; inp.style.height='auto';
+  await sendText(text);
+}
+window.sendText = async function(text){
+  try{ await App.api('/messages/send',{receiver:OTHER, content:text, reply_to_id:replyTo, ttl:ttl}); clearReply(); document.getElementById('emoji-panel').classList.add('hidden'); await poll(); toBottom(); }catch(e){}
+};
+window.clearReply = ()=>{ replyTo=null; document.getElementById('reply-bar').classList.add('hidden'); };
+function startEdit(id, raw){ editId=id; inp.value=raw; inp.focus(); document.getElementById('edit-bar').classList.remove('hidden'); }
+window.cancelEdit = ()=>{ editId=null; inp.value=''; document.getElementById('edit-bar').classList.add('hidden'); };
+window.toggleTtl = ()=>{ const opts=[0,3600,86400,604800], names=['выкл','1 час','24 часа','7 дней']; const i=(opts.indexOf(ttl)+1)%opts.length; ttl=opts[i]; document.getElementById('ttl-label').textContent=names[i]; App.toast('Исчезающие сообщения: '+names[i]); };
+window.toggleSearch = ()=>{ const s=document.getElementById('chat-search'); s.classList.toggle('hidden'); document.getElementById('chat-search-q').focus(); };
+document.getElementById('chat-search-q').addEventListener('input',e=>{ const q=e.target.value.toLowerCase(); let first=null;
+  box.querySelectorAll('.msg').forEach(m=>{ const hit=q && m.dataset.text.includes(q); m.classList.toggle('highlight',hit); m.style.opacity=(!q||hit)?1:.35; if(hit&&!first) first=m; }); first?.scrollIntoView({block:'center'}); });
+window.clearChat = async ()=>{ if(!confirm('Удалить все ваши сообщения в этом чате у обоих собеседников?')) return; await App.api(`/chats/clear/${OTHER}`); location.reload(); };
+document.addEventListener('click', async e=>{
+  const j=e.target.closest('[data-jump]'); if(j){ const t=document.getElementById('msg-'+j.dataset.jump); if(t){ t.scrollIntoView({block:'center'}); t.classList.add('highlight'); setTimeout(()=>t.classList.remove('highlight'),1500);} return; }
+  const b=e.target.closest('[data-mact]'); if(!b) return;
+  const m=b.closest('.msg'), id=m.dataset.id, a=b.dataset.mact;
+  try{
+    if(a==='react'){ await App.api(`/messages/${id}/react`,{emoji:b.dataset.emoji}); await refreshMsg(id); }
+    else if(a==='reply'){ replyTo=id; document.getElementById('reply-text').textContent='↩ '+(m.dataset.raw||'вложение').slice(0,80); document.getElementById('reply-bar').classList.remove('hidden'); inp.focus(); }
+    else if(a==='edit'){ startEdit(id, m.dataset.raw); }
+    else if(a==='delete'){ if(!confirm('Удалить сообщение у всех?')) return; await App.api(`/messages/${id}/delete`); await refreshMsg(id); }
+    else if(a==='pin'){ const r=await App.api(`/messages/${id}/pin`); App.toast(r.pinned?'Сообщение закреплено':'Откреплено'); setTimeout(()=>location.reload(),500); }
+    else if(a==='copy'){ await navigator.clipboard.writeText(m.dataset.raw); App.toast('Скопировано'); }
+    else if(a==='forward'){ const md=App.modal('Переслать сообщение','<input id="fw-q" placeholder="Кому? Логин…" data-suggest><button class="btn block mt" id="fw-go">Переслать</button>'); App.attachSuggest(md.querySelector('#fw-q'));
+      md.querySelector('#fw-go').onclick=async()=>{ const to=md.querySelector('#fw-q').value.trim().replace(/^@/,''); if(!to) return; await App.api(`/messages/${id}/forward`,{to}); md.classList.remove('open'); App.toast('Переслано @'+to); }; }
+  }catch(err){}
 });
-
-function autoResizeMsg(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
-
-function setReply(id, name, preview) {
-    replyToId = id;
-    document.getElementById('reply-bar').style.display = 'block';
-    document.getElementById('reply-name').textContent = name;
-    document.getElementById('reply-preview').textContent = preview;
-    document.getElementById('msg-input').focus();
+// вложения
+document.getElementById('att')?.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); App.toast('Отправка…'); try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(er){} e.target.value=''; });
+inp?.addEventListener('paste', async e=>{ for(const it of e.clipboardData?.items||[]){ if(it.type.startsWith('image/')){ e.preventDefault(); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',it.getAsFile(),'paste.png'); await App.api('/messages/send-media',fd); await poll(); toBottom(); } } });
+// запись голоса и кружков
+let rec=null, chunks=[], stream=null, recTimer=null, recKind=null, cancelled=false;
+async function startRec(kind){
+  try{ stream = await navigator.mediaDevices.getUserMedia(kind==='video'?{audio:true,video:{facingMode:'user',width:480,height:480}}:{audio:true}); }catch(e){ App.toast('Нет доступа к '+(kind==='video'?'камере':'микрофону'),true); return; }
+  recKind=kind; chunks=[]; cancelled=false;
+  const mime = kind==='video' ? (MediaRecorder.isTypeSupported('video/webm')?'video/webm':'video/mp4') : (MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/mp4');
+  rec = new MediaRecorder(stream,{mimeType:mime}); rec.ondataavailable=e=>chunks.push(e.data);
+  rec.onstop = async ()=>{ stream.getTracks().forEach(t=>t.stop()); clearInterval(recTimer); document.getElementById('rec-bar').classList.add('hidden'); const pv=document.getElementById('circle-preview'); pv.classList.add('hidden'); pv.srcObject=null;
+    if(cancelled) return; const blob=new Blob(chunks,{type:mime}); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('ttl',ttl);
+    fd.append('file', blob, (kind==='video'?'circle':'voice')+(mime.includes('webm')?'.webm':'.mp4')); if(kind==='video') fd.append('circle','1');
+    try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(e){} };
+  rec.start(); const t0=Date.now(); document.getElementById('rec-bar').classList.remove('hidden');
+  recTimer=setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); document.getElementById('rec-time').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); if(s>=(kind==='video'?60:300)) rec.stop(); },500);
+  if(kind==='video'){ const pv=document.getElementById('circle-preview'); pv.srcObject=stream; pv.classList.remove('hidden'); pv.play(); }
 }
-
-function clearReply() { replyToId=null; document.getElementById('reply-bar').style.display='none'; }
-
-function toggleStickers() {
-    const p = document.getElementById('sticker-panel');
-    p.style.display = p.style.display==='none' ? 'block' : 'none';
-}
-
-async function sendSticker(emoji) {
-    await fetch('/messages/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({receiver:otherUsername, sticker_emoji:emoji}) });
-    document.getElementById('sticker-panel').style.display='none';
-    await pollMessages();
-}
-
-async function sendMessage() {
-    const content = document.getElementById('msg-input').value.trim();
-    if (!content) return;
-    const inp = document.getElementById('msg-input');
-    inp.value = ''; inp.style.height='40px';
-    await fetch('/messages/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({receiver:otherUsername, content, reply_to_id:replyToId}) });
-    clearReply();
-    await pollMessages();
-}
-
-async function sendImage(input) {
-    if (!input.files[0]) return;
-    const fd = new FormData();
-    fd.append('receiver', otherUsername);
-    fd.append('image', input.files[0]);
-    await fetch('/messages/send-image', { method:'POST', body:fd });
-    await pollMessages();
-}
-
-async function sendFile(input) {
-    if (!input.files[0]) return;
-    const fd = new FormData();
-    fd.append('receiver', otherUsername);
-    fd.append('file', input.files[0]);
-    await fetch('/messages/send-file', { method:'POST', body:fd });
-    await pollMessages();
-}
-
-async function deleteMsg(id) {
-    if (!confirm('Удалить сообщение?')) return;
-    await fetch(`/messages/${id}/delete`, { method:'POST' });
-    document.getElementById(`msg-${id}`)?.remove();
-}
-
-async function pinChat() {
-    await fetch(`/chats/pin/${otherUsername}`, { method:'POST' });
-    document.getElementById('chat-menu').style.display='none';
-}
-
-async function muteChat() {
-    await fetch(`/chats/mute/${otherUsername}`, { method:'POST' });
-    document.getElementById('chat-menu').style.display='none';
-}
-
-async function clearChat() {
-    if (!confirm('Очистить весь чат?')) return;
-    await fetch(`/chats/clear/${otherUsername}`, { method:'POST' });
-    document.getElementById('chat-menu').style.display='none';
-    location.reload();
-}
-
-function toggleChatMenu() {
-    const m = document.getElementById('chat-menu');
-    m.style.display = m.style.display==='none' ? 'block' : 'none';
-}
-
-function searchInChat() {
-    document.getElementById('search-bar').style.display='block';
-    document.getElementById('search-input').focus();
-    document.getElementById('chat-menu').style.display='none';
-}
-
-function searchMessages(q) {
-    q = q.toLowerCase();
-    document.querySelectorAll('.msg-item').forEach(item => {
-        const c = item.dataset.content || '';
-        item.style.opacity = (q===''||c.includes(q)) ? '1' : '0.2';
-    });
-}
-
-async function startVoiceRecord() {
-    if (isRecording) {
-        mediaRecorder?.stop();
-        isRecording = false;
-        document.getElementById('voice-btn').style.color='var(--text-muted)';
-        return;
-    }
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        const chunks = [];
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = e => chunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-            stream.getTracks().forEach(t=>t.stop());
-            const blob = new Blob(chunks, {type:'audio/webm'});
-            const fd = new FormData();
-            fd.append('receiver', otherUsername);
-            fd.append('voice', blob, 'voice.webm');
-            await fetch('/messages/send-voice', {method:'POST', body:fd});
-            await pollMessages();
-        };
-        mediaRecorder.start();
-        isRecording = true;
-        document.getElementById('voice-btn').style.color='var(--danger)';
-    } catch(e) { alert('Нет доступа к микрофону'); }
-}
-
-let lastMsgId = {{ messages[-1].id if messages else 0 }};
-async function pollMessages() {
-    try {
-        const res = await fetch(`/messages/poll/${otherUsername}?after=${lastMsgId}`);
-        const data = await res.json();
-        if (data.messages && data.messages.length > 0) {
-            const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-            data.messages.forEach(msg => {
-                lastMsgId = Math.max(lastMsgId, msg.id);
-                const div = document.createElement('div');
-                div.id = `msg-${msg.id}`;
-                div.className = 'msg-item';
-                div.style.cssText = `display:flex;flex-direction:column;${msg.is_mine?'align-items:flex-end':'align-items:flex-start'};gap:2px;`;
-                div.dataset.content = (msg.content||'').toLowerCase();
-                let inner = '';
-                if (msg.image) {
-                    inner = `<div style="border-radius:14px;overflow:hidden;max-width:280px;"><img src="${msg.image}" onclick="window.open(this.src,'_blank')" style="max-width:280px;max-height:320px;object-fit:cover;cursor:pointer;display:block;"></div>`;
-                } else if (msg.content) {
-                    inner = `<div style="max-width:72%;padding:10px 14px;border-radius:${msg.is_mine?'16px 4px 16px 16px':'4px 16px 16px 16px'};background:${msg.is_mine?'var(--accent)':'var(--input-bg)'};color:${msg.is_mine?'var(--accent-text)':'var(--text)'};font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                }
-                inner += `<div style="font-size:10px;color:var(--text-muted);padding:0 4px;">${msg.time}</div>`;
-                div.innerHTML = inner;
-                box.appendChild(div);
-            });
-            if (wasAtBottom) box.scrollTop = box.scrollHeight;
-        }
-    } catch(e) {}
-}
-setInterval(pollMessages, 2000);
-
-document.addEventListener('click', e => {
-    if (!e.target.closest('#chat-menu') && !e.target.closest('button[onclick="toggleChatMenu()"]'))
-        document.getElementById('chat-menu').style.display='none';
-});
+window.cancelRec = ()=>{ cancelled=true; rec?.stop(); };
+document.getElementById('voice-btn')?.addEventListener('click',()=>{ if(rec && rec.state==='recording') rec.stop(); else startRec('audio'); });
+document.getElementById('circle-btn')?.addEventListener('click',()=>{ if(rec && rec.state==='recording') rec.stop(); else startRec('video'); });
+})();
 </script>
 {% endblock %}

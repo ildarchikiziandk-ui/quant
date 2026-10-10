@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card empty" style="padding:60px 20px"><div style="font-size:64px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent">{{ code }}</div>
+<h2 style="margin:8px 0">{{ title }}</h2><p class="muted">{{ text }}</p><div class="row mt" style="justify-content:center"><a href="/" class="btn">На главную</a><a href="javascript:history.back()" class="btn ghost">Назад</a></div></div>
+{% endblock %}

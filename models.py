@@ -48,6 +48,15 @@ class User(Base):
     who_can_see_stories = Column(String, default="all")
     hide_likes = Column(Boolean, default=False)
     language = Column(String, default="ru")
+    accent_color = Column(String, default="")
+    show_online = Column(Boolean, default=True)
+    notify_likes = Column(Boolean, default=True)
+    notify_comments = Column(Boolean, default=True)
+    notify_follows = Column(Boolean, default=True)
+    notify_mentions = Column(Boolean, default=True)
+    notify_messages = Column(Boolean, default=True)
+    profile_views = Column(Integer, default=0)
+    pronouns = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -81,6 +90,9 @@ class Post(Base):
     exclusive_until = Column(DateTime, nullable=True)
     is_long = Column(Boolean, default=False)
     pinned_comment_id = Column(Integer, nullable=True)
+    edited_at = Column(DateTime, nullable=True)
+    comments_disabled = Column(Boolean, default=False)
+    visibility = Column(String, default="all")
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
@@ -172,6 +184,7 @@ class Comment(Base):
     author = relationship("User")
     post = relationship("Post", back_populates="comments")
     replies = relationship("Comment", foreign_keys=[parent_id])
+    comment_likes = relationship("CommentLike", back_populates="comment")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -214,6 +227,7 @@ class GroupChat(Base):
     avatar = Column(String, default="")
     description = Column(String, default="")
     owner_id = Column(Integer, ForeignKey("users.id"))
+    invite_code = Column(String, default="", index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     owner = relationship("User", foreign_keys=[owner_id])
     members = relationship("GroupMember", back_populates="group")
@@ -292,7 +306,7 @@ class StickerPack(Base):
     cover_url = Column(String, default="")
     is_free = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    stickers = relationship("Sticker", foreign_keys="Sticker.pack_id")
+    stickers = relationship("Sticker", foreign_keys="Sticker.pack_id", overlaps="pack")
 
 class UserSticker(Base):
     __tablename__ = "user_stickers"
@@ -352,6 +366,8 @@ class Story(Base):
     media_type = Column(String, default="image")
     text_overlay = Column(String, default="")
     music_url = Column(String, default="")
+    audience = Column(String, default="all")
+    bg_color = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     author = relationship("User")
@@ -371,6 +387,7 @@ class Poll(Base):
     id = Column(Integer, primary_key=True, index=True)
     post_id = Column(Integer, ForeignKey("posts.id"), unique=True)
     question = Column(String)
+    ends_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     post = relationship("Post", back_populates="poll")
     options = relationship("PollOption", back_populates="poll")
@@ -534,7 +551,7 @@ class WeeklyRaffle(Base):
     id = Column(Integer, primary_key=True, index=True)
     week_start = Column(DateTime)
     week_end = Column(DateTime)
-    prize = Column(String, default="Quant Plus 30 дней")
+    prize = Column(String, default="Plus на 30 дней")
     prize_days = Column(Integer, default=30)
     winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_finished = Column(Boolean, default=False)
@@ -604,3 +621,78 @@ class UserWeeklyChallenge(Base):
     completed_at = Column(DateTime, nullable=True)
     user = relationship("User")
     challenge = relationship("WeeklyChallenge")
+
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+    id = Column(Integer, primary_key=True, index=True)
+    comment_id = Column(Integer, ForeignKey("comments.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    comment = relationship("Comment", back_populates="comment_likes")
+
+
+class FollowRequest(Base):
+    __tablename__ = "follow_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    requester_id = Column(Integer, ForeignKey("users.id"), index=True)
+    target_id = Column(Integer, ForeignKey("users.id"), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    requester = relationship("User", foreign_keys=[requester_id])
+    target = relationship("User", foreign_keys=[target_id])
+
+
+class UserMute(Base):
+    __tablename__ = "user_mutes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    muted_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    muted = relationship("User", foreign_keys=[muted_id])
+
+
+class CloseFriend(Base):
+    __tablename__ = "close_friends"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    friend_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    friend = relationship("User", foreign_keys=[friend_id])
+
+
+class StoryHighlight(Base):
+    __tablename__ = "story_highlights"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    title = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    items = relationship("StoryHighlightItem", back_populates="highlight")
+
+
+class StoryHighlightItem(Base):
+    __tablename__ = "story_highlight_items"
+    id = Column(Integer, primary_key=True, index=True)
+    highlight_id = Column(Integer, ForeignKey("story_highlights.id"), index=True)
+    story_id = Column(Integer, ForeignKey("stories.id"))
+    highlight = relationship("StoryHighlight", back_populates="items")
+    story = relationship("Story")
+
+
+class Announcement(Base):
+    __tablename__ = "announcements"
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(Text, default="")
+    level = Column(String, default="info")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ModLog(Base):
+    __tablename__ = "mod_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    actor_id = Column(Integer, ForeignKey("users.id"))
+    action = Column(String, default="")
+    target = Column(String, default="")
+    details = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    actor = relationship("User", foreign_keys=[actor_id])
