@@ -21,6 +21,7 @@ env.globals.update(
     brand=config.BRAND_NAME, brand_tagline=config.BRAND_TAGLINE, brand_plus=config.BRAND_PLUS,
     brand_email=config.BRAND_EMAIL, brand_color=config.BRAND_COLOR, site_url=config.SITE_URL,
     plural=text.plural, is_online=social.is_online, user_is_plus=social.is_plus, enumerate=enumerate,
+    android_apk_url=config.ANDROID_APK_URL,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
     push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.INSTANCE_ID, utcnow=datetime.utcnow,
 )

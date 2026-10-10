@@ -26,12 +26,13 @@ def ping(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/counters")
-def counters(request: Request, db: Session = Depends(get_db)):
+def counters(request: Request, bg: int = 0, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return JSONResponse({"ok": False}, status_code=401)
-    user.last_seen = datetime.utcnow()
-    db.commit()
+    if not bg:  # фоновая проверка из Android-приложения не делает пользователя «в сети»
+        user.last_seen = datetime.utcnow()
+        db.commit()
     notif, msgs = unread_counts(user, db)
     reqs = db.query(models.FollowRequest).filter_by(target_id=user.id).count()
     return JSONResponse({"ok": True, "notifications": notif, "messages": msgs, "requests": reqs})

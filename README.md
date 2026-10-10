@@ -71,3 +71,19 @@ tests/             — pytest
 4. Сайт будет доступен на `https://quantru.duckdns.org`.
 
 Обновление: `sudo bash /opt/nuvora/deploy/update.sh`. Бэкап: `sudo bash /opt/nuvora/deploy/backup.sh`. Логи: `journalctl -u nuvora -f`.
+
+## Android-приложение
+
+Исходники лежат в `android/`: это приложение на WebView, которое открывает сайт. Внутри приложения работают:
+- вход и cookies;
+- загрузка фото и файлов;
+- голосовые сообщения и видеокружки;
+- скачивание файлов;
+- кнопка «назад»;
+- уведомления о новых сообщениях (сервер проверяется примерно раз в 15 минут).
+
+APK собирается автоматически через GitHub Actions (`.github/workflows/android.yml`) при каждом изменении в `android/` и выкладывается в [Releases](https://github.com/ildarchikiziandk-ui/quant/releases/latest).
+Прямая ссылка на последнюю версию: https://github.com/ildarchikiziandk-ui/quant/releases/latest/download/Nuvora.apk
+
+Чтобы собрать APK для другого домена, поменяйте `SITE_URL` в workflow и хосты в `AndroidManifest.xml`.
+Ключ подписи `android/nuvora.keystore` лежит в репозитории: с ним обновления ставятся поверх старой версии. Пароль ключа можно переопределить переменной `KEYSTORE_PASSWORD`.
