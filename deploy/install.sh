@@ -42,6 +42,7 @@ apt-get install -y -qq python3 python3-venv python3-pip git curl cron >/dev/null
 
 echo "==> 3/6 Код приложения в ${APP_DIR} (ветка ${BRANCH})"
 id nuvora >/dev/null 2>&1 || useradd --system --home "${APP_DIR}" --shell /usr/sbin/nologin nuvora
+git config --global --get-all safe.directory 2>/dev/null | grep -qx "${APP_DIR}" || git config --global --add safe.directory "${APP_DIR}"
 if [ -d "${APP_DIR}/.git" ]; then
   git -C "${APP_DIR}" fetch -q origin "${BRANCH}" && git -C "${APP_DIR}" checkout -q "${BRANCH}" && git -C "${APP_DIR}" reset -q --hard "origin/${BRANCH}"
 else
