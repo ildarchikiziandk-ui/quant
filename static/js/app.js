@@ -168,6 +168,10 @@
         const f = $('#comment-form'); if (!f) return;
         f.parent_id.value = id; $('#reply-to-label').textContent = 'Ответ для @' + b.dataset.user; $('#reply-to').classList.remove('hidden');
         f.content.focus();
+      } else if (act === 'not-interested') {
+        await api(`/post/${id}/not-interested`); const el = $(`#post-${id}`);
+        if (el) { const prev = el.previousElementSibling; if (prev && prev.classList.contains('rec-reason')) prev.remove(); el.remove(); }
+        toast('Понял, буду показывать такое реже');
       } else if (act === 'toggle') {
         const r = await api(b.dataset.url); toast(b.dataset.msg || 'Готово');
         if (b.dataset.reload) location.reload();
@@ -305,7 +309,7 @@
         const r = await api('/post/create', fd);
         try { localStorage.removeItem('composer-draft'); } catch (er) {}
         toast(r.held ? '🛡 ' + r.message : r.scheduled ? 'Пост запланирован ⏰' : 'Опубликовано ✨');
-        setTimeout(() => location.href = r.scheduled ? '/drafts' : (location.pathname === '/' ? '/?tab=latest' : `/post/${r.post_id}`), 400);
+        setTimeout(() => location.href = r.scheduled ? '/drafts' : `/post/${r.post_id}`, 400);
       } catch (err) { btn.disabled = false; btn.textContent = 'Опубликовать'; }
     });
     $$('[data-draft-load]').forEach(a => a.addEventListener('click', (e) => {
@@ -316,8 +320,13 @@
   // ---------- Бесконечная лента ----------
   function setupInfinite() {
     const sentinel = $('[data-more]');
-    if (!sentinel || !('IntersectionObserver' in window)) return;
-    const io = new IntersectionObserver(async (entries) => {
+    if (!sentinel) return;
+    const manual = (ME.prefs || {}).infinite_scroll === false || !('IntersectionObserver' in window);
+    if (manual) {  // настройка «Бесконечная прокрутка» выключена — грузим по кнопке
+      sentinel.innerHTML = '<button class="btn soft manual-more">Показать ещё</button>';
+      sentinel.addEventListener('click', () => load([{ isIntersecting: true }]));
+    }
+    const load = async (entries) => {
       if (!entries[0].isIntersecting || sentinel.dataset.loading) return;
       sentinel.dataset.loading = 1;
       try {
@@ -327,10 +336,12 @@
         const next = $('[data-more]', tmp);
         sentinel.before(...Array.from(tmp.childNodes).filter(n => n !== next));
         if (next) { sentinel.dataset.more = next.dataset.more; delete sentinel.dataset.loading; }
-        else { io.disconnect(); sentinel.textContent = 'Вы всё посмотрели ✨'; }
+        else { if (io) io.disconnect(); sentinel.textContent = 'Вы всё посмотрели ✨'; }
+        document.dispatchEvent(new Event('app:content'));
       } catch (e) { delete sentinel.dataset.loading; }
-    }, { rootMargin: '600px' });
-    io.observe(sentinel);
+    };
+    const io = manual ? null : new IntersectionObserver(load, { rootMargin: '600px' });
+    if (io) io.observe(sentinel);
   }
   setupInfinite();
 
@@ -354,7 +365,8 @@
       setBadge('[data-badge=notifications]', r.notifications); setBadge('[data-badge=messages]', r.messages);
       if (r.notifications > lastNotif && ME.sound) beep();
       lastNotif = r.notifications;
-      document.title = (r.notifications + r.messages ? `(${r.notifications + r.messages}) ` : '') + document.title.replace(/^\(\d+\)\s/, '');
+      const clean = document.title.replace(/^\(\d+\)\s/, '');
+      document.title = ((ME.prefs || {}).title_badge !== false && r.notifications + r.messages ? `(${r.notifications + r.messages}) ` : '') + clean;
     } catch (e) {}
   }
   setInterval(poll, 20000);
@@ -365,7 +377,8 @@
   let gPressed = false;
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea, select') || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === 'n') { const t = $('#composer textarea'); if (t) { e.preventDefault(); t.focus(); } else location.href = '/#compose'; }
+    if ((ME.prefs || {}).hotkeys === false) return;
+    if (e.key === 'n') { const t = $('#composer textarea'); if (t) { e.preventDefault(); t.focus(); } else location.href = '/create'; }
     else if (e.key === '/') { e.preventDefault(); location.href = '/search'; }
     else if (e.key === '?') { modal('Горячие клавиши', `<div class="stack small"><div><span class="kbd">n</span> — новый пост</div><div><span class="kbd">/</span> — поиск</div><div><span class="kbd">g</span> <span class="kbd">h</span> — лента</div><div><span class="kbd">g</span> <span class="kbd">m</span> — сообщения</div><div><span class="kbd">g</span> <span class="kbd">n</span> — уведомления</div><div><span class="kbd">g</span> <span class="kbd">p</span> — профиль</div><div><span class="kbd">g</span> <span class="kbd">e</span> — обзор</div><div><span class="kbd">t</span> — сменить тему</div></div>`); }
     else if (e.key === 't') toggleTheme();
@@ -394,5 +407,61 @@
       };
       if (Notification.permission === 'granted') { try { await window.enablePush(); } catch (e) {} }
     }).catch(() => {});
+  }
+})();
+
+
+// ---------- Настройки пользователя, которые работают в браузере (services/prefs.py) ----------
+(function () {
+  const P = (window.APP && window.APP.prefs) || {};
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const MEDIA = '.post .media img, .post .media video, .post .media-grid img, .post .media-grid video';
+
+  // Размытие медиа: первое нажатие открывает, а не увеличивает
+  if (P.blur_media) document.addEventListener('click', (e) => {
+    const m = e.target.closest(MEDIA);
+    if (m && !m.classList.contains('revealed')) { e.preventDefault(); e.stopPropagation(); m.classList.add('revealed'); }
+  }, true);
+
+  // Лайк двойным нажатием на фото
+  if (P.double_tap_like !== false) document.addEventListener('dblclick', (e) => {
+    const m = e.target.closest('.post .media img, .post .media-grid img'); if (!m) return;
+    const like = m.closest('.post').querySelector('[data-act=like]');
+    if (like && !like.classList.contains('on')) like.click();
+    const h = document.createElement('div'); h.className = 'dbl-heart'; h.textContent = '❤️';
+    h.style.cssText = `position:fixed;left:${e.clientX - 30}px;top:${e.clientY - 40}px;font-size:60px;pointer-events:none;z-index:999;transition:all .6s;`;
+    document.body.appendChild(h); requestAnimationFrame(() => { h.style.transform = 'translateY(-40px) scale(1.4)'; h.style.opacity = '0'; });
+    setTimeout(() => h.remove(), 700);
+  });
+
+  // Внешние ссылки — в новой вкладке
+  if (P.links_new_tab !== false) document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="http"]');
+    if (a && a.host !== location.host && !a.target) { a.target = '_blank'; a.rel = 'noopener nofollow'; }
+  }, true);
+
+  function apply(root) {
+    // Автовоспроизведение видео без звука
+    if (P.autoplay_video !== false && 'IntersectionObserver' in window) {
+      const io = apply.io || (apply.io = new IntersectionObserver((es) => es.forEach(en => {
+        const v = en.target; if (en.isIntersecting && en.intersectionRatio > .6) { v.muted = true; v.play().catch(() => {}); } else if (!v.paused) v.pause();
+      }), { threshold: [0, .6] }));
+      $$('.post video:not([data-ap])', root).forEach(v => { v.dataset.ap = 1; v.loop = true; io.observe(v); });
+    }
+    // Точное время вместо «5 мин назад»
+    if (P.absolute_time) $$('.time[title]:not([data-abs])', root).forEach(t => { t.dataset.abs = 1; t.textContent = t.title.replace(' UTC', ''); });
+    // Крупные эмодзи в чатах
+    if (P.chat_big_emoji !== false) $$('.bubble:not([data-em]) .txt', root).forEach(t => {
+      const b = t.closest('.bubble'); b.dataset.em = 1;
+      const txt = t.textContent.trim();
+      if (txt && txt.length <= 12 && /^(\p{Extended_Pictographic}|\p{Emoji_Component}|‍|️|\s)+$/u.test(txt) && !b.querySelector('img,video,audio,.file')) b.classList.add('big-emoji');
+    });
+    // Подсказки у кнопок-иконок
+    if (P.alt_hints !== false) $$('.icon-btn[aria-label]:not([title])', root).forEach(b => b.title = b.getAttribute('aria-label'));
+  }
+  apply(document);
+  document.addEventListener('app:content', () => apply(document));
+  if ('MutationObserver' in window) {
+    let t; new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => apply(document), 120); }).observe(document.body, { childList: true, subtree: true });
   }
 })();

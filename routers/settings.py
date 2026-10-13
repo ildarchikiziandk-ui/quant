@@ -15,12 +15,12 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.auth_routes import validate_password, validate_username
 from routers.posts import purge_post, read_payload, wants_json
-from services import gamification, social
+from services import gamification, prefs, recommend, social
 from services.uploads import delete_file, save_file
 
 router = APIRouter()
 
-SECTIONS = ("profile", "account", "privacy", "notifications", "appearance", "security", "plus", "data")
+SECTIONS = ("profile", "account", "feed", "privacy", "notifications", "messages", "appearance", "accessibility", "security", "plus", "data")
 THEMES = ("light", "dark", "auto")
 ACCENTS = ["#2563eb", "#0d9488", "#16a34a", "#ca8a04", "#dc2626", "#9333ea", "#475569"]
 
@@ -32,17 +32,18 @@ def _settings(request, db, user, section="profile", **extra):
     muted = [m.muted for m in db.query(models.UserMute).filter_by(user_id=user.id).all() if m.muted]
     ctx = dict(section=section if section in SECTIONS else "profile", sessions=sessions, blocked_users=blocked, muted_users=muted,
                current_session_id=getattr(request.state, "session_id", None), accents=ACCENTS,
-               pending_requests=db.query(models.FollowRequest).filter_by(target_id=user.id).count())
+               pending_requests=db.query(models.FollowRequest).filter_by(target_id=user.id).count(),
+               pref_groups=prefs.section_prefs(section), pref_values=prefs.values(user))
     ctx.update(extra)
     return render(request, db, "settings.html", **ctx)
 
 
 @router.get("/settings")
-def settings_page(request: Request, section: str = "profile", db: Session = Depends(get_db)):
+def settings_page(request: Request, section: str = "profile", saved: int = 0, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
-    extra = {}
+    extra = {"success": "Настройки сохранены ✓"} if saved else {}
     if section == "security" and not user.two_factor_enabled:
         secret = request.cookies.get("totp_setup") or auth.totp_new_secret()
         extra = {"totp_secret": secret, "totp_uri": auth.totp_uri(secret, user.username)}
@@ -50,6 +51,19 @@ def settings_page(request: Request, section: str = "profile", db: Session = Depe
         resp.set_cookie("totp_setup", secret, max_age=900, httponly=True, samesite="lax", secure=config.COOKIE_SECURE)
         return resp
     return _settings(request, db, user, section, **extra)
+
+
+@router.post("/settings/prefs/{section}")
+async def save_prefs(section: str, request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    if section not in prefs.SECTIONS:
+        return redirect("/settings")
+    prefs.update(user, section, await request.form())
+    db.commit()
+    recommend.invalidate(user.id)
+    return redirect(f"/settings?section={section}&saved=1")
 
 
 @router.get("/settings/{section}")

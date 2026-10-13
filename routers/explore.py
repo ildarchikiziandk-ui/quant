@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import current_user, login_redirect, redirect, render
-from services import feed, social
+from services import feed, prefs, social
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ def search_page(request: Request, q: str = "", type: str = "all", db: Session = 
         term = f"%{_like_escape(q.lstrip('@'))}%"
         if type in ("all", "users"):
             users = (db.query(models.User).filter(or_(models.User.username.ilike(term, escape="\\"), models.User.name.ilike(term, escape="\\")),
-                                                  ~models.User.id.in_(hidden or {-1}))
+                                                  ~models.User.id.in_(hidden or {-1}), prefs.sql_flag_off(models.User.prefs, "hide_from_search"))
                      .order_by(models.User.total_points.desc()).limit(30).all())
         if type in ("all", "posts"):
             posts = (feed.with_loads(social.visible_posts(db, user)).filter(models.Post.content.ilike(f"%{_like_escape(q)}%", escape="\\"))

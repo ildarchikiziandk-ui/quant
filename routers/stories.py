@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.posts import read_payload, wants_json
-from services import gamification, social
+from services import gamification, prefs, social
 from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
@@ -104,7 +104,7 @@ def view_stories(username: str, request: Request, start: int = 0, db: Session = 
                .order_by(models.Story.created_at.asc()).all() if can_see_story(db, user, s)]
     if not stories:
         return redirect(f"/profile/{su.username}")
-    if user and user.id != su.id:
+    if user and user.id != su.id and not prefs.get(user, "anonymous_stories"):
         seen = {v.story_id for v in db.query(models.StoryView).filter(models.StoryView.user_id == user.id,
                                                                       models.StoryView.story_id.in_([s.id for s in stories]))}
         for s in stories:

@@ -1,3 +1,3 @@
 {% from "partials/macros.html" import post_card %}
-{%- for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% endfor %}
+{%- for p in posts %}{% if reasons and reasons.get(p.id) %}<div class="rec-reason">✦ {{ reasons[p.id] }}</div>{% endif %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% endfor %}
 {%- if has_more %}<div class="load-more" data-more="{{ more_url }}"><span class="muted">Загрузка…</span></div>{% endif %}

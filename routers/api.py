@@ -11,7 +11,7 @@ from database import get_db
 from deps import current_user, json_error, unread_counts
 from routers.explore import _like_escape
 from routers.posts import read_payload
-from services import social
+from services import prefs, social
 
 router = APIRouter(prefix="/api")
 
@@ -57,7 +57,8 @@ def suggest_users(request: Request, q: str = "", db: Session = Depends(get_db)):
         users = db.query(models.User).filter(models.User.id.in_(social.following_ids(db, user) or {-1})).limit(8).all()
     else:
         term = f"{_like_escape(q)}%"
-        users = (db.query(models.User).filter(or_(models.User.username.ilike(term, escape="\\"), models.User.name.ilike(term, escape="\\")))
+        users = (db.query(models.User).filter(or_(models.User.username.ilike(term, escape="\\"), models.User.name.ilike(term, escape="\\")),
+                                              prefs.sql_flag_off(models.User.prefs, "hide_from_search"))
                  .order_by(models.User.total_points.desc()).limit(8).all())
     hidden = social.blocked_ids(db, user)
     return JSONResponse({"ok": True, "users": [{"username": u.username, "name": u.name or u.username, "avatar": u.avatar or "",

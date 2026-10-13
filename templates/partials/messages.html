@@ -26,6 +26,6 @@
   </div>
   {%- set rx = {} %}{% for r in m.msg_reactions %}{% set _ = rx.update({r.emoji: rx.get(r.emoji, 0) + 1}) %}{% endfor %}
   {%- if rx %}<div class="msg-reacts">{% for e, n in rx.items() %}<span>{{ e }}{% if n > 1 %} {{ n }}{% endif %}</span>{% endfor %}</div>{% endif %}
-  <div class="msg-meta">{% if m.is_pinned %}📌{% endif %}{% if m.disappear_at %}⏳{% endif %}{% if m.is_edited and not m.is_deleted %}изм. · {% endif %}{{ m.created_at.strftime("%H:%M") }}{% if mine and not m.is_deleted %}<span class="ticks" data-tick="{{ m.id }}">{% if m.is_read %}✓✓{% else %}✓{% endif %}</span>{% endif %}</div>
+  <div class="msg-meta">{% if m.is_pinned %}📌{% endif %}{% if m.disappear_at %}⏳{% endif %}{% if m.is_edited and not m.is_deleted %}изм. · {% endif %}{{ m.created_at.strftime("%H:%M") }}{% if mine and not m.is_deleted %}<span class="ticks" data-tick="{{ m.id }}">{% if m.is_read and (not m.receiver or pref(m.receiver, "read_receipts")) %}✓✓{% else %}✓{% endif %}</span>{% endif %}</div>
 </div>
 {%- endfor %}

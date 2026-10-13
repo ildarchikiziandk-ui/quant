@@ -354,10 +354,14 @@ def test_infinite_feed(alice):
     for i in range(25):
         ratelimit.reset()
         create_post(alice, f"пост номер {i}")
-    page1 = alice.get("/?tab=latest").text
+    page1 = alice.get("/?tab=following").text
     assert "data-more" in page1
-    page2 = alice.get("/feed/more?tab=latest&page=2").text
+    page2 = alice.get("/feed/more?tab=following&page=2").text
     assert "пост номер" in page2
+    bob = register(make_client(), "bobby")
+    assert "data-more" in bob.get("/?tab=foryou").text  # рекомендации с пагинацией
+    p2 = bob.get("/feed/more?tab=foryou&page=2").text
+    assert "пост номер" in p2
 
 
 def test_register_form_keeps_name_and_no_macro_leak(anon):
@@ -448,3 +452,72 @@ def test_moderation_flow(owner, alice, bob):
     assert s.get(models.Comment, cf.object_id) is None
     assert s.query(models.ModerationFlag).filter_by(status="new").count() == 0
     s.close()
+
+
+
+def test_home_has_two_tabs_and_create_page(alice):
+    page = alice.get("/").text
+    assert "Рекомендации" in page and "Подписки" in page
+    assert "Свежее" not in page and 'id="composer"' not in page
+    assert 'id="composer"' in alice.get("/create").text
+    assert make_client().get("/create", follow_redirects=False).status_code in (302, 303, 307)
+
+
+def test_recommendations_learn_interests(alice, bob):
+    from services import ratelimit, recommend
+    carol = register(make_client(), "carol")
+    cats, cars = [], []
+    for i in range(6):
+        ratelimit.reset()
+        cats.append(create_post(bob, f"Мой котик спит на диване #котики {i}"))
+        cars.append(create_post(carol, f"Новый двигатель для машины #авто {i}"))
+    for pid in cats[:3]:
+        alice.post(f"/like/{pid}", headers=J)
+    s = db()
+    me = s.query(models.User).filter_by(username="alice").first()
+    recommend.invalidate(me.id)
+    prof = recommend.interest_profile(s, me)
+    assert "котики" in prof["tags"]
+    s.close()
+    page = alice.get("/?tab=foryou").text
+    first = re.findall(r'id="post-(\d+)"', page)
+    unliked_cats = {str(x) for x in cats[3:]}
+    assert first and first[0] in unliked_cats, first[:3]
+    assert "Вам нравится #котики" in page or "Вы часто оцениваете" in page
+    # «Не интересно» убирает пост из рекомендаций
+    alice.post(f"/post/{first[0]}/not-interested", headers=J)
+    assert f'id="post-{first[0]}"' not in alice.get("/?tab=foryou").text
+
+
+def test_likes_tab_private_and_profile_prefs(alice, bob):
+    pid = create_post(bob, "лайкни меня")
+    alice.post(f"/like/{pid}", headers=J)
+    assert "Лайки" in alice.get("/profile/alice").text
+    assert "лайкни меня" in alice.get("/profile/alice?tab=likes").text
+    other = bob.get("/profile/alice?tab=likes").text
+    assert "?tab=likes" not in other
+    alice.post("/settings/prefs/privacy", data={"hide_followers_list": "on", "who_can_comment": "nobody", "who_can_mention": "all",
+                                                "allow_reposts": "", "read_receipts": "on", "typing_status": "on"})
+    assert bob.get("/profile/alice/followers").status_code == 403
+    mine = create_post(alice, "мой пост")
+    r = bob.post(f"/post/{mine}/comment", data={"content": "привет"}, headers=J)
+    assert r.status_code == 403
+    assert bob.post(f"/repost/{mine}", headers=J).status_code == 403
+
+
+def test_settings_prefs_sections(alice):
+    from services import prefs
+    assert len(prefs.PREFS) >= 60
+    for sec in prefs.SECTIONS:
+        r = alice.get(f"/settings?section={sec}")
+        assert r.status_code == 200 and "/settings/prefs/" + sec in r.text, sec
+    alice.post("/settings/prefs/appearance", data={"compact": "on", "corners": "sharp", "avatar_shape": "circle", "font_family": "serif"})
+    html = alice.get("/").text
+    assert "p-compact" in html and "p-corners-sharp" in html and "p-font-family-serif" in html
+    alice.post("/settings/prefs/feed", data={"feed_default_tab": "following", "feed_muted_words": "спойлер", "rec_reasons": "on"})
+    bob = register(make_client(), "bobm")
+    create_post(bob, "Тут спойлер к фильму")
+    create_post(bob, "Обычный пост про погоду")
+    alice.post("/follow/bobm", headers=J)
+    page = alice.get("/").text
+    assert "Обычный пост про погоду" in page and "спойлер к фильму" not in page

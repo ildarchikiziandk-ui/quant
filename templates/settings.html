@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-title">⚙️ Настройки</div>
 <div class="settings-nav">
-  {% for key, label in [("profile","👤 Профиль"),("account","🔑 Аккаунт"),("privacy","🔒 Приватность"),("notifications","🔔 Уведомления"),("appearance","🎨 Оформление"),("security","🛡 Безопасность"),("plus","✨ " ~ brand_plus),("data","📦 Данные")] %}
+  {% for key, label in [("profile","👤 Профиль"),("account","🔑 Аккаунт"),("feed","📰 Лента"),("privacy","🔒 Приватность"),("notifications","🔔 Уведомления"),("messages","💬 Сообщения"),("appearance","🎨 Оформление"),("accessibility","♿ Доступность"),("security","🛡 Безопасность"),("plus","✨ " ~ brand_plus),("data","📦 Данные")] %}
   <a href="/settings?section={{ key }}" class="chip {% if section == key %}active{% endif %}">{{ label }}</a>
   {% endfor %}
 </div>
@@ -67,6 +67,8 @@
   <div class="row wrap"><a class="btn soft sm" href="/special-request">Запросить верификацию</a>{% if user.is_private %}<a class="btn soft sm" href="/follow-requests">Заявки на подписку{% if pending_requests %} ({{ pending_requests }}){% endif %}</a>{% endif %}<a class="btn soft sm" href="/close-friends">Близкие друзья</a></div>
 </div>
 
+{% elif section in ("feed", "messages", "accessibility") %}
+{% if section == "feed" %}<div class="card small muted">Лента «Рекомендации» подбирается под вас: модель учитывает, что вы лайкаете, комментируете, сохраняете и репостите, а также кнопку «Не интересно» в меню поста.</div>{% endif %}
 {% elif section == "privacy" %}
 <form class="card" method="post" action="/settings/privacy">
   <div class="card-title">Приватность</div>
@@ -166,5 +168,23 @@
     <input type="password" name="password" placeholder="Введите пароль" required style="margin:0"><button class="btn danger">Удалить навсегда</button>
   </form>
 </div>
+{% endif %}
+{% if pref_groups %}
+<form class="card" method="post" action="/settings/prefs/{{ section }}">
+  <div class="card-title">{% if section in ("feed", "messages", "accessibility") %}Настройки{% else %}Дополнительно{% endif %}</div>
+  {% for group, items in pref_groups %}
+    {% if group %}<div class="pref-group">{{ group }}</div>{% endif %}
+    {% for p in items %}
+      {% if p.kind == "bool" %}
+      <label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>
+      {% elif p.kind == "select" %}
+      <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><select name="{{ p.key }}">{% for v, l in p.options %}<option value="{{ v }}" {% if pref_values[p.key] == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+      {% else %}
+      <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><input name="{{ p.key }}" value="{{ pref_values[p.key] }}" maxlength="500" placeholder="политика, спойлеры"></label>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+  <button class="btn mt">Сохранить</button>
+</form>
 {% endif %}
 {% endblock %}

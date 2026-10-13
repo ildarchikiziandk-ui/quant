@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import current_user, render, templates
-from services import feed, social
+from deps import current_user, login_redirect, render, templates
+from services import feed, prefs, recommend, social
 
 router = APIRouter()
 
-TABS = ("foryou", "following", "latest", "media")
+TABS = ("foryou", "following")
 
 
 def _stories_strip(db, user):
@@ -17,27 +17,40 @@ def _stories_strip(db, user):
 
 
 @router.get("/")
-def home(request: Request, tab: str = "foryou", db: Session = Depends(get_db)):
+def home(request: Request, tab: str = "", db: Session = Depends(get_db)):
     user = current_user(request, db)
+    if not tab and user:
+        tab = prefs.get(user, "feed_default_tab")
     tab = tab if tab in TABS else "foryou"
     if tab == "following" and not user:
         tab = "foryou"
-    posts, has_more = feed.get_feed(db, user, tab, 1)
-    drafts = []
-    if user:
-        drafts = db.query(models.Draft).filter_by(user_id=user.id).order_by(models.Draft.updated_at.desc()).limit(5).all()
-    return render(request, db, "home.html", tab=tab, has_more=has_more, page=1, drafts=drafts,
-                  story_groups=_stories_strip(db, user), **feed.feed_context(db, user, posts))
+    posts, has_more, reasons = feed.get_feed(db, user, tab, 1)
+    if tab == "foryou":
+        recommend.mark_seen(db, user, posts)
+    return render(request, db, "home.html", tab=tab, has_more=has_more, page=1,
+                  story_groups=_stories_strip(db, user), **feed.feed_context(db, user, posts, reasons))
+
+
+@router.get("/create")
+def create_page(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    drafts = db.query(models.Draft).filter_by(user_id=user.id).order_by(models.Draft.updated_at.desc()).limit(8).all()
+    return render(request, db, "create.html", drafts=drafts)
 
 
 @router.get("/feed/more")
 def feed_more(request: Request, tab: str = "foryou", page: int = 2, db: Session = Depends(get_db)):
     user = current_user(request, db)
     page = max(1, min(page, 200))
-    posts, has_more = feed.get_feed(db, user, tab if tab in TABS else "foryou", page)
+    tab = tab if tab in TABS else "foryou"
+    posts, has_more, reasons = feed.get_feed(db, user, tab, page)
+    if tab == "foryou":
+        recommend.mark_seen(db, user, posts)
     ctx = {"request": request, "user": user, "can_mod": social.can_mod(user), "has_more": has_more, "page": page,
            "more_url": f"/feed/more?tab={tab}&page={page + 1}"}
-    ctx.update(feed.feed_context(db, user, posts))
+    ctx.update(feed.feed_context(db, user, posts, reasons))
     return templates.TemplateResponse(request, "partials/post_list.html", ctx)
 
 

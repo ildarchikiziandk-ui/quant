@@ -40,6 +40,12 @@ def send_push_to_user(user_id, db, title, body, url="/"):
     if not ENABLED:
         return
     import models
+    from services import prefs
+    target = db.get(models.User, user_id)
+    if target and prefs.in_quiet_hours(target):
+        return
+    if target and prefs.get(target, "push_hide_text") and (url.startswith("/messages") or url.startswith("/groups")):
+        body = "Новое сообщение"
     subs = [(s.id, {"endpoint": s.endpoint, "keys": {"p256dh": s.p256dh, "auth": s.auth}})
             for s in db.query(models.PushSubscription).filter(models.PushSubscription.user_id == user_id).all()]
     if not subs:

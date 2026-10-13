@@ -9,7 +9,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.posts import wants_json
-from services import feed, gamification, social
+from services import feed, gamification, prefs, social
 from services.uploads import save_file
 
 router = APIRouter()
@@ -31,17 +31,19 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
     blocked_me = user and db.query(models.UserBlock).filter_by(blocker_id=pu.id, blocked_id=user.id).first() is not None
     i_blocked = user and db.query(models.UserBlock).filter_by(blocker_id=user.id, blocked_id=pu.id).first() is not None
     can_see = social.can_see_content(db, user, pu)
-    if user and user.id != pu.id:
+    if user and user.id != pu.id and not prefs.get(user, "incognito_views"):
         pu.profile_views = (pu.profile_views or 0) + 1
         db.commit()
+    if not user and prefs.get(pu, "guests_hidden"):
+        can_see = False
     q = social.visible_posts(db, user, hide_muted=False).filter(models.Post.user_id == pu.id)
     posts, liked_posts = [], []
     if can_see:
         if tab == "media":
             posts = feed.with_loads(q.filter(models.Post.image != "", models.Post.image != None)).order_by(models.Post.created_at.desc()).limit(60).all()
         elif tab == "likes":
-            if pu.hide_likes and (not user or user.id != pu.id):
-                posts = []
+            if not user or user.id != pu.id:  # лайки видит только сам пользователь
+                tab, posts = "posts", feed.with_loads(q).order_by(models.Post.created_at.desc()).limit(40).all()
             else:
                 liked_ids = [lk.post_id for lk in db.query(models.Like.post_id).filter(models.Like.user_id == pu.id).order_by(models.Like.id.desc()).limit(60)]
                 posts = feed.with_loads(social.visible_posts(db, user, hide_muted=False)).filter(models.Post.id.in_(liked_ids or [-1])).all()
@@ -95,6 +97,9 @@ def _people_page(request, db, username, kind):
         return redirect("/")
     if not social.can_see_content(db, user, pu):
         return redirect(f"/profile/{pu.username}")
+    if (not user or user.id != pu.id) and prefs.get(pu, "hide_followers_list" if kind == "followers" else "hide_following_list"):
+        return render(request, db, "error.html", status_code=403, code=403, title="Список скрыт",
+                      text=f"@{pu.username} скрыл(а) этот список.")
     if kind == "followers":
         people = [f.follower for f in db.query(models.Follow).filter_by(following_id=pu.id).order_by(models.Follow.id.desc()).limit(500) if f.follower]
     else:

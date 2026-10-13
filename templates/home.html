@@ -2,7 +2,7 @@
 {% from "partials/macros.html" import avatar %}{% from "partials/icons.html" import icon %}
 {% block content %}
 {% if story_groups or user %}
-<div class="card" style="padding:12px 14px">
+<div class="card stories-card" style="padding:12px 14px">
   <div class="stories">
     {% if user %}
     <a href="/stories/create" class="story-item"><span class="story-add">{{ icon("plus") }}</span><span>Ваша история</span></a>
@@ -17,12 +17,7 @@
 </div>
 {% endif %}
 
-{% if user %}
-  {% include "partials/composer.html" %}
-  {% if drafts %}
-  <div class="chips">{% for d in drafts %}<a href="#" class="chip" data-draft-load="{{ d.id }}" data-content="{{ d.content }}">📝 {{ d.content[:28] }}{% if d.content|length > 28 %}…{% endif %}</a>{% endfor %}<a href="/drafts" class="chip">Все черновики →</a></div>
-  {% endif %}
-{% else %}
+{% if not user %}
 <div class="card hero center" style="padding:34px 22px">
   <img src="/static/icon-192.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:12px">
   <h2 style="font-size:26px;font-weight:800;letter-spacing:-.6px">Добро пожаловать в {{ brand }}</h2>
@@ -32,10 +27,8 @@
 {% endif %}
 
 <div class="tabs">
-  <a href="/?tab=foryou" class="{% if tab == 'foryou' %}active{% endif %}">Для вас</a>
   {% if user %}<a href="/?tab=following" class="{% if tab == 'following' %}active{% endif %}">Подписки</a>{% endif %}
-  <a href="/?tab=latest" class="{% if tab == 'latest' %}active{% endif %}">Свежее</a>
-  <a href="/?tab=media" class="{% if tab == 'media' %}active{% endif %}">Медиа</a>
+  <a href="/?tab=foryou" class="{% if tab == 'foryou' %}active{% endif %}">Рекомендации</a>
 </div>
 
 {% if posts %}
@@ -45,7 +38,7 @@
 <div class="card empty">
   <div class="big">{% if tab == 'following' %}👀{% else %}✨{% endif %}</div>
   {% if tab == 'following' %}Подпишитесь на кого-нибудь, чтобы видеть их посты. <a href="/explore" style="color:var(--link);font-weight:600">Найти людей →</a>
-  {% else %}Пока нет постов. Будьте первым!{% endif %}
+  {% else %}Пока нет постов. {% if user %}<a href="/create" style="color:var(--link);font-weight:600">Напишите первый →</a>{% else %}Будьте первым!{% endif %}{% endif %}
 </div>
 {% endif %}
 {% endblock %}

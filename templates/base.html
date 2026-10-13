@@ -1,5 +1,5 @@
 {% from "partials/icons.html" import icon %}{% from "partials/macros.html" import avatar, name, user_row %}<!DOCTYPE html>
-<html lang="ru" data-theme="light" data-font="{{ user.font_size if user and user.font_size else 'medium' }}">
+<html lang="ru" data-theme="light" data-font="{{ user.font_size if user and user.font_size else 'medium' }}" class="{{ pref_classes(user) if user else '' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -18,7 +18,8 @@
 <script>
   (function(){var t='{{ user.theme if user and user.theme else "light" }}';try{t=localStorage.getItem('theme')||t}catch(e){}
   if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);})();
-  window.APP={user:{{ (user.username if user else None)|tojson }},theme:{{ (user.theme if user else 'light')|tojson }},reactions:{{ reactions|tojson }},unread:{{ unread or 0 }},push:{{ push_enabled|tojson }},sound:true};
+  window.APP={user:{{ (user.username if user else None)|tojson }},theme:{{ (user.theme if user else 'light')|tojson }},reactions:{{ reactions|tojson }},unread:{{ unread or 0 }},push:{{ push_enabled|tojson }},prefs:{{ (pref_client(user) if user else {})|tojson }}};
+  window.APP.sound=window.APP.prefs.sound!==false;
 </script>
 {% block head %}{% endblock %}
 </head>
@@ -51,7 +52,7 @@
     <a href="/settings" class="nav-item"><span class="ico">{{ icon("settings") }}</span><span class="nav-label">Настройки</span></a>
     <a href="/plus" class="nav-item"><span class="ico">{{ icon("sparkle") }}</span><span class="nav-label">{{ brand_plus }}</span></a>
     <form method="post" action="/logout" onsubmit="return confirm('Выйти из аккаунта?')"><button class="nav-item" style="width:100%;border:none;background:none;cursor:pointer;font-size:inherit;color:var(--danger)"><span class="ico">{{ icon("logout") }}</span><span class="nav-label">Выйти</span></button></form>
-    <div class="nav-cta"><a href="/#compose" class="btn block" onclick="var t=document.querySelector('#composer textarea');if(t){event.preventDefault();t.focus();}">{{ icon("plus") }}<span class="lbl">Новый пост</span></a></div>
+    <div class="nav-cta"><a href="/create" class="btn block">{{ icon("plus") }}<span class="lbl">Новый пост</span></a></div>
     {% else %}
     <a href="/" class="nav-item"><span class="ico">{{ icon("home") }}</span><span class="nav-label">Лента</span></a>
     <a href="/explore" class="nav-item"><span class="ico">{{ icon("compass") }}</span><span class="nav-label">Обзор</span></a>
@@ -94,6 +95,7 @@
       <form method="get" action="/search"><input type="search" name="q" placeholder="Поиск людей, постов, #тегов…" aria-label="Поиск"></form>
     </div>
     {% if daily_tasks %}
+    <div class="side-tasks">
     {% set done = daily_tasks|selectattr("is_completed")|list|length %}
     <div class="card">
       <div class="card-title">🎯 Задания дня <a href="/tasks">{{ done }}/{{ daily_tasks|length }} →</a></div>
@@ -102,14 +104,15 @@
       <div class="row small" style="padding:4px 0"><span>{{ ut.task.emoji }}</span><span class="grow">{{ ut.task.title }}</span><b class="faint">+{{ ut.task.points }}</b></div>
       {% endif %}{% else %}<div class="small muted">Все задания выполнены! 🎉</div>{% endfor %}
     </div>
+    </div>
     {% endif %}
     {% if birthdays %}
-    <div class="card"><div class="card-title">🎂 Дни рождения сегодня</div>
+    <div class="card side-birthdays"><div class="card-title">🎂 Дни рождения сегодня</div>
       {% for b in birthdays %}<a href="/messages/{{ b.username }}" class="row small" style="padding:4px 0">{{ avatar(b, 28) }}<span class="grow">{{ b.name or b.username }}</span><span class="tag-pill">Поздравить</span></a>{% endfor %}
     </div>
     {% endif %}
     {% if suggested_users %}
-    <div class="card">
+    <div class="card side-suggest">
       <div class="card-title">✨ Кого почитать <a href="/explore">Ещё →</a></div>
       {% for su in suggested_users %}{{ user_row(su, user, ()) }}{% endfor %}
     </div>
@@ -130,7 +133,7 @@
 <nav class="mobile-nav"><div class="mobile-nav-inner">
   <a href="/">{{ icon("home") }}<span>Лента</span></a>
   <a href="/search">{{ icon("search") }}<span>Поиск</span></a>
-  <a href="/#compose" onclick="var t=document.querySelector('#composer textarea');if(t){event.preventDefault();t.focus();t.scrollIntoView({block:'center'});}"><span class="fab">{{ icon("plus") }}</span></a>
+  <a href="/create" aria-label="Новый пост"><span class="fab">{{ icon("plus") }}</span></a>
   <a href="/messages">{{ icon("chat") }}<span>Чаты</span><span class="mbadge {% if not unread_msg %}hidden{% endif %}" data-badge="messages">{{ unread_msg }}</span></a>
   <a href="/profile/{{ user.username }}">{{ icon("user") }}<span>Профиль</span></a>
 </div></nav>

@@ -60,7 +60,7 @@ async function send(){ const fd=new FormData(f); if(!inp.value.trim() && !docume
   try{ await App.api(`/groups/${GID}/send`,fd); await poll(); box.scrollTop=box.scrollHeight; }catch(e){} }
 f.addEventListener('submit',e=>{ e.preventDefault(); send(); });
 document.getElementById('gfile').addEventListener('change',send);
-inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey&&!document.querySelector('.suggest.open')){ e.preventDefault(); send(); } });
+inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&((APP.prefs||{}).enter_to_send===false?(e.ctrlKey||e.metaKey):!e.shiftKey)&&!document.querySelector('.suggest.open')){ e.preventDefault(); send(); } });
 inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; });
 document.addEventListener('click',async e=>{ const d=e.target.closest('[data-gdel]'); if(!d) return; if(!confirm('Удалить сообщение?')) return; await App.api(`/groups/${GID}/messages/${d.dataset.gdel}/delete`); location.reload(); });
 })();

@@ -245,7 +245,9 @@ label.field > span { display: block; font-size: 13px; font-weight: 600; color: v
 .profile-stats { display: flex; gap: 18px; margin-top: 12px; font-size: 14px; flex-wrap: wrap; }
 .profile-stats b { font-weight: 800; }
 .profile-actions { position: absolute; right: 20px; top: 12px; display: flex; gap: 8px; }
-.profile-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 13.5px; color: var(--text-2); }
+.profile-links { display: flex; gap: 6px 14px; flex-wrap: wrap; margin-top: 10px; font-size: 13.5px; color: var(--text-2); }
+.profile-links > span, .profile-links > a { display: inline-flex; align-items: center; gap: 4px; }
+.profile-links svg.i, .profile-top .row.small svg.i { width: 14px; height: 14px; flex-shrink: 0; }
 .profile-links a { color: var(--link); font-weight: 600; }
 .lvl-bar { height: 6px; background: var(--input); border-radius: 6px; overflow: hidden; }
 .lvl-bar > div { height: 100%; background: var(--text); border-radius: 6px; }
@@ -417,3 +419,35 @@ label.field > span { display: block; font-size: 13px; font-weight: 600; color: v
   .chat-page .convo-input textarea { font-size: 16px; }
   .reel-frame { height: 100vh; border-radius: 0; width: 100vw; aspect-ratio: auto; }
 }
+
+.rec-reason { font-size: 12px; color: var(--text-3, var(--text-2)); padding: 0 8px 4px; font-weight: 600; }
+
+/* ===== Настройки пользователя (services/prefs.py) ===== */
+.pref-group { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); margin: 16px 0 6px; }
+.p-hide-counters .post-actions .act .n, .p-hide-counters .post-actions .act span { display: none; }
+.p-hide-reactions .reaction-bar { display: none; }
+.p-expand-long .post-text.clamp { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.p-expand-long .read-more { display: none !important; }
+.p-hide-stories-bar .stories-card { display: none; }
+.p-hide-sidebar-tasks .side-tasks, .p-hide-sidebar-suggest .side-suggest, .p-hide-sidebar-birthdays .side-birthdays { display: none; }
+.p-focus-mode aside.right { display: none; } .p-focus-mode .main { max-width: 680px; }
+.p-blur-media .post .media img, .p-blur-media .post .media video, .p-blur-media .post .media-grid img, .p-blur-media .post .media-grid video { filter: blur(26px); transition: filter .2s; cursor: pointer; }
+.p-blur-media .revealed, .p-blur-media .revealed img, .p-blur-media .revealed video { filter: none !important; }
+.p-compact .card { padding: 12px 14px; margin-bottom: 8px; }
+.p-compact .post-text { margin-top: 2px; }
+.p-corners-soft .card, .p-corners-soft .btn, .p-corners-soft input, .p-corners-soft textarea, .p-corners-soft select { border-radius: 8px; }
+.p-corners-sharp .card, .p-corners-sharp .btn, .p-corners-sharp input, .p-corners-sharp textarea, .p-corners-sharp select, .p-corners-sharp .chip { border-radius: 2px; }
+.p-avatar-shape-squircle .av, .p-avatar-shape-squircle .av img, .p-avatar-shape-squircle .ring { border-radius: 28% !important; }
+.p-font-family-serif body { font-family: Georgia, "Times New Roman", serif; }
+.p-font-family-mono body { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+html:not(.p-nav-labels) .mobile-nav a span:not(.fab):not(.mbadge) { display: none; }
+.p-chat-compact .msg { margin: 1px 0; } .p-chat-compact .bubble { padding: 6px 10px; }
+html:not(.p-chat-timestamps) .msg-meta { font-size: 0; } html:not(.p-chat-timestamps) .msg-meta .ticks { font-size: 11px; }
+.bubble.big-emoji { background: none !important; font-size: 40px; line-height: 1.15; padding: 0 !important; box-shadow: none !important; }
+.p-reduce-motion *, .p-reduce-motion *::before, .p-reduce-motion *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+.p-high-contrast { --text-2: #3f3f46; --text-3: #52525b; --border: #a1a1aa; }
+.p-high-contrast[data-theme="dark"] { --text-2: #e4e4e7; --text-3: #d4d4d8; --border: #71717a; }
+.p-underline-links a { text-decoration: underline; text-underline-offset: 2px; }
+.p-line-spacing body { line-height: 1.75; }
+.p-big-buttons .btn { padding: 12px 20px; font-size: 16px; } .p-big-buttons .icon-btn { width: 44px; height: 44px; } .p-big-buttons .post-actions .act { padding: 10px 12px; }
+.manual-more { display: block; width: 100%; }

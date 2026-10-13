@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render, templates
 from routers.posts import read_payload
-from services import gamification, push, ratelimit, social
+from services import gamification, prefs, push, ratelimit, social
 from services.text import censor
 from services.uploads import save_file
 
@@ -248,6 +248,8 @@ def poll_messages(username: str, request: Request, after: int = 0, db: Session =
     _mark_read(db, user, other)
     last_read = db.query(func.max(models.Message.id)).filter(models.Message.sender_id == user.id, models.Message.receiver_id == other.id,
                                                              models.Message.group_id == None, models.Message.is_read == True).scalar() or 0
+    if not prefs.get(other, "read_receipts"):
+        last_read = 0
     typing = db.query(models.TypingStatus).filter_by(user_id=other.id, target_id=user.id).first()
     is_typing = bool(typing and (datetime.utcnow() - typing.updated_at).total_seconds() < 6)
     return JSONResponse({"ok": True, "html": render_messages(request, user, msgs) if msgs else "", "ids": [m.id for m in msgs],
@@ -270,6 +272,8 @@ def typing(username: str, request: Request, db: Session = Depends(get_db)):
     other = _get_user(db, username)
     if not user or not other:
         return JSONResponse({"ok": False})
+    if not prefs.get(user, "typing_status"):
+        return JSONResponse({"ok": True})
     t = db.query(models.TypingStatus).filter_by(user_id=user.id, target_id=other.id).first()
     if t:
         t.updated_at = datetime.utcnow()

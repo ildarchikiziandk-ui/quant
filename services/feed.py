@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 import config
 import models
-from services import social
+from services import prefs, social
 
 POST_LOAD = (selectinload(models.Post.author), selectinload(models.Post.likes), selectinload(models.Post.whales),
              selectinload(models.Post.comments), selectinload(models.Post.media_items), selectinload(models.Post.reactions),
@@ -17,37 +17,32 @@ def with_loads(q):
     return q.options(*POST_LOAD)
 
 
-def score(post, fids, now):
-    age_h = max((now - post.created_at).total_seconds() / 3600, 0.1)
-    engagement = len(post.likes) * 3 + len(post.comments) * 4 + len(post.whales) * 2 + len(post.reactions) * 2 + (post.views or 0) * 0.05
-    bonus = 40 if post.user_id in fids else 0
-    if post.image or post.media_items:
-        bonus += 5
-    return (engagement + bonus + 20) / ((age_h + 2) ** 1.4)
-
-
 def get_feed(db, user, tab="foryou", page=1):
+    """Возвращает (posts, has_more, reasons). reasons — {post_id: «почему рекомендовано»} для вкладки рекомендаций."""
+    from services import recommend
     per = config.POSTS_PER_PAGE
     now = datetime.utcnow()
-    q = with_loads(social.visible_posts(db, user))
+    q = recommend.guests_hidden_filter(recommend.apply_filters(with_loads(social.visible_posts(db, user)), user), user)
     if tab == "following" and user:
         fids = social.following_ids(db, user) | {user.id}
-        q = q.filter(models.Post.user_id.in_(fids))
-        posts = q.order_by(models.Post.created_at.desc()).offset((page - 1) * per).limit(per + 1).all()
-    elif tab == "latest":
-        posts = q.order_by(models.Post.created_at.desc()).offset((page - 1) * per).limit(per + 1).all()
-    elif tab == "media":
-        q = q.filter(models.Post.image != "", models.Post.image != None)
-        posts = q.order_by(models.Post.created_at.desc()).offset((page - 1) * per).limit(per + 1).all()
-    else:
-        fids = social.following_ids(db, user)
-        pool = q.filter(models.Post.created_at > now - timedelta(days=21)).order_by(models.Post.created_at.desc()).limit(400).all()
-        if len(pool) < 40:
-            pool = q.order_by(models.Post.created_at.desc()).limit(400).all()
-        pool.sort(key=lambda p: score(p, fids, now), reverse=True)
-        posts = pool[(page - 1) * per:(page - 1) * per + per + 1]
-    has_more = len(posts) > per
-    return posts[:per], has_more
+        posts = (q.filter(models.Post.user_id.in_(fids)).order_by(models.Post.created_at.desc())
+                 .offset((page - 1) * per).limit(per * 2 + 1).all())
+        posts = recommend.post_filter(db, user, posts)
+        return posts[:per], len(posts) > per, {}
+    fids = social.following_ids(db, user)
+    q = q.filter(~((models.Post.is_repost == True) & ((models.Post.original_comment == "") | (models.Post.original_comment == None))))
+    if user and prefs.get(user, "rec_hide_own"):
+        q = q.filter(models.Post.user_id != user.id)
+    pool = q.filter(models.Post.created_at > now - timedelta(days=21)).order_by(models.Post.created_at.desc()).limit(500).all()
+    if len(pool) < 40:
+        pool = q.order_by(models.Post.created_at.desc()).limit(500).all()
+    pool = recommend.post_filter(db, user, pool)
+    ranked = recommend.rank(db, user, pool, fids)
+    chunk = ranked[(page - 1) * per:(page - 1) * per + per + 1]
+    show_reasons = user and prefs.get(user, "rec_reasons")
+    reasons = {p.id: r for p, _, r in chunk if r and show_reasons}
+    posts = [p for p, _, _ in chunk]
+    return posts[:per], len(posts) > per, reasons
 
 
 def post_state(db, user, posts):
@@ -83,8 +78,8 @@ def repost_counts(db, posts):
     return dict(rows)
 
 
-def feed_context(db, user, posts):
+def feed_context(db, user, posts, reasons=None):
     orig = originals(db, posts, user)
     all_posts = posts + list(orig.values())
     return {"posts": posts, "st": post_state(db, user, all_posts), "originals": orig,
-            "repost_counts": repost_counts(db, all_posts)}
+            "repost_counts": repost_counts(db, all_posts), "reasons": reasons or {}}

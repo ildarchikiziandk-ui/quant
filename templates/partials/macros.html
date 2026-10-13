@@ -116,6 +116,7 @@
             <a href="/post/{{ main.id }}/stats">{{ icon("chart") }} Статистика</a>
             {%- endif %}
             {%- if user and user.id != main.user_id %}
+            <button data-act="not-interested" data-id="{{ main.id }}">{{ icon("eye") }} Не интересно</button>
             <button data-act="toggle" data-url="/mute/{{ main.author.username }}" data-msg="Готово: показ постов автора изменён">{{ icon("mute") }} Скрыть автора</button>
             <button data-act="report-post" data-id="{{ main.id }}">{{ icon("flag") }} Пожаловаться</button>
             {%- endif %}

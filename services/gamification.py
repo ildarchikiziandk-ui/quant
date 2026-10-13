@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 
 import config
 import models
+from services import prefs
 
 
 def level_for(points):
@@ -24,7 +25,8 @@ def add_points(user, db, points):
     user.total_points = (user.total_points or 0) + points
     new_level = level_for(user.total_points)
     if new_level > (user.level or 1):
-        db.add(models.Notification(user_id=user.id, type="level", text=f"Новый уровень: {new_level} ✨"))
+        if prefs.get(user, "notify_achievements"):
+            db.add(models.Notification(user_id=user.id, type="level", text=f"Новый уровень: {new_level} ✨"))
     user.level = new_level
     if (user.total_points or 0) >= 1000:
         check_achievement(user, db, "rich")
@@ -70,7 +72,8 @@ def _progress_challenge(user, db, task_type):
         uc.is_completed = True
         uc.completed_at = now
         add_points(user, db, ch.points)
-        db.add(models.Notification(user_id=user.id, type="achievement", text=f"Челлендж выполнен: {ch.emoji} {ch.title}"))
+        if prefs.get(user, "notify_achievements"):
+            db.add(models.Notification(user_id=user.id, type="achievement", text=f"Челлендж выполнен: {ch.emoji} {ch.title}"))
 
 
 def current_raffle(db):
@@ -102,7 +105,8 @@ def draw_raffle(db, raffle):
         if winner:
             raffle.winner_id = winner.id
             grant_plus(winner, raffle.prize_days or 30)
-            db.add(models.Notification(user_id=winner.id, type="raffle", text=f"🎉 Ты выиграл розыгрыш: {raffle.prize}!"))
+            if prefs.get(winner, "notify_raffle"):
+                db.add(models.Notification(user_id=winner.id, type="raffle", text=f"🎉 Ты выиграл розыгрыш: {raffle.prize}!"))
     db.commit()
     return raffle
 
@@ -158,7 +162,8 @@ def check_achievement(user, db, code):
     if db.query(models.UserAchievement).filter_by(user_id=user.id, achievement_id=ach.id).first():
         return False
     db.add(models.UserAchievement(user_id=user.id, achievement_id=ach.id))
-    db.add(models.Notification(user_id=user.id, type="achievement", text=f"Получено достижение: {ach.emoji} {ach.name}"))
+    if prefs.get(user, "notify_achievements"):
+        db.add(models.Notification(user_id=user.id, type="achievement", text=f"Получено достижение: {ach.emoji} {ach.name}"))
     db.flush()
     add_points(user, db, ach.points_reward)
     return True

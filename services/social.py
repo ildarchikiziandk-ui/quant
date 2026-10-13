@@ -129,6 +129,10 @@ def can_view_post(db, viewer, post):
         return True
     if post.is_draft or not post.is_published:
         return False
+    if not viewer:
+        from services import prefs
+        if post.author and prefs.get(post.author, "guests_hidden"):
+            return False
     if post.scheduled_at and post.scheduled_at > datetime.utcnow():
         return False
     if not can_see_content(db, viewer, post.author):
@@ -166,6 +170,10 @@ def notify(db, user_id, ntype, from_user=None, post_id=None, text="", url=None):
     pref = NOTIFY_PREF.get(ntype)
     if pref and getattr(target, pref) is False:
         return None
+    from services import prefs
+    extra = prefs.NOTIFY_PREFS.get(ntype)
+    if extra and not prefs.get(target, extra):
+        return None
     if from_user and is_blocked_between(db, from_user, target):
         return None
     n = models.Notification(user_id=user_id, from_user_id=from_user.id if from_user else None, type=ntype, post_id=post_id, text=text or "")
@@ -182,8 +190,9 @@ def process_mentions(db, author, text, post_id=None, kind="mention"):
     if not names:
         return
     users = db.query(models.User).filter(models.User.username.in_(names)).all()
+    from services import prefs
     for u in users[:20]:
-        if u.id != author.id:
+        if u.id != author.id and prefs.audience_allows(db, u, author, "who_can_mention"):
             notify(db, u.id, kind, author, post_id=post_id)
 
 

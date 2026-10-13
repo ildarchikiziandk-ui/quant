@@ -57,6 +57,7 @@ class User(Base):
     notify_messages = Column(Boolean, default=True)
     profile_views = Column(Integer, default=0)
     pronouns = Column(String, default="")
+    prefs = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -713,3 +714,22 @@ class ModerationFlag(Base):
     status = Column(String, default="new")  # new | approved | removed
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", foreign_keys=[user_id])
+
+
+class SeenPost(Base):
+    """Какие посты пользователь уже видел в рекомендациях — чтобы не показывать одно и то же."""
+    __tablename__ = "seen_posts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    post_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class NotInterested(Base):
+    """Кнопка «Не интересно»: пост скрывается, а похожее показывается реже."""
+    __tablename__ = "not_interested"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    post_id = Column(Integer, index=True)
+    author_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

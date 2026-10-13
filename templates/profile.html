@@ -45,7 +45,7 @@
     <div class="profile-links">
       {% if pu.city %}<span>{{ icon("map") }} {{ pu.city }}</span>{% endif %}
       {% if pu.website %}<span>{{ icon("link") }} <a href="{{ pu.website }}" target="_blank" rel="noopener nofollow">{{ pu.website.replace('https://','').replace('http://','')[:40] }}</a></span>{% endif %}
-      {% if pu.birthday %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}</span>{% endif %}
+      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}</span>{% endif %}
       <span>{{ icon("calendar") }} С нами с {{ pu.created_at.strftime("%m.%Y") if pu.created_at else "давно" }}</span>
       {% if pu.telegram_link %}<a href="https://t.me/{{ pu.telegram_link.lstrip('@').replace('https://t.me/','') }}" target="_blank" rel="noopener">Telegram</a>{% endif %}
       {% if pu.youtube_link %}<a href="{{ pu.youtube_link if pu.youtube_link.startswith('http') else 'https://youtube.com/@' ~ pu.youtube_link.lstrip('@') }}" target="_blank" rel="noopener">YouTube</a>{% endif %}
@@ -53,15 +53,17 @@
     </div>
     <div class="profile-stats">
       <span><b>{{ stats.posts }}</b> <span class="muted">постов</span></span>
-      <a href="/profile/{{ pu.username }}/followers"><b id="followers-count">{{ stats.followers }}</b> <span class="muted">подписчиков</span></a>
-      <a href="/profile/{{ pu.username }}/following"><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
+      <a href="/profile/{{ pu.username }}/followers"{% if not me and pref(pu, "hide_followers_list") %} onclick="return false" style="cursor:default"{% endif %}><b id="followers-count">{{ stats.followers }}</b> <span class="muted">подписчиков</span></a>
+      <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
       <span><b>{{ stats.likes|compact }}</b> <span class="muted">лайков</span></span>
     </div>
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
+    {% if me or not (pref(pu, "hide_gamification") and pref(pu, "hide_achievements")) %}
     <div class="row mt small" style="gap:10px">
-      <span class="tag-pill">🏅 Уровень {{ pu.level or 1 }}</span><span class="tag-pill">✨ {{ pu.total_points or 0 }}</span>{% if pu.streak_days %}<span class="tag-pill">🔥 {{ pu.streak_days }} дн.</span>{% endif %}
-      <a href="/achievements?username={{ pu.username }}" class="tag-pill">🏆 {{ achievements|length }} достижений</a>
+      {% if me or not pref(pu, "hide_gamification") %}<span class="tag-pill">🏅 Уровень {{ pu.level or 1 }}</span><span class="tag-pill">✨ {{ pu.total_points or 0 }}</span>{% if pu.streak_days %}<span class="tag-pill">🔥 {{ pu.streak_days }} дн.</span>{% endif %}{% endif %}
+      {% if me or not pref(pu, "hide_achievements") %}<a href="/achievements?username={{ pu.username }}" class="tag-pill">🏆 {{ achievements|length }} достижений</a>{% endif %}
     </div>
+    {% endif %}
     {% if me %}
     <div class="grid-4 mt">
       <div class="stat-tile"><b>{{ stats.views|compact }}</b><span>Просмотры постов</span></div>
@@ -90,7 +92,7 @@
   <a href="?tab=posts" class="{% if tab == 'posts' %}active{% endif %}">Посты</a>
   <a href="?tab=replies" class="{% if tab == 'replies' %}active{% endif %}">Ответы</a>
   <a href="?tab=media" class="{% if tab == 'media' %}active{% endif %}">Медиа</a>
-  {% if not pu.hide_likes or me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}">Лайки</a>{% endif %}
+  {% if me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}" title="Видите только вы">Лайки 🔒</a>{% endif %}
 </div>
 {% if tab == "media" %}
   <div class="grid-3">{% for p in posts %}<a href="/post/{{ p.id }}" class="media-tile">{% if p.media_type == 'video' %}<video src="{{ p.image }}" muted preload="metadata"></video><span class="over">▶</span>{% else %}<img src="{{ p.image }}" alt="" loading="lazy">{% endif %}<span class="over" style="left:6px;right:auto">❤ {{ p.likes|length }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Медиа пока нет</div>{% endfor %}</div>
@@ -98,7 +100,7 @@
   {% for c in replies %}<a class="card" href="/post/{{ c.post_id }}#comment-{{ c.id }}" style="display:block"><div class="tiny muted mb">в ответ на пост {{ c.post.author.name or c.post.author.username }} · {{ c.created_at|ago }}</div><div>{{ c.content }}</div></a>{% else %}<div class="card empty">Ответов пока нет</div>{% endfor %}
 {% else %}
   {% if pinned_post %}<div class="tiny muted" style="padding:0 6px 6px">📌 Закреплённый пост</div>{{ post_card(pinned_post, user, st, originals, repost_counts, can_mod) }}{% endif %}
-  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">📝</div>{% if me %}Здесь появятся ваши посты. <a href="/#compose" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
+  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">📝</div>{% if me %}Здесь появятся ваши посты. <a href="/create" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
 {% endif %}
 {% endif %}
 

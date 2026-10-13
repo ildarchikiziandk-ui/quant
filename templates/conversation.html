@@ -80,7 +80,7 @@ setInterval(()=>{ if(!document.hidden) poll(); }, 2500);
 async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`); const tmp=document.createElement('div'); tmp.innerHTML=r.html; document.getElementById('msg-'+id)?.replaceWith(tmp.firstElementChild); }
 if(inp){
   inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; typingPing(); });
-  inp.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey && !document.querySelector('.suggest.open')){ e.preventDefault(); submit(); } if(e.key==='ArrowUp' && !inp.value){ const mine=[...box.querySelectorAll('.msg.mine')].pop(); if(mine) startEdit(mine.dataset.id, mine.dataset.raw); } });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter' && ((APP.prefs||{}).enter_to_send===false ? (e.ctrlKey||e.metaKey) : !e.shiftKey) && !document.querySelector('.suggest.open')){ e.preventDefault(); submit(); } if(e.key==='ArrowUp' && !inp.value){ const mine=[...box.querySelectorAll('.msg.mine')].pop(); if(mine) startEdit(mine.dataset.id, mine.dataset.raw); } });
   document.getElementById('send-btn').onclick = submit;
 }
 let lastTyping=0; function typingPing(){ const n=Date.now(); if(n-lastTyping>3000){ lastTyping=n; fetch(`/messages/typing/${OTHER}`,{method:'POST'}); } }

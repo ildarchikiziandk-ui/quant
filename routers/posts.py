@@ -9,7 +9,7 @@ import config
 import models
 from database import get_db
 from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render
-from services import feed, gamification, moderation, ratelimit, social
+from services import feed, gamification, moderation, prefs, ratelimit, social
 from services.text import censor, extract_hashtags
 from services.uploads import delete_file, is_upload, save_file
 
@@ -370,6 +370,8 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
         return json_error(social.VERIFY_MSG, 403)
     if post.comments_disabled and post.user_id != user.id:
         return json_error("Автор отключил комментарии", 403)
+    if not prefs.audience_allows(db, post.author, user, "who_can_comment"):
+        return json_error("Автор ограничил, кто может комментировать", 403)
     if not ratelimit.hit(f"comment:{user.id}", 30, 300):
         return json_error("Слишком часто", 429)
     data = await read_payload(request)
@@ -488,6 +490,20 @@ def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
     return redirect(f"/post/{poll.post_id}")
 
 
+@router.post("/post/{post_id}/not-interested")
+def not_interested(post_id: int, request: Request, db: Session = Depends(get_db)):
+    from services import recommend
+    user = current_user(request, db)
+    post = _get_post(db, post_id)
+    if not user or not post:
+        return json_error("not found", 404)
+    if not db.query(models.NotInterested).filter_by(user_id=user.id, post_id=post_id).first():
+        db.add(models.NotInterested(user_id=user.id, post_id=post_id, author_id=post.user_id))
+        db.commit()
+    recommend.invalidate(user.id)
+    return JSONResponse({"ok": True})
+
+
 @router.post("/repost/{post_id}")
 async def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
@@ -496,6 +512,8 @@ async def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
         return err
     if orig.is_repost and orig.repost_id:
         orig = _get_post(db, orig.repost_id) or orig
+    if orig.user_id != user.id and not prefs.get(orig.author, "allow_reposts"):
+        return json_error("Автор запретил репосты своих постов", 403)
     data = await read_payload(request)
     comment = censor((data.get("comment") or "").strip()[:1000], social.stop_words(db))
     existing = db.query(models.Post).filter_by(user_id=user.id, is_repost=True, repost_id=orig.id).first()
