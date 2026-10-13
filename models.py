@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -696,3 +696,20 @@ class ModLog(Base):
     details = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     actor = relationship("User", foreign_keys=[actor_id])
+
+
+class ModerationFlag(Base):
+    """Пометка собственной модели модерации: подозрительный пост или комментарий ждёт решения модератора."""
+    __tablename__ = "moderation_flags"
+    id = Column(Integer, primary_key=True, index=True)
+    kind = Column(String, default="post")  # post | comment
+    object_id = Column(Integer, index=True)
+    post_id = Column(Integer, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    label = Column(String, default="")
+    score = Column(Float, default=0.0)
+    snippet = Column(Text, default="")
+    held = Column(Boolean, default=False)
+    status = Column(String, default="new")  # new | approved | removed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", foreign_keys=[user_id])

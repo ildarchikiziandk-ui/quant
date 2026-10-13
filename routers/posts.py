@@ -9,7 +9,7 @@ import config
 import models
 from database import get_db
 from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render
-from services import feed, gamification, ratelimit, social
+from services import feed, gamification, moderation, ratelimit, social
 from services.text import censor, extract_hashtags
 from services.uploads import delete_file, is_upload, save_file
 
@@ -147,6 +147,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
                        comments_disabled=bool(form.get("comments_disabled")))
     db.add(post)
     db.flush()
+    flag = moderation.review(db, "post", post, user, content)
     if len(saved) > 1:
         for i, (url, mt) in enumerate(saved):
             db.add(models.PostMedia(post_id=post.id, media_url=url, media_type=mt, position=i))
@@ -179,7 +180,9 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         gamification.check_achievement(user, db, "night_owl")
     db.commit()
     if wants_json(request):
-        return JSONResponse({"ok": True, "post_id": post.id, "scheduled": bool(scheduled), "warnings": errors})
+        return JSONResponse({"ok": True, "post_id": post.id, "scheduled": bool(scheduled), "warnings": errors,
+                             "held": bool(flag and flag.held),
+                             "message": "Пост отправлен на проверку модераторам" if flag and flag.held else ""})
     return redirect(f"/post/{post.id}")
 
 
@@ -202,6 +205,7 @@ async def edit_post(post_id: int, request: Request, db: Session = Depends(get_db
     if "comments_disabled" in data:
         post.comments_disabled = bool(data.get("comments_disabled"))
     update_trends(db, post.content)
+    moderation.review(db, "post", post, user, post.content)
     db.commit()
     return JSONResponse({"ok": True})
 
@@ -222,7 +226,7 @@ def purge_post(db, post):
         db.query(models.CommentLike).filter(models.CommentLike.comment_id.in_(cids)).delete(synchronize_session=False)
         db.query(models.Comment).filter(models.Comment.post_id == pid).update({"parent_id": None}, synchronize_session=False)
     for model in (models.Like, models.Whale, models.Comment, models.Notification, models.Reaction, models.Bookmark,
-                  models.PostReport, models.PostMedia):
+                  models.PostReport, models.PostMedia, models.ModerationFlag):
         db.query(model).filter(model.post_id == pid).delete(synchronize_session=False)
     db.query(models.User).filter(models.User.pinned_post_id == pid).update({"pinned_post_id": None}, synchronize_session=False)
     db.query(models.Post).filter(models.Post.id == pid).delete(synchronize_session=False)
@@ -381,6 +385,7 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
     c = models.Comment(content=content, user_id=user.id, post_id=post_id, parent_id=parent.id if parent else None)
     db.add(c)
     db.flush()
+    moderation.review(db, "comment", c, user, content)
     social.notify(db, post.user_id, "comment", user, post_id)
     if parent and parent.user_id not in (user.id, post.user_id):
         social.notify(db, parent.user_id, "reply", user, post_id)
@@ -502,6 +507,7 @@ async def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
                     original_comment=comment)
     db.add(p)
     db.flush()
+    moderation.review(db, "post", p, user, comment)
     social.notify(db, orig.user_id, "repost", user, orig.id)
     if comment:
         social.process_mentions(db, user, comment, p.id)

@@ -411,3 +411,40 @@ def test_admin_reset_password(owner, alice):
     r = owner.post("/admin/reset-password/alice")
     temp = re.search(r"Временный пароль: (\S+) ", r.text).group(1)
     assert make_client().post("/login", data={"username": "alice", "password": temp}, follow_redirects=False).status_code == 303
+
+
+def test_moderation_model_unit():
+    from services import moderation as M
+    assert M.toxicity("Ты тупой идиот") > 0.9
+    assert M.toxicity("ты т.у.п.о.й д*бил") > 0.7
+    assert M.toxicity("иди н а х у й") > 0.9
+    for ok in ["Привет! Как дела?", "Блин, проспал", "Офигенный закат, ребята!", "Я убью этот уровень в игре", ""]:
+        assert M.toxicity(ok) < 0.5, ok
+    assert M.spam("Заработок от 5000 в день! Пиши в лс, переходи t.me/money") > 0.7
+    assert M.spam("Кто со мной на концерт?") == 0
+
+
+def test_moderation_flow(owner, alice, bob):
+    clean = create_post(alice, "Сегодня отличная погода")
+    r = alice.post("/post/create", data={"content": "Все вокруг тупые уроды и дебилы, идите нахуй"}, headers=J).json()
+    assert r["held"] and "проверку" in r["message"]
+    bad = r["post_id"]
+    assert bob.get(f"/post/{bad}").status_code == 404
+    assert alice.get(f"/post/{bad}").status_code == 200
+    assert bob.post(f"/post/{clean}/comment", data={"content": "заткнись, дебил"}, headers=J).json()["ok"]
+    s = db()
+    flags = s.query(models.ModerationFlag).filter_by(status="new").all()
+    assert {f.kind for f in flags} == {"post", "comment"}
+    assert not s.query(models.ModerationFlag).filter_by(object_id=clean, kind="post").first()
+    pf = next(f for f in flags if f.kind == "post")
+    cf = next(f for f in flags if f.kind == "comment")
+    s.close()
+    page = owner.get("/admin?tab=ai").text
+    assert "Нейромодерация" in page and "дебил" in page
+    owner.post(f"/admin/ai/{pf.id}/approve")
+    assert bob.get(f"/post/{bad}").status_code == 200
+    owner.post(f"/admin/ai/{cf.id}/remove")
+    s = db()
+    assert s.get(models.Comment, cf.object_id) is None
+    assert s.query(models.ModerationFlag).filter_by(status="new").count() == 0
+    s.close()

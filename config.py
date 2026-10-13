@@ -63,6 +63,11 @@ SMTP_USER = env("SMTP_USER", "")
 SMTP_PASSWORD = env("SMTP_PASSWORD", "")
 EMAIL_ENABLED = bool(SMTP_USER and SMTP_PASSWORD)
 
+# --- Собственная модель модерации (services/moderation.py) --------------
+MODERATION_ENABLED = env_bool("MODERATION_ENABLED", True)
+MOD_FLAG_THRESHOLD = float(env("MOD_FLAG_THRESHOLD", "0.7"))   # с этой оценки пост попадает модераторам
+MOD_HOLD_THRESHOLD = float(env("MOD_HOLD_THRESHOLD", "0.93"))  # с этой — пост скрывается до проверки
+
 # --- Push (VAPID) --------------------------------------------------------
 VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", "")

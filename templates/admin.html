@@ -5,8 +5,8 @@
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">🛡 Админ-панель</div><span class="tag-pill">{{ "владелец" if is_owner else "модератор" }}</span></div>
 <div class="settings-nav">
-  {% for k, l in [("dashboard","📈 Обзор"),("users","👥 Пользователи"),("reports","🚩 Жалобы (" ~ (post_reports|length + user_reports|length) ~ ")"),("requests","📨 Заявки (" ~ special_requests|length ~ ")"),("support","🛟 Поддержка"),("moderation","🧹 Стоп-слова"),("plus","✨ Промокоды"),("content","📣 Объявления и события"),("logs","📜 Журнал")] %}
-  {% if is_owner or k in ("dashboard","users","reports","support","moderation","logs") %}<a href="/admin?tab={{ k }}" class="chip {% if tab == k %}active{% endif %}">{{ l }}</a>{% endif %}
+  {% for k, l in [("dashboard","📈 Обзор"),("users","👥 Пользователи"),("reports","🚩 Жалобы (" ~ (post_reports|length + user_reports|length) ~ ")"),("requests","📨 Заявки (" ~ special_requests|length ~ ")"),("support","🛟 Поддержка"),("ai","🤖 Нейромодерация (" ~ ai_flags|length ~ ")"),("moderation","🧹 Стоп-слова"),("plus","✨ Промокоды"),("content","📣 Объявления и события"),("logs","📜 Журнал")] %}
+  {% if is_owner or k in ("dashboard","users","reports","ai","support","moderation","logs") %}<a href="/admin?tab={{ k }}" class="chip {% if tab == k %}active{% endif %}">{{ l }}</a>{% endif %}
   {% endfor %}
 </div>
 
@@ -88,6 +88,24 @@
   <div style="padding:10px 0;border-top:1px solid var(--border)"><div class="tiny faint">{{ n.created_at|ago }}{% if n.reply_email %} · ответ на {{ n.reply_email }}{% endif %}</div><div class="small" style="white-space:pre-wrap">{{ n.text }}</div>
   <form method="post" action="/support/reply/{{ n.id }}" class="row mt"><input name="reply" placeholder="Ответ…" required style="margin:0"><button class="btn sm">Ответить</button></form></div>
 {% else %}<div class="muted small">Обращений нет</div>{% endfor %}</div>
+
+{% elif tab == "ai" %}
+<div class="card"><div class="card-title">🤖 Нейромодерация · {{ ai_flags|length }}</div>
+  <p class="small muted mb">Собственная модель {{ brand }} проверяет каждый новый пост и комментарий.
+  {% if mod_cfg.enabled %}С оценки <b>{{ (mod_cfg.flag * 100)|round|int }}%</b> материал попадает сюда, с <b>{{ (mod_cfg.hold * 100)|round|int }}%</b> пост скрывается до вашего решения.{% else %}<b>Сейчас выключена</b> (MODERATION_ENABLED=0 в .env).{% endif %}
+  Модель может ошибаться — сама она ничего не удаляет.</p>
+{% for f in ai_flags %}
+  <div style="padding:10px 0;border-top:1px solid var(--border)">
+    <div class="row small"><b>{{ "Пост" if f.kind == "post" else "Комментарий" }}</b>
+      {% if f.user %}<a href="/profile/{{ f.user.username }}">@{{ f.user.username }}</a>{% endif %}
+      <span class="tag-pill">{{ "оскорбления / мат" if f.label == "toxic" else "спам" }} · {{ (f.score * 100)|round|int }}%</span>
+      {% if f.held %}<span class="tag-pill">скрыт до проверки</span>{% endif %}<span class="faint">{{ f.created_at|ago }}</span></div>
+    <div style="height:6px;border-radius:3px;background:var(--border);margin:8px 0;overflow:hidden"><div style="height:100%;width:{{ (f.score * 100)|round|int }}%;background:var(--text)"></div></div>
+    <a href="/post/{{ f.post_id }}{% if f.kind == 'comment' %}#comment-{{ f.object_id }}{% endif %}" class="quote" style="display:block;margin:6px 0;white-space:pre-wrap">{{ f.snippet[:300] }}</a>
+    <div class="row"><form method="post" action="/admin/ai/{{ f.id }}/approve"><button class="btn sm">✓ Всё в порядке{% if f.held %}, опубликовать{% endif %}</button></form>
+    <form method="post" action="/admin/ai/{{ f.id }}/remove"><button class="btn danger sm">Удалить</button></form></div>
+  </div>
+{% else %}<div class="muted small">Подозрительных материалов нет 🎉</div>{% endfor %}</div>
 
 {% elif tab == "moderation" %}
 <div class="card"><div class="card-title">Стоп-слова</div><p class="small muted mb">Слова автоматически маскируются звёздочками в постах, комментариях и сообщениях.</p>

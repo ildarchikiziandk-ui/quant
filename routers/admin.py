@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
+import config
 import models
 from database import get_db
 from deps import current_user, log_mod, redirect, render
@@ -74,6 +75,8 @@ def admin_page(request: Request, tab: str = "dashboard", q: str = "", db: Sessio
                challenges=db.query(models.WeeklyChallenge).order_by(models.WeeklyChallenge.created_at.desc()).limit(20).all(),
                raffle=gamification.current_raffle(db), logs=db.query(models.ModLog).order_by(models.ModLog.created_at.desc()).limit(100).all(),
                support=db.query(models.Notification).filter_by(type="support").order_by(models.Notification.created_at.desc()).limit(50).all(),
+               ai_flags=db.query(models.ModerationFlag).filter_by(status="new").order_by(models.ModerationFlag.score.desc()).limit(200).all(),
+               mod_cfg={"enabled": config.MODERATION_ENABLED, "flag": config.MOD_FLAG_THRESHOLD, "hold": config.MOD_HOLD_THRESHOLD},
                is_owner=user.is_owner)
     return render(request, db, "admin.html", sidebar=False, **ctx)
 
@@ -275,6 +278,47 @@ async def admin_special_request(req_id: int, action: str, request: Request, db: 
         log_mod(db, user, f"request_{action}", r.user.username, r.type)
         db.commit()
     return redirect("/admin?tab=requests")
+
+
+@router.post("/admin/ai/{flag_id}/{action}")
+def admin_ai_flag(flag_id: int, action: str, request: Request, db: Session = Depends(get_db)):
+    """Решение модератора по пометке нейросети: approve — всё в порядке, remove — удалить."""
+    user = _mod(request, db)
+    f = db.get(models.ModerationFlag, flag_id)
+    if not user or not f or f.status != "new":
+        return redirect("/admin?tab=ai")
+    if action == "approve":
+        if f.kind == "post" and f.held:
+            post = db.get(models.Post, f.object_id)
+            if post:
+                post.is_published = True
+                social.notify(db, f.user_id, "moderation", None, None, text="Модератор проверил ваш пост — он опубликован ✅")
+        f.status = "approved"
+        log_mod(db, user, "ai_approve", f"{f.kind}:{f.object_id}", f.snippet[:200])
+    elif action == "remove":
+        if f.kind == "post":
+            post = db.get(models.Post, f.object_id)
+            if post:
+                from routers.posts import purge_post
+                db.query(models.PostReport).filter_by(post_id=post.id).update({"status": "resolved", "post_id": None})
+                db.flush()
+                purge_post(db, post)
+        else:
+            c = db.get(models.Comment, f.object_id)
+            if c:
+                ids, frontier = [c.id], [c.id]
+                while frontier:
+                    frontier = [k.id for k in db.query(models.Comment.id).filter(models.Comment.parent_id.in_(frontier))]
+                    ids += frontier
+                db.query(models.CommentLike).filter(models.CommentLike.comment_id.in_(ids)).delete(synchronize_session=False)
+                db.query(models.Comment).filter(models.Comment.id.in_(ids)).update({"parent_id": None}, synchronize_session=False)
+                db.query(models.Comment).filter(models.Comment.id.in_(ids)).delete(synchronize_session=False)
+        db.query(models.ModerationFlag).filter_by(kind=f.kind, object_id=f.object_id, status="new").update({"status": "removed"})
+        social.notify(db, f.user_id, "moderation", None, None,
+                      text="Ваш " + ("пост" if f.kind == "post" else "комментарий") + " удалён модератором за нарушение правил.")
+        log_mod(db, user, "ai_remove", f"{f.kind}:{f.object_id}", f.snippet[:200])
+    db.commit()
+    return redirect("/admin?tab=ai")
 
 
 @router.post("/admin/stopwords")
