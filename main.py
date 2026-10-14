@@ -11,7 +11,7 @@ import migrations
 from database import SessionLocal
 from deps import templates
 from routers import (admin, api, auth_routes, explore, extras, feed, more, groups, messages, misc, notifications, posts,
-                     profile, settings, stories, tasks)
+                     profile, secret, settings, stories, tasks)
 
 migrations.run()
 
@@ -50,7 +50,7 @@ async def security_middleware(request: Request, call_next):
 
 
 for r in (auth_routes, feed, posts, profile, settings, messages, groups, stories, explore, notifications,
-          tasks, extras, more, admin, api, misc):
+          tasks, extras, more, secret, admin, api, misc):
     app.include_router(r.router)
 
 

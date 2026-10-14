@@ -825,3 +825,48 @@ def test_messages_are_encrypted_at_rest(alice, bob):
         assert c.execute(text("SELECT content FROM messages LIMIT 1")).scalar().startswith("enc1:")
     assert "старое сообщение" in bob.get("/messages/alice").text
     assert crypto.decrypt(crypto.encrypt("тест")) == "тест"
+
+
+def test_secret_chats_server_sees_only_ciphertext(alice, bob):
+    import base64, os
+    from datetime import datetime, timedelta
+    pa, pb = os.urandom(64).hex(), os.urandom(64).hex()
+    assert alice.post("/secret/start", json={"username": "bob", "pub": "zz", "ttl": 0}, headers=J).json()["ok"] is False
+    r = alice.post("/secret/start", json={"username": "@Bob", "pub": pa, "ttl": 30}, headers=J).json()
+    assert r["ok"] and len(r["ukm"]) == 16
+    cid = r["id"]
+    assert "🔐" in alice.get("/secret").text and alice.get(f"/secret/{cid}").status_code == 200
+    # пока bob не принял — писать нельзя, и принять может только bob
+    payload = base64.b64encode(os.urandom(60)).decode()
+    assert alice.post(f"/secret/{cid}/send", json={"payload": payload}, headers=J).json()["ok"] is False
+    assert alice.post(f"/secret/{cid}/accept", json={"pub": pb}, headers=J).json()["ok"] is False
+    assert bob.post(f"/secret/{cid}/accept", json={"pub": pb}, headers=J).json()["ok"]
+    st = bob.get(f"/secret/{cid}/state").json()
+    assert st["status"] == "active" and st["a_pub"] == pa and st["b_pub"] == pb
+    # посторонний не видит чат
+    carol = register(make_client(), "carol")
+    assert carol.get(f"/secret/{cid}/state").status_code == 404
+    assert carol.post(f"/secret/{cid}/send", json={"payload": payload}, headers=J).status_code == 404
+    # мусор и слишком длинное отклоняются, нормальный шифротекст принимается
+    assert alice.post(f"/secret/{cid}/send", json={"payload": "не base64!"}, headers=J).json()["ok"] is False
+    assert alice.post(f"/secret/{cid}/send", json={"payload": "A" * 70000}, headers=J).json()["ok"] is False
+    assert alice.post(f"/secret/{cid}/send", json={"payload": payload}, headers=J).json()["ok"]
+    msgs = bob.get(f"/secret/{cid}/messages").json()["messages"]
+    assert len(msgs) == 1 and msgs[0]["payload"] == payload and msgs[0]["expires"]
+    s = db()
+    m = s.query(models.SecretMessage).filter_by(chat_id=cid).one()
+    assert m.payload == payload  # сервер хранит только непрозрачный шифротекст
+    # таймер самоуничтожения
+    m.expires_at = datetime.utcnow() - timedelta(seconds=1)
+    s.commit()
+    s.close()
+    data = bob.get(f"/secret/{cid}/messages").json()
+    assert data["messages"] == [] and data["alive"] == []
+    s = db()
+    assert s.query(models.SecretMessage).filter_by(chat_id=cid).count() == 0
+    s.close()
+    # удаление — у обоих
+    assert bob.post(f"/secret/{cid}/ttl", json={"ttl": 7}, headers=J).json()["ok"] is False
+    assert bob.post(f"/secret/{cid}/ttl", json={"ttl": 300}, headers=J).json()["ttl"] == 300
+    bob.post(f"/secret/{cid}/delete", headers=J)
+    assert alice.get(f"/secret/{cid}/state").status_code == 404

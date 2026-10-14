@@ -68,6 +68,20 @@ MODERATION_ENABLED = env_bool("MODERATION_ENABLED", True)
 MOD_FLAG_THRESHOLD = float(env("MOD_FLAG_THRESHOLD", "0.7"))   # с этой оценки пост попадает модераторам
 MOD_HOLD_THRESHOLD = float(env("MOD_HOLD_THRESHOLD", "0.93"))  # с этой — пост скрывается до проверки
 
+# --- Секретные чаты (ГОСТ, сквозное шифрование) --------------------------
+SECRET_CHATS_ENABLED = env_bool("SECRET_CHATS_ENABLED", True)
+# Сколько дней сервер хранит шифротекст после срабатывания таймера/удаления (0 — удалять сразу).
+# Если сервис внесён в реестр ОРИ (149-ФЗ ст. 10.1), закон требует хранить сообщения 6 месяцев — поставьте 180.
+SECRET_RETAIN_DAYS = int(env("SECRET_RETAIN_DAYS", "0"))
+
+# --- Оператор персональных данных (152-ФЗ) — показывается в политике конфиденциальности ---
+OPERATOR_NAME = env("OPERATOR_NAME", "")      # ФИО (самозанятый/ИП) или название организации
+OPERATOR_INN = env("OPERATOR_INN", "")
+OPERATOR_ADDRESS = env("OPERATOR_ADDRESS", "")
+OPERATOR_EMAIL = env("OPERATOR_EMAIL", "") or BRAND_EMAIL
+SERVER_LOCATION = env("SERVER_LOCATION", "")  # например «Россия, Москва» — для 152-ФЗ ст. 18 ч. 5 (локализация)
+MIN_AGE = int(env("MIN_AGE", "14"))
+
 # --- Push (VAPID) --------------------------------------------------------
 VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", "")

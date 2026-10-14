@@ -870,3 +870,29 @@ class PostReminder(Base):
     post_id = Column(Integer)
     remind_at = Column(DateTime, index=True)
     done = Column(Boolean, default=False)
+
+
+class SecretChat(Base):
+    """Секретный чат: сквозное шифрование по ГОСТ в браузере. Сервер хранит только открытые ключи и шифротекст."""
+    __tablename__ = "secret_chats"
+    id = Column(Integer, primary_key=True, index=True)
+    a_id = Column(Integer, index=True)  # кто начал
+    b_id = Column(Integer, index=True)  # кого пригласили
+    a_pub = Column(String(128), default="")  # открытый ключ ГОСТ Р 34.10-2012 (hex, 64 байта)
+    b_pub = Column(String(128), default="")
+    ukm = Column(String(16), default="")  # 8 случайных байт для VKO
+    ttl = Column(Integer, default=0)  # таймер самоуничтожения сообщений, секунд (0 — выкл.)
+    status = Column(String(10), default="pending")  # pending / active / closed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SecretMessage(Base):
+    __tablename__ = "secret_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, index=True)
+    sender_id = Column(Integer)
+    payload = Column(Text, default="")  # base64(iv ‖ имитовставка ‖ шифротекст) — сервер не может прочитать
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True, index=True)
+    hidden = Column(Boolean, default=False)  # истёк таймер: пользователям не показывается

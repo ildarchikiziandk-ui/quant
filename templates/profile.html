@@ -20,6 +20,7 @@
       {% elif user %}
         {% if not rel.i_blocked and not rel.blocked_me %}
         <a href="/messages/{{ pu.username }}" class="icon-btn" title="Написать">{{ icon("chat") }}</a>
+        <a href="/secret?u={{ pu.username }}" class="icon-btn" title="Секретный чат (ГОСТ)">🔐</a>
         <button class="btn sm {% if rel.is_following or rel.requested %}ghost{% endif %}" data-act="follow" data-user="{{ pu.username }}">{% if rel.is_following %}Вы подписаны{% elif rel.requested %}Заявка отправлена{% elif rel.follows_me %}Подписаться в ответ{% else %}Подписаться{% endif %}</button>
         {% endif %}
         <div class="menu-wrap">
