@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/macros.html" import avatar %}
 {% block title %}Уведомления — {{ brand }}{% endblock %}
-{% set ICONS = {"like":"❤️","whale":"🐋","comment":"💬","reply":"↩️","follow":"👤","follow_request":"👋","follow_accept":"✅","mention":"@","repost":"🔁","reaction":"😊","comment_like":"❤️","achievement":"🏆","level":"🏅","raffle":"🎉","support":"🛟","support_reply":"🛟","system":"✨","group_invite":"👥","story_reaction":"📸","moderation":"🛡"} %}
+{% set ICONS = {"like":"❤️","whale":"🐋","comment":"💬","reply":"↩️","follow":"👤","follow_request":"👋","follow_accept":"✅","mention":"@","repost":"🔁","reaction":"😊","comment_like":"❤️","achievement":"🏆","level":"🏅","raffle":"🎉","support":"🛟","support_reply":"🛟","system":"✨","group_invite":"👥","story_reaction":"📸","moderation":"🛡","question":"❓","answer":"💡","gift":"🎁","event":"📅","invite":"🤝"} %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">🔔 Уведомления</div>
   <div class="row"><a class="btn soft sm" href="/mentions">@ Упоминания</a><form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="btn ghost sm">Очистить</button></form></div></div>

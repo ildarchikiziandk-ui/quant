@@ -553,3 +553,127 @@ def test_timezones(alice, bob):
     from services import prefs
     assert prefs.get(s.query(models.User).filter_by(username="krsk").first(), "timezone") == "krasnoyarsk"
     s.close()
+
+
+def test_questions_flow(alice, bob):
+    r = bob.post("/ask/alice", data={"text": "Какая твоя любимая книга?", "anonymous": "1"}, headers=J)
+    assert r.json()["ok"]
+    assert bob.post("/ask/alice", data={"text": "ты тупой дебил"}, headers=J).status_code == 400  # модель модерации
+    inbox = alice.get("/questions").text
+    assert "любимая книга" in inbox and "🕶 Аноним" in inbox  # анонимно
+    s = db()
+    q = s.query(models.Question).first()
+    s.close()
+    alice.post(f"/questions/{q.id}/answer", data={"answer": "Мастер и Маргарита", "to_feed": "1"}, headers=J)
+    page = bob.get("/ask/alice").text
+    assert "Мастер и Маргарита" in page and "Аноним" in page
+    s = db()
+    assert s.query(models.Post).filter(models.Post.content.like("%Мастер и Маргарита%")).count() == 1
+    s.close()
+    alice.post("/settings/prefs/privacy", data={"who_can_ask": "nobody", "who_can_comment": "all", "who_can_mention": "all",
+                                                "allow_reposts": "on", "read_receipts": "on", "typing_status": "on"})
+    assert bob.post("/ask/alice", data={"text": "ещё вопрос"}, headers=J).status_code == 403
+
+
+def test_hashtag_follow_feed(alice, bob):
+    pid = create_post(bob, "Сегодня собрал новый ПК #железо")
+    assert alice.post("/hashtag/железо/follow", headers=J).json()["following"]
+    assert "Вы подписаны на тему" in alice.get("/hashtag/железо").text
+    assert f'id="post-{pid}"' in alice.get("/?tab=following").text  # тема в «Подписках», хотя на автора не подписан
+
+
+def test_events(alice, bob):
+    r = alice.post("/events/create", data={"title": "Пикник в парке", "starts_at": "2030-06-01T15:00", "place": "Парк Горького",
+                                           "description": "Берите пледы"}, follow_redirects=False)
+    assert r.status_code == 303
+    eid = int(r.headers["location"].rsplit("/", 1)[1])
+    assert "Пикник в парке" in bob.get("/events").text
+    bob.post(f"/events/{eid}/rsvp/going", headers=J)
+    page = bob.get(f"/events/{eid}").text
+    assert "✓ Я иду" in page and "Идут · 2" in page
+    assert "Пикник" in alice.get("/events?tab=mine").text
+
+
+def test_gifts(alice, bob):
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    a.total_points = 100
+    s.commit()
+    s.close()
+    r = alice.post("/gifts/bob/send", data={"gift": "rose", "message": "Спасибо!"}, headers=J).json()
+    assert r["ok"] and r["balance"] == 100  # −20 за розу, +20 за достижение «Щедрая душа»
+    assert alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).status_code == 400  # не хватает очков
+    assert "🌹" in alice.get("/profile/bob").text and "Спасибо!" in bob.get("/gifts/bob").text
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    assert a.total_points >= 100 and a.spent_points == 20  # уровень не падает от трат
+    s.close()
+
+
+def test_bookmark_collections(alice, bob):
+    pid = create_post(bob, "Рецепт борща")
+    alice.post(f"/bookmark/{pid}", headers=J)
+    alice.post("/collections/create", data={"name": "Рецепты", "emoji": "🍲"})
+    s = db()
+    c = s.query(models.BookmarkCollection).first()
+    s.close()
+    alice.post(f"/bookmarks/{pid}/move", data={"collection_id": c.id}, headers=J)
+    assert "Рецепт борща" in alice.get(f"/bookmarks?c={c.id}").text
+    assert "🍲 Рецепты" in alice.get("/bookmarks").text
+
+
+def test_quiz(alice, bob):
+    r = bob.post("/post/create", data={"content": "Викторина!", "poll_question": "Столица Франции?", "poll_options": ["Берлин", "Париж", "Рим"],
+                                       "quiz": "1", "quiz_correct": "2"}, headers=J).json()
+    s = db()
+    poll = s.query(models.Poll).filter_by(post_id=r["post_id"]).first()
+    paris = next(o for o in poll.options if o.text == "Париж")
+    rome = next(o for o in poll.options if o.text == "Рим")
+    s.close()
+    pts = lambda: db().query(models.User).filter_by(username="alice").first().total_points
+    before = pts()
+    v = alice.post(f"/poll/vote/{paris.id}", headers=J).json()
+    assert v["right"] is True and v["correct"] == paris.id and pts() == before + 10
+    carol = register(make_client(), "carolq")
+    assert carol.post(f"/poll/vote/{rome.id}", headers=J).json()["right"] is False
+    assert "🧠 Викторина" in alice.get(f"/post/{r['post_id']}").text
+
+
+def test_invite_and_interests(alice, bob):
+    assert "/invite/alice" in alice.get("/invite").text
+    c = make_client()
+    r = c.get("/invite/alice", follow_redirects=False)
+    assert r.headers["location"].startswith("/register?ref=alice")
+    before = db().query(models.User).filter_by(username="alice").first().total_points
+    c.post("/register", data={"username": "newbie", "email": "newbie@example.com", "password": "secret123", "confirm_password": "secret123",
+                              "agree": "1", "name": "N", "ref": "alice"}, follow_redirects=False)
+    s = db()
+    nb = s.query(models.User).filter_by(username="newbie").first()
+    me = s.query(models.User).filter_by(username="alice").first()
+    assert nb.referred_by == me.id and me.total_points >= before + 100
+    s.close()
+    assert "newbie" in alice.get("/invite").text
+    alice.post("/settings/profile", data={"name": "Alice", "interests": "Музыка, #футбол, аниме"})
+    assert "#футбол" in bob.get("/profile/alice").text
+    assert "Alice" in bob.get("/interests/футбол").text
+
+
+def test_people_you_may_know_search_filters_memories(alice, bob):
+    from datetime import datetime, timedelta
+    carol = register(make_client(), "carolk")
+    alice.post("/follow/bob", headers=J)
+    bob.post("/follow/carolk", headers=J)
+    assert "Возможно, вы знакомы" in alice.get("/explore").text and "carolk" in alice.get("/explore").text
+    create_post(bob, "кот на фото")
+    assert "кот на фото" in alice.get("/search?q=кот&type=posts&period=day").text
+    assert "кот на фото" not in alice.get("/search?q=кот&type=posts&media=1").text
+    pid = create_post(alice, "Год назад я был тут")
+    s = db()
+    p = s.get(models.Post, pid)
+    p.created_at = datetime.utcnow().replace(year=datetime.utcnow().year - 1)
+    s.commit()
+    s.close()
+    assert "Год назад я был тут" in alice.get("/memories").text
+    assert "В этот день" in alice.get("/").text
+    long_id = create_post(alice, "слово " * 600)
+    assert "мин" in alice.get(f"/profile/alice").text

@@ -58,6 +58,9 @@ class User(Base):
     profile_views = Column(Integer, default=0)
     pronouns = Column(String, default="")
     prefs = Column(Text, default="")
+    interests = Column(String, default="")
+    referred_by = Column(Integer, nullable=True)
+    spent_points = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -389,6 +392,7 @@ class Poll(Base):
     post_id = Column(Integer, ForeignKey("posts.id"), unique=True)
     question = Column(String)
     ends_at = Column(DateTime, nullable=True)
+    correct_option_id = Column(Integer, nullable=True)  # викторина: правильный ответ
     created_at = Column(DateTime, default=datetime.utcnow)
     post = relationship("Post", back_populates="poll")
     options = relationship("PollOption", back_populates="poll")
@@ -456,6 +460,7 @@ class Bookmark(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     post_id = Column(Integer, ForeignKey("posts.id"))
+    collection_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="bookmarks")
     post = relationship("Post")
@@ -732,4 +737,74 @@ class NotInterested(Base):
     user_id = Column(Integer, index=True)
     post_id = Column(Integer, index=True)
     author_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Question(Base):
+    """Анонимные вопросы в профиль (как на ask.fm)."""
+    __tablename__ = "questions"
+    id = Column(Integer, primary_key=True, index=True)
+    to_user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    from_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # хранится и для анонимных — для разбора жалоб
+    is_anonymous = Column(Boolean, default=True)
+    text = Column(Text, default="")
+    answer = Column(Text, default="")
+    answered_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    to_user = relationship("User", foreign_keys=[to_user_id])
+    from_user = relationship("User", foreign_keys=[from_user_id])
+
+
+class HashtagFollow(Base):
+    __tablename__ = "hashtag_follows"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    tag = Column(String, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Event(Base):
+    __tablename__ = "events"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String, default="")
+    description = Column(Text, default="")
+    place = Column(String, default="")
+    starts_at = Column(DateTime, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    author = relationship("User")
+    rsvps = relationship("EventRSVP", back_populates="event")
+
+
+class EventRSVP(Base):
+    __tablename__ = "event_rsvps"
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(String, default="going")  # going | maybe
+    created_at = Column(DateTime, default=datetime.utcnow)
+    event = relationship("Event", back_populates="rsvps")
+    user = relationship("User")
+
+
+class UserGift(Base):
+    """Подарок за очки: виден в профиле получателя."""
+    __tablename__ = "user_gifts"
+    id = Column(Integer, primary_key=True, index=True)
+    gift_code = Column(String)
+    from_user_id = Column(Integer, ForeignKey("users.id"))
+    to_user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    message = Column(String, default="")
+    is_anonymous = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    from_user = relationship("User", foreign_keys=[from_user_id])
+    to_user = relationship("User", foreign_keys=[to_user_id])
+
+
+class BookmarkCollection(Base):
+    __tablename__ = "bookmark_collections"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    name = Column(String, default="")
+    emoji = Column(String, default="📁")
     created_at = Column(DateTime, default=datetime.utcnow)

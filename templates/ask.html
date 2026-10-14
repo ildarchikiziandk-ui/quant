@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar, name %}
+{% set pu = profile_user %}{% set me = user and user.id == pu.id %}
+{% block title %}Вопросы для @{{ pu.username }} — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card row" style="gap:14px"><a href="/profile/{{ pu.username }}">{{ avatar(pu, 56) }}</a><div class="grow"><div class="page-title" style="margin:0;font-size:22px">❓ Вопросы</div><div class="muted small">{{ name(pu) }} · {{ plural(answered|length, "ответ", "ответа", "ответов") }}</div></div>
+{% if me %}<a href="/questions" class="btn sm">Входящие</a>{% endif %}</div>
+{% if can_ask %}
+<form class="card" method="post" action="/ask/{{ pu.username }}" data-ajax data-success="Вопрос отправлен! Ответ появится здесь 💌">
+  <div class="card-title">Задайте вопрос {{ pu.name or pu.username }}</div>
+  <textarea name="text" maxlength="500" rows="3" required placeholder="Что вы хотели бы узнать?"></textarea>
+  <div class="row" style="justify-content:space-between;margin-top:8px">
+    {% if allow_anon %}<label class="check" style="margin:0"><input type="checkbox" name="anonymous" value="1" checked><span><b>Анонимно</b><small>получатель не увидит, кто спросил</small></span></label>{% else %}<span class="small muted">Анонимные вопросы отключены автором</span>{% endif %}
+    <button class="btn">Отправить</button>
+  </div>
+  <p class="tiny faint mt">Вопросы проверяет модель модерации. Модераторы могут увидеть автора, если на вопрос пожалуются.</p>
+</form>
+{% elif user and not me %}<div class="card small muted">{{ pu.name or pu.username }} сейчас не принимает вопросы от вас.</div>
+{% elif not user %}<div class="card small"><a href="/login?next=/ask/{{ pu.username }}" style="color:var(--link);font-weight:600">Войдите</a>, чтобы задать вопрос.</div>{% endif %}
+{% for q in answered %}
+<div class="card" id="q-{{ q.id }}">
+  <div class="small muted">{% if q.is_anonymous or not q.from_user %}🕶 Аноним{% else %}<a href="/profile/{{ q.from_user.username }}">@{{ q.from_user.username }}</a>{% endif %} спросил(а) · {{ q.created_at|ago }}</div>
+  <div style="font-weight:700;margin:6px 0 10px">{{ q.text }}</div>
+  <div class="row" style="align-items:flex-start;gap:10px">{{ avatar(pu, 30) }}<div class="grow" style="white-space:pre-wrap">{{ q.answer|rich }}</div></div>
+  {% if me %}<form method="post" action="/questions/{{ q.id }}/delete" class="mt"><button class="btn ghost sm">Удалить</button></form>{% endif %}
+</div>
+{% else %}<div class="card empty"><div class="big">💭</div>Ответов пока нет{% if can_ask %} — задайте первый вопрос!{% endif %}</div>{% endfor %}
+{% endblock %}

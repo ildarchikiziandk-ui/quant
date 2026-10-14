@@ -80,11 +80,20 @@ def interest_profile(db, user):
         media += w if p.image else -w * 0.3
     for n in nots:
         authors[n.author_id] = authors.get(n.author_id, 0) + W_NOT * 0.5
-    total = sum(1 for _, w in signals if w > 0)
+    for t in db.query(models.HashtagFollow.tag).filter_by(user_id=user.id).limit(100):
+        tags[t.tag] = tags.get(t.tag, 0) + 4.0
+    for t in _user_interests(user):
+        tags[t] = tags.get(t, 0) + 1.5
+    total = sum(1 for _, w in signals if w > 0) + len(tags)
     prof = {"authors": _norm(authors), "tags": _norm(tags), "tokens": _norm(toks), "media": max(-1.0, min(1.0, media / (total or 1))),
             "n": total, "not_posts": {n.post_id for n in nots}, "not_authors": {n.author_id for n in nots}}
     _cache[user.id] = (time.time(), prof)
     return prof
+
+
+def _user_interests(user):
+    from services.extras import interests
+    return interests(user)
 
 
 def invalidate(user_id):

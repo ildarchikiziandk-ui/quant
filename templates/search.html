@@ -4,6 +4,14 @@
 {% block content %}
 <form method="get" action="/search" class="card"><div class="row"><input type="search" name="q" value="{{ query }}" placeholder="Люди, посты, #теги…" autofocus style="margin:0"><input type="hidden" name="type" value="{{ type }}"><button class="btn">Найти</button></div></form>
 <div class="tabs">{% for k, l in [("all","Всё"),("users","Люди"),("posts","Посты"),("tags","Теги")] %}<a href="/search?q={{ query|urlencode }}&type={{ k }}" class="{% if type == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
+{% if query and type in ("all", "posts") %}
+{% set base = "/search?q=" ~ (query|urlencode) ~ "&type=" ~ type %}
+<div class="chips">
+  <a class="chip {% if media %}active{% endif %}" href="{{ base }}&media={{ 0 if media else 1 }}&period={{ period }}&scope={{ scope }}">🖼 Только с фото</a>
+  {% if user %}<a class="chip {% if scope == 'following' %}active{% endif %}" href="{{ base }}&media={{ media }}&period={{ period }}&scope={{ 'all' if scope == 'following' else 'following' }}">👥 Из подписок</a>{% endif %}
+  {% for k, l in [("all","За всё время"),("day","За сутки"),("week","За неделю"),("month","За месяц"),("year","За год")] %}<a class="chip {% if period == k %}active{% endif %}" href="{{ base }}&media={{ media }}&period={{ k }}&scope={{ scope }}">{{ l }}</a>{% endfor %}
+</div>
+{% endif %}
 {% if not query %}
 <div class="card empty"><div class="big">🔎</div>Введите запрос. Подсказка: ищите <b>@логин</b>, <b>#тег</b> или любые слова из постов.</div>
 {% else %}

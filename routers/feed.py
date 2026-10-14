@@ -27,7 +27,8 @@ def home(request: Request, tab: str = "", db: Session = Depends(get_db)):
     posts, has_more, reasons = feed.get_feed(db, user, tab, 1)
     if tab == "foryou":
         recommend.mark_seen(db, user, posts)
-    return render(request, db, "home.html", tab=tab, has_more=has_more, page=1,
+    from services import extras
+    return render(request, db, "home.html", tab=tab, has_more=has_more, page=1, memories_n=len(extras.memories(db, user)) if user else 0,
                   story_groups=_stories_strip(db, user), **feed.feed_context(db, user, posts, reasons))
 
 

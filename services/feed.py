@@ -25,7 +25,12 @@ def get_feed(db, user, tab="foryou", page=1):
     q = recommend.guests_hidden_filter(recommend.apply_filters(with_loads(social.visible_posts(db, user)), user), user)
     if tab == "following" and user:
         fids = social.following_ids(db, user) | {user.id}
-        posts = (q.filter(models.Post.user_id.in_(fids)).order_by(models.Post.created_at.desc())
+        tags = [t.tag for t in db.query(models.HashtagFollow.tag).filter_by(user_id=user.id).limit(30)]
+        cond = models.Post.user_id.in_(fids)
+        if tags:  # подписки на темы: посты с этими хэштегами тоже попадают в ленту
+            from sqlalchemy import or_
+            cond = or_(cond, *[models.Post.content.ilike(f"%#{t}%") for t in tags])
+        posts = (q.filter(cond).order_by(models.Post.created_at.desc())
                  .offset((page - 1) * per).limit(per * 2 + 1).all())
         posts = recommend.post_filter(db, user, posts)
         return posts[:per], len(posts) > per, {}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Мероприятия — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">📅 Мероприятия</div>{% if user %}<a href="/events/new" class="btn sm">+ Создать</a>{% endif %}</div>
+<div class="tabs">{% for k, l in [("upcoming","Скоро"),("mine","Мои"),("past","Прошедшие")] %}{% if k != "mine" or user %}<a href="/events?tab={{ k }}" class="{% if tab == k %}active{% endif %}">{{ l }}</a>{% endif %}{% endfor %}</div>
+{% for e in events %}
+{% set going = e.rsvps|selectattr("status", "equalto", "going")|list|length %}
+<a href="/events/{{ e.id }}" class="card row" style="gap:14px;align-items:flex-start">
+  <div style="min-width:64px;text-align:center;border-radius:14px;background:var(--input);padding:8px 6px"><div style="font-size:24px;font-weight:800;line-height:1">{{ e.starts_at|lt("%d") }}</div><div class="tiny muted">{{ e.starts_at|lt("%m.%Y") }}</div><div class="tiny"><b>{{ e.starts_at|lt("%H:%M") }}</b></div></div>
+  <div class="grow"><div style="font-weight:800">{{ e.title }}</div>{% if e.place %}<div class="small muted">📍 {{ e.place }}</div>{% endif %}
+  <div class="tiny faint mt">Организатор @{{ e.author.username if e.author else "?" }} · идут: {{ going }}</div></div>
+</a>
+{% else %}<div class="card empty"><div class="big">📅</div>{% if tab == "mine" %}Вы пока никуда не идёте{% else %}Мероприятий пока нет{% endif %}{% if user %}. <a href="/events/new" style="color:var(--link);font-weight:600">Создайте первое →</a>{% endif %}</div>{% endfor %}
+{% endblock %}

@@ -9,7 +9,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.posts import wants_json
-from services import feed, gamification, prefs, social
+from services import extras, feed, gamification, prefs, social
 from services.uploads import save_file
 
 router = APIRouter()
@@ -85,7 +85,14 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
     has_story = db.query(models.Story.id).filter(models.Story.user_id == pu.id, models.Story.expires_at > datetime.utcnow()).first() is not None if can_see else False
     ctx = feed.feed_context(db, user, ([pinned] if pinned else []) + posts)
     ctx["posts"] = posts
+    gifts = db.query(models.UserGift).filter_by(to_user_id=pu.id).order_by(models.UserGift.created_at.desc()).limit(12).all()
+    gifts_total = db.query(models.UserGift).filter_by(to_user_id=pu.id).count()
+    q_answered = db.query(models.Question).filter(models.Question.to_user_id == pu.id, models.Question.answer != "").count()
+    q_inbox = (db.query(models.Question).filter(models.Question.to_user_id == pu.id, models.Question.answer == "").count()
+               if user and user.id == pu.id else 0)
     return render(request, db, "profile.html", profile_user=pu, tab=tab, can_see=can_see, pinned_post=pinned,
+                  gifts=gifts, gifts_total=gifts_total, gift_by=extras.GIFT_BY_CODE, q_answered=q_answered, q_inbox=q_inbox,
+                  pu_interests=extras.interests(pu),
                   replies=liked_posts, stats=stats, rel=rel, mutual=mutual, achievements=achievements, highlights=highlights,
                   has_story=has_story, level=gamification.level_progress(pu), profile_is_plus=social.is_plus(pu), **ctx)
 

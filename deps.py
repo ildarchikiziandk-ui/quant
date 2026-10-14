@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import auth
 import config
 import models
-from services import gamification, prefs, social, text, timezones
+from services import extras, gamification, prefs, social, text, timezones
 
 templates = Jinja2Templates(directory="templates")
 env = templates.env
@@ -33,7 +33,7 @@ env.globals.update(
     brand=config.BRAND_NAME, brand_tagline=config.BRAND_TAGLINE, brand_plus=config.BRAND_PLUS,
     brand_email=config.BRAND_EMAIL, brand_color=config.BRAND_COLOR, site_url=config.SITE_URL,
     plural=text.plural, is_online=social.is_online, user_is_plus=social.is_plus, enumerate=enumerate,
-    android_apk_url=config.ANDROID_APK_URL, pref=prefs.get, pref_classes=prefs.html_classes, tz_city=timezones.city, pref_client=prefs.client_values,
+    android_apk_url=config.ANDROID_APK_URL, pref=prefs.get, pref_classes=prefs.html_classes, tz_city=timezones.city, reading_minutes=extras.reading_minutes, pref_client=prefs.client_values,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
     push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.INSTANCE_ID, utcnow=datetime.utcnow,
 )
@@ -73,9 +73,10 @@ def base_context(request: Request, db: Session, sidebar=True):
         ctx["daily_tasks"] = gamification.get_daily_tasks(user, db)
         if user:
             excl = social.following_ids(db, user) | social.blocked_ids(db, user) | {user.id}
-            ctx["suggested_users"] = (db.query(models.User).filter(~models.User.id.in_(excl), models.User.is_blocked == False,
-                                                                   prefs.sql_flag_off(models.User.prefs, "hide_from_search"))
-                                      .order_by(models.User.total_points.desc()).limit(4).all())
+            known = [u for u, _ in extras.people_you_may_know(db, user, 4)]  # сначала друзья друзей и люди с общими интересами
+            ctx["suggested_users"] = known + (db.query(models.User).filter(~models.User.id.in_(excl | {u.id for u in known}), models.User.is_blocked == False,
+                                                                           prefs.sql_flag_off(models.User.prefs, "hide_from_search"))
+                                              .order_by(models.User.total_points.desc()).limit(max(0, 4 - len(known))).all())
             today = datetime.utcnow().strftime("-%m-%d")
             ctx["birthdays"] = [u for u in db.query(models.User).filter(models.User.id.in_(social.following_ids(db, user) or {-1}),
                                                                          models.User.birthday.like(f"%{today}")).limit(5).all()

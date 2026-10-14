@@ -34,6 +34,7 @@
     <label class="field"><span>Сайт</span><input name="website" value="{{ user.website or '' }}" maxlength="100" placeholder="example.com"></label>
     <label class="field"><span>День рождения</span><input type="date" name="birthday" value="{{ user.birthday or '' }}"></label>
   </div>
+  <label class="field"><span>Интересы <span class="faint">— до 10 тегов через запятую: по ним вас найдут единомышленники, а лента станет точнее</span></span><input name="interests" value="{{ user.interests or '' }}" maxlength="300" placeholder="музыка, футбол, аниме, программирование"></label>
   <div class="form-row">
     <label class="field"><span>Telegram</span><input name="telegram_link" value="{{ user.telegram_link or '' }}" maxlength="100" placeholder="@username"></label>
     <label class="field"><span>YouTube</span><input name="youtube_link" value="{{ user.youtube_link or '' }}" maxlength="100"></label>

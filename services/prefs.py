@@ -73,6 +73,8 @@ PREFS = [
     _p("hide_gamification", "privacy", "Скрыть уровень, очки и стрик в профиле", "", where="server", group="Профиль"),
     _p("hide_achievements", "privacy", "Скрыть достижения в профиле", "", where="server", group="Профиль"),
     _p("guests_hidden", "privacy", "Скрыть посты от незарегистрированных", "Гости без аккаунта не увидят ваши посты", where="server", group="Профиль"),
+    _p("who_can_ask", "privacy", "Кто может задавать мне вопросы", "Раздел «Вопросы» в профиле", "all", "select", AUDIENCE, "server", "Вопросы"),
+    _p("allow_anonymous_questions", "privacy", "Разрешить анонимные вопросы", "", True, where="server", group="Вопросы"),
     _p("incognito_views", "privacy", "Не учитывать мои визиты в статистике чужих профилей", "", where="server", group="Следы"),
     _p("anonymous_stories", "privacy", "Смотреть истории анонимно", "Вы не попадёте в список просмотревших", where="server", group="Следы"),
     _p("read_receipts", "privacy", "Отчёты о прочтении ✓✓", "Если выключить, собеседники не увидят, что вы прочитали сообщение", True, where="server", group="Следы"),
@@ -84,6 +86,9 @@ PREFS = [
     _p("notify_achievements", "notifications", "Достижения и уровни", "", True, where="server", group="Дополнительно"),
     _p("notify_group_invites", "notifications", "Приглашения в группы", "", True, where="server", group="Дополнительно"),
     _p("notify_raffle", "notifications", "Розыгрыши", "", True, where="server", group="Дополнительно"),
+    _p("notify_questions", "notifications", "Вопросы и ответы", "", True, where="server", group="Дополнительно"),
+    _p("notify_gifts", "notifications", "Подарки", "", True, where="server", group="Дополнительно"),
+    _p("notify_events", "notifications", "Мероприятия", "Кто идёт на ваши события", True, where="server", group="Дополнительно"),
     _p("quiet_hours", "notifications", "Тихие часы", "Не присылать push-уведомления ночью (по вашему часовому поясу)", where="server", group="Тихие часы"),
     _p("quiet_from", "notifications", "Тихие часы: с", "", "23", "select", HOURS, "server", "Тихие часы"),
     _p("quiet_to", "notifications", "Тихие часы: до", "", "8", "select", HOURS, "server", "Тихие часы"),
@@ -213,7 +218,8 @@ def in_quiet_hours(user, now=None):
 
 NOTIFY_PREFS = {"repost": "notify_reposts", "comment_like": "notify_comment_likes", "story_reaction": "notify_story_reactions",
                 "achievement": "notify_achievements", "level": "notify_achievements", "group_invite": "notify_group_invites",
-                "raffle": "notify_raffle"}
+                "raffle": "notify_raffle", "question": "notify_questions", "answer": "notify_questions", "gift": "notify_gifts",
+                "event": "notify_events"}
 
 
 def sql_flag_off(column, key):

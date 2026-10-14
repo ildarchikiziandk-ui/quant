@@ -3,6 +3,9 @@
 {% block title %}Обзор — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-title">🧭 Обзор</div><div class="page-sub">Лучшее в {{ brand }} прямо сейчас</div>
+{% if known %}<div class="card"><div class="card-title">🤝 Возможно, вы знакомы</div>{% for u, why in known %}{{ user_row(u, user, following, why) }}{% endfor %}</div>{% endif %}
+{% if my_tags %}<div class="card"><div class="card-title">🏷 Ваши темы</div><div class="row wrap">{% for t in my_tags %}<a class="chip" href="/hashtag/{{ t }}">#{{ t }}</a>{% endfor %}</div></div>{% endif %}
+{% if upcoming %}<div class="card"><div class="card-title">📅 Ближайшие мероприятия <a href="/events">Все →</a></div>{% for e in upcoming %}<a href="/events/{{ e.id }}" class="row small" style="padding:6px 0"><span class="tag-pill">{{ e.starts_at|lt("%d.%m %H:%M") }}</span><span class="grow ellipsis"><b>{{ e.title }}</b>{% if e.place %} · <span class="muted">{{ e.place }}</span>{% endif %}</span></a>{% endfor %}</div>{% endif %}
 {% if media %}<div class="card"><div class="card-title">📷 Популярные фото</div><div class="grid-3">{% for p in media[:9] %}<a href="/post/{{ p.id }}" class="media-tile"><img src="{{ p.image }}" alt="" loading="lazy"><span class="over">❤ {{ p.likes|length }}</span></a>{% endfor %}</div></div>{% endif %}
 <div class="grid-2">
   <div class="card"><div class="card-title">🌟 Популярные авторы</div>{% for u, n in top_users %}<a href="/profile/{{ u.username }}" class="row small" style="padding:6px 0">{{ avatar(u, 34) }}<span class="grow ellipsis"><b>{{ u.name or u.username }}</b><br><span class="muted">{{ plural(n, "подписчик", "подписчика", "подписчиков") }}</span></span></a>{% endfor %}</div>

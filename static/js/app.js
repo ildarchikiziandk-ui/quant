@@ -121,7 +121,7 @@
         const bar = $(`#reactions-${id}`);
         if (bar) bar.innerHTML = Object.entries(r.counts).map(([em, n]) => `<button class="reaction-pill ${r.mine === em ? 'mine' : ''}" data-act="react" data-id="${id}" data-emoji="${em}">${em} <b>${n}</b></button>`).join('');
       } else if (act === 'share' || act === 'copy') {
-        const url = location.origin + (b.dataset.url || `/post/${id}`);
+        const raw = b.dataset.url || `/post/${id}`; const url = /^https?:/.test(raw) ? raw : location.origin + raw;
         if (act === 'share' && navigator.share) { try { await navigator.share({ url }); } catch (er) {} }
         else { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
       } else if (act === 'expand') {
@@ -153,6 +153,11 @@
           $('.bar', el).style.width = pct + '%'; $('.pct', el).textContent = pct + '%';
         });
         $('.poll-total', box).textContent = r.total + ' голос(ов)';
+        if (r.correct) {  // викторина
+          const ok = $(`[data-opt="${r.correct}"] .lbl > span`, box); if (ok && !ok.textContent.includes('✅')) ok.textContent += ' ✅';
+          if (r.right === false) { const mine = $(`[data-opt="${id}"] .lbl > span`, box); if (mine) mine.textContent += ' ❌'; }
+          if (r.right !== null && r.right !== undefined) toast(r.right ? 'Верно! +10 очков 🧠' : 'Неверно — правильный ответ отмечен ✅', !r.right);
+        }
       } else if (act === 'follow') {
         const r = await api(`/follow/${b.dataset.user}`);
         const labels = { following: 'Вы подписаны', requested: 'Заявка отправлена', none: 'Подписаться' };

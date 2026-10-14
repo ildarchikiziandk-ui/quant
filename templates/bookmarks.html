@@ -2,6 +2,18 @@
 {% from "partials/macros.html" import post_card %}
 {% block title %}Закладки — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">🔖 Закладки</div><div class="page-sub">Видны только вам</div>
-{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty"><div class="big">🔖</div>Сохраняйте интересные посты кнопкой закладки</div>{% endfor %}
+<div class="page-title">🔖 Закладки{% if current %} · {{ current.emoji }} {{ current.name }}{% endif %}</div><div class="page-sub">Видны только вам</div>
+<div class="card">
+  <div class="chips" style="margin:0">
+    <a href="/bookmarks" class="chip {% if not current %}active{% endif %}">Все <span class="faint">{{ counts.values()|sum }}</span></a>
+    {% for c in collections %}<a href="/bookmarks?c={{ c.id }}" class="chip {% if current and current.id == c.id %}active{% endif %}">{{ c.emoji }} {{ c.name }} <span class="faint">{{ counts.get(c.id, 0) }}</span></a>{% endfor %}
+  </div>
+  <form method="post" action="/collections/create" class="row mt" style="gap:8px"><input name="emoji" value="📁" maxlength="4" style="width:56px;margin:0;text-align:center"><input name="name" placeholder="Новая коллекция: «Рецепты», «Смешное»…" maxlength="40" required style="margin:0"><button class="btn sm">Создать</button></form>
+  {% if current %}<form method="post" action="/collections/{{ current.id }}/delete" class="mt" onsubmit="return confirm('Удалить коллекцию? Посты останутся в закладках.')"><button class="btn ghost sm">Удалить коллекцию</button></form>{% endif %}
+</div>
+{% for p in posts %}
+  {{ post_card(p, user, st, originals, repost_counts, can_mod) }}
+  {% if collections %}<form method="post" action="/bookmarks/{{ p.id }}/move" class="row small" style="margin:-6px 6px 14px;gap:6px"><span class="muted">📁 Коллекция:</span>
+    <select name="collection_id" style="width:auto;margin:0;padding:4px 8px" onchange="this.form.submit()"><option value="">— без коллекции —</option>{% for c in collections %}<option value="{{ c.id }}" {% if bm_coll.get(p.id) == c.id %}selected{% endif %}>{{ c.emoji }} {{ c.name }}</option>{% endfor %}</select></form>{% endif %}
+{% else %}<div class="card empty"><div class="big">🔖</div>{% if current %}В этой коллекции пока пусто{% else %}Сохраняйте интересные посты кнопкой закладки{% endif %}</div>{% endfor %}
 {% endblock %}

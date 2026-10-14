@@ -159,8 +159,12 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         poll = models.Poll(post_id=post.id, question=poll_q, ends_at=datetime.utcnow() + timedelta(days=days) if days else None)
         db.add(poll)
         db.flush()
-        for opt in poll_opts[:6]:
-            db.add(models.PollOption(poll_id=poll.id, text=opt))
+        options = [models.PollOption(poll_id=poll.id, text=opt) for opt in poll_opts[:6]]
+        db.add_all(options)
+        db.flush()
+        correct = str(form.get("quiz_correct") or "")
+        if form.get("quiz") and correct.isdigit() and 1 <= int(correct) <= len(options):
+            poll.correct_option_id = options[int(correct) - 1].id  # викторина
         gamification.check_achievement(user, db, "pollster")
     draft_id = form.get("draft_id")
     if draft_id and str(draft_id).isdigit():
@@ -480,13 +484,23 @@ def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
         return json_error("not found", 404)
     if poll.ends_at and poll.ends_at < datetime.utcnow():
         return json_error("Опрос завершён")
+    right = None
     if not db.query(models.PollVote).filter_by(user_id=user.id, poll_id=opt.poll_id).first():
         db.add(models.PollVote(user_id=user.id, option_id=option_id, poll_id=opt.poll_id))
+        if poll.correct_option_id:
+            right = option_id == poll.correct_option_id
+            if right and poll.post.user_id != user.id:
+                gamification.add_points(user, db, 10)
+                wins = (db.query(models.PollVote).join(models.Poll, models.Poll.id == models.PollVote.poll_id)
+                        .filter(models.PollVote.user_id == user.id, models.PollVote.option_id == models.Poll.correct_option_id).count())
+                if wins >= 4:
+                    gamification.check_achievement(user, db, "quiz_master")
         db.commit()
     if wants_json(request):
         db.refresh(poll)
         total = sum(len(o.votes) for o in poll.options)
-        return JSONResponse({"ok": True, "total": total, "options": [{"id": o.id, "votes": len(o.votes)} for o in poll.options]})
+        return JSONResponse({"ok": True, "total": total, "options": [{"id": o.id, "votes": len(o.votes)} for o in poll.options],
+                             "correct": poll.correct_option_id, "right": right})
     return redirect(f"/post/{poll.post_id}")
 
 
@@ -561,13 +575,22 @@ async def report_post(post_id: int, request: Request, db: Session = Depends(get_
 
 # --- Закладки, черновики, отложенные -----------------------------------------
 @router.get("/bookmarks")
-def bookmarks_page(request: Request, db: Session = Depends(get_db)):
+def bookmarks_page(request: Request, c: int = 0, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
-    bms = db.query(models.Bookmark).filter_by(user_id=user.id).order_by(models.Bookmark.created_at.desc()).limit(200).all()
+    collections = db.query(models.BookmarkCollection).filter_by(user_id=user.id).order_by(models.BookmarkCollection.name).all()
+    current = next((x for x in collections if x.id == c), None)
+    q = db.query(models.Bookmark).filter_by(user_id=user.id)
+    if current:
+        q = q.filter_by(collection_id=current.id)
+    bms = q.order_by(models.Bookmark.created_at.desc()).limit(200).all()
     posts = [b.post for b in bms if b.post and social.can_view_post(db, user, b.post)]
-    return render(request, db, "bookmarks.html", **feed.feed_context(db, user, posts))
+    counts = {}
+    for b in db.query(models.Bookmark.collection_id).filter_by(user_id=user.id):
+        counts[b.collection_id] = counts.get(b.collection_id, 0) + 1
+    return render(request, db, "bookmarks.html", collections=collections, current=current, counts=counts,
+                  bm_coll={b.post_id: b.collection_id for b in bms}, **feed.feed_context(db, user, posts))
 
 
 @router.post("/drafts/save")

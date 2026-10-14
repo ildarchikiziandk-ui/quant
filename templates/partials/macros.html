@@ -66,12 +66,12 @@
 {%- set ended = poll.ends_at and poll.ends_at < utcnow() -%}
 {%- set show = my or ended or not user or (user and user.id == p.user_id) -%}
 <div class="poll">
-  <div class="poll-q">📊 {{ poll.question }}</div>
+  <div class="poll-q">{% if poll.correct_option_id %}🧠 Викторина: {% else %}📊 {% endif %}{{ poll.question }}</div>
   {%- for o in poll.options %}
   {%- set pct = ((o.votes|length) / total.n * 100)|round|int if total.n else 0 %}
   <button type="button" class="poll-opt {% if show %}done{% endif %} {% if my == o.id %}mine{% endif %}" data-opt="{{ o.id }}" {% if not show %}data-act="vote" data-id="{{ o.id }}"{% endif %}>
     <span class="bar" style="width:{{ pct if show else 0 }}%"></span>
-    <span class="lbl"><span>{{ o.text }}{% if my == o.id %} ✓{% endif %}</span><b class="pct">{% if show %}{{ pct }}%{% endif %}</b></span>
+    <span class="lbl"><span>{{ o.text }}{% if show and poll.correct_option_id == o.id %} ✅{% elif my == o.id and poll.correct_option_id %} ❌{% elif my == o.id %} ✓{% endif %}</span><b class="pct">{% if show %}{{ pct }}%{% endif %}</b></span>
   </button>
   {%- endfor %}
   <div class="tiny muted"><span class="poll-total">{{ total.n }} голос(ов)</span>{% if poll.ends_at %} · {% if ended %}опрос завершён{% else %}до {{ poll.ends_at|lt("%d.%m %H:%M") }}{% endif %}{% endif %}</div>
@@ -81,7 +81,7 @@
 {% macro post_inner(p, user, st, can_mod, full=false) -%}
 {%- if p.content %}
 <div class="post-text {% if p.is_long and not full %}clamp{% endif %}" id="text-{{ p.id }}">{{ p.content|rich }}</div>
-{%- if p.is_long and not full %}<button class="read-more" data-act="expand" data-id="{{ p.id }}">Читать полностью</button>{% endif %}
+{%- if p.is_long and not full %}<button class="read-more" data-act="expand" data-id="{{ p.id }}">Читать полностью · ~{{ reading_minutes(p.content) }} мин</button>{% endif %}
 {%- endif %}
 {%- if p.poll %}{{ poll_block(p, user, st) }}{% endif %}
 {{ media_block(p) }}

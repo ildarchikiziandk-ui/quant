@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import user_row %}
+{% block title %}#{{ tag }} — люди с этим интересом — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card hero"><div style="font-size:26px;font-weight:800">#{{ tag }}</div><div class="muted">{{ plural(people|length, "человек", "человека", "человек") }} с этим интересом · <a href="/hashtag/{{ tag }}" style="color:var(--link)">посты с #{{ tag }} →</a></div></div>
+<div class="card">{% for u in people %}{{ user_row(u, user, following) }}{% else %}<div class="small muted">Пока никто не указал этот интерес. Добавьте свои интересы в <a href="/settings?section=profile" style="color:var(--link)">настройках профиля</a>.</div>{% endfor %}</div>
+{% endblock %}

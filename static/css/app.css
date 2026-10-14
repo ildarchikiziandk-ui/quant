@@ -451,3 +451,8 @@ html:not(.p-chat-timestamps) .msg-meta { font-size: 0; } html:not(.p-chat-timest
 .p-line-spacing body { line-height: 1.75; }
 .p-big-buttons .btn { padding: 12px 20px; font-size: 16px; } .p-big-buttons .icon-btn { width: 44px; height: 44px; } .p-big-buttons .post-actions .act { padding: 10px 12px; }
 .manual-more { display: block; width: 100%; }
+.gift-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.gift { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 16px; background: var(--input); cursor: pointer; border: 2px solid transparent; text-align: center; }
+.gift input { display: none; } .gift .ge { font-size: 34px; line-height: 1.1; }
+.gift:has(input:checked) { border-color: var(--text); background: var(--card); }
+.gift.poor { opacity: .4; cursor: not-allowed; }

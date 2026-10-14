@@ -42,6 +42,7 @@
     <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span style="color:var(--online);font-weight:700">● онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
     {% if pu.bio %}<div style="margin-top:10px;white-space:normal">{{ pu.bio|rich }}</div>{% endif %}
+    {% if pu_interests %}<div class="row wrap mt" style="gap:6px">{% for t in pu_interests %}<a class="chip" style="margin:0;padding:4px 10px;font-size:12.5px" href="/interests/{{ t }}">#{{ t }}</a>{% endfor %}</div>{% endif %}
     <div class="profile-links">
       {% if pu.city %}<span>{{ icon("map") }} {{ pu.city }}</span>{% endif %}
       {% if pu.website %}<span>{{ icon("link") }} <a href="{{ pu.website }}" target="_blank" rel="noopener nofollow">{{ pu.website.replace('https://','').replace('http://','')[:40] }}</a></span>{% endif %}
@@ -57,6 +58,12 @@
       <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
       <span><b>{{ stats.likes|compact }}</b> <span class="muted">лайков</span></span>
     </div>
+    <div class="row wrap mt" style="gap:8px">
+      <a class="btn soft sm" href="/ask/{{ pu.username }}">❓ {% if me %}Мои вопросы{% if q_inbox %} <b>· {{ q_inbox }} новых</b>{% endif %}{% else %}Задать вопрос{% endif %}{% if q_answered %} <span class="faint">{{ q_answered }}</span>{% endif %}</a>
+      <a class="btn soft sm" href="/gifts/{{ pu.username }}">🎁 {% if me %}Мои подарки{% else %}Подарить{% endif %}{% if gifts_total %} <span class="faint">{{ gifts_total }}</span>{% endif %}</a>
+      {% if me %}<a class="btn soft sm" href="/invite">🤝 Пригласить друзей</a>{% endif %}
+    </div>
+    {% if gifts %}<a href="/gifts/{{ pu.username }}" class="row mt" style="gap:4px;font-size:26px;flex-wrap:wrap" title="Подарки">{% for g in gifts %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}<span title="{{ gi[2] }}{% if not g.is_anonymous and g.from_user %} от @{{ g.from_user.username }}{% endif %}">{{ gi[1] }}</span>{% endif %}{% endfor %}{% if gifts_total > gifts|length %}<span class="small muted" style="align-self:center">+{{ gifts_total - gifts|length }}</span>{% endif %}</a>{% endif %}
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
     {% if me or not (pref(pu, "hide_gamification") and pref(pu, "hide_achievements")) %}
     <div class="row mt small" style="gap:10px">

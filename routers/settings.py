@@ -15,7 +15,7 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.auth_routes import validate_password, validate_username
 from routers.posts import purge_post, read_payload, wants_json
-from services import gamification, prefs, recommend, social, timezones
+from services import extras, gamification, prefs, recommend, social, timezones
 from services.uploads import delete_file, save_file
 
 router = APIRouter()
@@ -99,7 +99,9 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
     user.telegram_link = _clean(form, "telegram_link", 100)
     user.youtube_link = _clean(form, "youtube_link", 100)
     user.tiktok_link = _clean(form, "tiktok_link", 100)
+    user.interests = ", ".join(extras.parse_interests(form.get("interests") or ""))
     db.commit()
+    recommend.invalidate(user.id)
     return _settings(request, db, user, "profile", success="Профиль сохранён")
 
 

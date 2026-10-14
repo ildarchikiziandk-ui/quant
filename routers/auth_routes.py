@@ -128,7 +128,7 @@ def register_page(request: Request, db: Session = Depends(get_db)):
 @router.post("/register")
 def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...),
              confirm_password: str = Form(...), agree: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
-             tz: str = Form(""), db: Session = Depends(get_db)):
+             tz: str = Form(""), ref: str = Form(""), db: Session = Depends(get_db)):
     username, email = username.strip().lstrip("@"), email.strip().lower()
     form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE)}
 
@@ -164,8 +164,14 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         _send_code(db, email, "register")
     db.add(models.Notification(user_id=user.id, type="system",
                                text=f"Добро пожаловать в {config.BRAND_NAME}! Заполни профиль и выполни первые задания ✨"))
+    ref = (ref or request.cookies.get("ref") or "").strip()[:30]
+    if ref and ratelimit.hit(f"invite-reward:{ref.lower()}", 5, 86400):  # не больше 5 наград в сутки — защита от накрутки
+        from routers.extras import reward_inviter
+        reward_inviter(db, user, ref)
     db.commit()
-    return _finish_login(request, db, user, "/verify" if config.EMAIL_ENABLED else "/welcome")
+    resp = _finish_login(request, db, user, "/verify" if config.EMAIL_ENABLED else "/welcome")
+    resp.delete_cookie("ref")
+    return resp
 
 
 def _send_code(db, email, purpose):

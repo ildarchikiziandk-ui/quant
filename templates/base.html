@@ -44,6 +44,8 @@
     <a href="/notifications" class="nav-item"><span class="ico">{{ icon("bell") }}</span><span class="nav-label">Уведомления</span><span class="badge-count {% if not unread %}hidden{% endif %}" data-badge="notifications">{{ unread }}</span></a>
     <a href="/messages" class="nav-item"><span class="ico">{{ icon("chat") }}</span><span class="nav-label">Сообщения</span><span class="badge-count {% if not unread_msg %}hidden{% endif %}" data-badge="messages">{{ unread_msg }}</span></a>
     <a href="/groups" class="nav-item"><span class="ico">{{ icon("users") }}</span><span class="nav-label">Группы</span></a>
+    <a href="/events" class="nav-item"><span class="ico">{{ icon("calendar") }}</span><span class="nav-label">Мероприятия</span></a>
+    <a href="/questions" class="nav-item"><span class="ico">{{ icon("help") }}</span><span class="nav-label">Вопросы</span></a>
     <a href="/bookmarks" class="nav-item"><span class="ico">{{ icon("bookmark") }}</span><span class="nav-label">Закладки</span></a>
     <a href="/tasks" class="nav-item"><span class="ico">{{ icon("target") }}</span><span class="nav-label">Задания</span></a>
     <a href="/profile/{{ user.username }}" class="nav-item"><span class="ico">{{ icon("user") }}</span><span class="nav-label">Профиль</span></a>
