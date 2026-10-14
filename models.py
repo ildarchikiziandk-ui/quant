@@ -85,6 +85,9 @@ class User(Base):
     last_spin = Column(String, default="")
     dnd_until = Column(DateTime, nullable=True)
     is_paused = Column(Boolean, default=False)
+    pd_consent_at = Column(DateTime, nullable=True)  # согласие на обработку персональных данных (152-ФЗ ст. 9)
+    pd_consent_version = Column(String(20), default="")
+    age_confirmed = Column(Boolean, default=False)  # подтвердил, что ему есть MIN_AGE лет
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")

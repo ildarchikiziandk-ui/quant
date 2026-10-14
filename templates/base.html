@@ -63,7 +63,7 @@
     <div class="nav-cta"><a href="/register" class="btn block">{{ icon("sparkle") }}<span class="lbl">Регистрация</span></a></div>
     {% endif %}
     <div style="margin-top:auto;padding:14px" class="tiny faint nav-label">
-      <a href="/about">О проекте</a> · <a href="/terms">Правила</a> · <a href="/support">Поддержка</a><br><a href="{{ android_apk_url }}">📱 Приложение для Android</a><br>
+      <a href="/about">О проекте</a> · <a href="/terms">Правила</a> · <a href="/privacy">Конфиденциальность</a> · <a href="/support">Поддержка</a><br><a href="{{ android_apk_url }}">📱 Приложение для Android</a><br>
       <button onclick="toggleTheme()" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:inherit">🌓 Сменить тему</button> · <span>© {{ utcnow().year }} {{ brand }}</span>
     </div>
   </nav>
@@ -74,6 +74,7 @@
     {% if announcement %}<div class="announce {{ announcement.level }}">📣 <span>{{ announcement.text }}</span></div>{% endif %}
     {% if needs_email %}<div class="alert info">📧 Подтвердите email <b>{{ user.email }}</b>, чтобы публиковать посты и писать сообщения. <a href="/verify" style="color:var(--link);font-weight:600">Ввести код →</a></div>{% endif %}
     {% if user and user.is_blocked and user.blocked_until and user.blocked_until > now %}<div class="alert error">Ваш аккаунт ограничен до {{ user.blocked_until|lt }}. <a href="/special-request" style="text-decoration:underline">Подать апелляцию</a></div>{% endif %}
+    {% if user and not user.pd_consent_at and request.url.path not in ("/consent", "/privacy") %}<div class="alert info small row" style="gap:10px;flex-wrap:wrap"><span class="grow">По закону № 152-ФЗ нам нужно ваше отдельное <a href="/consent" style="text-decoration:underline">согласие на обработку персональных данных</a>. Подробнее — в <a href="/privacy" style="text-decoration:underline">политике конфиденциальности</a>.</span><form method="post" action="/consent/accept" style="margin:0"><button class="btn sm">Даю согласие</button></form></div>{% endif %}
     {% block content %}{% endblock %}
   </main>
 
@@ -133,7 +134,7 @@
       <a class="chip" style="margin:0" href="/notes">📝 Заметки</a><a class="chip" style="margin:0" href="/stats">📊 Статистика</a><a class="chip" style="margin:0" href="/shop">🛍 Магазин</a>
       <a class="chip" style="margin:0" href="/top">🏆 Топ недели</a><a class="chip" style="margin:0" href="/random">🎲 Мне повезёт</a><a class="chip" style="margin:0" href="/people/city">📍 Люди рядом</a>
       <a class="chip" style="margin:0" href="/archive">🗄 Архив</a><a class="chip" style="margin:0" href="/memories">🕰 В этот день</a><a class="chip" style="margin:0" href="/invite">🤝 Пригласить</a></div></div>{% endif %}
-    <div class="tiny faint" style="padding:0 6px"><a href="/about">О {{ brand }}</a> · <a href="/terms">Правила</a> · <a href="/leaderboard">Рейтинг</a> · <a href="/support">Поддержка</a> · Нажмите <span class="kbd">?</span> для горячих клавиш</div>
+    <div class="tiny faint" style="padding:0 6px"><a href="/about">О {{ brand }}</a> · <a href="/terms">Правила</a> · <a href="/privacy">Конфиденциальность</a> · <a href="/leaderboard">Рейтинг</a> · <a href="/support">Поддержка</a> · Нажмите <span class="kbd">?</span> для горячих клавиш</div>
   </aside>
   {% endblock %}
 </div>
@@ -149,6 +150,8 @@
 {% endif %}
 {% endblock %}
 <div id="toasts"></div>
+<div class="cookie-bar small" id="cookie-bar" hidden><span class="grow">Мы используем только необходимые cookie — для входа и защиты аккаунта. <a href="/privacy#cookie" style="text-decoration:underline">Подробнее</a></span><button class="btn sm" onclick="try{localStorage.setItem('nv_cookie_ok','1')}catch(e){};this.parentNode.hidden=true">Понятно</button></div>
+<script>try{if(!localStorage.getItem('nv_cookie_ok'))document.getElementById('cookie-bar').hidden=false}catch(e){}</script>
 <script src="/static/js/app.js?v={{ static_v }}"></script>
 {% block scripts %}{% endblock %}
 </body>

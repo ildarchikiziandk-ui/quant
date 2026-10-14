@@ -40,7 +40,7 @@ def make_client():
 
 def register(client, username, password="secret123", private=False):
     r = client.post("/register", data={"username": username, "email": f"{username}@example.com", "password": password,
-                                       "confirm_password": password, "agree": "1", "name": username.title()},
+                                       "confirm_password": password, "agree": "1", "consent": "1", "adult": "1", "name": username.title()},
                     follow_redirects=False)
     assert r.status_code == 303, r.text[:500]
     if private:

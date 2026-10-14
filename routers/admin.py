@@ -10,7 +10,7 @@ import config
 import models
 from database import get_db
 from deps import current_user, log_mod, redirect, render
-from services import gamification, social
+from services import gamification, legal, social
 
 router = APIRouter()
 
@@ -75,6 +75,7 @@ def admin_page(request: Request, tab: str = "dashboard", q: str = "", db: Sessio
                challenges=db.query(models.WeeklyChallenge).order_by(models.WeeklyChallenge.created_at.desc()).limit(20).all(),
                raffle=gamification.current_raffle(db), logs=db.query(models.ModLog).order_by(models.ModLog.created_at.desc()).limit(100).all(),
                support=db.query(models.Notification).filter_by(type="support").order_by(models.Notification.created_at.desc()).limit(50).all(),
+               legal=legal.checklist(db) if tab == "legal" else [],
                ai_flags=db.query(models.ModerationFlag).filter_by(status="new").order_by(models.ModerationFlag.score.desc()).limit(200).all(),
                ai_stats={k: db.query(models.ModerationFlag).filter_by(status=k).count() for k in ("new", "approved", "removed")}
                | {"all": db.query(models.ModerationFlag).count()},

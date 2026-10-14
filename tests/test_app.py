@@ -34,9 +34,9 @@ def test_404_page(anon):
 
 
 def test_register_validation(anon):
-    r = anon.post("/register", data={"username": "ab", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1"})
+    r = anon.post("/register", data={"username": "ab", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1"})
     assert "минимум 3" in r.text
-    r = anon.post("/register", data={"username": "goodname", "email": "x@y.z", "password": "short", "confirm_password": "short", "agree": "1"})
+    r = anon.post("/register", data={"username": "goodname", "email": "x@y.z", "password": "short", "confirm_password": "short", "agree": "1", "consent": "1", "adult": "1"})
     assert "минимум 8" in r.text
 
 
@@ -367,7 +367,7 @@ def test_infinite_feed(alice):
 def test_register_form_keeps_name_and_no_macro_leak(anon):
     r = anon.get("/register")
     assert "Macro" not in r.text
-    r = anon.post("/register", data={"username": "ab", "name": "Иван", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1"})
+    r = anon.post("/register", data={"username": "ab", "name": "Иван", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1"})
     assert 'value="Иван"' in r.text and "Macro" not in r.text
 
 
@@ -396,7 +396,7 @@ def test_email_verification_required(monkeypatch, anon):
     sent = {}
     monkeypatch.setattr(config, "EMAIL_ENABLED", True)
     monkeypatch.setattr(mailer, "send", lambda to, subj, body: sent.setdefault("body", body) or True)
-    r = anon.post("/register", data={"username": "veri", "email": "veri@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1"}, follow_redirects=False)
+    r = anon.post("/register", data={"username": "veri", "email": "veri@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1"}, follow_redirects=False)
     assert r.headers["location"] == "/verify"
     assert anon.post("/post/create", data={"content": "hi"}, headers=J).status_code == 403
     code = re.search(r"letter-spacing:8px;\">(\d{6})<", sent["body"]).group(1)
@@ -548,7 +548,7 @@ def test_timezones(alice, bob):
     # пояс определяется при регистрации
     c = make_client()
     c.post("/register", data={"username": "krsk", "email": "krsk@example.com", "password": "secret123", "confirm_password": "secret123",
-                              "agree": "1", "name": "K", "tz": "Asia/Krasnoyarsk"}, follow_redirects=False)
+                              "agree": "1", "consent": "1", "adult": "1", "name": "K", "tz": "Asia/Krasnoyarsk"}, follow_redirects=False)
     s = db()
     from services import prefs
     assert prefs.get(s.query(models.User).filter_by(username="krsk").first(), "timezone") == "krasnoyarsk"
@@ -646,7 +646,7 @@ def test_invite_and_interests(alice, bob):
     assert r.headers["location"].startswith("/register?ref=alice")
     before = db().query(models.User).filter_by(username="alice").first().total_points
     c.post("/register", data={"username": "newbie", "email": "newbie@example.com", "password": "secret123", "confirm_password": "secret123",
-                              "agree": "1", "name": "N", "ref": "alice"}, follow_redirects=False)
+                              "agree": "1", "consent": "1", "adult": "1", "name": "N", "ref": "alice"}, follow_redirects=False)
     s = db()
     nb = s.query(models.User).filter_by(username="newbie").first()
     me = s.query(models.User).filter_by(username="alice").first()
@@ -870,3 +870,27 @@ def test_secret_chats_server_sees_only_ciphertext(alice, bob):
     assert bob.post(f"/secret/{cid}/ttl", json={"ttl": 300}, headers=J).json()["ttl"] == 300
     bob.post(f"/secret/{cid}/delete", headers=J)
     assert alice.get(f"/secret/{cid}/state").status_code == 404
+
+
+def test_russian_law_compliance(anon, owner):
+    base = {"username": "kid", "email": "kid@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1"}
+    assert "согласие на обработку" in anon.post("/register", data=base).text
+    assert "Регистрация доступна с 14" in anon.post("/register", data={**base, "consent": "1"}).text
+    for url in ["/privacy", "/consent"]:
+        r = anon.get(url)
+        assert r.status_code == 200 and "152-ФЗ" in r.text
+    assert "/privacy" in anon.get("/").text and "cookie-bar" in anon.get("/").text
+    reg = anon.get("/register").text
+    assert 'name="consent"' in reg and 'name="adult"' in reg
+    assert 'id="secret"' in anon.get("/terms").text and "15.1" in anon.get("/terms").text
+    s = db()
+    u = s.query(models.User).filter_by(username="owner").one()
+    assert u.pd_consent_at and u.age_confirmed
+    u.pd_consent_at = None  # как у старых пользователей и вошедших через Яндекс
+    s.commit()
+    s.close()
+    assert "Даю согласие" in owner.get("/").text
+    owner.post("/consent/accept")
+    assert "Даю согласие" not in owner.get("/").text
+    r = owner.get("/admin?tab=legal")
+    assert "152-ФЗ" in r.text and "ОРИ" in r.text and "ПП РФ № 313" in r.text

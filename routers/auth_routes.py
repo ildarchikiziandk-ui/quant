@@ -12,7 +12,7 @@ import config
 import models
 from database import get_db
 from deps import current_user, redirect, render, safe_next
-from services import mailer, ratelimit, timezones
+from services import legal, mailer, ratelimit, timezones
 
 router = APIRouter()
 
@@ -127,7 +127,7 @@ def register_page(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/register")
 def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...),
-             confirm_password: str = Form(...), agree: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
+             confirm_password: str = Form(...), agree: str = Form(""), consent: str = Form(""), adult: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
              tz: str = Form(""), ref: str = Form(""), db: Session = Depends(get_db)):
     username, email = username.strip().lstrip("@"), email.strip().lower()
     form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE)}
@@ -148,13 +148,18 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         return fail("Пароли не совпадают")
     if not agree:
         return fail("Нужно принять пользовательское соглашение")
+    if not consent:
+        return fail("Нужно дать согласие на обработку персональных данных")
+    if not adult:
+        return fail(f"Регистрация доступна с {config.MIN_AGE} лет")
     if db.query(models.User).filter(func.lower(models.User.username) == username.lower()).first():
         return fail(f"Логин @{username} уже занят")
     if db.query(models.User).filter(func.lower(models.User.email) == email).first():
         return fail("Email уже зарегистрирован")
     user = models.User(username=username, email=email, password=auth.hash_password(password), is_verified=True,
                        name=(name.strip() or username)[:60], email_verified=not config.EMAIL_ENABLED,
-                       is_owner=(username == config.OWNER_USERNAME))
+                       is_owner=(username == config.OWNER_USERNAME), pd_consent_at=datetime.utcnow(),
+                       pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True)
     tz_key = timezones.iana_map().get(tz.strip()[:64])
     if tz_key:  # пояс определён браузером при регистрации
         user.prefs = json.dumps({"timezone": tz_key}, ensure_ascii=False)

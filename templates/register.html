@@ -17,6 +17,8 @@
   <input type="hidden" name="tz" id="reg-tz"><input type="hidden" name="ref" value="{{ request.query_params.get('ref', '')[:30] }}">
   {% if request.query_params.get('ref') %}<div class="alert info small">🤝 Вас пригласил @{{ request.query_params.get('ref')[:30] }}</div>{% endif %}<script>try{document.getElementById('reg-tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}</script>
   <label class="check"><input type="checkbox" name="agree" value="1" required><span class="small">Я принимаю <a href="/terms" target="_blank" style="color:var(--link);font-weight:600">пользовательское соглашение</a> {{ brand }}</span></label>
+  <label class="check"><input type="checkbox" name="consent" value="1" required><span class="small">Даю <a href="/consent" target="_blank" style="color:var(--link);font-weight:600">согласие на обработку персональных данных</a> в соответствии с <a href="/privacy" target="_blank" style="color:var(--link);font-weight:600">политикой конфиденциальности</a></span></label>
+  <label class="check"><input type="checkbox" name="adult" value="1" required><span class="small">Мне исполнилось {{ min_age }} лет</span></label>
   <button class="btn block mt">Зарегистрироваться</button>
 </form>
 <p class="center mt small">Уже есть аккаунт? <a href="/login" style="color:var(--link);font-weight:600">Войти</a></p>

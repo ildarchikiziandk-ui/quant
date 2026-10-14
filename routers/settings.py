@@ -444,6 +444,10 @@ def purge_user(db, user):
         db.query(models.Message).filter(models.Message.reply_to_id.in_(msg_ids)).update({"reply_to_id": None}, synchronize_session=False)
         db.query(models.Message).filter(models.Message.id.in_(msg_ids)).delete(synchronize_session=False)
     db.query(models.Message).filter(models.Message.forwarded_from_id == uid).update({"forwarded_from_id": None}, synchronize_session=False)
+    sc_ids = [c.id for c in db.query(models.SecretChat.id).filter(or_(models.SecretChat.a_id == uid, models.SecretChat.b_id == uid))]
+    if sc_ids:
+        db.query(models.SecretMessage).filter(models.SecretMessage.chat_id.in_(sc_ids)).delete(synchronize_session=False)
+        db.query(models.SecretChat).filter(models.SecretChat.id.in_(sc_ids)).delete(synchronize_session=False)
     gm_ids = [m.id for m in db.query(models.GroupMessage.id).filter_by(sender_id=uid)]
     if gm_ids:
         db.query(models.GroupMessage).filter(models.GroupMessage.reply_to_id.in_(gm_ids)).update({"reply_to_id": None}, synchronize_session=False)

@@ -143,3 +143,28 @@ def service_worker():
 @router.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
     return "User-agent: *\nDisallow: /settings\nDisallow: /messages\nDisallow: /admin\nDisallow: /api/\n"
+
+
+@router.get("/privacy")
+def privacy_page(request: Request, db: Session = Depends(get_db)):
+    return render(request, db, "privacy.html")
+
+
+@router.get("/consent")
+def consent_page(request: Request, db: Session = Depends(get_db)):
+    return render(request, db, "consent.html")
+
+
+@router.post("/consent/accept")
+def consent_accept(request: Request, db: Session = Depends(get_db)):
+    """Согласие для тех, кто зарегистрировался до появления отдельного согласия или через Яндекс."""
+    from datetime import datetime
+    from services import legal
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    user.pd_consent_at, user.pd_consent_version, user.age_confirmed = datetime.utcnow(), legal.CONSENT_VERSION, True
+    db.commit()
+    if request.headers.get("x-requested-with"):
+        return {"ok": True}
+    return redirect("/")

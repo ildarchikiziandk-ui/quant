@@ -499,3 +499,14 @@ body.reader .post-text { font-size: 20px; line-height: 1.8; max-width: 680px; }
 .secret-msg.theirs{align-self:flex-start}
 .secret-text{white-space:pre-wrap;word-break:break-word}
 .error-text{color:#d33}
+
+/* Юридические документы */
+.legal-doc{max-width:760px;margin:0 auto;line-height:1.65;font-size:14px}
+.legal-doc h1{font-size:22px;margin-bottom:6px}
+.legal-doc h3{font-size:16px;margin:18px 0 6px}
+.legal-doc ul,.legal-doc ol{padding-left:20px;margin:6px 0}
+.legal-doc a{color:var(--link);text-decoration:underline}
+.cookie-bar{position:fixed;left:12px;right:12px;bottom:76px;z-index:90;max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:center;
+  background:var(--card,#fff);border:1px solid var(--border,rgba(127,127,127,.25));border-radius:14px;padding:10px 14px;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+@media (min-width:900px){.cookie-bar{bottom:16px}}
+.cookie-bar[hidden]{display:none}
