@@ -125,7 +125,7 @@ def offline_page(request: Request):
 def manifest():
     return JSONResponse({
         "name": config.BRAND_NAME, "short_name": config.BRAND_NAME, "description": config.BRAND_TAGLINE,
-        "start_url": "/", "display": "standalone", "background_color": "#09090b", "theme_color": "#18181b",
+        "start_url": "/", "display": "standalone", "background_color": "#222222", "theme_color": "#222222",
         "orientation": "portrait", "lang": "ru", "categories": ["social"],
         "icons": [{"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
                   {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}],

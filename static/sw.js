@@ -1,6 +1,6 @@
-const CACHE_NAME = 'app-__VERSION__';
+const CACHE_NAME = 'app-__VERSION__-logo2';
 const BRAND = '__BRAND__';
-const PRECACHE = ['/static/icon-192.png', '/static/css/app.css', '/static/js/app.js', '/offline'];
+const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/static/css/app.css', '/static/js/app.js', '/offline'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE)).catch(() => {}));
