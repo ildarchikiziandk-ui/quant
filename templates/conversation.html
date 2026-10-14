@@ -26,8 +26,9 @@
   <div id="chat-search" class="hidden" style="margin-bottom:8px"><input type="search" id="chat-search-q" placeholder="Поиск по сообщениям в этом чате…"></div>
   {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">📌 <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content or "вложение" }}</span></div>{% endif %}
   <div class="convo-box" id="box">
-    {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">👋</div>Начните диалог с {{ other.name or other.username }}</div>{% endif %}
+    {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">👋</div>Начните диалог с {{ other.name or other.username }}<div class="tiny faint mt">🔒 Сообщения хранятся в зашифрованном виде (AES-256)</div></div>{% endif %}
   </div>
+  <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">🔒 Переписка зашифрована</div>
   <div class="typing hidden" id="typing" style="padding:4px 10px">{{ other.name or other.username }} печатает…</div>
   {% if can_send %}
   <div class="convo-input">

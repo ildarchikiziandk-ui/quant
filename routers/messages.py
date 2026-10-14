@@ -95,11 +95,13 @@ def message_search(request: Request, q: str = "", db: Session = Depends(get_db))
     if not user:
         return login_redirect(request)
     results = []
-    if q.strip():
-        results = (db.query(models.Message).filter(or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id),
-                                                   models.Message.group_id == None, models.Message.is_deleted == False,
-                                                   models.Message.content.ilike(f"%{q.strip()}%"))
-                   .order_by(models.Message.created_at.desc()).limit(100).all())
+    needle = q.strip().lower()
+    if needle:
+        # сообщения зашифрованы, поэтому ищем после расшифровки (последние 5000 сообщений пользователя)
+        recent = (db.query(models.Message).filter(or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id),
+                                                  models.Message.group_id == None, models.Message.is_deleted == False)
+                  .order_by(models.Message.id.desc()).limit(5000).all())
+        results = [m for m in recent if m.content and needle in m.content.lower()][:100]
     return render(request, db, "message_search.html", query=q, results=results)
 
 

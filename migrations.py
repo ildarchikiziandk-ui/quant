@@ -120,9 +120,32 @@ def run():
             print(f"[migrations] добавлены колонки: {', '.join(added)}")
     except Exception as e:  # миграция не должна валить запуск
         print(f"[migrations] warning: {e}")
+    try:
+        n = encrypt_existing_messages()
+        if n:
+            print(f"[migrations] зашифровано старых сообщений: {n}")
+    except Exception as e:
+        print(f"[migrations] шифрование сообщений: {e}")
     from database import SessionLocal
     db = SessionLocal()
     try:
         seed(db)
     finally:
         db.close()
+
+
+def encrypt_existing_messages(batch=500):
+    """Шифрует сообщения, сохранённые до включения шифрования. Безопасно запускать повторно."""
+    from services import crypto
+    total = 0
+    for table in ("messages", "group_messages"):
+        while True:
+            with engine.begin() as conn:
+                rows = conn.execute(text(f"SELECT id, content FROM {table} WHERE content IS NOT NULL AND content != '' "
+                                         f"AND content NOT LIKE 'enc1:%' LIMIT {batch}")).fetchall()
+                for rid, content in rows:
+                    conn.execute(text(f"UPDATE {table} SET content = :c WHERE id = :i"), {"c": crypto.encrypt(content), "i": rid})
+            total += len(rows)
+            if len(rows) < batch:
+                break
+    return total

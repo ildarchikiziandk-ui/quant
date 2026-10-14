@@ -1,7 +1,22 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
+
+
+class EncryptedText(TypeDecorator):
+    """Текст, который хранится в базе зашифрованным (AES-256-GCM, см. services/crypto.py)."""
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        from services import crypto
+        return crypto.encrypt(value)
+
+    def process_result_value(self, value, dialect):
+        from services import crypto
+        return crypto.decrypt(value)
 
 class User(Base):
     __tablename__ = "users"
@@ -213,7 +228,7 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
-    content = Column(Text, default="")
+    content = Column(EncryptedText, default="")
     content_encrypted = Column(Text, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
@@ -269,7 +284,7 @@ class GroupMessage(Base):
     id = Column(Integer, primary_key=True, index=True)
     group_id = Column(Integer, ForeignKey("group_chats.id"))
     sender_id = Column(Integer, ForeignKey("users.id"))
-    content = Column(Text, default="")
+    content = Column(EncryptedText, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
     file_url = Column(String, default="")

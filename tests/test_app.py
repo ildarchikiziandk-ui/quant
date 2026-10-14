@@ -801,3 +801,27 @@ def test_discovery_and_utilities(alice, bob):
     owner = register(make_client(), "owner")
     csvr = owner.get("/admin/export/users.csv")
     assert csvr.status_code == 200 and "alice" in csvr.text
+
+
+def test_messages_are_encrypted_at_rest(alice, bob):
+    from sqlalchemy import text
+    from database import engine
+    from services import crypto
+    bob.post("/follow/alice", headers=J)
+    alice.post("/follow/bob", headers=J)
+    r = alice.post("/messages/send", json={"receiver": "bob", "content": "секретный пароль от вайфая 12345"}, headers=J)
+    assert r.status_code == 200, r.text
+    with engine.connect() as c:
+        raw = c.execute(text("SELECT content FROM messages ORDER BY id DESC LIMIT 1")).scalar()
+    assert raw.startswith("enc1:") and "секретный" not in raw  # в базе — только шифротекст
+    assert "секретный пароль от вайфая" in bob.get("/messages/alice").text  # собеседник видит текст
+    assert "секретный пароль" in alice.get("/messages/search?q=вайфая").text  # поиск работает после расшифровки
+    # старые незашифрованные сообщения шифруются миграцией
+    with engine.begin() as c:
+        c.execute(text("UPDATE messages SET content = 'старое сообщение'"))
+    import migrations
+    assert migrations.encrypt_existing_messages() >= 1
+    with engine.connect() as c:
+        assert c.execute(text("SELECT content FROM messages LIMIT 1")).scalar().startswith("enc1:")
+    assert "старое сообщение" in bob.get("/messages/alice").text
+    assert crypto.decrypt(crypto.encrypt("тест")) == "тест"
