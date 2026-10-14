@@ -43,6 +43,20 @@
   <button class="btn">Сохранить</button>
 </form>
 
+<form class="card" method="post" action="/settings/status">
+  <div class="card-title">💬 Статус {% if status_active(user) %}<span class="tag-pill">активен{% if user.status_until %} до {{ user.status_until|lt("%d.%m %H:%M") }}{% endif %}</span>{% endif %}</div>
+  <div class="row" style="gap:8px"><input name="status_text" maxlength="80" value="{{ user.status_text or '' }}" placeholder="🎧 слушаю новый альбом, 🏖 в отпуске…" style="margin:0">
+  <select name="hours" style="width:auto;margin:0"><option value="1">на 1 час</option><option value="4">на 4 часа</option><option value="24" selected>на сутки</option><option value="168">на неделю</option><option value="0">без срока</option></select><button class="btn">Сохранить</button></div>
+  <p class="tiny faint mt">Чтобы убрать статус, очистите поле и сохраните.</p>
+</form>
+<form class="card" method="post" action="/settings/links">
+  <div class="card-title">🔗 Ссылки в профиле <span class="faint small">до 5</span></div>
+  {% set ls = profile_links %}
+  {% for i in range(5) %}<div class="form-row"><label class="field" style="max-width:200px"><span>Название</span><input name="link_title_{{ i }}" maxlength="40" value="{{ ls[i].title if ls|length > i else '' }}" placeholder="Портфолио"></label>
+  <label class="field"><span>Адрес</span><input name="link_url_{{ i }}" maxlength="200" value="{{ ls[i].url if ls|length > i else '' }}" placeholder="example.com"></label></div>{% endfor %}
+  <button class="btn">Сохранить ссылки</button>
+</form>
+
 {% elif section == "account" %}
 <form class="card" method="post" action="/settings/username">
   <div class="card-title">Логин</div>
@@ -82,6 +96,11 @@
   </div>
   <button class="btn">Сохранить</button>
 </form>
+<form class="card" method="post" action="/settings/pause" onsubmit="return confirm('{{ 'Снять паузу?' if user.is_paused else 'Поставить аккаунт на паузу? Ваш профиль и посты скроются от других, пока вы не вернётесь.' }}')">
+  <div class="card-title">⏸ Пауза аккаунта {% if user.is_paused %}<span class="tag-pill">включена</span>{% endif %}</div>
+  <p class="small muted mb">Профиль и посты временно скрываются от всех. Данные не удаляются, вернуть всё можно одной кнопкой.</p>
+  <button class="btn {% if not user.is_paused %}ghost{% endif %}">{% if user.is_paused %}▶ Снять паузу{% else %}⏸ Поставить на паузу{% endif %}</button>
+</form>
 <div class="card"><div class="card-title">Заблокированные · {{ blocked_users|length }}</div>
   {% for b in blocked_users %}<div class="user-row">{{ avatar(b, 36) }}<div class="info"><b>{{ b.name or b.username }}</b><div class="bio">@{{ b.username }}</div></div><form method="post" action="/unblock/{{ b.username }}"><button class="btn ghost sm">Разблокировать</button></form></div>
   {% else %}<div class="muted small">Никого</div>{% endfor %}
@@ -98,6 +117,11 @@
   <label class="check"><input type="checkbox" name="{{ key }}" {% if user[key] is not sameas false %}checked{% endif %}><span><b>{{ title }}</b>{% if desc %}<small>{{ desc }}</small>{% endif %}</span></label>
   {% endfor %}
   <button class="btn mt">Сохранить</button>
+</form>
+<form class="card" method="post" action="/settings/dnd">
+  <div class="card-title">🌙 Не беспокоить {% if user.dnd_until and user.dnd_until > now %}<span class="tag-pill">до {{ user.dnd_until|lt("%d.%m %H:%M") }}</span>{% endif %}</div>
+  <p class="small muted mb">Push-уведомления не приходят, а в профиле и чатах видно «🌙 не беспокоить».</p>
+  <div class="row wrap" style="gap:6px">{% for h, l in [("1","1 час"),("3","3 часа"),("8","8 часов"),("24","Сутки")] %}<button class="btn soft sm" name="hours" value="{{ h }}">{{ l }}</button>{% endfor %}{% if user.dnd_until and user.dnd_until > now %}<button class="btn ghost sm" name="hours" value="0">Выключить</button>{% endif %}</div>
 </form>
 {% if push_enabled %}<div class="card"><div class="card-title">Push-уведомления на этом устройстве</div><p class="small muted mb">Получайте уведомления, даже когда сайт закрыт.</p><button class="btn soft" onclick="window.enablePush ? enablePush() : App.toast('Браузер не поддерживает push', true)">🔔 Включить push</button></div>{% endif %}
 

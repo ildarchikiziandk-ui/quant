@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import current_user, login_redirect, render
-from services import gamification
+from services import gamification, social
 
 router = APIRouter()
 
@@ -33,17 +33,24 @@ def tasks_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/leaderboard")
-def leaderboard_page(request: Request, by: str = "total", db: Session = Depends(get_db)):
+def leaderboard_page(request: Request, by: str = "total", scope: str = "all", db: Session = Depends(get_db)):
     col = {"total": models.User.total_points, "weekly": models.User.weekly_points, "streak": models.User.streak_days,
            "level": models.User.level}.get(by, models.User.total_points)
-    users = db.query(models.User).filter(models.User.is_blocked == False).order_by(col.desc()).limit(100).all()
     user = current_user(request, db)
+    uq = db.query(models.User).filter(models.User.is_blocked == False)
+    if scope == "friends" and user:  # рейтинг среди тех, на кого вы подписаны
+        uq = uq.filter(models.User.id.in_(social.following_ids(db, user) | {user.id}))
+    else:
+        scope = "all"
+    users = uq.order_by(col.desc()).limit(100).all()
     my_rank = None
     if user:
         mine = getattr(user, col.key) or 0
         my_rank = db.query(models.User).filter(col > mine, models.User.is_blocked == False).count() + 1
+    if scope == "friends" and user:
+        my_rank = next((i + 1 for i, u in enumerate(users) if u.id == user.id), None)
     return render(request, db, "leaderboard.html", users=users, by=by if by in ("total", "weekly", "streak", "level") else "total",
-                  my_rank=my_rank)
+                  my_rank=my_rank, scope=scope)
 
 
 @router.get("/achievements")

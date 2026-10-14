@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import post_card %}
+{% block title %}Моя статистика — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">📊 Моя статистика</div>
+<div class="grid-4">{% for k, l in [("posts","Постов"),("likes","Лайков получено"),("comments","Комментариев к постам"),("views","Просмотров"),("followers","Подписчиков"),("following","Подписок")] %}<div class="stat-tile"><b>{{ totals[k]|compact }}</b><span>{{ l }}</span></div>{% endfor %}</div>
+<div class="card mt"><div class="card-title">🟩 Активность за полгода <span class="small muted">{{ active_days }} {{ plural(active_days, "активный день", "активных дня", "активных дней")|replace(active_days|string ~ " ", "") }}</span></div>
+  <div class="heatmap">{% for d, n, l in cells %}<i class="l{{ l }}" title="{{ d.strftime('%d.%m.%Y') }}: {{ n }}"></i>{% endfor %}</div>
+  <div class="tiny faint mt">Посты и комментарии по дням. Чем темнее клетка, тем больше активности.</div></div>
+<div class="card"><div class="card-title">⏰ Лучшее время для публикации</div>
+  {% if best is not none %}<p class="small mb">Ваши посты собирают больше всего реакций, если публиковать их около <b>{{ "%02d"|format(best) }}:00</b> ({{ tz_city(user) }}).</p>{% else %}<p class="small muted mb">Опубликуйте несколько постов — и здесь появится подсказка.</p>{% endif %}
+  <div class="bars">{% for v in avg %}<div style="height:{{ (v / avg_max * 100)|round|int }}%" title="{{ '%02d'|format(loop.index0) }}:00 — {{ v|round(1) }} реакций в среднем"></div>{% endfor %}</div>
+  <div class="row tiny faint" style="justify-content:space-between"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div></div>
+{% if top %}<div class="page-title" style="font-size:18px;margin:8px 0">🔥 Ваши лучшие посты</div>
+{% for p in top %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% endfor %}{% endif %}
+{% endblock %}

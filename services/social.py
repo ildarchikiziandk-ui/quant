@@ -106,7 +106,11 @@ def visible_posts(db, viewer, hide_muted=True):
     now = datetime.utcnow()
     q = db.query(models.Post).join(models.User, models.Post.user_id == models.User.id).filter(
         models.Post.is_published == True, models.Post.is_draft == False,
-        or_(models.Post.scheduled_at == None, models.Post.scheduled_at <= now))
+        or_(models.Post.scheduled_at == None, models.Post.scheduled_at <= now),
+        or_(models.Post.is_archived == None, models.Post.is_archived == False),
+        or_(models.Post.expires_at == None, models.Post.expires_at > now))
+    if not (viewer and can_mod(viewer)):  # приостановленные аккаунты скрыты (кроме своих постов)
+        q = q.filter(or_(models.User.is_paused == None, models.User.is_paused == False, models.User.id == (viewer.id if viewer else -1)))
     if viewer and can_mod(viewer):
         return q
     fids = following_ids(db, viewer)
@@ -127,7 +131,11 @@ def can_view_post(db, viewer, post):
         return False
     if viewer and (viewer.id == post.user_id or can_mod(viewer)):
         return True
-    if post.is_draft or not post.is_published:
+    if post.is_draft or not post.is_published or post.is_archived:
+        return False
+    if post.expires_at and post.expires_at <= datetime.utcnow():
+        return False
+    if post.author and post.author.is_paused:
         return False
     if not viewer:
         from services import prefs

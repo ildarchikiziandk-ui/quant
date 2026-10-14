@@ -173,6 +173,19 @@
         const f = $('#comment-form'); if (!f) return;
         f.parent_id.value = id; $('#reply-to-label').textContent = 'Ответ для @' + b.dataset.user; $('#reply-to').classList.remove('hidden');
         f.content.focus();
+      } else if (act === 'copy-text') {
+        const raw = $(`#raw-${id}`); const t = raw ? raw.value : ($(`#text-${id}`)?.innerText || '');
+        await navigator.clipboard.writeText(t); toast('Текст скопирован');
+      } else if (act === 'send-post') {
+        const u = prompt('Кому отправить? Введите логин (например, @dima)'); if (!u) return;
+        const note = prompt('Добавить сообщение? (можно оставить пустым)') || '';
+        await api(`/post/${id}/send`, { username: u.trim(), note }); toast('Пост отправлен в чат 📨');
+      } else if (act === 'remind') {
+        const r = await api(`/post/${id}/remind`, { hours: 24 }); toast('Напомню через 24 часа ⏰');
+      } else if (act === 'comment-edit') {
+        const el = $(`#ctext-${id}`); if (!el) return;
+        const t = prompt('Изменить комментарий', el.dataset.raw || el.innerText); if (t === null || !t.trim()) return;
+        await api(`/comment/${id}/edit`, { content: t.trim() }); location.reload();
       } else if (act === 'not-interested') {
         await api(`/post/${id}/not-interested`); const el = $(`#post-${id}`);
         if (el) { const prev = el.previousElementSibling; if (prev && prev.classList.contains('rec-reason')) prev.remove(); el.remove(); }
@@ -468,5 +481,61 @@
   document.addEventListener('app:content', () => apply(document));
   if ('MutationObserver' in window) {
     let t; new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => apply(document), 120); }).observe(document.body, { childList: true, subtree: true });
+  }
+})();
+
+// ---------- Спойлеры ----------
+document.addEventListener('click', (e) => { const s = e.target.closest('.spoiler'); if (s && !s.classList.contains('open')) { e.preventDefault(); s.classList.add('open'); } });
+
+
+// ---------- Пакет функций №3: предупреждения, ветки, предпросмотр, пароль, недавние поиски ----------
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  document.addEventListener('click', (e) => {
+    const cw = e.target.closest('[data-cw-open]'); if (cw) { cw.closest('[data-cw]').classList.add('open'); return; }
+    const th = e.target.closest('[data-thread]');
+    if (th) { const box = document.getElementById('thread-' + th.dataset.thread); if (!box) return;
+      const hide = !box.classList.contains('hidden'); box.classList.toggle('hidden', hide);
+      th.textContent = hide ? th.textContent.replace('Свернуть', 'Показать') : th.textContent.replace('Показать', 'Свернуть'); }
+  });
+  // Предпросмотр поста
+  const pv = $('#composer-preview');
+  if (pv) pv.addEventListener('click', async () => {
+    const ta = $('#composer textarea[name=content]'); if (!ta || !ta.value.trim()) return App.toast('Сначала напишите текст', true);
+    const r = await App.api('/api/preview', { content: ta.value });
+    let m = $('#preview-modal');
+    if (!m) { m = document.createElement('div'); m.id = 'preview-modal'; m.className = 'modal-bg';
+      m.innerHTML = '<div class="modal"><div class="card-title">👁 Предпросмотр <button class="icon-btn" onclick="this.closest(\'.modal-bg\').classList.remove(\'open\')">✕</button></div><div class="post-text" id="preview-body"></div></div>';
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }); document.body.appendChild(m); }
+    $('#preview-body').innerHTML = r.html; m.classList.add('open');
+  });
+  // Индикатор надёжности пароля
+  document.querySelectorAll('input[name=password][autocomplete=new-password], input[name=new_password], form[action="/register"] input[name=password]').forEach((inp) => {
+    if (inp.dataset.meter) return; inp.dataset.meter = 1;
+    const bar = document.createElement('div'); bar.className = 'pw-meter'; bar.innerHTML = '<b></b>';
+    const lbl = document.createElement('div'); lbl.className = 'tiny faint'; lbl.style.margin = '-4px 0 8px';
+    (inp.closest('label') || inp).after(bar, lbl);
+    inp.addEventListener('input', () => {
+      const v = inp.value; let sc = 0;
+      if (v.length >= 8) sc++; if (v.length >= 12) sc++; if (/[A-ZА-Я]/.test(v) && /[a-zа-я]/.test(v)) sc++; if (/\d/.test(v)) sc++; if (/[^\w\s]/.test(v)) sc++;
+      if (/^(.)\1+$/.test(v) || /^(12345678|password|qwerty|йцукен)/i.test(v)) sc = 0;
+      const lv = [['Очень слабый', '#dc2626'], ['Слабый', '#ea580c'], ['Средний', '#ca8a04'], ['Хороший', '#65a30d'], ['Надёжный', '#16a34a'], ['Отличный', '#15803d']][sc];
+      bar.firstChild.style.width = (v ? (sc + 1) / 6 * 100 : 0) + '%'; bar.firstChild.style.background = lv[1];
+      lbl.textContent = v ? 'Надёжность пароля: ' + lv[0] : '';
+    });
+  });
+  // Недавние поиски (хранятся только в браузере)
+  const sf = $('form[action="/search"] input[name=q]');
+  if (sf && location.pathname === '/search') {
+    let rec = []; try { rec = JSON.parse(localStorage.getItem('recent-searches') || '[]'); } catch (e) {}
+    const q = sf.value.trim();
+    if (q) { rec = [q].concat(rec.filter(x => x !== q)).slice(0, 8); try { localStorage.setItem('recent-searches', JSON.stringify(rec)); } catch (e) {} }
+    else if (rec.length) {
+      const box = document.createElement('div'); box.className = 'card';
+      box.innerHTML = '<div class="card-title">🕘 Недавние поиски <button class="btn ghost sm" id="rec-clear">Очистить</button></div><div class="row wrap" style="gap:6px">' +
+        rec.map(x => `<a class="chip" style="margin:0" href="/search?q=${encodeURIComponent(x)}">${App.esc(x)}</a>`).join('') + '</div>';
+      sf.closest('form').after(box);
+      $('#rec-clear').onclick = () => { try { localStorage.removeItem('recent-searches'); } catch (e) {} box.remove(); };
+    }
   }
 })();

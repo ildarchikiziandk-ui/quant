@@ -60,7 +60,7 @@ def _parse_dt(value):
 
 # --- Просмотр поста ----------------------------------------------------------
 @router.get("/post/{post_id}")
-def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
+def post_page(post_id: int, request: Request, sort: str = "old", db: Session = Depends(get_db)):
     user = current_user(request, db)
     post = _get_post(db, post_id)
     if not social.can_view_post(db, user, post):
@@ -74,6 +74,12 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
                 .order_by(models.Comment.is_pinned.desc(), models.Comment.created_at.asc()).all())
     comments = [c for c in comments if c.user_id not in hidden]
     roots = [c for c in comments if not c.parent_id]
+    if sort == "new":
+        roots.sort(key=lambda c: (not c.is_pinned, -c.id))
+    elif sort == "top":
+        roots.sort(key=lambda c: (not c.is_pinned, -len(c.comment_likes), c.id))
+    else:
+        sort = "old"
     children = {}
     for c in comments:
         if c.parent_id:
@@ -84,7 +90,7 @@ def post_page(post_id: int, request: Request, db: Session = Depends(get_db)):
             models.CommentLike.user_id == user.id, models.CommentLike.comment_id.in_([c.id for c in comments]))}
     ctx = feed.feed_context(db, user, [post])
     return render(request, db, "post.html", post=post, roots=roots, children=children, liked_comments=liked_comments,
-                  comment_count=len(comments), **ctx)
+                  comment_count=len(comments), sort=sort, **ctx)
 
 
 @router.get("/post/{post_id}/stats")
@@ -142,9 +148,16 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     if scheduled and scheduled <= datetime.utcnow():
         scheduled = None
     visibility = form.get("visibility") if form.get("visibility") in ("all", "followers") else "all"
+    from services import extras
+    exp = str(form.get("expires") or "")
     post = models.Post(content=content, user_id=user.id, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
                        is_long=len(content) > 500, scheduled_at=scheduled, visibility=visibility,
-                       comments_disabled=bool(form.get("comments_disabled")))
+                       comments_disabled=bool(form.get("comments_disabled")),
+                       mood=form.get("mood") if form.get("mood") in extras.MOOD_BY else "",
+                       location=(form.get("location") or "").strip()[:60],
+                       bg=form.get("bg") if form.get("bg") in extras.BG_KEYS and len(content) <= 220 and not saved else "",
+                       content_warning=censor((form.get("content_warning") or "").strip()[:80], social.stop_words(db)),
+                       expires_at=(scheduled or datetime.utcnow()) + timedelta(hours=int(exp)) if exp in ("24", "72", "168") else None)
     db.add(post)
     db.flush()
     flag = moderation.review(db, "post", post, user, content)
@@ -203,7 +216,10 @@ async def edit_post(post_id: int, request: Request, db: Session = Depends(get_db
     if not content and not post.image and not post.poll:
         return json_error("Пост не может быть пустым")
     update_trends(db, post.content or "", -1)
-    post.content = censor(content, social.stop_words(db))
+    new_content = censor(content, social.stop_words(db))
+    if new_content != (post.content or ""):
+        db.add(models.PostEdit(post_id=post.id, content=post.content or ""))  # история правок
+    post.content = new_content
     post.is_long = len(post.content) > 500
     post.edited_at = datetime.utcnow()
     if "comments_disabled" in data:

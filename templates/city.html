@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import user_row %}
+{% block title %}Люди рядом — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">📍 Люди из вашего города</div>
+<form method="get" class="card row" style="gap:8px"><input name="city" value="{{ city }}" placeholder="Город" style="margin:0"><button class="btn">Показать</button></form>
+{% if not city %}<div class="card small muted">Укажите город в <a href="/settings?section=profile" style="color:var(--link)">настройках профиля</a> или введите его выше.</div>
+{% else %}<div class="card"><div class="card-title">{{ city }} · {{ people|length }}</div>{% for u in people %}{{ user_row(u, user, following) }}{% else %}<div class="small muted">Пока никого из этого города</div>{% endfor %}</div>{% endif %}
+{% endblock %}

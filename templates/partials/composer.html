@@ -5,6 +5,7 @@
     <a href="/profile/{{ user.username }}">{{ avatar(user, 44) }}</a>
     <div class="grow">
       <textarea name="content" maxlength="5000" placeholder="Что нового, {{ user.name or user.username }}? Используйте #теги и @упоминания" data-suggest rows="2"></textarea>
+      <div class="tiny faint" style="margin:-2px 0 4px">**жирный** · __курсив__ · ~~зачёркнутый~~ · `код` · ||спойлер|| · «&gt; » в начале строки — цитата</div>
       <input type="hidden" name="draft_id" value="">
       <div class="previews hidden" id="composer-previews"></div>
       <div class="composer-extra hidden" id="panel-poll">
@@ -22,6 +23,17 @@
         </div>
         <label class="check"><input type="checkbox" name="comments_disabled" value="1"><span><b>Отключить комментарии</b></span></label>
       </div>
+      <div class="composer-extra hidden" id="panel-more">
+        <div class="form-row">
+          <label class="field"><span>Настроение</span><select name="mood"><option value="">— без настроения —</option>{% for k, e, t in moods %}<option value="{{ k }}">{{ e }} {{ t }}</option>{% endfor %}</select></label>
+          <label class="field"><span>Где вы</span><input name="location" maxlength="60" placeholder="Казань, кофейня «Утро»"></label>
+        </div>
+        <div class="form-row">
+          <label class="field"><span>Фон для короткого текста</span><select name="bg"><option value="">Без фона</option>{% for k, t in post_bgs %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
+          <label class="field"><span>Исчезающий пост</span><select name="expires">{% for k, t in post_expires %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
+        </div>
+        <label class="field"><span>Предупреждение о содержимом <span class="faint">— пост будет скрыт под плашкой</span></span><input name="content_warning" maxlength="80" placeholder="Спойлеры к сериалу, громкий звук…"></label>
+      </div>
       <div class="composer-extra hidden" id="panel-emoji"><div class="emoji-panel">{% for e in ['😀','😂','😍','🥰','😎','🤔','😭','😅','🔥','✨','❤️','👍','👏','🙏','🎉','💯','🚀','🌚','🐋','⚡'] %}<button type="button" data-emoji-insert>{{ e }}</button>{% endfor %}</div></div>
       <div class="composer-tools">
         <div class="tools">
@@ -29,7 +41,9 @@
           <button type="button" class="tool" title="Опрос" data-panel="panel-poll">{{ icon("poll") }}</button>
           <button type="button" class="tool" title="Эмодзи" data-panel="panel-emoji">{{ icon("smile") }}</button>
           <button type="button" class="tool" title="Аудитория и отложенная публикация" data-panel="panel-settings">{{ icon("clock") }}</button>
+          <button type="button" class="tool" title="Настроение, место, фон, исчезающий пост" data-panel="panel-more">{{ icon("sparkle") }}</button>
           <button type="button" class="tool" title="Сохранить черновик" id="save-draft">{{ icon("draft") }}</button>
+          <button type="button" class="tool" title="Предпросмотр" id="composer-preview">{{ icon("eye") }}</button>
           <input type="file" id="composer-files" name="media" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" class="hidden">
         </div>
         <div class="row"><span class="counter" id="composer-counter"></span><button class="btn" id="composer-submit" type="submit">Опубликовать</button></div>

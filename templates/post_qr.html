@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}QR-код поста — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card center" style="padding:28px"><div class="page-title">🔳 QR-код поста</div>
+<div class="qr-box" style="display:inline-block;padding:14px;background:#fff;border-radius:18px"><img src="/post/{{ post.id }}/qr.svg" width="240" height="240" alt="QR"></div>
+<div class="small muted mt">Наведите камеру телефона — откроется пост<br><b>{{ site_url }}/post/{{ post.id }}</b></div>
+<div class="row mt" style="justify-content:center;gap:8px"><a class="btn soft sm" href="/post/{{ post.id }}/qr.svg" download="nuvora-post-{{ post.id }}.svg">⬇ Скачать</a><a class="btn ghost sm" href="/post/{{ post.id }}">← К посту</a></div></div>
+{% endblock %}

@@ -10,7 +10,7 @@
     <a href="/profile/{{ other.username }}" class="row grow" style="min-width:0">
       {{ avatar(other, 42, online=true) }}
       <div style="min-width:0"><div>{{ name(other, link=false) }}</div>
-        <div class="tiny muted" id="chat-status">{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
+        <div class="tiny muted" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}🌙 не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
     </a>
     <div class="menu-wrap" style="margin-left:0">
       <button class="icon-btn" data-menu>{{ icon("more") }}</button>
@@ -33,6 +33,7 @@
   <div class="convo-input">
     <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">✕</button></div>
     <div class="reply-bar hidden" id="edit-bar">✎ <span class="grow">Редактирование сообщения</span><button class="icon-btn" onclick="cancelEdit()">✕</button></div>
+    {% set qr = (pref(user, "quick_replies") or "").split("|") %}{% if qr and qr[0] %}<div class="quick-replies">{% for q in qr if q.strip() %}<button type="button" onclick="sendText({{ q.strip()|tojson|forceescape }})">{{ q.strip() }}</button>{% endfor %}</div>{% endif %}
     <div class="emoji-panel hidden" id="emoji-panel">{% for e in ['😀','😂','🥹','😍','😘','😎','🤔','😭','😡','🥳','👍','👎','👏','🙏','❤️','🔥','✨','💯','🎉','🐋','🌚','🤝','💪','😴'] %}<button type="button" onclick="sendText('{{ e }}')">{{ e }}</button>{% endfor %}</div>
     <div class="row" style="align-items:flex-end;gap:4px">
       <button class="icon-btn" title="Фото или файл" onclick="document.getElementById('att').click()">{{ icon("clip") }}</button>
@@ -77,6 +78,7 @@ async function poll(){
   }catch(e){}
 }
 setInterval(()=>{ if(!document.hidden) poll(); }, 2500);
+document.getElementById('box').addEventListener('dblclick',async e=>{ const m=e.target.closest('.msg'); if(!m||e.target.closest('a,button,audio,video')) return; try{ await App.api(`/messages/${m.dataset.id}/react`,{emoji:'❤️'}); await refreshMsg(m.dataset.id); }catch(err){} });
 async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`); const tmp=document.createElement('div'); tmp.innerHTML=r.html; document.getElementById('msg-'+id)?.replaceWith(tmp.firstElementChild); }
 if(inp){
   inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; typingPing(); });

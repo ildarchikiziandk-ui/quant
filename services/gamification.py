@@ -123,7 +123,21 @@ def update_streak(user, db):
     if user.last_streak_date == today:
         return False
     yesterday = (date.today() - timedelta(days=1)).isoformat()
-    user.streak_days = (user.streak_days or 0) + 1 if user.last_streak_date == yesterday else 1
+    missed = 0
+    if user.last_streak_date and user.last_streak_date != yesterday:
+        try:
+            missed = (date.today() - date.fromisoformat(user.last_streak_date)).days - 1
+        except ValueError:
+            missed = 0
+    if user.last_streak_date == yesterday:
+        user.streak_days = (user.streak_days or 0) + 1
+    elif 0 < missed <= (user.streak_freezes or 0):  # заморозка стрика: пропущенные дни не обнуляют серию
+        user.streak_freezes -= missed
+        user.streak_days = (user.streak_days or 0) + 1
+        if prefs.get(user, "notify_achievements"):
+            db.add(models.Notification(user_id=user.id, type="system", text=f"🧊 Заморозка спасла ваш стрик (пропущено дней: {missed})"))
+    else:
+        user.streak_days = 1
     user.last_streak_date = today
     user.daily_points = 0
     db.commit()

@@ -61,6 +61,15 @@ class User(Base):
     interests = Column(String, default="")
     referred_by = Column(Integer, nullable=True)
     spent_points = Column(Integer, default=0)
+    status_text = Column(String, default="")
+    status_until = Column(DateTime, nullable=True)
+    links = Column(Text, default="")
+    avatar_frame = Column(String, default="")
+    frames_owned = Column(String, default="")
+    streak_freezes = Column(Integer, default=0)
+    last_spin = Column(String, default="")
+    dnd_until = Column(DateTime, nullable=True)
+    is_paused = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -97,6 +106,12 @@ class Post(Base):
     edited_at = Column(DateTime, nullable=True)
     comments_disabled = Column(Boolean, default=False)
     visibility = Column(String, default="all")
+    content_warning = Column(String, default="")
+    mood = Column(String, default="")
+    location = Column(String, default="")
+    bg = Column(String, default="")
+    is_archived = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=True)
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
@@ -185,6 +200,8 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey("posts.id"))
     parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
     is_pinned = Column(Boolean, default=False)
+    edited_at = Column(DateTime, nullable=True)
+    is_hidden = Column(Boolean, default=False)
     author = relationship("User")
     post = relationship("Post", back_populates="comments")
     replies = relationship("Comment", foreign_keys=[parent_id])
@@ -808,3 +825,33 @@ class BookmarkCollection(Base):
     name = Column(String, default="")
     emoji = Column(String, default="📁")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PostEdit(Base):
+    """История правок поста: предыдущие версии текста."""
+    __tablename__ = "post_edits"
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, index=True)
+    content = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Note(Base):
+    """Личные заметки — видны только владельцу."""
+    __tablename__ = "notes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    title = Column(String, default="")
+    content = Column(Text, default="")
+    is_pinned = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PostReminder(Base):
+    """«Напомнить о посте» — через время придёт уведомление."""
+    __tablename__ = "post_reminders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    post_id = Column(Integer)
+    remind_at = Column(DateTime, index=True)
+    done = Column(Boolean, default=False)

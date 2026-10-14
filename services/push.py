@@ -44,6 +44,8 @@ def send_push_to_user(user_id, db, title, body, url="/"):
     target = db.get(models.User, user_id)
     if target and prefs.in_quiet_hours(target):
         return
+    if target and target.dnd_until and target.dnd_until > __import__("datetime").datetime.utcnow():  # «не беспокоить»
+        return
     if target and prefs.get(target, "push_hide_text") and (url.startswith("/messages") or url.startswith("/groups")):
         body = "Новое сообщение"
     subs = [(s.id, {"endpoint": s.endpoint, "keys": {"p256dh": s.p256dh, "auth": s.auth}})

@@ -2,7 +2,7 @@
 
 {% macro avatar(u, size=40, online=false) -%}
 {%- if u -%}
-<span class="av-wrap"><span class="av" style="width:{{ size }}px;height:{{ size }}px;">
+<span class="av-wrap{% if u.avatar_frame %} frame-{{ u.avatar_frame }}{% endif %}"><span class="av" style="width:{{ size }}px;height:{{ size }}px;">
 {%- if u.avatar %}<img src="{{ u.avatar }}" alt="" loading="lazy">{% else %}<span style="font-size:{{ (size * 0.4)|int }}px;">{{ (u.name or u.username or "?")[0]|upper }}</span>{% endif -%}
 </span>{% if online and is_online(u) %}<span class="dot"></span>{% endif %}</span>
 {%- endif -%}
@@ -79,12 +79,16 @@
 {%- endmacro %}
 
 {% macro post_inner(p, user, st, can_mod, full=false) -%}
+{%- if p.mood or p.location %}<div class="post-sub tiny muted">{% if p.mood and mood_by.get(p.mood) %}{% set m = mood_by[p.mood] %}{{ m[1] }} чувствует себя {{ m[2] }}{% endif %}{% if p.mood and p.location %} · {% endif %}{% if p.location %}📍 {{ p.location }}{% endif %}</div>{% endif %}
+{%- if p.content_warning %}<div class="cw-wrap" data-cw><button type="button" class="cw-btn" data-cw-open>⚠️ {{ p.content_warning }} <span>— показать</span></button><div class="cw-body">{% endif %}
 {%- if p.content %}
-<div class="post-text {% if p.is_long and not full %}clamp{% endif %}" id="text-{{ p.id }}">{{ p.content|rich }}</div>
+<div class="post-text {% if p.is_long and not full %}clamp{% endif %}{% if p.bg %} bg-text bg-{{ p.bg }}{% endif %}" id="text-{{ p.id }}">{{ p.content|rich }}</div>
 {%- if p.is_long and not full %}<button class="read-more" data-act="expand" data-id="{{ p.id }}">Читать полностью · ~{{ reading_minutes(p.content) }} мин</button>{% endif %}
 {%- endif %}
 {%- if p.poll %}{{ poll_block(p, user, st) }}{% endif %}
 {{ media_block(p) }}
+{%- if p.content_warning %}</div></div>{% endif %}
+{%- if p.expires_at %}<div class="tiny faint" style="margin-top:-4px">⏳ пост исчезнет {{ p.expires_at|lt("%d.%m в %H:%M") }}</div>{% endif %}
 {%- endmacro %}
 
 {% macro post_card(p, user, st, originals={}, repost_counts={}, can_mod=false, full=false) -%}
@@ -103,17 +107,26 @@
         <span class="handle">@{{ main.author.username }}</span>
         <span class="faint">·</span>
         <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at|lt('%d.%m.%Y %H:%M') }}">{{ main.created_at|ago }}</a>
-        {%- if main.edited_at %}<span class="faint tiny">· изм.</span>{% endif %}
+        {%- if main.edited_at %}<a class="faint tiny" href="/post/{{ main.id }}/history" title="История правок">· изм.</a>{% endif %}
+        {%- if main.is_archived %}<span class="pill-info">🗄 в архиве</span>{% endif %}
         {%- if main.visibility == "followers" %}<span class="faint" title="Только для подписчиков">{{ icon("lock") }}</span>{% endif %}
         {%- if user and user.pinned_post_id == main.id and main.user_id == user.id %}<span class="pill-info">📌 закреплён</span>{% endif %}
         <div class="menu-wrap">
           <button class="icon-btn" data-menu aria-label="Меню">{{ icon("more") }}</button>
           <div class="menu">
             <button data-act="copy" data-id="{{ main.id }}">{{ icon("link") }} Копировать ссылку</button>
+            {%- if main.content %}<button data-act="copy-text" data-id="{{ main.id }}">📋 Копировать текст</button>{% endif %}
+            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">✈️ В Telegram</a>
+            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">💬 В WhatsApp</a>
+            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">🅥 ВКонтакте</a>
+            <a href="/post/{{ main.id }}/qr">🔳 QR-код поста</a>
+            {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">📨 Отправить в чат</button>
+            <button data-act="remind" data-id="{{ main.id }}">⏰ Напомнить завтра</button>{% endif %}
             {%- if user and user.id == main.user_id %}
             <button data-act="edit-post" data-id="{{ main.id }}">{{ icon("edit") }} Редактировать</button>
             <button data-act="pin-post" data-id="{{ main.id }}">{{ icon("pin") }} Закрепить в профиле</button>
             <a href="/post/{{ main.id }}/stats">{{ icon("chart") }} Статистика</a>
+            <button data-act="toggle" data-url="/post/{{ main.id }}/archive" data-reload="1" data-msg="Готово">🗄 {% if main.is_archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
             {%- endif %}
             {%- if user and user.id != main.user_id %}
             <button data-act="not-interested" data-id="{{ main.id }}">{{ icon("eye") }} Не интересно</button>

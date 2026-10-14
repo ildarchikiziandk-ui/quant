@@ -31,11 +31,37 @@ def richtext(text):
         out.append(f'<a href="{url}" target="_blank" rel="noopener nofollow ugc" class="rt-link">{label}</a>')
         pos = m.end()
     out.append(_tags_and_mentions(raw[pos:]))
-    return Markup("".join(out).replace("\n", "<br>"))
+    lines = []
+    for line in "".join(out).split("\n"):  # строка, начинающаяся с «> », — цитата
+        lines.append(f'<span class="rt-quote">{line[5:]}</span>' if line.startswith("&gt; ") else line)
+    return Markup("<br>".join(lines))
+
+
+_CODE_RE = re.compile(r"`([^`\n]{1,300})`")
+_FMT = [
+    (re.compile(r"\|\|(.{1,500}?)\|\|"), r'<span class="spoiler" title="Спойлер — нажмите, чтобы открыть">\1</span>'),
+    (re.compile(r"\*\*(\S(?:.{0,500}?\S)?)\*\*"), r"<b>\1</b>"),
+    (re.compile(r"(?<!\w)__(\S(?:.{0,500}?\S)?)__(?!\w)"), r"<i>\1</i>"),  # не трогаем логины вида a__b__c
+    (re.compile(r"~~(\S(?:.{0,500}?\S)?)~~"), r"<s>\1</s>"),
+]
+
+
+def _format(s):
+    """Простая разметка: **жирный**, __курсив__, ~~зачёркнутый~~, `код`, ||спойлер||. Текст уже экранирован."""
+    codes = []
+
+    def keep(m):
+        codes.append(m.group(1))
+        return f"\x00{len(codes) - 1}\x00"
+    s = _CODE_RE.sub(keep, s)
+    for rx, rep in _FMT:
+        s = rx.sub(rep, s)
+    return re.sub(r"\x00(\d+)\x00", lambda m: f'<code class="rt-code">{codes[int(m.group(1))]}</code>', s)
 
 
 def _tags_and_mentions(chunk):
     s = str(escape(chunk))
+    s = _format(s)
     s = HASHTAG_RE.sub(lambda m: f'<a href="/hashtag/{m.group(1).lower()}" class="rt-tag">#{m.group(1)}</a>', s)
     s = MENTION_RE.sub(lambda m: f'<a href="/profile/{m.group(1)}" class="rt-mention">@{m.group(1)}</a>', s)
     return s

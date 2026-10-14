@@ -92,7 +92,7 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
                if user and user.id == pu.id else 0)
     return render(request, db, "profile.html", profile_user=pu, tab=tab, can_see=can_see, pinned_post=pinned,
                   gifts=gifts, gifts_total=gifts_total, gift_by=extras.GIFT_BY_CODE, q_answered=q_answered, q_inbox=q_inbox,
-                  pu_interests=extras.interests(pu),
+                  pu_interests=extras.interests(pu), profile_links=extras.parse_links(pu.links),
                   replies=liked_posts, stats=stats, rel=rel, mutual=mutual, achievements=achievements, highlights=highlights,
                   has_story=has_story, level=gamification.level_progress(pu), profile_is_plus=social.is_plus(pu), **ctx)
 

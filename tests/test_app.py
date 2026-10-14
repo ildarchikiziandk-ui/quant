@@ -677,3 +677,127 @@ def test_people_you_may_know_search_filters_memories(alice, bob):
     assert "В этот день" in alice.get("/").text
     long_id = create_post(alice, "слово " * 600)
     assert "мин" in alice.get(f"/profile/alice").text
+
+
+def test_rich_formatting_and_post_extras(alice, bob):
+    pid = create_post(alice, "**жирно** __курсив__ ~~нет~~ `код` ||спойлер||\n> цитата", mood="happy", location="Казань",
+                      content_warning="Спойлеры", expires="24")
+    page = bob.get(f"/post/{pid}").text
+    for frag in ("<b>жирно</b>", "<i>курсив</i>", "<s>нет</s>", 'class="rt-code"', 'class="spoiler"', 'class="rt-quote"',
+                 "чувствует себя радостно", "📍 Казань", "⚠️ Спойлеры", "пост исчезнет"):
+        assert frag in page, frag
+    bgp = create_post(alice, "Короткий пост на фоне", bg="sunset")
+    assert "bg-sunset" in bob.get(f"/post/{bgp}").text
+    # исчезающий пост пропадает после срока
+    s = db()
+    from datetime import datetime, timedelta
+    s.get(models.Post, pid).expires_at = datetime.utcnow() - timedelta(minutes=1)
+    s.commit()
+    s.close()
+    assert bob.get(f"/post/{pid}").status_code == 404
+
+
+def test_edit_history_archive_qr_send_remind(alice, bob):
+    pid = create_post(alice, "первая версия")
+    alice.post(f"/post/{pid}/edit", data={"content": "вторая версия"}, headers=J)
+    h = bob.get(f"/post/{pid}/history").text
+    assert "первая версия" in h and "вторая версия" in h
+    assert alice.post(f"/post/{pid}/archive", headers=J).json()["archived"]
+    assert bob.get(f"/post/{pid}").status_code == 404 and "вторая версия" in alice.get("/archive").text
+    alice.post(f"/post/{pid}/archive", headers=J)
+    assert bob.get(f"/post/{pid}/qr.svg").headers["content-type"].startswith("image/svg")
+    assert bob.post(f"/post/{pid}/send", data={"username": "alice", "note": "смотри"}, headers=J).json()["ok"]
+    assert f"/post/{pid}" in alice.get("/messages/bob").text
+    bob.post(f"/post/{pid}/remind", data={"hours": 1}, headers=J)
+    s = db()
+    from datetime import datetime, timedelta
+    r = s.query(models.PostReminder).first()
+    r.remind_at = datetime.utcnow() - timedelta(minutes=1)
+    s.commit()
+    s.close()
+    bob.get("/")
+    assert "Вы просили напомнить" in bob.get("/notifications").text
+    assert "<b>x</b>" in bob.post("/api/preview", data={"content": "**x**"}, headers=J).json()["html"]
+
+
+def test_comment_features(alice, bob):
+    pid = create_post(alice, "обсуждаем")
+    bob.post(f"/post/{pid}/comment", data={"content": "первый"}, headers=J)
+    s = db()
+    c = s.query(models.Comment).first()
+    s.close()
+    assert bob.post(f"/comment/{c.id}/edit", data={"content": "исправленный"}, headers=J).json()["ok"]
+    assert "исправленный" in alice.get(f"/post/{pid}").text and "изм." in alice.get(f"/post/{pid}").text
+    alice.post(f"/comment/{c.id}/hide", headers=J)
+    carol = register(make_client(), "carolc")
+    assert "Комментарий скрыт автором поста" in carol.get(f"/post/{pid}").text
+    carol.post(f"/comment/{c.id}/report", headers=J)
+    s = db()
+    assert s.query(models.ModerationFlag).filter_by(kind="comment", label="report").count() == 1
+    s.close()
+    bob.post(f"/post/{pid}/comment", data={"content": "второй"}, headers=J)
+    assert "Популярные" in alice.get(f"/post/{pid}?sort=top").text
+
+
+def test_profile_extras(alice, bob):
+    alice.post("/settings/status", data={"status_text": "🎧 слушаю музыку", "hours": "24"})
+    alice.post("/settings/links", data={"link_title_0": "Портфолио", "link_url_0": "example.com"})
+    alice.post("/settings/profile", data={"name": "Alice", "birthday": "2000-03-25"})
+    page = bob.get("/profile/alice").text
+    assert "🎧 слушаю музыку" in page and "Портфолио" in page and "https://example.com" in page and "Овен" in page
+    alice.post("/settings/dnd", data={"hours": "3"}, headers=J)
+    assert "не беспокоить" in bob.get("/profile/alice").text
+    pid = create_post(alice, "пост до паузы")
+    alice.post("/settings/pause")
+    assert bob.get(f"/post/{pid}").status_code == 404
+    alice.post("/settings/pause")
+    assert bob.get(f"/post/{pid}").status_code == 200
+
+
+def test_shop_wheel_freeze_leaderboard(alice, bob):
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    a.total_points = 500
+    s.commit()
+    s.close()
+    alice.post("/shop/frame/gold")
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    assert a.avatar_frame == "gold" and "gold" in a.frames_owned
+    s.close()
+    assert "frame-gold" in bob.get("/profile/alice").text
+    alice.post("/shop/freeze")
+    r = alice.post("/wheel/spin", headers=J).json()
+    assert r["ok"] and r["prize"] in (5, 10, 15, 20, 25, 30, 50)
+    assert alice.post("/wheel/spin", headers=J).status_code == 400  # раз в день
+    # заморозка спасает стрик
+    from datetime import date, timedelta
+    from services import gamification
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    a.streak_days, a.last_streak_date, a.streak_freezes = 10, (date.today() - timedelta(days=2)).isoformat(), 1
+    s.commit()
+    gamification.update_streak(a, s)
+    assert a.streak_days == 11 and a.streak_freezes == 0
+    s.close()
+    assert "Среди друзей" in alice.get("/leaderboard?scope=friends").text
+
+
+def test_discovery_and_utilities(alice, bob):
+    pid = create_post(bob, "популярный пост")
+    alice.post(f"/like/{pid}", headers=J)
+    assert "популярный пост" in alice.get("/top?period=week").text
+    assert alice.get("/random", follow_redirects=False).headers["location"].startswith("/post/")
+    alice.post("/settings/profile", data={"name": "Alice", "city": "Казань"})
+    bob.post("/settings/profile", data={"name": "Bob", "city": "казань"})
+    assert "@bob" in alice.get("/people/city").text
+    alice.post("/notes/save", data={"title": "Идеи", "content": "написать про котиков"})
+    assert "написать про котиков" in alice.get("/notes").text and "написать про котиков" not in bob.get("/notes").text
+    st = bob.get("/stats").text
+    assert "Активность за полгода" in st and "Лучшее время" in st
+    alice.post("/follow/bob", headers=J)
+    bob.get("/api/counters")  # bob в сети
+    assert "Сейчас онлайн" in alice.get("/").text
+    owner = register(make_client(), "owner")
+    csvr = owner.get("/admin/export/users.csv")
+    assert csvr.status_code == 200 and "alice" in csvr.text

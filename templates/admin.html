@@ -29,6 +29,7 @@
 </div>
 
 {% elif tab == "users" %}
+{% if is_owner %}<div class="row mb"><a class="btn soft sm" href="/admin/export/users.csv">⬇ Экспорт пользователей (CSV)</a></div>{% endif %}
 <form method="get" class="card row"><input type="hidden" name="tab" value="users"><input type="search" name="q" value="{{ q }}" placeholder="Логин, имя или email" style="margin:0"><button class="btn">Найти</button></form>
 <div class="card table-wrap"><table class="table">
   <tr><th>Пользователь</th><th>Email</th><th>Очки</th><th>Статус</th><th>Создан</th><th></th></tr>
@@ -94,11 +95,12 @@
   <p class="small muted mb">Собственная модель {{ brand }} проверяет каждый новый пост и комментарий.
   {% if mod_cfg.enabled %}С оценки <b>{{ (mod_cfg.flag * 100)|round|int }}%</b> материал попадает сюда, с <b>{{ (mod_cfg.hold * 100)|round|int }}%</b> пост скрывается до вашего решения.{% else %}<b>Сейчас выключена</b> (MODERATION_ENABLED=0 в .env).{% endif %}
   Модель может ошибаться — сама она ничего не удаляет.</p>
+  <div class="grid-4 mb">{% for k, l in [("new","Ждут решения"),("approved","Одобрено"),("removed","Удалено"),("all","Всего проверено")] %}<div class="stat-tile"><b>{{ ai_stats[k] }}</b><span>{{ l }}</span></div>{% endfor %}</div>
 {% for f in ai_flags %}
   <div style="padding:10px 0;border-top:1px solid var(--border)">
     <div class="row small"><b>{{ "Пост" if f.kind == "post" else "Комментарий" }}</b>
       {% if f.user %}<a href="/profile/{{ f.user.username }}">@{{ f.user.username }}</a>{% endif %}
-      <span class="tag-pill">{{ "оскорбления / мат" if f.label == "toxic" else "спам" }} · {{ (f.score * 100)|round|int }}%</span>
+      {% if f.label == "report" %}<span class="tag-pill">🚩 жалоба пользователя</span>{% else %}<span class="tag-pill">{{ "оскорбления / мат" if f.label == "toxic" else "спам" }} · {{ (f.score * 100)|round|int }}%</span>{% endif %}
       {% if f.held %}<span class="tag-pill">скрыт до проверки</span>{% endif %}<span class="faint">{{ f.created_at|ago }}</span></div>
     <div style="height:6px;border-radius:3px;background:var(--border);margin:8px 0;overflow:hidden"><div style="height:100%;width:{{ (f.score * 100)|round|int }}%;background:var(--text)"></div></div>
     <a href="/post/{{ f.post_id }}{% if f.kind == 'comment' %}#comment-{{ f.object_id }}{% endif %}" class="quote" style="display:block;margin:6px 0;white-space:pre-wrap">{{ f.snippet[:300] }}</a>

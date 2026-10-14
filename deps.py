@@ -33,7 +33,8 @@ env.globals.update(
     brand=config.BRAND_NAME, brand_tagline=config.BRAND_TAGLINE, brand_plus=config.BRAND_PLUS,
     brand_email=config.BRAND_EMAIL, brand_color=config.BRAND_COLOR, site_url=config.SITE_URL,
     plural=text.plural, is_online=social.is_online, user_is_plus=social.is_plus, enumerate=enumerate,
-    android_apk_url=config.ANDROID_APK_URL, pref=prefs.get, pref_classes=prefs.html_classes, tz_city=timezones.city, reading_minutes=extras.reading_minutes, pref_client=prefs.client_values,
+    android_apk_url=config.ANDROID_APK_URL, pref=prefs.get, pref_classes=prefs.html_classes, tz_city=timezones.city, reading_minutes=extras.reading_minutes, moods=extras.MOODS, mood_by=extras.MOOD_BY, post_bgs=extras.BGS,
+    post_expires=extras.EXPIRES, zodiac=extras.zodiac, frame_by=extras.FRAME_BY, status_active=extras.status_active, pref_client=prefs.client_values,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
     push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.INSTANCE_ID, utcnow=datetime.utcnow,
 )
@@ -69,8 +70,20 @@ def base_context(request: Request, db: Session, sidebar=True):
            "needs_email": social.needs_email(user),
            "announcement": db.query(models.Announcement).filter(models.Announcement.is_active == True)
                              .order_by(models.Announcement.created_at.desc()).first()}
+    if user:
+        from routers.more import deliver_reminders
+        deliver_reminders(db, user)
+    ctx["holiday"] = extras.holiday_today()
     if sidebar:
         ctx["daily_tasks"] = gamification.get_daily_tasks(user, db)
+        if user:
+            from datetime import date as _d, timedelta as _td
+            ctx["can_spin"] = user.last_spin != _d.today().isoformat()
+            fids = social.following_ids(db, user)
+            ctx["online_friends"] = (db.query(models.User).filter(models.User.id.in_(fids or {-1}),
+                                                                  models.User.last_seen > datetime.utcnow() - _td(minutes=5))
+                                     .limit(8).all() if fids else [])
+            ctx["online_friends"] = [u for u in ctx["online_friends"] if u.show_online is not False]
         if user:
             excl = social.following_ids(db, user) | social.blocked_ids(db, user) | {user.id}
             known = [u for u, _ in extras.people_you_may_know(db, user, 4)]  # сначала друзья друзей и люди с общими интересами
