@@ -9,7 +9,7 @@ import config
 import models
 from database import get_db
 from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render
-from services import feed, gamification, moderation, prefs, ratelimit, social
+from services import feed, gamification, moderation, prefs, ratelimit, social, timezones
 from services.text import censor, extract_hashtags
 from services.uploads import delete_file, is_upload, save_file
 
@@ -138,7 +138,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     if files and not saved:
         return json_error(errors[0] if errors else "Не удалось загрузить файл")
     content = censor(content, social.stop_words(db))
-    scheduled = _parse_dt(form.get("scheduled_at"))
+    scheduled = timezones.from_local(_parse_dt(form.get("scheduled_at")), user)
     if scheduled and scheduled <= datetime.utcnow():
         scheduled = None
     visibility = form.get("visibility") if form.get("visibility") in ("all", "followers") else "all"

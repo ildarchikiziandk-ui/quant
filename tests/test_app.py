@@ -521,3 +521,35 @@ def test_settings_prefs_sections(alice):
     alice.post("/follow/bobm", headers=J)
     page = alice.get("/").text
     assert "Обычный пост про погоду" in page and "спойлер к фильму" not in page
+
+
+def test_timezones(alice, bob):
+    from datetime import datetime
+    from services import timezones
+    keys = dict(timezones.options())
+    assert "novosibirsk" in keys and "krasnoyarsk" in keys
+    assert keys["novosibirsk"].startswith("Новосибирск") and keys["krasnoyarsk"].startswith("Красноярск")
+    assert "UTC+7" in keys["novosibirsk"] and "UTC+7" in keys["krasnoyarsk"]
+    assert timezones.BY_KEY["novosibirsk"][2] == "Asia/Novosibirsk" and timezones.BY_KEY["krasnoyarsk"][2] == "Asia/Krasnoyarsk"
+    page = alice.get("/settings?section=appearance").text
+    assert 'value="novosibirsk"' in page and 'value="krasnoyarsk"' in page and "Определить по устройству" in page
+    # время в поясе пользователя
+    alice.post("/settings/prefs/appearance", data={"timezone": "novosibirsk", "corners": "round", "avatar_shape": "circle", "font_family": "system"})
+    s = db()
+    me = s.query(models.User).filter_by(username="alice").first()
+    assert timezones.to_local(datetime(2026, 1, 1, 12, 0), me).hour == 19
+    assert timezones.from_local(datetime(2026, 1, 1, 19, 0), me).hour == 12
+    s.close()
+    # отложенный пост: время вводится по местному времени
+    r = alice.post("/post/create", data={"content": "по расписанию", "scheduled_at": "2030-05-01T10:00"}, headers=J).json()
+    s = db()
+    assert s.get(models.Post, r["post_id"]).scheduled_at.hour == 3  # 10:00 по Новосибирску = 03:00 UTC
+    s.close()
+    # пояс определяется при регистрации
+    c = make_client()
+    c.post("/register", data={"username": "krsk", "email": "krsk@example.com", "password": "secret123", "confirm_password": "secret123",
+                              "agree": "1", "name": "K", "tz": "Asia/Krasnoyarsk"}, follow_redirects=False)
+    s = db()
+    from services import prefs
+    assert prefs.get(s.query(models.User).filter_by(username="krsk").first(), "timezone") == "krasnoyarsk"
+    s.close()

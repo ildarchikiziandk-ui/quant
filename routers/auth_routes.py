@@ -1,3 +1,4 @@
+import json
 import re
 import secrets
 from datetime import datetime, timedelta
@@ -11,7 +12,7 @@ import config
 import models
 from database import get_db
 from deps import current_user, redirect, render, safe_next
-from services import mailer, ratelimit
+from services import mailer, ratelimit, timezones
 
 router = APIRouter()
 
@@ -127,7 +128,7 @@ def register_page(request: Request, db: Session = Depends(get_db)):
 @router.post("/register")
 def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...),
              confirm_password: str = Form(...), agree: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
-             db: Session = Depends(get_db)):
+             tz: str = Form(""), db: Session = Depends(get_db)):
     username, email = username.strip().lstrip("@"), email.strip().lower()
     form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE)}
 
@@ -154,6 +155,9 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     user = models.User(username=username, email=email, password=auth.hash_password(password), is_verified=True,
                        name=(name.strip() or username)[:60], email_verified=not config.EMAIL_ENABLED,
                        is_owner=(username == config.OWNER_USERNAME))
+    tz_key = timezones.iana_map().get(tz.strip()[:64])
+    if tz_key:  # пояс определён браузером при регистрации
+        user.prefs = json.dumps({"timezone": tz_key}, ensure_ascii=False)
     db.add(user)
     db.commit()
     if config.EMAIL_ENABLED:

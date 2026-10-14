@@ -9,6 +9,8 @@ import json
 import re
 from datetime import datetime
 
+from services import timezones
+
 SECTIONS = {
     "feed": "📰 Лента",
     "privacy": "🔒 Приватность",
@@ -82,7 +84,7 @@ PREFS = [
     _p("notify_achievements", "notifications", "Достижения и уровни", "", True, where="server", group="Дополнительно"),
     _p("notify_group_invites", "notifications", "Приглашения в группы", "", True, where="server", group="Дополнительно"),
     _p("notify_raffle", "notifications", "Розыгрыши", "", True, where="server", group="Дополнительно"),
-    _p("quiet_hours", "notifications", "Тихие часы", "Не присылать push-уведомления ночью", where="server", group="Тихие часы"),
+    _p("quiet_hours", "notifications", "Тихие часы", "Не присылать push-уведомления ночью (по вашему часовому поясу)", where="server", group="Тихие часы"),
     _p("quiet_from", "notifications", "Тихие часы: с", "", "23", "select", HOURS, "server", "Тихие часы"),
     _p("quiet_to", "notifications", "Тихие часы: до", "", "8", "select", HOURS, "server", "Тихие часы"),
     _p("push_hide_text", "notifications", "Скрывать текст в push", "Вместо текста сообщения — «Новое сообщение»", where="server", group="Тихие часы"),
@@ -99,7 +101,9 @@ PREFS = [
     _p("avatar_shape", "appearance", "Форма аватарок", "", "circle", "select", [("circle", "Круг"), ("squircle", "Скруглённый квадрат")]),
     _p("font_family", "appearance", "Шрифт", "", "system", "select", [("system", "Системный"), ("serif", "С засечками"), ("mono", "Моноширинный")]),
     _p("nav_labels", "appearance", "Подписи в нижнем меню на телефоне", "", True),
-    _p("absolute_time", "appearance", "Точное время вместо «5 мин назад»", ""),
+    _p("timezone", "appearance", "Часовой пояс", "Время сообщений, постов, отложенных публикаций и тихих часов", "moscow", "select",
+       timezones.options(), "server", "Дата и время"),
+    _p("absolute_time", "appearance", "Точное время вместо «5 мин назад»", "", group="Дата и время"),
     # --- Доступность -----------------------------------------------------------------------------------------------
     _p("reduce_motion", "accessibility", "Уменьшить анимации", "Отключить плавные переходы и движения"),
     _p("high_contrast", "accessibility", "Высокий контраст", "Более тёмный текст и чёткие границы"),
@@ -202,7 +206,7 @@ def audience_allows(db, owner, actor, key):
 def in_quiet_hours(user, now=None):
     if not get(user, "quiet_hours"):
         return False
-    h = ((now or datetime.utcnow()).hour + 3) % 24  # время по Москве
+    h = timezones.to_local(now or datetime.utcnow(), user).hour  # в поясе пользователя
     a, b = int(get(user, "quiet_from")), int(get(user, "quiet_to"))
     return (a <= h < b) if a < b else (h >= a or h < b)
 

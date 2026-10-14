@@ -71,7 +71,7 @@
     <script>(function(){var u=navigator.userAgent;var h=false;try{h=localStorage.getItem('hide-app-banner')}catch(e){}if(/Android/i.test(u)&&!/NuvoraApp/.test(u)&&!h)document.getElementById('app-banner').classList.remove('hidden');if(/NuvoraApp/.test(u))document.documentElement.classList.add('in-app');})();</script>
     {% if announcement %}<div class="announce {{ announcement.level }}">📣 <span>{{ announcement.text }}</span></div>{% endif %}
     {% if needs_email %}<div class="alert info">📧 Подтвердите email <b>{{ user.email }}</b>, чтобы публиковать посты и писать сообщения. <a href="/verify" style="color:var(--link);font-weight:600">Ввести код →</a></div>{% endif %}
-    {% if user and user.is_blocked and user.blocked_until and user.blocked_until > now %}<div class="alert error">Ваш аккаунт ограничен до {{ user.blocked_until.strftime("%d.%m.%Y %H:%M") }}. <a href="/special-request" style="text-decoration:underline">Подать апелляцию</a></div>{% endif %}
+    {% if user and user.is_blocked and user.blocked_until and user.blocked_until > now %}<div class="alert error">Ваш аккаунт ограничен до {{ user.blocked_until|lt }}. <a href="/special-request" style="text-decoration:underline">Подать апелляцию</a></div>{% endif %}
     {% block content %}{% endblock %}
   </main>
 

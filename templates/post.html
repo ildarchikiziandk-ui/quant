@@ -24,10 +24,10 @@
 {% block content %}
 <div class="page-head"><div class="row"><a href="javascript:history.back()" class="back-link">{{ icon("back") }}</a><span class="page-title" style="margin:0">Пост</span></div>
 {% if user and user.id == post.user_id %}<a class="btn soft sm" href="/post/{{ post.id }}/stats">{{ icon("chart") }} Статистика</a>{% endif %}</div>
-{% if post.scheduled_at and post.scheduled_at > now %}<div class="alert info">⏰ Пост запланирован на {{ post.scheduled_at.strftime("%d.%m.%Y %H:%M") }} UTC. <form method="post" action="/post/{{ post.id }}/publish-now" style="display:inline"><button class="btn sm">Опубликовать сейчас</button></form></div>{% endif %}
+{% if post.scheduled_at and post.scheduled_at > now %}<div class="alert info">⏰ Пост запланирован на {{ post.scheduled_at|lt }}. <form method="post" action="/post/{{ post.id }}/publish-now" style="display:inline"><button class="btn sm">Опубликовать сейчас</button></form></div>{% endif %}
 {{ post_card(post, user, st, originals, repost_counts, can_mod, full=true) }}
 <div class="row small muted" style="padding:0 6px 10px;gap:14px">
-  <span>{{ post.created_at.strftime("%d.%m.%Y, %H:%M") }} UTC</span>
+  <span>{{ post.created_at|lt("%d.%m.%Y, %H:%M") }}</span>
   <span>👁 {{ post.views or 0 }}</span>
   {% if not post.author.hide_likes or (user and user.id == post.user_id) %}<button class="act" data-act="likers" data-id="{{ post.id }}" style="padding:2px 6px">Кому понравилось</button>{% endif %}
 </div>

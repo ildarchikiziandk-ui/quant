@@ -9,6 +9,6 @@
     {%- if m.file_url %}<a class="file" href="{{ m.file_url }}" target="_blank" download="{{ m.file_name }}">📎 {{ m.file_name or "Файл" }}</a>{% endif %}
     {%- if m.content %}{{ m.content|rich }}{% endif %}{% endif %}
   </div>
-  <div class="msg-meta">{{ m.created_at.strftime("%d.%m %H:%M") }}</div>
+  <div class="msg-meta">{{ m.created_at|lt("%d.%m %H:%M") }}</div>
 </div>
 {%- endfor %}

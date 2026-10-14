@@ -178,7 +178,10 @@
       {% if p.kind == "bool" %}
       <label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>
       {% elif p.kind == "select" %}
-      <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><select name="{{ p.key }}">{% for v, l in p.options %}<option value="{{ v }}" {% if pref_values[p.key] == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+      <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><select name="{{ p.key }}" id="pref-{{ p.key }}">{% for v, l in p.options %}<option value="{{ v }}" {% if pref_values[p.key] == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+      {% if p.key == "timezone" %}<div class="row mb" style="gap:8px"><button type="button" class="btn soft sm" id="tz-detect">🧭 Определить по устройству</button><span class="small muted" id="tz-now"></span></div>
+      <script>(function(){var map={{ tz_map|tojson }};var b=document.getElementById('tz-detect'),s=document.getElementById('pref-timezone'),n=document.getElementById('tz-now');
+      b.onclick=function(){var z='';try{z=Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){}if(map[z]){s.value=map[z];n.textContent='Найдено: '+s.options[s.selectedIndex].text+'. Нажмите «Сохранить».'}else n.textContent='Не удалось определить ('+(z||'?')+') — выберите город вручную.'};})();</script>{% endif %}
       {% else %}
       <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><input name="{{ p.key }}" value="{{ pref_values[p.key] }}" maxlength="500" placeholder="политика, спойлеры"></label>
       {% endif %}

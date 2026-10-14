@@ -15,7 +15,7 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.auth_routes import validate_password, validate_username
 from routers.posts import purge_post, read_payload, wants_json
-from services import gamification, prefs, recommend, social
+from services import gamification, prefs, recommend, social, timezones
 from services.uploads import delete_file, save_file
 
 router = APIRouter()
@@ -33,7 +33,7 @@ def _settings(request, db, user, section="profile", **extra):
     ctx = dict(section=section if section in SECTIONS else "profile", sessions=sessions, blocked_users=blocked, muted_users=muted,
                current_session_id=getattr(request.state, "session_id", None), accents=ACCENTS,
                pending_requests=db.query(models.FollowRequest).filter_by(target_id=user.id).count(),
-               pref_groups=prefs.section_prefs(section), pref_values=prefs.values(user))
+               pref_groups=prefs.section_prefs(section), pref_values=prefs.values(user), tz_map=timezones.iana_map())
     ctx.update(extra)
     return render(request, db, "settings.html", **ctx)
 

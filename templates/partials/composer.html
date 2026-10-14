@@ -16,7 +16,7 @@
       <div class="composer-extra hidden" id="panel-settings">
         <div class="form-row">
           <label class="field"><span>Кто видит</span><select name="visibility"><option value="all">Все</option><option value="followers">Только подписчики</option></select></label>
-          <label class="field"><span>Отложить публикацию (UTC)</span><input type="datetime-local" name="scheduled_at"></label>
+          <label class="field"><span>Отложить публикацию <span class="faint">— время: {{ tz_city(user) }}</span></span><input type="datetime-local" name="scheduled_at"></label>
         </div>
         <label class="check"><input type="checkbox" name="comments_disabled" value="1"><span><b>Отключить комментарии</b></span></label>
       </div>

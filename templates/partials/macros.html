@@ -74,7 +74,7 @@
     <span class="lbl"><span>{{ o.text }}{% if my == o.id %} ✓{% endif %}</span><b class="pct">{% if show %}{{ pct }}%{% endif %}</b></span>
   </button>
   {%- endfor %}
-  <div class="tiny muted"><span class="poll-total">{{ total.n }} голос(ов)</span>{% if poll.ends_at %} · {% if ended %}опрос завершён{% else %}до {{ poll.ends_at.strftime("%d.%m %H:%M") }}{% endif %}{% endif %}</div>
+  <div class="tiny muted"><span class="poll-total">{{ total.n }} голос(ов)</span>{% if poll.ends_at %} · {% if ended %}опрос завершён{% else %}до {{ poll.ends_at|lt("%d.%m %H:%M") }}{% endif %}{% endif %}</div>
 </div>
 {%- endmacro %}
 
@@ -102,7 +102,7 @@
         {{ name(main.author) }}
         <span class="handle">@{{ main.author.username }}</span>
         <span class="faint">·</span>
-        <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at.strftime('%d.%m.%Y %H:%M') }} UTC">{{ main.created_at|ago }}</a>
+        <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at|lt('%d.%m.%Y %H:%M') }}">{{ main.created_at|ago }}</a>
         {%- if main.edited_at %}<span class="faint tiny">· изм.</span>{% endif %}
         {%- if main.visibility == "followers" %}<span class="faint" title="Только для подписчиков">{{ icon("lock") }}</span>{% endif %}
         {%- if user and user.pinned_post_id == main.id and main.user_id == user.id %}<span class="pill-info">📌 закреплён</span>{% endif %}

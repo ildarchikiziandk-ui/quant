@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-title">📝 Черновики и отложенные</div>
 <div class="card"><div class="card-title">⏰ Запланированные посты · {{ scheduled|length }}</div>
-{% for p in scheduled %}<div class="row" style="padding:8px 0;border-top:1px solid var(--border)"><div class="grow"><div class="ellipsis">{{ p.content or "медиа" }}</div><div class="tiny muted">выйдет {{ p.scheduled_at.strftime("%d.%m.%Y %H:%M") }} UTC</div></div>
+{% for p in scheduled %}<div class="row" style="padding:8px 0;border-top:1px solid var(--border)"><div class="grow"><div class="ellipsis">{{ p.content or "медиа" }}</div><div class="tiny muted">выйдет {{ p.scheduled_at|lt }}</div></div>
   <a href="/post/{{ p.id }}" class="btn soft sm">Открыть</a><form method="post" action="/post/{{ p.id }}/publish-now"><button class="btn sm">Сейчас</button></form></div>
 {% else %}<div class="muted small">Нет отложенных постов</div>{% endfor %}</div>
 <div class="card"><div class="card-title">Черновики · {{ drafts|length }}</div>
