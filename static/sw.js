@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-__VERSION__-smooth1';
+const CACHE_NAME = 'app-__VERSION__-smooth2';
 const MEDIA_CACHE = 'media-v1';  // фото и видео из ленты: имена файлов уникальные, их можно хранить
 const MEDIA_MAX = 400;
 const BRAND = '__BRAND__';
@@ -20,10 +20,11 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
+  if (req.headers.has('range') || url.pathname.startsWith('/static/promo/') || url.pathname.startsWith('/download/')) return;  // видео и скачивания — напрямую
   if (url.pathname.startsWith('/static/')) {
     // статика: сначала кэш, потом сеть
     e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => {
-      const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(req, copy)); return res;
+      if (res.status === 200) { const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(req, copy)); } return res;
     })));
     return;
   }

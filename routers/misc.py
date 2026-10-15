@@ -169,3 +169,16 @@ def consent_accept(request: Request, db: Session = Depends(get_db)):
     if request.headers.get("x-requested-with"):
         return {"ok": True}
     return redirect("/")
+
+
+@router.get("/download/promo/{name}")
+def download_promo(name: str):
+    """Скачивание промо-роликов файлом (с заголовком attachment — так их сохраняют все браузеры)."""
+    import os
+    from fastapi.responses import FileResponse
+    if not name.endswith(".mp4") or "/" in name or ".." in name:
+        return PlainTextResponse("Not found", status_code=404)
+    path = os.path.join("static", "promo", name)
+    if not os.path.isfile(path):
+        return PlainTextResponse("Not found", status_code=404)
+    return FileResponse(path, media_type="video/mp4", filename=name)
