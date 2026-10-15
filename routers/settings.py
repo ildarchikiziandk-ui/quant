@@ -20,7 +20,36 @@ from services.uploads import delete_file, save_file
 
 router = APIRouter()
 
-SECTIONS = ("profile", "account", "feed", "privacy", "notifications", "messages", "appearance", "accessibility", "security", "plus", "data")
+SECTION_META = [("profile", "Профиль", "user"), ("account", "Аккаунт", "key"), ("feed", "Лента", "home"), ("privacy", "Приватность", "lock"),
+                ("notifications", "Уведомления", "bell"), ("messages", "Сообщения", "chat"), ("appearance", "Оформление", "palette"),
+                ("accessibility", "Доступность", "accessibility"), ("security", "Безопасность", "shield"), ("plus", "Nuvora+", "sparkle"),
+                ("data", "Данные", "package")]
+SECTIONS = tuple(k for k, _, _ in SECTION_META)
+# Поиск по настройкам: разделы, карточки и все переключатели
+STATIC_INDEX = [
+    ("profile", "Фото профиля", "аватар аватарка фотография"), ("profile", "Обложка профиля", "фон шапка"),
+    ("profile", "Имя", ""), ("profile", "О себе", "описание био bio"), ("profile", "Город", "местоположение"),
+    ("profile", "Сайт", "ссылка"), ("profile", "Дата рождения", "день рождения"), ("profile", "Telegram, YouTube, TikTok", "соцсети"),
+    ("profile", "Интересы", "теги хэштеги"), ("profile", "Ссылки в профиле", "портфолио"),
+    ("account", "Логин", "имя пользователя username никнейм"), ("account", "Email", "почта адрес"), ("account", "Пароль", "сменить пароль"),
+    ("privacy", "Закрытый профиль", "приватный аккаунт"), ("privacy", "Кто может писать", "сообщения личка"),
+    ("privacy", "Пауза аккаунта", "скрыть профиль"), ("privacy", "Заблокированные", "чёрный список блокировка"),
+    ("privacy", "Скрытые из ленты", "заглушить"), ("notifications", "Не беспокоить", "тишина dnd"),
+    ("notifications", "Push-уведомления", "пуш"), ("appearance", "Тема", "тёмная светлая ночная"),
+    ("appearance", "Размер текста", "шрифт"), ("appearance", "Акцентный цвет", "цвет ссылок"),
+    ("security", "Двухфакторная аутентификация", "2fa код защита"), ("security", "Активные сеансы", "устройства выйти"),
+    ("plus", "Промокод", "активировать подписку"), ("plus", "Цвет значка PLUS", "бейдж обложка"),
+    ("data", "Экспорт данных", "скачать архив"), ("data", "Удалить аккаунт", "удаление"),
+]
+
+
+def settings_index():
+    names = {k: n for k, n, _ in SECTION_META}
+    out = [{"s": s, "sn": names[s], "t": t, "k": kw} for s, t, kw in STATIC_INDEX]
+    out += [{"s": p["section"], "sn": names.get(p["section"], ""), "t": p["label"], "k": p["desc"] or ""} for p in prefs.PREFS
+            if p["section"] in names]
+    out += [{"s": k, "sn": n, "t": n, "k": "раздел"} for k, n, _ in SECTION_META]
+    return out
 THEMES = ("light", "dark", "auto")
 ACCENTS = ["#2563eb", "#0d9488", "#16a34a", "#ca8a04", "#dc2626", "#9333ea", "#475569"]
 
@@ -34,7 +63,7 @@ def _settings(request, db, user, section="profile", **extra):
                current_session_id=getattr(request.state, "session_id", None), accents=ACCENTS,
                pending_requests=db.query(models.FollowRequest).filter_by(target_id=user.id).count(),
                pref_groups=prefs.section_prefs(section), pref_values=prefs.values(user), tz_map=timezones.iana_map(),
-               profile_links=extras.parse_links(user.links))
+               profile_links=extras.parse_links(user.links), section_meta=SECTION_META, settings_index=settings_index())
     ctx.update(extra)
     return render(request, db, "settings.html", **ctx)
 

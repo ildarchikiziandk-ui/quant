@@ -297,6 +297,7 @@ class GroupMessage(Base):
     gif_url = Column(String, default="")
     reply_to_id = Column(Integer, ForeignKey("group_messages.id"), nullable=True)
     is_deleted = Column(Boolean, default=False)
+    is_video_circle = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     group = relationship("GroupChat", back_populates="messages")
     sender = relationship("User", foreign_keys=[sender_id])

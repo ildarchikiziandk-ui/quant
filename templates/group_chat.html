@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import avatar, name %}{% from "partials/icons.html" import icon %}
+{% from "partials/macros.html" import avatar, name, chat_input %}{% from "partials/icons.html" import icon %}
 {% block title %}{{ group.name }} — {{ brand }}{% endblock %}
 {% block layout_class %}wide{% endblock %}
 {% block body_class %}chat-page{% endblock %}
@@ -12,12 +12,11 @@
     <button class="icon-btn" data-modal="group-info" title="Информация">{{ icon("users") }}</button>
   </div>
   <div class="convo-box" id="box">{% with group=group %}{% include "partials/group_messages.html" %}{% endwith %}{% if not messages %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Напишите первое сообщение группе</div>{% endif %}</div>
-  <form class="convo-input" id="gform" enctype="multipart/form-data">
-    <div class="row" style="align-items:flex-end;gap:4px">
-      <label class="icon-btn" title="Вложение" style="cursor:pointer">{{ icon("clip") }}<input type="file" name="file" class="hidden" id="gfile"></label>
+  <form class="convo-input cmp" id="gform" enctype="multipart/form-data">
+    {% call chat_input() %}
+      <label class="icon-btn cmp-tool" title="Вложение" style="cursor:pointer">{{ icon("clip") }}<input type="file" name="file" class="hidden" id="gfile"></label>
       <textarea name="content" id="ginp" rows="1" maxlength="4000" placeholder="Сообщение в группу…" data-suggest></textarea>
-      <button class="btn pill" style="padding:10px 14px">{{ icon("send") }}</button>
-    </div>
+    {% endcall %}
   </form>
 </div>
 <div class="modal-bg" id="group-info"><div class="modal">
@@ -49,6 +48,7 @@
 {% endblock %}
 {% block right %}{% endblock %}
 {% block scripts %}
+<script src="/static/js/chat.js?v={{ static_v }}"></script>
 <script>
 (function(){
 const GID={{ group.id }}, box=document.getElementById('box'); let last={{ messages[-1].id if messages else 0 }};
@@ -56,10 +56,11 @@ box.scrollTop=box.scrollHeight;
 async function poll(){ try{ const r=await (await fetch(`/api/groups/${GID}/messages?after=${last}`)).json(); if(r.html){ document.getElementById('empty-chat')?.remove(); const near=box.scrollHeight-box.scrollTop-box.clientHeight<120; box.insertAdjacentHTML('beforeend',r.html); last=r.last_id; if(near) box.scrollTop=box.scrollHeight; } }catch(e){} }
 setInterval(()=>{ if(!document.hidden) poll(); },3000);
 const f=document.getElementById('gform'), inp=document.getElementById('ginp');
-async function send(){ const fd=new FormData(f); if(!inp.value.trim() && !document.getElementById('gfile').files.length) return; f.reset(); inp.style.height='auto';
+async function send(){ const fd=new FormData(f); if(!inp.value.trim() && !document.getElementById('gfile').files.length) return; f.reset(); inp.style.height='auto'; inp.dispatchEvent(new Event('input'));
   try{ await App.api(`/groups/${GID}/send`,fd); await poll(); box.scrollTop=box.scrollHeight; }catch(e){} }
 f.addEventListener('submit',e=>{ e.preventDefault(); send(); });
 document.getElementById('gfile').addEventListener('change',send);
+window.chatComposer({root:f, input:inp, onText:()=>send(), onMedia: async (blob, kind, name)=>{ const fd=new FormData(); fd.append('file',blob,name); if(kind==='video') fd.append('circle','1'); try{ await App.api(`/groups/${GID}/send`,fd); await poll(); box.scrollTop=box.scrollHeight; }catch(e){} }});
 inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&((APP.prefs||{}).enter_to_send===false?(e.ctrlKey||e.metaKey):!e.shiftKey)&&!document.querySelector('.suggest.open')){ e.preventDefault(); send(); } });
 inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; });
 document.addEventListener('click',async e=>{ const d=e.target.closest('[data-gdel]'); if(!d) return; if(!confirm('Удалить сообщение?')) return; await App.api(`/groups/${GID}/messages/${d.dataset.gdel}/delete`); location.reload(); });

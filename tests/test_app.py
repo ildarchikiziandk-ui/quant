@@ -892,3 +892,46 @@ def test_russian_law_compliance(anon, owner):
     assert "Даю согласие" not in owner.get("/").text
     r = owner.get("/admin?tab=legal")
     assert "152-ФЗ" in r.text and "ОРИ" in r.text and "ПП РФ № 313" in r.text
+
+
+def test_chat_streaks_and_deleted_messages(alice, bob):
+    from datetime import datetime, timedelta
+    from services import streaks
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    b = s.query(models.User).filter_by(username="bob").one()
+    now = datetime.utcnow()
+    for d in range(4):  # четыре дня подряд оба пишут друг другу
+        t = now - timedelta(days=d)
+        s.add(models.Message(sender_id=a.id, receiver_id=b.id, content="привет", created_at=t))
+        s.add(models.Message(sender_id=b.id, receiver_id=a.id, content="и тебе", created_at=t))
+    s.commit()
+    days, risk = streaks.chat_streaks(s, a, [b.id])[b.id]
+    assert days >= 3 and risk is False
+    s.close()
+    assert 'class="fire' in alice.get("/messages").text
+    # удалённое сообщение исчезает, без надписи «удалено»
+    mid = alice.post("/messages/send", json={"receiver": "bob", "content": "секрет"}, headers=J).json()["id"]
+    alice.post(f"/messages/{mid}/delete", headers=J)
+    page = bob.get("/messages/alice").text
+    assert "Сообщение удалено" not in page and "секрет" not in page
+
+
+def test_signup_timezone_and_finish(anon):
+    r = anon.post("/register", data={"username": "nsk", "email": "nsk@example.com", "password": "secret123", "confirm_password": "secret123",
+                                     "agree": "1", "consent": "1", "adult": "1", "tz_key": "novosibirsk"}, follow_redirects=False)
+    assert r.status_code == 303
+    s = db()
+    u = s.query(models.User).filter_by(username="nsk").one()
+    assert '"timezone": "novosibirsk"' in u.prefs
+    u.pd_consent_at = None
+    s.commit()
+    s.close()
+    assert "Почти готово" in anon.get("/signup/finish").text
+    assert "согласие" in anon.post("/signup/finish", data={"username": "nsk", "tz_key": "krasnoyarsk"}).text
+    r = anon.post("/signup/finish", data={"username": "nsk2", "tz_key": "krasnoyarsk", "consent": "1", "adult": "1"}, follow_redirects=False)
+    assert r.status_code == 303
+    s = db()
+    u = s.query(models.User).filter_by(email="nsk@example.com").one()
+    assert u.username == "nsk2" and u.pd_consent_at and '"timezone": "krasnoyarsk"' in u.prefs
+    s.close()

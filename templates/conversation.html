@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import avatar, name %}{% from "partials/icons.html" import icon %}
+{% from "partials/macros.html" import avatar, name, chat_input, streak_badge %}{% from "partials/icons.html" import icon %}
 {% block title %}{{ other.name or other.username }} — Сообщения — {{ brand }}{% endblock %}
 {% block layout_class %}wide{% endblock %}
 {% block body_class %}chat-page{% endblock %}
@@ -9,7 +9,7 @@
     <a href="/messages" class="back-link">{{ icon("back") }}</a>
     <a href="/profile/{{ other.username }}" class="row grow" style="min-width:0">
       {{ avatar(other, 42, online=true) }}
-      <div style="min-width:0"><div>{{ name(other, link=false) }}</div>
+      <div style="min-width:0"><div class="row" style="gap:4px">{{ name(other, link=false) }}{{ streak_badge(streak) }}</div>
         <div class="tiny muted" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}{{ icon("moon", "i in") }} не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
     </a>
     <div class="menu-wrap" style="margin-left:0">
@@ -31,21 +31,15 @@
   <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">{{ icon("lock", "i in") }} Переписка зашифрована</div>
   <div class="typing hidden" id="typing" style="padding:4px 10px">{{ other.name or other.username }} печатает…</div>
   {% if can_send %}
-  <div class="convo-input">
+  <div class="convo-input cmp" id="cmp">
     <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">{{ icon("x", "i in") }}</button></div>
     <div class="reply-bar hidden" id="edit-bar">{{ icon("edit", "i in") }} <span class="grow">Редактирование сообщения</span><button class="icon-btn" onclick="cancelEdit()">{{ icon("x", "i in") }}</button></div>
-    {% set qr = (pref(user, "quick_replies") or "").split("|") %}{% if qr and qr[0] %}<div class="quick-replies">{% for q in qr if q.strip() %}<button type="button" onclick="sendText({{ q.strip()|tojson|forceescape }})">{{ q.strip() }}</button>{% endfor %}</div>{% endif %}
-    <div class="emoji-panel hidden" id="emoji-panel">{% for e in ['😀','😂','🥹','😍','😘','😎','🤔','😭','😡','🥳','👍','👎','👏','🙏','❤️','🔥','✨','💯','🎉','🐋','🌚','🤝','💪','😴'] %}<button type="button" onclick="sendText('{{ e }}')">{{ e }}</button>{% endfor %}</div>
-    <div class="row" style="align-items:flex-end;gap:4px">
-      <button class="icon-btn" title="Фото или файл" onclick="document.getElementById('att').click()">{{ icon("clip") }}</button>
-      <button class="icon-btn" title="Эмодзи" onclick="document.getElementById('emoji-panel').classList.toggle('hidden')">{{ icon("smile") }}</button>
+    <div class="emoji-panel hidden" id="emoji-panel">{% for e in ['😀','😂','🥹','😍','😘','😎','🤔','😭','😡','🥳','👍','👎','👏','🙏','❤️','🔥','✨','💯','🎉','🐋','🌚','🤝','💪','😴'] %}<button type="button" onclick="insertEmoji('{{ e }}')">{{ e }}</button>{% endfor %}</div>
+    {% call chat_input() %}
+      <button class="icon-btn cmp-tool" title="Фото или файл" onclick="document.getElementById('att').click()">{{ icon("clip") }}</button>
+      <button class="icon-btn cmp-tool" title="Эмодзи" onclick="document.getElementById('emoji-panel').classList.toggle('hidden')">{{ icon("smile") }}</button>
       <textarea id="inp" rows="1" maxlength="4000" placeholder="Сообщение…" data-suggest></textarea>
-      <button class="icon-btn" id="circle-btn" title="Видеосообщение (кружок)">{{ icon("video") }}</button>
-      <button class="icon-btn" id="voice-btn" title="Голосовое (нажмите для записи)">{{ icon("mic") }}</button>
-      <button class="btn pill" id="send-btn" title="Отправить (Enter)" style="padding:10px 14px">{{ icon("send") }}</button>
-    </div>
-    <div class="row hidden small" id="rec-bar" style="padding:6px 8px"><span class="rec-dot"></span><span id="rec-time">0:00</span><span class="muted grow">Идёт запись — нажмите ещё раз, чтобы отправить</span><button class="btn ghost sm" onclick="cancelRec()">Отмена</button></div>
-    <video id="circle-preview" class="hidden" muted playsinline style="width:160px;height:160px;border-radius:50%;object-fit:cover;margin:6px auto;display:block"></video>
+    {% endcall %}
     <input type="file" id="att" class="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.xlsx,.pptx">
   </div>
   {% else %}
@@ -55,6 +49,7 @@
 {% endblock %}
 {% block right %}{% endblock %}
 {% block scripts %}
+<script src="/static/js/chat.js?v={{ static_v }}"></script>
 <script>
 (function(){
 const OTHER = {{ other.username|tojson }};
@@ -84,21 +79,21 @@ async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`)
 if(inp){
   inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; typingPing(); });
   inp.addEventListener('keydown',e=>{ if(e.key==='Enter' && ((APP.prefs||{}).enter_to_send===false ? (e.ctrlKey||e.metaKey) : !e.shiftKey) && !document.querySelector('.suggest.open')){ e.preventDefault(); submit(); } if(e.key==='ArrowUp' && !inp.value){ const mine=[...box.querySelectorAll('.msg.mine')].pop(); if(mine) startEdit(mine.dataset.id, mine.dataset.raw); } });
-  document.getElementById('send-btn').onclick = submit;
 }
 let lastTyping=0; function typingPing(){ const n=Date.now(); if(n-lastTyping>3000){ lastTyping=n; fetch(`/messages/typing/${OTHER}`,{method:'POST'}); } }
 async function submit(){
   const text = inp.value.trim(); if(!text) return;
   if(editId){ await App.api(`/messages/${editId}/edit`,{content:text}); await refreshMsg(editId); cancelEdit(); return; }
-  inp.value=''; inp.style.height='auto';
+  inp.value=''; inp.style.height='auto'; inp.dispatchEvent(new Event('input'));
   await sendText(text);
 }
 window.sendText = async function(text){
   try{ await App.api('/messages/send',{receiver:OTHER, content:text, reply_to_id:replyTo, ttl:ttl}); clearReply(); document.getElementById('emoji-panel').classList.add('hidden'); await poll(); toBottom(); }catch(e){}
 };
 window.clearReply = ()=>{ replyTo=null; document.getElementById('reply-bar').classList.add('hidden'); };
-function startEdit(id, raw){ editId=id; inp.value=raw; inp.focus(); document.getElementById('edit-bar').classList.remove('hidden'); }
-window.cancelEdit = ()=>{ editId=null; inp.value=''; document.getElementById('edit-bar').classList.add('hidden'); };
+function startEdit(id, raw){ editId=id; inp.value=raw; inp.focus(); inp.dispatchEvent(new Event('input')); document.getElementById('edit-bar').classList.remove('hidden'); }
+window.cancelEdit = ()=>{ editId=null; inp.value=''; inp.dispatchEvent(new Event('input')); document.getElementById('edit-bar').classList.add('hidden'); };
+window.insertEmoji = (e)=>{ const p=inp.selectionStart??inp.value.length; inp.value=inp.value.slice(0,p)+e+inp.value.slice(p); inp.focus(); inp.selectionStart=inp.selectionEnd=p+e.length; inp.dispatchEvent(new Event('input')); };
 window.toggleTtl = ()=>{ const opts=[0,3600,86400,604800], names=['выкл','1 час','24 часа','7 дней']; const i=(opts.indexOf(ttl)+1)%opts.length; ttl=opts[i]; document.getElementById('ttl-label').textContent=names[i]; App.toast('Исчезающие сообщения: '+names[i]); };
 window.toggleSearch = ()=>{ const s=document.getElementById('chat-search'); s.classList.toggle('hidden'); document.getElementById('chat-search-q').focus(); };
 document.getElementById('chat-search-q').addEventListener('input',e=>{ const q=e.target.value.toLowerCase(); let first=null;
@@ -122,24 +117,11 @@ document.addEventListener('click', async e=>{
 // вложения
 document.getElementById('att')?.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); App.toast('Отправка…'); try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(er){} e.target.value=''; });
 inp?.addEventListener('paste', async e=>{ for(const it of e.clipboardData?.items||[]){ if(it.type.startsWith('image/')){ e.preventDefault(); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',it.getAsFile(),'paste.png'); await App.api('/messages/send-media',fd); await poll(); toBottom(); } } });
-// запись голоса и кружков
-let rec=null, chunks=[], stream=null, recTimer=null, recKind=null, cancelled=false;
-async function startRec(kind){
-  try{ stream = await navigator.mediaDevices.getUserMedia(kind==='video'?{audio:true,video:{facingMode:'user',width:480,height:480}}:{audio:true}); }catch(e){ App.toast('Нет доступа к '+(kind==='video'?'камере':'микрофону'),true); return; }
-  recKind=kind; chunks=[]; cancelled=false;
-  const mime = kind==='video' ? (MediaRecorder.isTypeSupported('video/webm')?'video/webm':'video/mp4') : (MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/mp4');
-  rec = new MediaRecorder(stream,{mimeType:mime}); rec.ondataavailable=e=>chunks.push(e.data);
-  rec.onstop = async ()=>{ stream.getTracks().forEach(t=>t.stop()); clearInterval(recTimer); document.getElementById('rec-bar').classList.add('hidden'); const pv=document.getElementById('circle-preview'); pv.classList.add('hidden'); pv.srcObject=null;
-    if(cancelled) return; const blob=new Blob(chunks,{type:mime}); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('ttl',ttl);
-    fd.append('file', blob, (kind==='video'?'circle':'voice')+(mime.includes('webm')?'.webm':'.mp4')); if(kind==='video') fd.append('circle','1');
-    try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(e){} };
-  rec.start(); const t0=Date.now(); document.getElementById('rec-bar').classList.remove('hidden');
-  recTimer=setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000); document.getElementById('rec-time').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); if(s>=(kind==='video'?60:300)) rec.stop(); },500);
-  if(kind==='video'){ const pv=document.getElementById('circle-preview'); pv.srcObject=stream; pv.classList.remove('hidden'); pv.play(); }
-}
-window.cancelRec = ()=>{ cancelled=true; rec?.stop(); };
-document.getElementById('voice-btn')?.addEventListener('click',()=>{ if(rec && rec.state==='recording') rec.stop(); else startRec('audio'); });
-document.getElementById('circle-btn')?.addEventListener('click',()=>{ if(rec && rec.state==='recording') rec.stop(); else startRec('video'); });
+// запись голоса и кружков — одна кнопка (static/js/chat.js)
+if(inp) window.chatComposer({root: document.getElementById('cmp'), input: inp,
+  onText: ()=>submit(),
+  onMedia: async (blob, kind, name)=>{ const fd=new FormData(); fd.append('receiver',OTHER); fd.append('ttl',ttl); fd.append('file',blob,name); if(kind==='video') fd.append('circle','1');
+    try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(e){} }});
 })();
 </script>
 {% endblock %}

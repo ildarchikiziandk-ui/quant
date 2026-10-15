@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render, templates
 from routers.posts import read_payload
-from services import gamification, prefs, push, ratelimit, social
+from services import gamification, prefs, push, ratelimit, social, streaks
 from services.text import censor
 from services.uploads import save_file
 
@@ -36,7 +36,7 @@ def _alive():
 
 def preview_of(m):
     if m.is_deleted:
-        return "Сообщение удалено"
+        return ""
     if m.content:
         return m.content[:60]
     if m.image:
@@ -77,6 +77,9 @@ def messages_list(request: Request, db: Session = Depends(get_db)):
                       "unread": unread_rows.get(other_id, 0), "muted": other_id in muted, "pinned": other_id in pinned,
                       "read": m.is_read, "online": social.is_online(other)})
     chats.sort(key=lambda c: (not c["pinned"], -c["time"].timestamp()))
+    fires = streaks.chat_streaks(db, user, [c["other"].id for c in chats])
+    for c in chats:
+        c["streak"] = fires.get(c["other"].id)
     groups = []
     for gm in db.query(models.GroupMember).filter_by(user_id=user.id).all():
         g = gm.group
@@ -136,7 +139,8 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
     allowed, reason = social.can_message(db, user, other)
     pinned_msg = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_pinned == True,
                                                  models.Message.is_deleted == False).order_by(models.Message.id.desc()).first()
-    return render(request, db, "conversation.html", sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason,
+    streak = streaks.chat_streaks(db, user, [other.id]).get(other.id)
+    return render(request, db, "conversation.html", sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason, streak=streak,
                   pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS,
                   is_muted=db.query(models.MutedChat).filter_by(user_id=user.id, muted_user_id=other.id).first() is not None,
                   is_pinned=db.query(models.PinnedChat).filter_by(user_id=user.id, pinned_user_id=other.id).first() is not None)

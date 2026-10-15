@@ -109,6 +109,15 @@
     if (t === 'auto') applyTheme('auto');
   });
 
+  // ---------- Мобильное меню ----------
+  document.addEventListener('click', (e) => {
+    const m = $('#mmenu');
+    if (!m) return;
+    if (e.target.closest('[data-mmenu-open]')) { e.preventDefault(); m.hidden = !m.hidden; document.body.style.overflow = m.hidden ? '' : 'hidden'; $('[data-mmenu-open]')?.classList.toggle('active', !m.hidden); }
+    else if (e.target.closest('[data-mmenu-close]') || (e.target.closest('#mmenu a'))) { m.hidden = true; document.body.style.overflow = ''; $('[data-mmenu-open]')?.classList.remove('active'); }
+  });
+  window.addEventListener('pageshow', () => { const m = $('#mmenu'); if (m) { m.hidden = true; document.body.style.overflow = ''; } });
+
   // ---------- Меню и модалки ----------
   document.addEventListener('click', (e) => {
     const toggle = e.target.closest('[data-menu]');

@@ -126,6 +126,7 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
     form = await request.form()
     content = censor((form.get("content") or "").strip()[:4000], social.stop_words(db))
     img_url = file_url = voice_url = file_name = ""
+    circle = False
     upload = form.get("image") or form.get("file") or form.get("voice")
     if is_upload(upload):
         url, mt = save_file(upload)
@@ -135,6 +136,8 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
             img_url = url
         elif mt == "audio":
             voice_url = url
+        elif mt == "video" and form.get("circle"):
+            img_url, circle = url, True
         else:
             file_url, file_name = url, (upload.filename or "file")[:120]
     if not content and not (img_url or file_url or voice_url):
@@ -142,7 +145,7 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
     reply = form.get("reply_to_id")
     reply_id = int(reply) if reply and str(reply).isdigit() else None
     m = models.GroupMessage(group_id=group_id, sender_id=user.id, content=content, image=img_url, voice=voice_url,
-                            file_url=file_url, file_name=file_name, reply_to_id=reply_id)
+                            file_url=file_url, file_name=file_name, reply_to_id=reply_id, is_video_circle=circle)
     db.add(m)
     db.commit()
     gamification.complete_task(user, db, "message")

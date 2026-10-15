@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import avatar, name %}{% from "partials/icons.html" import icon %}
+{% from "partials/macros.html" import avatar, name, streak_badge %}{% from "partials/icons.html" import icon %}
 {% block title %}Сообщения — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("chat", "i in") }} Сообщения</div>
@@ -10,7 +10,7 @@
   <a href="/messages/{{ c.other.username }}" class="chat">
     {{ avatar(c.other, 50, online=true) }}
     <div class="grow">
-      <div class="row" style="justify-content:space-between"><span class="row" style="gap:4px;min-width:0">{{ name(c.other, link=false) }}{% if c.pinned %}<span class="faint" title="Закреплён">{{ icon("pin", "i in") }}</span>{% endif %}{% if c.muted %}<span class="faint" title="Без звука">{{ icon("bell-off", "i in") }}</span>{% endif %}</span><span class="tiny faint">{{ c.time|ago }}</span></div>
+      <div class="row" style="justify-content:space-between"><span class="row" style="gap:4px;min-width:0">{{ name(c.other, link=false) }}{{ streak_badge(c.streak) }}{% if c.pinned %}<span class="faint" title="Закреплён">{{ icon("pin", "i in") }}</span>{% endif %}{% if c.muted %}<span class="faint" title="Без звука">{{ icon("bell-off", "i in") }}</span>{% endif %}</span><span class="tiny faint">{{ c.time|ago }}</span></div>
       <div class="row" style="justify-content:space-between"><span class="preview ellipsis {% if c.unread %}unread{% endif %}">{% if c.mine %}<span class="faint">{% if c.read %}{{ icon("check", "i in") }}{{ icon("check", "i in") }}{% else %}{{ icon("check", "i in") }}{% endif %} Вы:</span> {% endif %}{{ c.preview }}</span>{% if c.unread %}<span class="unread-dot">{{ c.unread }}</span>{% endif %}</div>
     </div>
   </a>

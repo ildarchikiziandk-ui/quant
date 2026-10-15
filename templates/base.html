@@ -142,11 +142,12 @@
 {% if user %}
 <nav class="mobile-nav"><div class="mobile-nav-inner">
   <a href="/">{{ icon("home") }}<span>Лента</span></a>
-  <a href="/search">{{ icon("search") }}<span>Поиск</span></a>
+  <button type="button" data-mmenu-open aria-label="Меню">{{ icon("grid") }}<span>Меню</span></button>
   <a href="/create" aria-label="Новый пост"><span class="fab">{{ icon("plus") }}</span></a>
   <a href="/messages">{{ icon("chat") }}<span>Чаты</span><span class="mbadge {% if not unread_msg %}hidden{% endif %}" data-badge="messages">{{ unread_msg }}</span></a>
   <a href="/profile/{{ user.username }}">{{ icon("user") }}<span>Профиль</span></a>
 </div></nav>
+{% from "partials/macros.html" import avatar %}{% include "partials/mobile_menu.html" %}
 {% endif %}
 {% endblock %}
 <div id="toasts"></div>

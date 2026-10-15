@@ -1,0 +1,27 @@
+{# Мобильное меню: все функции сайта на одном экране #}
+{% set groups = [
+  ("Общение", [("/messages","chat","Сообщения"),("/secret","secret","Секретные чаты"),("/groups","users","Группы"),("/notifications","bell","Уведомления"),("/questions","help","Вопросы"),("/events","calendar","Мероприятия")]),
+  ("Лента и поиск", [("/","home","Лента"),("/explore","compass","Обзор"),("/search","search","Поиск"),("/top","trophy","Топ постов"),("/random","shuffle","Случайный пост"),("/people/city","map","Люди рядом")]),
+  ("Моё", [("/profile/" ~ user.username,"user","Профиль"),("/bookmarks","bookmark","Закладки"),("/notes","note","Заметки"),("/drafts","draft","Черновики"),("/archive","archive","Архив"),("/memories","history","В этот день"),("/stats","chart","Статистика"),("/gifts/" ~ user.username,"gift","Подарки"),("/close-friends","star","Близкие друзья"),("/follow-requests","user-plus","Заявки")]),
+  ("Игры и награды", [("/tasks","target","Задания"),("/achievements","medal","Достижения"),("/leaderboard","chart","Рейтинг"),("/wheel","wheel","Колесо фортуны"),("/shop","bag","Магазин"),("/invite","handshake","Пригласить друзей")]),
+  ("Сервис", [("/settings","settings","Настройки"),("/plus","sparkle",brand_plus),("/support","lifebuoy","Поддержка"),("/about","info","О проекте"),("/terms","scroll","Правила"),("/privacy","shield","Конфиденциальность")]),
+] %}
+<div class="mmenu" id="mmenu" hidden>
+  <div class="mmenu-head">
+    <a href="/profile/{{ user.username }}" class="row grow" style="gap:10px;min-width:0">{{ avatar(user, 44) }}<span style="min-width:0"><b class="ellipsis" style="display:block">{{ user.name or user.username }}</b><span class="small muted">@{{ user.username }}</span></span></a>
+    <button class="icon-btn" data-mmenu-close title="Закрыть">{{ icon("x") }}</button>
+  </div>
+  <form action="/search" class="mmenu-search">{{ icon("search") }}<input name="q" placeholder="Поиск людей, постов и тегов" autocomplete="off"></form>
+  {% for title, items in groups %}
+  <div class="mmenu-title">{{ title }}</div>
+  <div class="mmenu-grid">{% for href, ic, label in items %}<a href="{{ href }}">{{ icon(ic) }}<span>{{ label }}</span></a>{% endfor %}
+    {% if title == "Сервис" and can_mod %}<a href="/admin">{{ icon("shield") }}<span>Админ-панель</span></a>{% endif %}
+  </div>
+  {% endfor %}
+  <div class="mmenu-list">
+    <button type="button" onclick="toggleTheme()">{{ icon("contrast") }}<span>Сменить тему</span></button>
+    <a href="{{ android_apk_url }}" class="hide-in-app">{{ icon("smartphone") }}<span>Приложение для Android</span></a>
+    <form method="post" action="/logout" onsubmit="return confirm('Выйти из аккаунта?')"><button class="danger">{{ icon("logout") }}<span>Выйти из аккаунта</span></button></form>
+  </div>
+  <div class="tiny faint center" style="padding:16px 0 8px">© {{ utcnow().year }} {{ brand }}</div>
+</div>

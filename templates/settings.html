@@ -2,12 +2,20 @@
 {% from "partials/macros.html" import avatar %}{% from "partials/icons.html" import icon %}
 {% block title %}Настройки — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">{{ icon("settings", "i in") }} Настройки</div>
-<div class="settings-nav">
-  {% for key, label in [("profile","👤 Профиль"),("account","🔑 Аккаунт"),("feed","📰 Лента"),("privacy","🔒 Приватность"),("notifications","🔔 Уведомления"),("messages","💬 Сообщения"),("appearance","🎨 Оформление"),("accessibility","♿ Доступность"),("security","🛡 Безопасность"),("plus","✨ " ~ brand_plus),("data","📦 Данные")] %}
-  <a href="/settings?section={{ key }}" class="chip {% if section == key %}active{% endif %}">{{ label }}</a>
-  {% endfor %}
-</div>
+<div class="page-title">Настройки</div>
+<div class="set-search"><span>{{ icon("search") }}</span><input id="set-q" type="search" placeholder="Поиск по настройкам" autocomplete="off"><div class="set-results" id="set-results" hidden></div></div>
+<nav class="settings-nav" id="settings-nav">
+  {% for key, label, ic in section_meta %}<a href="/settings?section={{ key }}" class="chip {% if section == key %}active{% endif %}">{{ icon(ic, "i in") }} {{ brand_plus if key == "plus" else label }}</a>{% endfor %}
+</nav>
+<script>(function(){var n=document.getElementById('settings-nav'),a=n&&n.querySelector('.active');if(a)n.scrollLeft=a.offsetLeft-n.offsetWidth/2+a.offsetWidth/2;
+var idx={{ settings_index|tojson }},q=document.getElementById('set-q'),box=document.getElementById('set-results');
+function norm(x){return (x||'').toLowerCase().replace(/ё/g,'е')}
+q.addEventListener('input',function(){var v=norm(q.value.trim());if(v.length<2){box.hidden=true;return}
+var words=v.split(/\s+/),res=idx.filter(function(it){var h=norm(it.t+' '+it.k+' '+it.sn);return words.every(function(w){return h.indexOf(w)>=0})}).slice(0,12);
+box.innerHTML=res.length?res.map(function(it){return '<a href="/settings?section='+it.s+'#find='+encodeURIComponent(it.t)+'"><b>'+App.esc(it.t)+'</b><span>'+App.esc(it.sn)+'</span></a>'}).join(''):'<div class="empty small">Ничего не нашлось</div>';box.hidden=false});
+document.addEventListener('click',function(e){if(!e.target.closest('.set-search'))box.hidden=true});
+var m=location.hash.match(/^#find=(.+)/);if(m){var t=norm(decodeURIComponent(m[1]));setTimeout(function(){var els=document.querySelectorAll('.card-title,.check b,.field>span,.pref-group');for(var i=0;i<els.length;i++){if(norm(els[i].textContent).indexOf(t)>=0){var el=els[i].closest('.check,.field,.card')||els[i];el.scrollIntoView({block:'center'});el.classList.add('flash');break}}},50)}
+else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.settings-nav');if(t2&&window.scrollY<10)t2.scrollIntoView({block:'start'})}})();</script>
 {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
 {% if success %}<div class="alert success">{{ success }}</div>{% endif %}
 
@@ -209,4 +217,9 @@
   <button class="btn mt">Сохранить</button>
 </form>
 {% endif %}
+{% set keys = section_meta|map(attribute=0)|list %}{% set pos = keys.index(section) %}
+<div class="set-pager">
+  {% if pos > 0 %}{% set pv = section_meta[pos - 1] %}<a class="btn soft" href="/settings?section={{ pv[0] }}">{{ icon("back", "i in") }} {{ brand_plus if pv[0] == "plus" else pv[1] }}</a>{% else %}<span></span>{% endif %}
+  {% if pos < keys|length - 1 %}{% set nx = section_meta[pos + 1] %}<a class="btn soft" href="/settings?section={{ nx[0] }}">{{ brand_plus if nx[0] == "plus" else nx[1] }} <span style="display:inline-block;transform:rotate(180deg)">{{ icon("back", "i in") }}</span></a>{% endif %}
+</div>
 {% endblock %}

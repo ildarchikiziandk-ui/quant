@@ -178,3 +178,28 @@
   {%- endif %}
 </article>
 {%- endmacro %}
+
+
+{% macro streak_badge(st) -%}
+{%- if st %}<span class="fire {{ streak_level(st[0]) }}{% if st[1] %} risk{% endif %}" title="{% if st[1] %}Огонёк погаснет в полночь — напишите друг другу сегодня{% else %}Огонёк: {{ plural(st[0], 'день', 'дня', 'дней') }} подряд{% endif %}">{{ icon("flame", "i") }}<b>{{ st[0] }}</b></span>{% endif -%}
+{%- endmacro %}
+
+{% macro voice_player(src) -%}
+<div class="vmsg" data-src="{{ src }}"><button type="button" class="vplay" aria-label="Слушать">{{ icon("play", "i") }}</button><div class="vwave" aria-hidden="true"></div><span class="vdur">0:00</span><button type="button" class="vspeed" title="Скорость">1×</button><audio preload="metadata" src="{{ src }}"></audio></div>
+{%- endmacro %}
+
+{% macro circle_player(src) -%}
+<div class="vcircle"><video src="{{ src }}" playsinline preload="metadata" muted loop></video><svg class="vring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48"/></svg><span class="vdur"></span><span class="vsnd">{{ icon("volume", "i") }}</span></div>
+{%- endmacro %}
+
+
+{# Поле ввода чата: одна кнопка записи (голосовое / кружок), отправка появляется, когда есть что отправить #}
+{% macro chat_input() -%}
+<div class="rec-circle hidden" aria-hidden="true"><video muted playsinline></video><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div>
+<div class="cmp-row">
+  {{ caller() }}
+  <div class="rec-panel hidden"><button type="button" class="icon-btn rec-cancel" title="Отменить запись">{{ icon("trash") }}</button><span class="rec-dot"></span><span class="rec-time">0:00</span><span class="rec-label small muted"></span><div class="rec-meter"></div></div>
+  <button type="button" class="icon-btn cmp-rec" aria-label="Запись"></button>
+  <button type="button" class="cmp-send hidden" title="Отправить" aria-label="Отправить">{{ icon("send") }}</button>
+</div>
+{%- endmacro %}
