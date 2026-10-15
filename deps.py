@@ -38,7 +38,7 @@ env.globals.update(
     post_expires=extras.EXPIRES, zodiac=extras.zodiac, frame_by=extras.FRAME_BY, status_active=extras.status_active, pref_client=prefs.client_values,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
     push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.INSTANCE_ID, utcnow=datetime.utcnow,
-    min_age=config.MIN_AGE, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, streak_level=streaks.level, emo=text.emoji_img,
+    min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, streak_level=streaks.level, emo=text.emoji_img,
 )
 
 REACTIONS = []  # эмодзи-реакции на посты убраны: остались лайк и кит

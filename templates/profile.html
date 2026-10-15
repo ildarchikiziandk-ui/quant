@@ -38,7 +38,7 @@
         <div class="menu-wrap">
           <button class="icon-btn" data-menu>{{ icon("more") }}</button>
           <div class="menu">
-            <a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>
+            {% if secret_enabled %}<a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>{% endif %}
             <a href="/ask/{{ pu.username }}">{{ icon("help") }} Задать анонимный вопрос</a>
             <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
             <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код</a>

@@ -32,6 +32,8 @@ def _norm_host(h: str) -> str:
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
+    if not config.SECRET_CHATS_ENABLED and request.url.path in ("/static/js/gost.js", "/static/js/secret.js"):
+        return PlainTextResponse("Not found", status_code=404)
     # Защита от CSRF: небезопасные запросы с чужого Origin/Referer отклоняются.
     if request.method not in SAFE_METHODS:
         origin = request.headers.get("origin") or request.headers.get("referer")

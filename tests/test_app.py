@@ -825,7 +825,9 @@ def test_messages_are_encrypted_at_rest(alice, bob):
     assert crypto.decrypt(crypto.encrypt("тест")) == "тест"
 
 
-def test_secret_chats_server_sees_only_ciphertext(alice, bob):
+def test_secret_chats_server_sees_only_ciphertext(alice, bob, monkeypatch):
+    import config
+    monkeypatch.setattr(config, "SECRET_CHATS_ENABLED", True)
     import base64, os
     from datetime import datetime, timedelta
     pa, pb = os.urandom(64).hex(), os.urandom(64).hex()
@@ -891,7 +893,7 @@ def test_russian_law_compliance(anon, owner):
     owner.post("/consent/accept")
     assert "Даю согласие" not in owner.get("/").text
     r = owner.get("/admin?tab=legal")
-    assert "152-ФЗ" in r.text and "ОРИ" in r.text and "ПП РФ № 313" in r.text
+    assert "152-ФЗ" in r.text and "ОРИ" in r.text and "Секретные чаты" in r.text and "физическое лицо" in r.text
 
 
 def test_chat_streaks_and_deleted_messages(alice, bob):
@@ -986,3 +988,12 @@ def test_plus_features(alice, bob, owner):
     s = db()
     assert len(s.get(models.Post, pid).content) == 9000
     s.close()
+
+
+def test_secret_chats_disabled_by_default(alice, bob):
+    import os
+    assert alice.post("/secret/start", json={"username": "bob", "pub": os.urandom(64).hex()}, headers=J).json()["ok"] is False
+    assert alice.get("/static/js/gost.js").status_code == 404
+    page = alice.get("/secret").text
+    assert "временно отключены" in page and "gost.js" not in page
+    assert 'href="/secret' not in alice.get("/messages").text

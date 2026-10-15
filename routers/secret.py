@@ -114,6 +114,8 @@ def secret_page(chat_id: int, request: Request, db: Session = Depends(get_db)):
     if not chat:
         return redirect("/secret")
     peer = db.get(models.User, _peer_id(chat, user))
+    if _disabled():
+        return render(request, db, "secret_list.html", chats=[chat], peers={peer.id: peer} if peer else {}, ttls=TTLS, disabled=True, start="")
     return render(request, db, "secret_chat.html", chat=chat, peer=peer, ttl_label=dict(TTLS).get(chat.ttl, ""), ttls=TTLS)
 
 
@@ -133,6 +135,8 @@ async def secret_accept(chat_id: int, request: Request, db: Session = Depends(ge
     chat = _chat_for(db, user, chat_id)
     if not chat:
         return json_error("Чат не найден", 404)
+    if _disabled():
+        return json_error("Секретные чаты отключены администратором")
     if chat.b_id != user.id or chat.status != "pending":
         return json_error("Чат уже начат")
     pub = str((await read_payload(request)).get("pub", "")).lower()
@@ -166,6 +170,8 @@ async def secret_send(chat_id: int, request: Request, db: Session = Depends(get_
     chat = _chat_for(db, user, chat_id)
     if not chat:
         return json_error("Чат не найден", 404)
+    if _disabled():
+        return json_error("Секретные чаты отключены администратором")
     if chat.status != "active":
         return json_error("Собеседник ещё не принял приглашение")
     peer = db.get(models.User, _peer_id(chat, user))

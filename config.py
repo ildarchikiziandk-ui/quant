@@ -69,7 +69,9 @@ MOD_FLAG_THRESHOLD = float(env("MOD_FLAG_THRESHOLD", "0.7"))   # с этой о�
 MOD_HOLD_THRESHOLD = float(env("MOD_HOLD_THRESHOLD", "0.93"))  # с этой — пост скрывается до проверки
 
 # --- Секретные чаты (ГОСТ, сквозное шифрование) --------------------------
-SECRET_CHATS_ENABLED = env_bool("SECRET_CHATS_ENABLED", True)
+# Выключены по умолчанию: распространение шифровальных средств может требовать лицензии ФСБ (ПП РФ № 313).
+# Включить (после консультации юриста): SECRET_CHATS_ENABLED=1 в .env
+SECRET_CHATS_ENABLED = env_bool("SECRET_CHATS_ENABLED", False)
 # Сколько дней сервер хранит шифротекст после срабатывания таймера/удаления (0 — удалять сразу).
 # Если сервис внесён в реестр ОРИ (149-ФЗ ст. 10.1), закон требует хранить сообщения 6 месяцев — поставьте 180.
 SECRET_RETAIN_DAYS = int(env("SECRET_RETAIN_DAYS", "0"))
