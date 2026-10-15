@@ -24,9 +24,9 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="card-title">Фото профиля и обложка</div>
   <div class="row wrap">
     {{ avatar(user, 72) }}
-    <form method="post" action="/settings/avatar" enctype="multipart/form-data"><label class="btn soft sm" style="cursor:pointer">Загрузить аватар<input type="file" name="avatar" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>
+    <form method="post" action="/settings/avatar" enctype="multipart/form-data"><label class="btn soft sm" style="cursor:pointer">Загрузить аватар<input type="file" name="avatar" accept="image/*" class="hidden" onchange="this.form.requestSubmit()"></label></form>
     {% if user.avatar %}<form method="post" action="/settings/remove-media/avatar"><button class="btn ghost sm">Удалить</button></form>{% endif %}
-    <form method="post" action="/settings/cover" enctype="multipart/form-data"><label class="btn soft sm" style="cursor:pointer">Загрузить обложку<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>
+    <form method="post" action="/settings/cover" enctype="multipart/form-data"><label class="btn soft sm" style="cursor:pointer">Загрузить обложку<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.requestSubmit()"></label></form>
     {% if user.cover %}<form method="post" action="/settings/remove-media/cover"><button class="btn ghost sm">Убрать обложку</button></form>{% endif %}
   </div>
 </div>

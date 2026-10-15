@@ -7,7 +7,7 @@
 {% block content %}
 <div class="card flat">
   <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus %}background:{{ plus_bg(pu) }};{% endif %}">
-    {% if me %}<form method="post" action="/settings/cover" enctype="multipart/form-data" style="position:absolute;right:12px;bottom:12px"><label class="btn soft sm" style="cursor:pointer;background:rgba(0,0,0,.45);color:#fff">{{ icon("image") }} Обложка<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>{% endif %}
+    {% if me %}<form method="post" action="/settings/cover" enctype="multipart/form-data" style="position:absolute;right:12px;bottom:12px"><label class="btn soft sm" style="cursor:pointer;background:rgba(0,0,0,.45);color:#fff">{{ icon("image") }} Обложка<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.requestSubmit()"></label></form>{% endif %}
   </div>
   <div class="profile-top">
     <div class="profile-av">

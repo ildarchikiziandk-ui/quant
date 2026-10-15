@@ -6,7 +6,61 @@
   const ME = window.APP || {};
 
   // ---------- Утилиты ----------
+  // ---------- Загрузка файлов с прогрессом: проценты, мегабайты, скорость и сколько осталось ----------
+  function fileBytes(fd) {
+    let n = 0;
+    if (fd instanceof FormData) for (const v of fd.values()) if (v instanceof Blob) n += v.size;
+    return n;
+  }
+  const fmtMB = b => b >= 1048576 ? (b / 1048576).toFixed(b >= 10485760 ? 0 : 1) + ' МБ' : Math.max(1, Math.round(b / 1024)) + ' КБ';
+  const fmtLeft = s => !isFinite(s) || s <= 0 ? '' : s < 60 ? 'осталось ~' + Math.max(1, Math.ceil(s)) + ' с' : 'осталось ~' + Math.ceil(s / 60) + ' мин';
+  function uploadPanel(title) {
+    let box = $('#uploads');
+    if (!box) { box = document.createElement('div'); box.id = 'uploads'; document.body.appendChild(box); }
+    const el = document.createElement('div'); el.className = 'upl';
+    el.innerHTML = '<div class="upl-top"><b class="upl-t"></b><span class="upl-pct">0%</span><button type="button" class="upl-x" title="Отменить">' + (window.ICON ? ICON('x', 'i') : '×') + '</button></div><div class="upl-bar"><i></i></div><div class="upl-sub"></div>';
+    $('.upl-t', el).textContent = title; box.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    return {
+      el,
+      set(loaded, total, rate) {
+        const p = total ? Math.min(100, loaded / total * 100) : 0;
+        $('.upl-bar i', el).style.width = p + '%'; $('.upl-pct', el).textContent = Math.floor(p) + '%';
+        $('.upl-sub', el).textContent = fmtMB(loaded) + ' из ' + fmtMB(total) + (rate ? ' · ' + fmtMB(rate) + '/с · ' + fmtLeft((total - loaded) / rate) : '');
+      },
+      processing() { el.classList.add('proc'); $('.upl-pct', el).textContent = ''; $('.upl-sub', el).textContent = 'Обрабатываем на сервере…'; $('.upl-bar i', el).style.width = '100%'; },
+      done(ok) { el.classList.add(ok ? 'ok' : 'fail'); setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ok ? 700 : 2500); },
+    };
+  }
+  function xhrSend(url, fd, title, plain) {
+    return new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest(), ui = uploadPanel(title || 'Загрузка'), total = fileBytes(fd) || 1;
+      let t0 = performance.now(), last = { t: t0, b: 0 }, rate = 0;
+      x.open('POST', url); if (!plain) { x.setRequestHeader('X-Requested-With', 'fetch'); x.setRequestHeader('Accept', 'application/json'); } x.withCredentials = true;
+      x.upload.onprogress = e => {
+        const now = performance.now(), tot = e.lengthComputable ? e.total : total;
+        if (now - last.t > 400) { const r = (e.loaded - last.b) / ((now - last.t) / 1000); rate = rate ? rate * .6 + r * .4 : r; last = { t: now, b: e.loaded }; }
+        ui.set(e.loaded, tot, rate || (e.loaded / Math.max(.001, (now - t0) / 1000)));
+      };
+      x.upload.onload = () => ui.processing();
+      x.onload = () => { ui.done(x.status < 400); resolve(x); };
+      x.onerror = () => { ui.done(false); reject(new Error('Нет соединения')); };
+      x.onabort = () => { ui.done(false); reject(new Error('Загрузка отменена')); };
+      $('.upl-x', ui.el).onclick = () => x.abort();
+      x.send(fd);
+    });
+  }
+  window.uploadForm = xhrSend;
+
   async function api(url, data, opts = {}) {
+    if (data instanceof FormData && fileBytes(data) > 0 && opts.method !== 'GET') {
+      const x = await xhrSend(url, data, opts.title);
+      let json = {};
+      try { json = JSON.parse(x.responseText); } catch (e) { json = { ok: x.status < 400 }; }
+      if (x.status === 401) { location.href = '/login?next=' + encodeURIComponent(location.pathname); throw new Error('auth'); }
+      if (x.status >= 400 || json.ok === false) { const err = json.error || 'Не удалось загрузить файл'; toast(err, true); throw new Error(err); }
+      return json;
+    }
     const init = { method: opts.method || 'POST', headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' };
     if (data instanceof FormData) init.body = data;
     else if (data !== undefined) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(data); }
@@ -108,6 +162,44 @@
     try { t = localStorage.getItem('theme') || t; } catch (e) {}
     if (t === 'auto') applyTheme('auto');
   });
+
+  // обычные формы с файлами (аватар, обложка, истории, группы): отправляем с прогрессом, потом идём туда, куда ответил сервер
+  document.addEventListener('submit', async (e) => {
+    const f = e.target;
+    if (e.defaultPrevented || !(f instanceof HTMLFormElement) || f.dataset.ajax !== undefined || f.dataset.noProgress !== undefined) return;
+    if ((f.enctype || '') !== 'multipart/form-data' || (f.method || '').toLowerCase() !== 'post') return;
+    const fd = new FormData(f);
+    if (!fileBytes(fd)) return;
+    e.preventDefault();
+    try {
+      const x = await xhrSend(f.action, fd, 'Загрузка', true);
+      if ((x.getResponseHeader('content-type') || '').includes('json')) {
+        let j = {}; try { j = JSON.parse(x.responseText); } catch (er) { /* пусто */ }
+        if (j.ok === false) toast(j.error || 'Ошибка', true); else location.reload();
+      } else if (x.responseURL && x.responseURL !== new URL(f.action, location.href).href) {  // сервер перенаправил — идём туда
+        if (x.responseURL === location.href) location.reload(); else location.href = x.responseURL;
+      } else { document.open(); document.write(x.responseText); document.close(); }  // страница с ошибкой
+    } catch (err) { toast(err.message, true); }
+  }, false);
+
+  // ---------- Плавные переходы между страницами ----------
+  // Полоса сверху, если страница открывается дольше 120 мс; при возврате «назад» страница берётся из кэша мгновенно.
+  (function () {
+    const bar = document.createElement('div'); bar.id = 'nav-progress'; document.body.appendChild(bar);
+    let t = 0;
+    const start = () => { clearTimeout(t); t = setTimeout(() => bar.classList.add('run'), 120); };
+    const stop = () => { clearTimeout(t); bar.classList.remove('run'); bar.style.width = ''; };
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank' || a.hasAttribute('download')) return;
+      const u = new URL(a.href, location.href);
+      if (u.origin !== location.origin || (u.pathname === location.pathname && u.search === location.search && u.hash)) return;
+      start();
+    });
+    document.addEventListener('submit', (e) => { setTimeout(() => { if (!e.defaultPrevented) start(); }, 0); });
+    window.addEventListener('pageshow', stop);
+    window.addEventListener('pagehide', stop);
+  })();
 
   // ---------- Мобильное меню ----------
   document.addEventListener('click', (e) => {

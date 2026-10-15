@@ -66,7 +66,7 @@ async function poll(){
     if(!r.ok) return;
     if(r.html){ document.getElementById('empty-chat')?.remove(); const near = box.scrollHeight-box.scrollTop-box.clientHeight<120;
       const tmp=document.createElement('div'); tmp.innerHTML=r.html;
-      tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else box.appendChild(m); });
+      tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else { m.classList.add('appear'); box.appendChild(m); } });
       lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); }
     document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto) t.innerHTML=window.ICON_TICKS;t.classList.add('read'); });
     document.getElementById('typing').classList.toggle('hidden', !r.typing);
@@ -115,7 +115,7 @@ document.addEventListener('click', async e=>{
   }catch(err){}
 });
 // вложения
-document.getElementById('att')?.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); App.toast('Отправка…'); try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(er){} e.target.value=''; });
+document.getElementById('att')?.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(er){} e.target.value=''; });
 inp?.addEventListener('paste', async e=>{ for(const it of e.clipboardData?.items||[]){ if(it.type.startsWith('image/')){ e.preventDefault(); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',it.getAsFile(),'paste.png'); await App.api('/messages/send-media',fd); await poll(); toBottom(); } } });
 // запись голоса и кружков — одна кнопка (static/js/chat.js)
 if(inp) window.chatComposer({root: document.getElementById('cmp'), input: inp,

@@ -703,3 +703,54 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 button,a,label{-webkit-touch-callout:none}
 .icon-btn:active,.act:active,.btn:active,.chip:active,.mobile-nav a:active,.mobile-nav button:active,.mmenu-grid a:active{transform:scale(.96)}
 svg.i,.icon-btn svg,.act svg,.mobile-nav svg,.ico svg,.tool svg{stroke-width:1.9}
+
+/* Загрузка файлов: прогресс */
+#uploads{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:150;display:flex;flex-direction:column;gap:8px;max-width:420px;margin:0 auto;pointer-events:none}
+@media (min-width:900px){#uploads{left:auto;right:20px;bottom:20px;width:360px}}
+.upl{pointer-events:auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(12px) scale(.98);transition:opacity .25s,transform .25s cubic-bezier(.2,.8,.2,1)}
+.upl.show{opacity:1;transform:none}
+.upl-top{display:flex;align-items:center;gap:8px;font-size:14px}
+.upl-t{flex:1}.upl-pct{font-variant-numeric:tabular-nums;font-weight:800}
+.upl-x{border:none;background:none;color:var(--text-3);cursor:pointer;display:flex;padding:2px}.upl-x svg.i{width:16px;height:16px}
+.upl-bar{height:6px;border-radius:3px;background:var(--input);overflow:hidden;margin:8px 0 6px}
+.upl-bar i{display:block;height:100%;width:0;border-radius:3px;background:var(--link);transition:width .2s linear}
+.upl.proc .upl-bar i{background:linear-gradient(90deg,var(--link),color-mix(in srgb,var(--link) 40%,#fff),var(--link));background-size:200% 100%;animation:upl-shine 1s linear infinite}
+@keyframes upl-shine{to{background-position:-200% 0}}
+.upl.ok .upl-bar i{background:var(--success,#16a34a)}.upl.fail .upl-bar i{background:var(--danger)}
+.upl-sub{font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
+
+/* ===== Плавность ===== */
+/* Переходы между страницами без белой вспышки (View Transitions, Chrome/Android WebView 126+) */
+@view-transition{navigation:auto}
+.mobile-nav{view-transition-name:mnav}
+.mobile-top{view-transition-name:mtop}
+.sidebar{view-transition-name:sidebar}
+::view-transition-group(mnav),::view-transition-group(mtop),::view-transition-group(sidebar){animation:none}
+::view-transition-old(root){animation:vt-out .14s ease-in both}
+::view-transition-new(root){animation:vt-in .26s cubic-bezier(.2,.8,.2,1) both}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0;transform:translateY(8px)}}
+html.p-reduce-motion::view-transition-old(root),html.p-reduce-motion::view-transition-new(root){animation:none}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+/* полоса загрузки сверху при переходе */
+#nav-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:500;background:var(--link);box-shadow:0 0 8px var(--link);opacity:0;transition:width .4s ease,opacity .3s;pointer-events:none}
+#nav-progress.run{opacity:1;width:70%;transition:width 6s cubic-bezier(.1,.6,.2,1),opacity .2s}
+/* меню, окна, уведомления */
+.menu.open{animation:pop-in .16s cubic-bezier(.2,.8,.2,1);transform-origin:top right}
+@keyframes pop-in{from{opacity:0;transform:scale(.94) translateY(-4px)}}
+.modal-bg.open{animation:fadein .18s ease-out}
+.modal-bg.open .modal{animation:modal-in .26s cubic-bezier(.2,.9,.25,1)}
+@keyframes modal-in{from{opacity:0;transform:translateY(16px) scale(.97)}}
+@media (max-width:640px){.modal-bg{align-items:flex-end;padding:0}.modal-bg .modal{border-radius:22px 22px 0 0;max-height:90vh;padding-bottom:calc(20px + env(safe-area-inset-bottom))}@keyframes modal-in{from{transform:translateY(100%)}}}
+.lightbox.open{animation:fadein .18s}.lightbox.open img{animation:modal-in .25s cubic-bezier(.2,.9,.25,1)}
+.mmenu{animation:mm-in .24s cubic-bezier(.2,.8,.2,1)}
+@keyframes mm-in{from{opacity:0;transform:translateY(24px)}}
+.msg.appear{animation:msg-in .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes msg-in{from{opacity:0;transform:translateY(6px) scale(.98)}}
+/* вкладки и кнопки */
+.tabs a,.chip,.btn,.icon-btn,.act,.mobile-nav a,.mobile-nav button{transition:background .18s,color .18s,transform .12s,box-shadow .18s}
+/* картинки появляются мягко, без «выпрыгивания» */
+.post-media img,.att,.media-tile img{animation:img-in .35s ease-out}
+@keyframes img-in{from{opacity:0}}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}

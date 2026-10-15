@@ -1,4 +1,6 @@
-const CACHE_NAME = 'app-__VERSION__-logo2';
+const CACHE_NAME = 'app-__VERSION__-smooth1';
+const MEDIA_CACHE = 'media-v1';  // фото и видео из ленты: имена файлов уникальные, их можно хранить
+const MEDIA_MAX = 400;
 const BRAND = '__BRAND__';
 const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/static/css/app.css', '/static/js/app.js', '/offline'];
 
@@ -8,7 +10,8 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== MEDIA_CACHE).map(k => caches.delete(k)))));
+  if (self.registration.navigationPreload) e.waitUntil(self.registration.navigationPreload.enable().catch(() => {}));
   self.clients.claim();
 });
 
@@ -24,8 +27,17 @@ self.addEventListener('fetch', e => {
     })));
     return;
   }
+  if (url.pathname.startsWith('/uploads/') && req.destination === 'image') {
+    e.respondWith(caches.open(MEDIA_CACHE).then(c => c.match(req).then(r => r || fetch(req).then(res => {
+      if (res.ok) { c.put(req, res.clone()); c.keys().then(k => { if (k.length > MEDIA_MAX) k.slice(0, k.length - MEDIA_MAX).forEach(x => c.delete(x)); }); }
+      return res;
+    }))));
+    return;
+  }
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).catch(() => caches.match('/offline')));
+    e.respondWith((async () => {
+      try { return (await e.preloadResponse) || await fetch(req); } catch (err) { return caches.match('/offline'); }
+    })());
   }
 });
 

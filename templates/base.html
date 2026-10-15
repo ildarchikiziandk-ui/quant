@@ -21,6 +21,8 @@
   window.APP={user:{{ (user.username if user else None)|tojson }},theme:{{ (user.theme if user else 'light')|tojson }},reactions:{{ reactions|tojson }},unread:{{ unread or 0 }},push:{{ push_enabled|tojson }},prefs:{{ (pref_client(user) if user else {})|tojson }}};
   window.APP.sound=window.APP.prefs.sound!==false;
 </script>
+<meta name="view-transition" content="same-origin">
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/logout*"}},{"not":{"href_matches":"/auth/*"}},{"not":{"href_matches":"/export-data*"}},{"not":{"href_matches":"/random*"}},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/uploads/*"}},{"not":{"href_matches":"/static/*"}}]},"eagerness":"conservative"}]}</script>
 {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
