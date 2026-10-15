@@ -87,7 +87,7 @@ def join_by_code(code: str, request: Request, db: Session = Depends(get_db)):
         return render(request, db, "error.html", status_code=404, code=404, title="Приглашение недействительно", text="Ссылка устарела или неверна.")
     if not _membership(db, g.id, user):
         db.add(models.GroupMember(group_id=g.id, user_id=user.id))
-        db.add(models.GroupMessage(group_id=g.id, sender_id=user.id, content=f"👋 {user.name or user.username} присоединился(лась) по ссылке"))
+        db.add(models.GroupMessage(group_id=g.id, sender_id=user.id, content=f"{user.name or user.username} присоединился(лась) по ссылке"))
         db.commit()
     return redirect(f"/groups/{g.id}")
 
@@ -186,7 +186,7 @@ def invite_to_group(group_id: int, username: str, request: Request, db: Session 
     target = db.query(models.User).filter(func.lower(models.User.username) == username.lower()).first()
     if target and not _membership(db, group_id, target) and not social.is_blocked_between(db, user, target):
         db.add(models.GroupMember(group_id=group_id, user_id=target.id))
-        db.add(models.GroupMessage(group_id=group_id, sender_id=user.id, content=f"➕ добавил(а) {target.name or target.username}"))
+        db.add(models.GroupMessage(group_id=group_id, sender_id=user.id, content=f"добавил(а) {target.name or target.username}"))
         social.notify(db, target.id, "group_invite", user, text=f"добавил(а) вас в группу «{g.name}»", url=f"/groups/{group_id}")
         db.commit()
     if wants_json(request):

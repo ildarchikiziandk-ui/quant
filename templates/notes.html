@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Заметки — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">📝 Заметки</div><a class="btn sm" href="/notes">+ Новая</a></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("note", "i in") }} Заметки</div><a class="btn sm" href="/notes">+ Новая</a></div>
 <div class="page-sub">Видны только вам. Подходят для идей постов, списков и черновиков мыслей.</div>
 <form class="card" method="post" action="/notes/save">
   <input type="hidden" name="id" value="{{ current.id if current else '' }}">
@@ -11,9 +11,9 @@
 </form>
 {% for n in notes %}
 <div class="card row" style="gap:10px;{% if current and current.id == n.id %}box-shadow:0 0 0 2px var(--text){% endif %}">
-  <a href="/notes?edit={{ n.id }}" class="grow" style="min-width:0"><b>{% if n.is_pinned %}📌 {% endif %}{{ n.title }}</b><div class="small muted ellipsis">{{ n.content[:120] }}</div><div class="tiny faint">{{ n.updated_at|ago }}</div></a>
-  <form method="post" action="/notes/{{ n.id }}/pin"><button class="icon-btn" title="Закрепить">📌</button></form>
-  <form method="post" action="/notes/{{ n.id }}/delete" onsubmit="return confirm('Удалить заметку?')"><button class="icon-btn" title="Удалить">🗑</button></form>
+  <a href="/notes?edit={{ n.id }}" class="grow" style="min-width:0"><b>{% if n.is_pinned %}{{ icon("pin", "i in") }} {% endif %}{{ n.title }}</b><div class="small muted ellipsis">{{ n.content[:120] }}</div><div class="tiny faint">{{ n.updated_at|ago }}</div></a>
+  <form method="post" action="/notes/{{ n.id }}/pin"><button class="icon-btn" title="Закрепить">{{ icon("pin", "i in") }}</button></form>
+  <form method="post" action="/notes/{{ n.id }}/delete" onsubmit="return confirm('Удалить заметку?')"><button class="icon-btn" title="Удалить">{{ icon("trash", "i in") }}</button></form>
 </div>
-{% else %}<div class="card empty"><div class="big">📝</div>Заметок пока нет</div>{% endfor %}
+{% else %}<div class="card empty"><div class="big">{{ icon("note", "i in") }}</div>Заметок пока нет</div>{% endfor %}
 {% endblock %}

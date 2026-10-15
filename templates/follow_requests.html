@@ -2,7 +2,7 @@
 {% from "partials/macros.html" import avatar, name %}
 {% block title %}Заявки на подписку — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">👋 Заявки на подписку</div><div class="page-sub">Ваш профиль закрыт — подтвердите, кто может видеть ваши посты</div>
+<div class="page-title">{{ icon("wave", "i in") }} Заявки на подписку</div><div class="page-sub">Ваш профиль закрыт — подтвердите, кто может видеть ваши посты</div>
 <div class="card">
 {% for r in requests %}{% if r.requester %}
   <div class="user-row" id="req-{{ r.id }}">
@@ -11,6 +11,6 @@
     <form method="post" action="/follow-requests/{{ r.id }}/accept"><button class="btn sm">Принять</button></form>
     <form method="post" action="/follow-requests/{{ r.id }}/decline"><button class="btn ghost sm">Отклонить</button></form>
   </div>
-{% endif %}{% else %}<div class="empty"><div class="big">📭</div>Новых заявок нет</div>{% endfor %}
+{% endif %}{% else %}<div class="empty"><div class="big">{{ icon("inbox", "i in") }}</div>Новых заявок нет</div>{% endfor %}
 </div>
 {% endblock %}

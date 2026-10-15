@@ -2,7 +2,7 @@
 {% from "partials/macros.html" import avatar, name %}
 {% block title %}Жалоба — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">🚩 Жалоба на пользователя</div>
+<div class="page-title">{{ icon("flag", "i in") }} Жалоба на пользователя</div>
 <div class="card">
   <div class="row mb">{{ avatar(target, 44) }}<div>{{ name(target) }}<div class="small muted">@{{ target.username }}</div></div></div>
   {% if success %}<div class="alert success">Спасибо! Жалоба отправлена модераторам. Мы сообщим о результате в уведомлениях.</div><a href="/profile/{{ target.username }}" class="btn">Вернуться в профиль</a>

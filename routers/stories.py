@@ -14,7 +14,7 @@ from services import gamification, prefs, social
 from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
-STORY_REACTIONS = ["❤️", "🔥", "😂", "😮", "😢", "👏"]
+STORY_REACTIONS = ["❤️", "🐋"]
 STORY_BG = ["#18181b", "#334155", "#1e3a8a", "#14532d", "#7f1d1d", "#78350f"]
 
 
@@ -167,7 +167,7 @@ async def reply_story(story_id: int, request: Request, db: Session = Depends(get
     ok, reason = social.can_message(db, user, s.author)
     if not ok:
         return json_error(reason, 403)
-    db.add(models.Message(sender_id=user.id, receiver_id=s.user_id, content=f"↩️ Ответ на историю: {text}"))
+    db.add(models.Message(sender_id=user.id, receiver_id=s.user_id, content=f"Ответ на историю: {text}"))
     db.commit()
     return JSONResponse({"ok": True})
 

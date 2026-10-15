@@ -6,7 +6,7 @@
 {% block meta %}<meta property="og:title" content="{{ pu.name or pu.username }} в {{ brand }}"><meta property="og:description" content="{{ pu.bio or '' }}">{% if pu.avatar %}<meta property="og:image" content="{{ site_url }}{{ pu.avatar }}">{% endif %}{% endblock %}
 {% block content %}
 <div class="card flat">
-  <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus and pu.plus_color %}background:{{ pu.plus_color }};{% endif %}">
+  <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus %}background:{{ plus_bg(pu) }};{% endif %}">
     {% if me %}<form method="post" action="/settings/cover" enctype="multipart/form-data" style="position:absolute;right:12px;bottom:12px"><label class="btn soft sm" style="cursor:pointer;background:rgba(0,0,0,.45);color:#fff">{{ icon("image") }} Обложка<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>{% endif %}
   </div>
   <div class="profile-top">
@@ -16,19 +16,33 @@
     <div class="profile-actions">
       {% if me %}
         <a href="/settings" class="btn ghost sm">Редактировать</a>
-        <a href="/qr/{{ pu.username }}" class="icon-btn" title="QR-код">{{ icon("qr") }}</a>
+        <div class="menu-wrap">
+          <button class="icon-btn" data-menu title="Ещё">{{ icon("more") }}</button>
+          <div class="menu">
+            <a href="/ask/{{ pu.username }}">{{ icon("help") }} Мои вопросы{% if q_inbox %} <b class="badge-count">{{ q_inbox }}</b>{% endif %}</a>
+            <a href="/gifts/{{ pu.username }}">{{ icon("gift") }} Мои подарки{% if gifts_total %} <span class="faint">{{ gifts_total }}</span>{% endif %}</a>
+            <a href="/stats">{{ icon("chart") }} Статистика</a>
+            <a href="/drafts">{{ icon("draft") }} Черновики</a>
+            <a href="/shop">{{ icon("bag") }} Рамки и заморозки</a>
+            <a href="/invite">{{ icon("handshake") }} Пригласить друзей</a>
+            <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код профиля</a>
+            <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
+          </div>
+        </div>
       {% elif user %}
         {% if not rel.i_blocked and not rel.blocked_me %}
         <a href="/messages/{{ pu.username }}" class="icon-btn" title="Написать">{{ icon("chat") }}</a>
-        <a href="/secret?u={{ pu.username }}" class="icon-btn" title="Секретный чат (ГОСТ)">🔐</a>
+        <a href="/gifts/{{ pu.username }}" class="icon-btn" title="Подарить подарок">{{ icon("gift") }}</a>
         <button class="btn sm {% if rel.is_following or rel.requested %}ghost{% endif %}" data-act="follow" data-user="{{ pu.username }}">{% if rel.is_following %}Вы подписаны{% elif rel.requested %}Заявка отправлена{% elif rel.follows_me %}Подписаться в ответ{% else %}Подписаться{% endif %}</button>
         {% endif %}
         <div class="menu-wrap">
           <button class="icon-btn" data-menu>{{ icon("more") }}</button>
           <div class="menu">
+            <a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>
+            <a href="/ask/{{ pu.username }}">{{ icon("help") }} Задать анонимный вопрос</a>
             <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
             <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код</a>
-            {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">⭐ {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
+            {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">{{ icon("star", "i in") }} {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
             {% if rel.follows_me %}<button data-act="toggle" data-url="/follower/{{ pu.username }}/remove" data-msg="Подписчик удалён" data-reload="1">{{ icon("x") }} Удалить из подписчиков</button>{% endif %}
             <button data-act="toggle" data-url="/mute/{{ pu.username }}" data-msg="Готово" data-reload="1">{{ icon("mute") }} {% if rel.is_muted %}Показывать посты{% else %}Скрыть посты из ленты{% endif %}</button>
             <button data-act="toggle" data-url="/block/{{ pu.username }}" data-msg="Готово" data-reload="1" class="danger">{{ icon("x") }} {% if rel.i_blocked %}Разблокировать{% else %}Заблокировать{% endif %}</button>
@@ -40,18 +54,18 @@
       {% endif %}
     </div>
     <div class="profile-name">{{ pu.name or pu.username }}{{ badges(pu) }}</div>
+    {% if pu.is_owner %}<div class="owner-pill mt-s"><span class="badge owner-b">{{ icon("crown", "i") }}</span>Основатель {{ brand }}</div>{% endif %}
     <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
-      {% if is_online(pu) %}<span style="color:var(--online);font-weight:700">● онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
-    {% if status_active(pu) %}<div class="status-pill">💬 {{ pu.status_text }}</div>{% endif %}
-    {% if pu.dnd_until and pu.dnd_until > now %}<div class="status-pill">🌙 не беспокоить</div>{% endif %}
+      {% if is_online(pu) %}<span class="online-txt"><i></i>онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
+    {% if pu.dnd_until and pu.dnd_until > now %}<div class="status-pill">{{ icon("moon", "i in") }} не беспокоить</div>{% endif %}
     {% if pu.bio %}<div style="margin-top:10px;white-space:normal">{{ pu.bio|rich }}</div>{% endif %}
     {% if pu_interests %}<div class="row wrap mt" style="gap:6px">{% for t in pu_interests %}<a class="chip" style="margin:0;padding:4px 10px;font-size:12.5px" href="/interests/{{ t }}">#{{ t }}</a>{% endfor %}</div>{% endif %}
     <div class="profile-links">
       {% if pu.city %}<span>{{ icon("map") }} {{ pu.city }}</span>{% endif %}
       {% if pu.website %}<span>{{ icon("link") }} <a href="{{ pu.website }}" target="_blank" rel="noopener nofollow">{{ pu.website.replace('https://','').replace('http://','')[:40] }}</a></span>{% endif %}
-      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}</span>{% set z = zodiac(pu.birthday) %}{% if z %}<span title="Знак зодиака">{{ z[0] }} {{ z[1] }}</span>{% endif %}{% endif %}
+      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}</span>{% endif %}
       <span>{{ icon("calendar") }} С нами с {{ pu.created_at.strftime("%m.%Y") if pu.created_at else "давно" }}</span>
-      {% for l in profile_links %}<a href="{{ l.url }}" target="_blank" rel="noopener nofollow">🔗 {{ l.title }}</a>{% endfor %}
+      {% for l in profile_links %}<a href="{{ l.url }}" target="_blank" rel="noopener nofollow">{{ icon("link", "i in") }} {{ l.title }}</a>{% endfor %}
       {% if pu.telegram_link %}<a href="https://t.me/{{ pu.telegram_link.lstrip('@').replace('https://t.me/','') }}" target="_blank" rel="noopener">Telegram</a>{% endif %}
       {% if pu.youtube_link %}<a href="{{ pu.youtube_link if pu.youtube_link.startswith('http') else 'https://youtube.com/@' ~ pu.youtube_link.lstrip('@') }}" target="_blank" rel="noopener">YouTube</a>{% endif %}
       {% if pu.tiktok_link %}<a href="{{ pu.tiktok_link if pu.tiktok_link.startswith('http') else 'https://tiktok.com/@' ~ pu.tiktok_link.lstrip('@') }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
@@ -62,32 +76,19 @@
       <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
       <span><b>{{ stats.likes|compact }}</b> <span class="muted">лайков</span></span>
     </div>
-    <div class="row wrap mt" style="gap:8px">
-      <a class="btn soft sm" href="/ask/{{ pu.username }}">❓ {% if me %}Мои вопросы{% if q_inbox %} <b>· {{ q_inbox }} новых</b>{% endif %}{% else %}Задать вопрос{% endif %}{% if q_answered %} <span class="faint">{{ q_answered }}</span>{% endif %}</a>
-      <a class="btn soft sm" href="/gifts/{{ pu.username }}">🎁 {% if me %}Мои подарки{% else %}Подарить{% endif %}{% if gifts_total %} <span class="faint">{{ gifts_total }}</span>{% endif %}</a>
-      {% if me %}<a class="btn soft sm" href="/invite">🤝 Пригласить друзей</a><a class="btn soft sm" href="/stats">📊 Статистика</a><a class="btn soft sm" href="/shop">🛍 Рамки и заморозки</a>{% endif %}
-    </div>
-    {% if gifts %}<a href="/gifts/{{ pu.username }}" class="row mt" style="gap:4px;font-size:26px;flex-wrap:wrap" title="Подарки">{% for g in gifts %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}<span title="{{ gi[2] }}{% if not g.is_anonymous and g.from_user %} от @{{ g.from_user.username }}{% endif %}">{{ gi[1] }}</span>{% endif %}{% endfor %}{% if gifts_total > gifts|length %}<span class="small muted" style="align-self:center">+{{ gifts_total - gifts|length }}</span>{% endif %}</a>{% endif %}
+    {% if gifts %}<a href="/gifts/{{ pu.username }}" class="row mt gift-row" title="Подарки">{% for g in gifts %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}<span title="{{ gi[2] }}{% if not g.is_anonymous and g.from_user %} от @{{ g.from_user.username }}{% endif %}"><img src="/static/gifts/{{ gi[0] }}.svg" alt="{{ gi[2] }}"></span>{% endif %}{% endfor %}{% if gifts_total > gifts|length %}<span class="small muted" style="align-self:center">+{{ gifts_total - gifts|length }}</span>{% endif %}</a>{% endif %}
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
     {% if me or not (pref(pu, "hide_gamification") and pref(pu, "hide_achievements")) %}
-    <div class="row mt small" style="gap:10px">
-      {% if me or not pref(pu, "hide_gamification") %}<span class="tag-pill">🏅 Уровень {{ pu.level or 1 }}</span><span class="tag-pill">✨ {{ pu.total_points or 0 }}</span>{% if pu.streak_days %}<span class="tag-pill">🔥 {{ pu.streak_days }} дн.</span>{% endif %}{% endif %}
-      {% if me or not pref(pu, "hide_achievements") %}<a href="/achievements?username={{ pu.username }}" class="tag-pill">🏆 {{ achievements|length }} достижений</a>{% endif %}
-    </div>
-    {% endif %}
-    {% if me %}
-    <div class="grid-4 mt">
-      <div class="stat-tile"><b>{{ stats.views|compact }}</b><span>Просмотры постов</span></div>
-      <div class="stat-tile"><b>{{ stats.profile_views|compact }}</b><span>Визиты профиля</span></div>
-      <div class="stat-tile"><b>{{ level.current }}/{{ level.need }}</b><span>До ур. {{ (pu.level or 1) + 1 }}</span></div>
-      <a class="stat-tile" href="/drafts"><b>📝</b><span>Черновики</span></a>
+    <div class="profile-game">
+      {% if me or not pref(pu, "hide_gamification") %}<a href="/leaderboard">{{ icon("medal", "i in") }} Уровень {{ pu.level or 1 }}</a><span>{{ icon("sparkle", "i in") }} {{ pu.total_points or 0 }} очков</span>{% if pu.streak_days %}<span class="streak">{{ icon("flame", "i in") }} {{ plural(pu.streak_days, "день", "дня", "дней") }}</span>{% endif %}{% endif %}
+      {% if me or not pref(pu, "hide_achievements") %}<a href="/achievements?username={{ pu.username }}">{{ icon("trophy", "i in") }} {{ plural(achievements|length, "достижение", "достижения", "достижений") }}</a>{% endif %}
     </div>
     {% endif %}
   </div>
   {% if highlights or me %}
   <div class="highlights">
     {% for h in highlights %}{% set first = h.items[0].story if h.items and h.items[0].story else None %}
-    <a href="/highlights/{{ h.id }}" class="highlight"><span class="hl">{% if first and first.media_type == 'image' %}<img src="{{ first.media_url }}" alt="">{% else %}<span style="font-size:22px">✨</span>{% endif %}</span><span class="tiny">{{ h.title }}</span></a>
+    <a href="/highlights/{{ h.id }}" class="highlight"><span class="hl">{% if first and first.media_type == 'image' %}<img src="{{ first.media_url }}" alt="">{% else %}<span style="font-size:22px">{{ icon("sparkle", "i in") }}</span>{% endif %}</span><span class="tiny">{{ h.title }}</span></a>
     {% endfor %}
     {% if me %}<a href="/stories/create" class="highlight"><span class="hl">{{ icon("plus") }}</span><span class="tiny muted">История</span></a>{% endif %}
   </div>
@@ -95,28 +96,28 @@
 </div>
 
 {% if rel.blocked_me %}
-<div class="card empty"><div class="big">🚫</div>Пользователь ограничил вам доступ</div>
+<div class="card empty"><div class="big">{{ icon("ban", "i in") }}</div>Пользователь ограничил вам доступ</div>
 {% elif not can_see %}
-<div class="card empty"><div class="big">🔒</div><b>Это закрытый профиль</b><br><span class="small">Подпишитесь, чтобы видеть посты и истории</span></div>
+<div class="card empty"><div class="big">{{ icon("lock", "i in") }}</div><b>Это закрытый профиль</b><br><span class="small">Подпишитесь, чтобы видеть посты и истории</span></div>
 {% else %}
 <div class="tabs">
   <a href="?tab=posts" class="{% if tab == 'posts' %}active{% endif %}">Посты</a>
   <a href="?tab=replies" class="{% if tab == 'replies' %}active{% endif %}">Ответы</a>
   <a href="?tab=media" class="{% if tab == 'media' %}active{% endif %}">Медиа</a>
-  {% if me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}" title="Видите только вы">Лайки 🔒</a>{% endif %}
+  {% if me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}" title="Видите только вы">Лайки {{ icon("lock", "i in") }}</a>{% endif %}
 </div>
 {% if tab == "media" %}
-  <div class="grid-3">{% for p in posts %}<a href="/post/{{ p.id }}" class="media-tile">{% if p.media_type == 'video' %}<video src="{{ p.image }}" muted preload="metadata"></video><span class="over">▶</span>{% else %}<img src="{{ p.image }}" alt="" loading="lazy">{% endif %}<span class="over" style="left:6px;right:auto">❤ {{ p.likes|length }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Медиа пока нет</div>{% endfor %}</div>
+  <div class="grid-3">{% for p in posts %}<a href="/post/{{ p.id }}" class="media-tile">{% if p.media_type == 'video' %}<video src="{{ p.image }}" muted preload="metadata"></video><span class="over">{{ icon("play", "i in") }}</span>{% else %}<img src="{{ p.image }}" alt="" loading="lazy">{% endif %}<span class="over" style="left:6px;right:auto">{{ icon("heart", "i in") }} {{ p.likes|length }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Медиа пока нет</div>{% endfor %}</div>
 {% elif tab == "replies" %}
   {% for c in replies %}<a class="card" href="/post/{{ c.post_id }}#comment-{{ c.id }}" style="display:block"><div class="tiny muted mb">в ответ на пост {{ c.post.author.name or c.post.author.username }} · {{ c.created_at|ago }}</div><div>{{ c.content }}</div></a>{% else %}<div class="card empty">Ответов пока нет</div>{% endfor %}
 {% else %}
-  {% if pinned_post %}<div class="tiny muted" style="padding:0 6px 6px">📌 Закреплённый пост</div>{{ post_card(pinned_post, user, st, originals, repost_counts, can_mod) }}{% endif %}
-  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">📝</div>{% if me %}Здесь появятся ваши посты. <a href="/create" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
+  {% if pinned_post %}<div class="tiny muted" style="padding:0 6px 6px">{{ icon("pin", "i in") }} Закреплённый пост</div>{{ post_card(pinned_post, user, st, originals, repost_counts, can_mod) }}{% endif %}
+  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">{{ icon("note", "i in") }}</div>{% if me %}Здесь появятся ваши посты. <a href="/create" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
 {% endif %}
 {% endif %}
 
 {% if user and user.is_owner and not me %}
-<div class="card"><div class="card-title">🛡 Управление пользователем</div>
+<div class="card"><div class="card-title">{{ icon("shield", "i in") }} Управление пользователем</div>
   <div class="row wrap">
     <form method="post" action="/admin/verify/{{ pu.username }}"><button class="btn soft sm">{% if pu.is_verified_badge %}Снять{% else %}Выдать{% endif %} галочку</button></form>
     <form method="post" action="/admin/star/{{ pu.username }}"><button class="btn soft sm">{% if pu.is_starred %}Снять{% else %}Выдать{% endif %} звезду</button></form>
@@ -126,9 +127,9 @@
 </div>
 {% endif %}
 {% if can_mod and not me and not pu.is_owner %}
-<div class="card"><div class="card-title">⛔ Модерация</div>
+<div class="card"><div class="card-title">{{ icon("ban", "i in") }} Модерация</div>
   {% if pu.is_blocked %}<form method="post" action="/admin/unblock/{{ pu.username }}"><button class="btn sm">Разблокировать</button> <span class="small muted">до {{ pu.blocked_until.strftime("%d.%m.%Y") if pu.blocked_until else "∞" }}</span></form>
-  {% else %}<form method="post" action="/admin/purge-posts/{{ pu.username }}" class="mb" onsubmit="return confirm('Удалить ВСЕ посты @{{ pu.username }}? Это нельзя отменить.')"><button class="btn ghost sm">🧹 Удалить все посты пользователя</button></form>
+  {% else %}<form method="post" action="/admin/purge-posts/{{ pu.username }}" class="mb" onsubmit="return confirm('Удалить ВСЕ посты @{{ pu.username }}? Это нельзя отменить.')"><button class="btn ghost sm">{{ icon("eraser", "i in") }} Удалить все посты пользователя</button></form>
   <form method="post" action="/admin/block/{{ pu.username }}" class="row wrap"><input name="days" type="number" value="1" min="1" style="width:80px;margin:0"><input name="reason" placeholder="Причина" style="flex:1;margin:0;min-width:140px"><button class="btn danger sm">Заблокировать</button></form>{% endif %}
 </div>
 {% endif %}

@@ -10,6 +10,10 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.graphics.Color
+import android.view.ViewGroup
+import android.webkit.JavascriptInterface
+import android.widget.FrameLayout
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
 import android.webkit.URLUtil
@@ -24,10 +28,14 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
+    private lateinit var root: FrameLayout
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingPermission: PermissionRequest? = null
 
@@ -49,7 +57,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         web = WebView(this)
-        setContentView(web)
+        root = FrameLayout(this)
+        root.addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        setContentView(root)
+
+        // Android 15 рисует приложение под строкой состояния и панелью навигации — отодвигаем сайт от системных панелей
+        // (и от клавиатуры), а цвет полос под ними берём из темы сайта.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
+        val nightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        applyTheme(nightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES, null)
+        web.addJavascriptInterface(ThemeBridge(), "NuvoraApp")
 
         val cookies = CookieManager.getInstance()
         cookies.setAcceptCookie(true)
@@ -205,6 +228,31 @@ class MainActivity : AppCompatActivity() {
                 (it == PermissionRequest.RESOURCE_VIDEO_CAPTURE && has(Manifest.permission.CAMERA))
         }
         if (allowed.isEmpty()) request.deny() else request.grant(allowed.toTypedArray())
+    }
+
+    /** Сайт сообщает свою тему: тёмная/светлая и цвет фона — красим полосы под системными панелями. */
+    inner class ThemeBridge {
+        @JavascriptInterface
+        fun setTheme(dark: Boolean, color: String?) {
+            runOnUiThread { applyTheme(dark, color) }
+        }
+    }
+
+    private fun applyTheme(dark: Boolean, color: String?) {
+        var bg = if (dark) Color.parseColor("#09090B") else Color.parseColor("#FAFAFA")
+        if (!color.isNullOrBlank()) {
+            try {
+                bg = Color.parseColor(color)
+            } catch (e: IllegalArgumentException) {
+                // неизвестный формат цвета — оставляем цвет по умолчанию
+            }
+        }
+        root.setBackgroundColor(bg)
+        window.decorView.setBackgroundColor(bg)
+        WindowCompat.getInsetsController(window, root).apply {
+            isAppearanceLightStatusBars = !dark
+            isAppearanceLightNavigationBars = !dark
+        }
     }
 
     private fun offlineHtml() = """

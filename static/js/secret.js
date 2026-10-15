@@ -110,7 +110,7 @@
           if (!r.ok) throw new Error(r.error || 'Ошибка');
           if (!lsSet(store(me, r.id), keys.priv)) throw new Error('Браузер не даёт сохранить ключ (приватный режим?)');
           location.href = '/secret/' + r.id;
-        }).catch(function (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = '🔐 Начать секретный чат'; });
+        }).catch(function (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = 'Начать секретный чат'; });
       }, 20);
     });
   }
@@ -132,10 +132,10 @@
       var data = Core.open(keys, chatId, m.sender, m.payload);
       node.appendChild(el('div', 'secret-text', data.t));
     } catch (e) {
-      node.appendChild(el('div', 'secret-text error-text', '⚠️ Не удалось проверить подлинность сообщения — оно отброшено'));
+      node.appendChild(el('div', 'secret-text error-text', 'Не удалось проверить подлинность сообщения — оно отброшено'));
     }
     var meta = new Date(m.at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    if (m.expires) meta += ' · 🔥 ' + new Date(m.expires).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    if (m.expires) meta += ' · исчезнет в ' + new Date(m.expires).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     node.appendChild(el('div', 'tiny faint', meta));
     shown[m.id] = node;
     box.appendChild(node);
@@ -161,7 +161,7 @@
     fpEl.textContent = Core.fingerprint(state.a_pub, state.b_pub, state.ukm);
     document.getElementById('secret-fp-box').style.display = '';
     form.style.display = '';
-    setStatus('🔐 Сквозное шифрование ГОСТ включено. Сервер не может прочитать переписку.');
+    setStatus('Сквозное шифрование ГОСТ включено. Сервер не может прочитать переписку.');
     poll();
     timer = setInterval(poll, 2500);
   }
@@ -188,7 +188,7 @@
         return;
       }
       if (s.status === 'pending') {
-        setStatus('⏳ Ждём, пока собеседник откроет приглашение…');
+        setStatus('Ждём, пока собеседник откроет приглашение…');
         setTimeout(boot, 3000);
         return;
       }

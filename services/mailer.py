@@ -17,7 +17,7 @@ def generate_code():
 
 def _wrap(title, body_html):
     return f"""<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;">
-<div style="font-size:22px;font-weight:800;color:{config.BRAND_COLOR};margin-bottom:16px;">✦ {html.escape(config.BRAND_NAME)}</div>
+<div style="font-size:22px;font-weight:800;color:{config.BRAND_COLOR};margin-bottom:16px;">{html.escape(config.BRAND_NAME)}</div>
 <h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">{title}</h2>{body_html}
 <p style="color:#888;font-size:13px;margin-top:24px;">— Команда {html.escape(config.BRAND_NAME)}</p></div>"""
 

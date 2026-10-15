@@ -2,7 +2,7 @@
 {% from "partials/icons.html" import icon %}
 {% block title %}Новая история — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">📸 Новая история</div><div class="page-sub">Исчезнет через 24 часа. Можно сохранить в «Актуальное» в профиле.</div>
+<div class="page-title">{{ icon("camera", "i in") }} Новая история</div><div class="page-sub">Исчезнет через 24 часа. Можно сохранить в «Актуальное» в профиле.</div>
 {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
 <form class="card" method="post" action="/stories/create" enctype="multipart/form-data" id="sform">
   <div id="spv" style="aspect-ratio:9/16;max-height:420px;margin:0 auto 14px;border-radius:16px;overflow:hidden;background:{{ bg_colors[0] }};display:flex;align-items:center;justify-content:center;position:relative;max-width:240px">
@@ -12,7 +12,7 @@
   <label class="field"><span>Текст</span><input name="text_overlay" maxlength="300" id="stext" placeholder="Подпись или текст истории"></label>
   <div class="field"><span class="small muted" style="font-weight:600">Фон для текстовой истории</span>
     <div class="row mt">{% for c in bg_colors %}<label style="cursor:pointer"><input type="radio" name="bg_color" value="{{ c }}" class="hidden" {% if loop.first %}checked{% endif %}><span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:{{ c }};border:3px solid var(--card);box-shadow:0 0 0 1px var(--border)"></span></label>{% endfor %}</div></div>
-  <label class="field"><span>Кто увидит</span><select name="audience"><option value="all">Все, кому разрешено настройками</option><option value="close">⭐ Только близкие друзья</option></select></label>
+  <label class="field"><span>Кто увидит</span><select name="audience"><option value="all">Все, кому разрешено настройками</option><option value="close">{{ icon("star", "i in") }} Только близкие друзья</option></select></label>
   <button class="btn block">Опубликовать историю</button>
 </form>
 {% endblock %}

@@ -1,25 +1,25 @@
 {% extends "base.html" %}
 {% from "partials/macros.html" import avatar %}
 {% block title %}Уведомления — {{ brand }}{% endblock %}
-{% set ICONS = {"like":"❤️","whale":"🐋","comment":"💬","reply":"↩️","follow":"👤","follow_request":"👋","follow_accept":"✅","mention":"@","repost":"🔁","reaction":"😊","comment_like":"❤️","achievement":"🏆","level":"🏅","raffle":"🎉","support":"🛟","support_reply":"🛟","system":"✨","group_invite":"👥","story_reaction":"📸","moderation":"🛡","question":"❓","answer":"💡","gift":"🎁","event":"📅","invite":"🤝"} %}
+{% set ICONS = {"like":"heart","whale":"whale","comment":"comment","reply":"reply","follow":"user-plus","follow_request":"user-plus","follow_accept":"user-check","mention":"at","repost":"repost","reaction":"heart","comment_like":"heart","achievement":"trophy","level":"medal","raffle":"party","support":"lifebuoy","support_reply":"lifebuoy","system":"sparkle","group_invite":"users","story_reaction":"camera","moderation":"shield","question":"help","answer":"bulb","gift":"gift","event":"calendar","invite":"handshake","secret":"secret","streak":"flame"} %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">🔔 Уведомления</div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bell", "i in") }} Уведомления</div>
   <div class="row"><a class="btn soft sm" href="/mentions">@ Упоминания</a><form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="btn ghost sm">Очистить</button></form></div></div>
-{% if requests_count %}<a href="/follow-requests" class="card row" style="display:flex">👋 <b class="grow">Заявки на подписку</b><span class="unread-dot">{{ requests_count }}</span></a>{% endif %}
+{% if requests_count %}<a href="/follow-requests" class="card row" style="display:flex">{{ icon("wave", "i in") }} <b class="grow">Заявки на подписку</b><span class="unread-dot">{{ requests_count }}</span></a>{% endif %}
 <div class="chips">{% for k, l in [("all","Все"),("mentions","Упоминания"),("likes","Реакции"),("comments","Комментарии"),("follows","Подписки"),("system","Системные")] %}<a href="/notifications?f={{ k }}" class="chip {% if f == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
 <div class="card flat">
 {% for n in notifications %}
   {% set link = ("/post/" ~ n.post_id) if n.post_id else (("/profile/" ~ n.from_user.username) if n.from_user and n.type in ("follow","follow_accept") else ("/follow-requests" if n.type == "follow_request" else ("/achievements" if n.type in ("achievement","level") else ""))) %}
   <div class="row" id="n-{{ n.id }}" style="padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;{% if n.id in unread_ids %}background:color-mix(in srgb,var(--brand) 6%,transparent);{% endif %}">
-    <div style="position:relative">{% if n.from_user %}<a href="/profile/{{ n.from_user.username }}">{{ avatar(n.from_user, 42) }}</a>{% else %}<span class="av" style="width:42px;height:42px;font-size:20px">{{ ICONS.get(n.type, "✨") }}</span>{% endif %}
-      {% if n.from_user %}<span style="position:absolute;right:-4px;bottom:-4px;font-size:14px">{{ ICONS.get(n.type, "✨") }}</span>{% endif %}</div>
+    <div style="position:relative">{% if n.from_user %}<a href="/profile/{{ n.from_user.username }}">{{ avatar(n.from_user, 42) }}</a>{% else %}<span class="av notif-ico t-{{ n.type }}" style="width:42px;height:42px">{{ icon(ICONS.get(n.type, "sparkle")) }}</span>{% endif %}
+      {% if n.from_user %}<span class="notif-badge t-{{ n.type }}">{{ icon(ICONS.get(n.type, "sparkle")) }}</span>{% endif %}</div>
     <div class="grow">
       {% if link %}<a href="{{ link }}" style="display:block">{% endif %}
       <div class="small">{% if n.from_user %}<b>{{ n.from_user.name or n.from_user.username }}</b> {% endif %}
         {%- if n.type == "support" %}<span class="pill-info">обращение в поддержку</span><div style="white-space:pre-wrap;margin-top:4px">{{ n.text }}</div>
         {%- elif n.type == "support_reply" %}<b>Ответ поддержки:</b> {{ n.text }}
         {%- elif n.text %}{{ n.text }}
-        {%- else %}{{ {"like":"оценил(а) ваш пост","whale":"отправил(а) 🐋 вашему посту","comment":"прокомментировал(а) ваш пост","reply":"ответил(а) на ваш комментарий","follow":"подписался(лась) на вас","mention":"упомянул(а) вас","repost":"сделал(а) репост вашего поста","follow_request":"хочет подписаться на вас","follow_accept":"принял(а) вашу заявку","comment_like":"оценил(а) ваш комментарий"}.get(n.type, "новое уведомление") }}{% endif %}</div>
+        {%- else %}{{ {"like":"оценил(а) ваш пост","whale":"отправил(а) кита вашему посту","comment":"прокомментировал(а) ваш пост","reply":"ответил(а) на ваш комментарий","follow":"подписался(лась) на вас","mention":"упомянул(а) вас","repost":"сделал(а) репост вашего поста","follow_request":"хочет подписаться на вас","follow_accept":"принял(а) вашу заявку","comment_like":"оценил(а) ваш комментарий"}.get(n.type, "новое уведомление") }}{% endif %}</div>
       {% if n.post and n.post.content %}<div class="tiny muted ellipsis" style="margin-top:2px">«{{ n.post.content[:90] }}»</div>{% endif %}
       {% if link %}</a>{% endif %}
       <div class="tiny faint" style="margin-top:2px">{{ n.created_at|ago }}</div>
@@ -28,8 +28,8 @@
       {% endif %}
       {% if n.type == "follow_request" %}<a href="/follow-requests" class="btn sm mt">Рассмотреть</a>{% endif %}
     </div>
-    <button class="icon-btn" title="Удалить" onclick="App.api('/notifications/{{ n.id }}/delete').then(()=>document.getElementById('n-{{ n.id }}').remove())">✕</button>
+    <button class="icon-btn" title="Удалить" onclick="App.api('/notifications/{{ n.id }}/delete').then(()=>document.getElementById('n-{{ n.id }}').remove())">{{ icon("x", "i in") }}</button>
   </div>
-{% else %}<div class="empty"><div class="big">🔕</div>Уведомлений нет</div>{% endfor %}
+{% else %}<div class="empty"><div class="big">{{ icon("bell-off", "i in") }}</div>Уведомлений нет</div>{% endfor %}
 </div>
 {% endblock %}

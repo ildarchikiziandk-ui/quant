@@ -16,7 +16,7 @@ from services.uploads import save_file
 
 router = APIRouter()
 
-MSG_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🔥"]
+MSG_REACTIONS = ["❤️", "🐋"]  # только сердце и кит
 
 
 def _get_user(db, username):
@@ -40,11 +40,11 @@ def preview_of(m):
     if m.content:
         return m.content[:60]
     if m.image:
-        return "🎥 Видеосообщение" if m.is_video_circle else "📷 Фото"
+        return "Видеосообщение" if m.is_video_circle else "Фото"
     if m.voice:
-        return "🎙 Голосовое"
+        return "Голосовое сообщение"
     if m.file_url:
-        return f"📎 {m.file_name or 'Файл'}"
+        return m.file_name or "Файл"
     if m.gif_url:
         return "GIF"
     return "Сообщение"

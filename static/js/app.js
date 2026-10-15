@@ -33,7 +33,53 @@
     const inner = u.avatar ? `<img src="${esc(u.avatar)}" alt="">` : `<span style="font-size:${Math.round(size * .4)}px">${esc((u.username || '?')[0].toUpperCase())}</span>`;
     return `<span class="av" style="width:${size}px;height:${size}px">${inner}</span>`;
   }
-  window.App = { api, get, toast, esc, avatarHtml };
+  // ---------- Эмодзи → SVG (Twemoji) ----------
+  // Всё, что пользователи пишут эмодзи, рисуется одинаковыми картинками на любом устройстве.
+  const EMOJI_RE = /\p{RI}\p{RI}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|\p{EMod})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{EMod})?)*/gu;
+  const EMOJI_TEST = new RegExp(EMOJI_RE.source, 'u');
+  const TEXT_DEFAULT = /^[\u00a9\u00ae\u203c-\u2763\u2765-\u2b4f\u3030-\u3299]$/u;
+  function emojiCode(seq) {
+    const cps = Array.from(seq).map(c => c.codePointAt(0));
+    const hasZwj = cps.includes(0x200d);
+    return cps.filter(c => hasZwj || c !== 0xfe0f).map(c => c.toString(16)).join('-');
+  }
+  const SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, CODE: 1, NOSCRIPT: 1, OPTION: 1, SELECT: 1 };
+  function emojify(root) {
+    if (!root || !document.createTreeWalker) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => (!n.parentNode || SKIP[n.parentNode.nodeName] || n.parentNode.closest?.('[contenteditable],.no-emoji')) ? NodeFilter.FILTER_REJECT
+        : (EMOJI_TEST.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP)
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(n => {
+      const text = n.nodeValue, frag = document.createDocumentFragment();
+      let last = 0, changed = false;
+      text.replace(EMOJI_RE, (m, off) => {
+        if (TEXT_DEFAULT.test(m)) return m;  // ©, ™, стрелки без U+FE0F — это текст, а не эмодзи
+        frag.appendChild(document.createTextNode(text.slice(last, off)));
+        const img = document.createElement('img');
+        img.className = 'emj'; img.alt = m; img.draggable = false;
+        img.src = '/static/emoji/' + emojiCode(m) + '.svg';
+        img.onerror = () => img.replaceWith(document.createTextNode(m));
+        frag.appendChild(img); last = off + m.length; changed = true;
+        return m;
+      });
+      if (!changed) return;
+      frag.appendChild(document.createTextNode(text.slice(last)));
+      n.parentNode.replaceChild(frag, n);
+    });
+  }
+  function startEmojify() {
+    emojify(document.body);
+    new MutationObserver(list => list.forEach(r => r.addedNodes.forEach(n => {
+      if (n.nodeType === 1 && n.nodeName !== 'IMG') emojify(n);
+      else if (n.nodeType === 3 && n.parentNode && EMOJI_TEST.test(n.nodeValue)) emojify(n.parentNode);
+    }))).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startEmojify); else startEmojify();
+
+  window.App = { api, get, toast, esc, avatarHtml, emojify };
 
   // ---------- Тема ----------
   function applyTheme(t) {
@@ -41,7 +87,16 @@
     document.documentElement.setAttribute('data-theme', real);
     const meta = $('meta[name=theme-color]');
     if (meta) meta.content = real === 'dark' ? '#0b0b12' : '#ffffff';
+    syncAppTheme();
   }
+  // Android-приложение красит полосы под строкой состояния и навигацией в цвет сайта
+  function syncAppTheme() {
+    if (!window.NuvoraApp || !window.NuvoraApp.setTheme) return;
+    const m = getComputedStyle(document.body || document.documentElement).backgroundColor.match(/\d+/g) || [255, 255, 255];
+    const hex = '#' + m.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
+    try { window.NuvoraApp.setTheme(document.documentElement.getAttribute('data-theme') === 'dark', hex); } catch (e) { /* старое приложение */ }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncAppTheme); else syncAppTheme();
   window.toggleTheme = function () {
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     try { localStorage.setItem('theme', next); } catch (e) {}
@@ -68,7 +123,7 @@
     let bg = $('#app-modal');
     if (!bg) {
       bg = document.createElement('div'); bg.id = 'app-modal'; bg.className = 'modal-bg';
-      bg.innerHTML = '<div class="modal"><div class="modal-head"><span class="t"></span><button class="icon-btn" data-close>✕</button></div><div class="b"></div></div>';
+      bg.innerHTML = '<div class="modal"><div class="modal-head"><span class="t"></span><button class="icon-btn" data-close>' + ICON('x', 'i') + '</button></div><div class="b"></div></div>';
       document.body.appendChild(bg);
     }
     $('.t', bg).textContent = title; $('.b', bg).innerHTML = html; bg.classList.add('open');
@@ -154,9 +209,9 @@
         });
         $('.poll-total', box).textContent = r.total + ' голос(ов)';
         if (r.correct) {  // викторина
-          const ok = $(`[data-opt="${r.correct}"] .lbl > span`, box); if (ok && !ok.textContent.includes('✅')) ok.textContent += ' ✅';
-          if (r.right === false) { const mine = $(`[data-opt="${id}"] .lbl > span`, box); if (mine) mine.textContent += ' ❌'; }
-          if (r.right !== null && r.right !== undefined) toast(r.right ? 'Верно! +10 очков 🧠' : 'Неверно — правильный ответ отмечен ✅', !r.right);
+          const ok = $(`[data-opt="${r.correct}"]`, box); if (ok) ok.classList.add('quiz-right');
+          if (r.right === false) { const mine = $(`[data-opt="${id}"]`, box); if (mine) mine.classList.add('quiz-wrong'); }
+          if (r.right !== null && r.right !== undefined) toast(r.right ? 'Верно! +10 очков' : 'Неверно — правильный ответ отмечен зелёным', !r.right);
         }
       } else if (act === 'follow') {
         const r = await api(`/follow/${b.dataset.user}`);
@@ -179,9 +234,9 @@
       } else if (act === 'send-post') {
         const u = prompt('Кому отправить? Введите логин (например, @dima)'); if (!u) return;
         const note = prompt('Добавить сообщение? (можно оставить пустым)') || '';
-        await api(`/post/${id}/send`, { username: u.trim(), note }); toast('Пост отправлен в чат 📨');
+        await api(`/post/${id}/send`, { username: u.trim(), note }); toast('Пост отправлен в чат');
       } else if (act === 'remind') {
-        const r = await api(`/post/${id}/remind`, { hours: 24 }); toast('Напомню через 24 часа ⏰');
+        const r = await api(`/post/${id}/remind`, { hours: 24 }); toast('Напомню через 24 часа');
       } else if (act === 'comment-edit') {
         const el = $(`#ctext-${id}`); if (!el) return;
         const t = prompt('Изменить комментарий', el.dataset.raw || el.innerText); if (t === null || !t.trim()) return;
@@ -283,7 +338,7 @@
       previews.innerHTML = '';
       files.forEach((f, i) => {
         const url = URL.createObjectURL(f), d = document.createElement('div'); d.className = 'pv';
-        d.innerHTML = (f.type.startsWith('video') ? `<video src="${url}" muted></video>` : `<img src="${url}" alt="">`) + `<button type="button" data-i="${i}">✕</button>`;
+        d.innerHTML = (f.type.startsWith('video') ? `<video src="${url}" muted></video>` : `<img src="${url}" alt="">`) + `<button type="button" data-i="${i}">${ICON('x', 'i')}</button>`;
         previews.appendChild(d);
       });
       previews.classList.toggle('hidden', !files.length);
@@ -326,7 +381,7 @@
       try {
         const r = await api('/post/create', fd);
         try { localStorage.removeItem('composer-draft'); } catch (er) {}
-        toast(r.held ? '🛡 ' + r.message : r.scheduled ? 'Пост запланирован ⏰' : 'Опубликовано ✨');
+        toast(r.held ? r.message : r.scheduled ? 'Пост запланирован' : 'Опубликовано');
         setTimeout(() => location.href = r.scheduled ? '/drafts' : `/post/${r.post_id}`, 400);
       } catch (err) { btn.disabled = false; btn.textContent = 'Опубликовать'; }
     });
@@ -354,7 +409,7 @@
         const next = $('[data-more]', tmp);
         sentinel.before(...Array.from(tmp.childNodes).filter(n => n !== next));
         if (next) { sentinel.dataset.more = next.dataset.more; delete sentinel.dataset.loading; }
-        else { if (io) io.disconnect(); sentinel.textContent = 'Вы всё посмотрели ✨'; }
+        else { if (io) io.disconnect(); sentinel.textContent = 'Вы всё посмотрели'; }
         document.dispatchEvent(new Event('app:content'));
       } catch (e) { delete sentinel.dataset.loading; }
     };
@@ -421,7 +476,7 @@
         const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(key) });
         const j = sub.toJSON();
         await api('/api/push/subscribe', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth });
-        toast('Push-уведомления включены 🔔');
+        toast('Push-уведомления включены');
       };
       if (Notification.permission === 'granted') { try { await window.enablePush(); } catch (e) {} }
     }).catch(() => {});
@@ -446,7 +501,7 @@
     const m = e.target.closest('.post .media img, .post .media-grid img'); if (!m) return;
     const like = m.closest('.post').querySelector('[data-act=like]');
     if (like && !like.classList.contains('on')) like.click();
-    const h = document.createElement('div'); h.className = 'dbl-heart'; h.textContent = '❤️';
+    const h = document.createElement('div'); h.className = 'dbl-heart'; h.innerHTML = ICON('heart-fill', 'i');
     h.style.cssText = `position:fixed;left:${e.clientX - 30}px;top:${e.clientY - 40}px;font-size:60px;pointer-events:none;z-index:999;transition:all .6s;`;
     document.body.appendChild(h); requestAnimationFrame(() => { h.style.transform = 'translateY(-40px) scale(1.4)'; h.style.opacity = '0'; });
     setTimeout(() => h.remove(), 700);
@@ -505,7 +560,7 @@ document.addEventListener('click', (e) => { const s = e.target.closest('.spoiler
     const r = await App.api('/api/preview', { content: ta.value });
     let m = $('#preview-modal');
     if (!m) { m = document.createElement('div'); m.id = 'preview-modal'; m.className = 'modal-bg';
-      m.innerHTML = '<div class="modal"><div class="card-title">👁 Предпросмотр <button class="icon-btn" onclick="this.closest(\'.modal-bg\').classList.remove(\'open\')">✕</button></div><div class="post-text" id="preview-body"></div></div>';
+      m.innerHTML = '<div class="modal"><div class="card-title">Предпросмотр <button class="icon-btn" onclick="this.closest(\'.modal-bg\').classList.remove(\'open\')">' + ICON('x', 'i') + '</button></div><div class="post-text" id="preview-body"></div></div>';
       m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }); document.body.appendChild(m); }
     $('#preview-body').innerHTML = r.html; m.classList.add('open');
   });
@@ -532,7 +587,7 @@ document.addEventListener('click', (e) => { const s = e.target.closest('.spoiler
     if (q) { rec = [q].concat(rec.filter(x => x !== q)).slice(0, 8); try { localStorage.setItem('recent-searches', JSON.stringify(rec)); } catch (e) {} }
     else if (rec.length) {
       const box = document.createElement('div'); box.className = 'card';
-      box.innerHTML = '<div class="card-title">🕘 Недавние поиски <button class="btn ghost sm" id="rec-clear">Очистить</button></div><div class="row wrap" style="gap:6px">' +
+      box.innerHTML = '<div class="card-title">' + ICON('history') + ' Недавние поиски <button class="btn ghost sm" id="rec-clear">Очистить</button></div><div class="row wrap" style="gap:6px">' +
         rec.map(x => `<a class="chip" style="margin:0" href="/search?q=${encodeURIComponent(x)}">${App.esc(x)}</a>`).join('') + '</div>';
       sf.closest('form').after(box);
       $('#rec-clear').onclick = () => { try { localStorage.removeItem('recent-searches'); } catch (e) {} box.remove(); };

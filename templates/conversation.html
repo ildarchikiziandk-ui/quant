@@ -10,7 +10,7 @@
     <a href="/profile/{{ other.username }}" class="row grow" style="min-width:0">
       {{ avatar(other, 42, online=true) }}
       <div style="min-width:0"><div>{{ name(other, link=false) }}</div>
-        <div class="tiny muted" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}🌙 не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
+        <div class="tiny muted" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}{{ icon("moon", "i in") }} не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
     </a>
     <div class="menu-wrap" style="margin-left:0">
       <button class="icon-btn" data-menu>{{ icon("more") }}</button>
@@ -18,22 +18,22 @@
         <button onclick="toggleSearch()">{{ icon("search") }} Поиск в чате</button>
         <button data-act="toggle" data-url="/chats/pin/{{ other.username }}" data-msg="Готово">{{ icon("pin") }} {% if is_pinned %}Открепить чат{% else %}Закрепить чат{% endif %}</button>
         <button data-act="toggle" data-url="/chats/mute/{{ other.username }}" data-msg="Готово">{{ icon("mute") }} {% if is_muted %}Включить звук{% else %}Без звука{% endif %}</button>
-        <button onclick="toggleTtl()">⏳ Исчезающие сообщения: <b id="ttl-label">выкл</b></button>
+        <button onclick="toggleTtl()">{{ icon("hourglass", "i in") }} Исчезающие сообщения: <b id="ttl-label">выкл</b></button>
         <button class="danger" onclick="clearChat()">{{ icon("trash") }} Удалить мои сообщения</button>
       </div>
     </div>
   </div>
   <div id="chat-search" class="hidden" style="margin-bottom:8px"><input type="search" id="chat-search-q" placeholder="Поиск по сообщениям в этом чате…"></div>
-  {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">📌 <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content or "вложение" }}</span></div>{% endif %}
+  {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">{{ icon("pin", "i in") }} <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content or "вложение" }}</span></div>{% endif %}
   <div class="convo-box" id="box">
-    {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">👋</div>Начните диалог с {{ other.name or other.username }}<div class="tiny faint mt">🔒 Сообщения хранятся в зашифрованном виде (AES-256)</div></div>{% endif %}
+    {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Начните диалог с {{ other.name or other.username }}<div class="tiny faint mt">{{ icon("lock", "i in") }} Сообщения хранятся в зашифрованном виде (AES-256)</div></div>{% endif %}
   </div>
-  <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">🔒 Переписка зашифрована</div>
+  <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">{{ icon("lock", "i in") }} Переписка зашифрована</div>
   <div class="typing hidden" id="typing" style="padding:4px 10px">{{ other.name or other.username }} печатает…</div>
   {% if can_send %}
   <div class="convo-input">
-    <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">✕</button></div>
-    <div class="reply-bar hidden" id="edit-bar">✎ <span class="grow">Редактирование сообщения</span><button class="icon-btn" onclick="cancelEdit()">✕</button></div>
+    <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">{{ icon("x", "i in") }}</button></div>
+    <div class="reply-bar hidden" id="edit-bar">{{ icon("edit", "i in") }} <span class="grow">Редактирование сообщения</span><button class="icon-btn" onclick="cancelEdit()">{{ icon("x", "i in") }}</button></div>
     {% set qr = (pref(user, "quick_replies") or "").split("|") %}{% if qr and qr[0] %}<div class="quick-replies">{% for q in qr if q.strip() %}<button type="button" onclick="sendText({{ q.strip()|tojson|forceescape }})">{{ q.strip() }}</button>{% endfor %}</div>{% endif %}
     <div class="emoji-panel hidden" id="emoji-panel">{% for e in ['😀','😂','🥹','😍','😘','😎','🤔','😭','😡','🥳','👍','👎','👏','🙏','❤️','🔥','✨','💯','🎉','🐋','🌚','🤝','💪','😴'] %}<button type="button" onclick="sendText('{{ e }}')">{{ e }}</button>{% endfor %}</div>
     <div class="row" style="align-items:flex-end;gap:4px">
@@ -73,7 +73,7 @@ async function poll(){
       const tmp=document.createElement('div'); tmp.innerHTML=r.html;
       tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else box.appendChild(m); });
       lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); }
-    document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto) t.textContent='✓✓'; });
+    document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto) t.innerHTML=window.ICON_TICKS;t.classList.add('read'); });
     document.getElementById('typing').classList.toggle('hidden', !r.typing);
     const st=document.getElementById('chat-status'); if(r.online) st.innerHTML='<span style="color:var(--online)">в сети</span>';
   }catch(e){}
@@ -110,7 +110,7 @@ document.addEventListener('click', async e=>{
   const m=b.closest('.msg'), id=m.dataset.id, a=b.dataset.mact;
   try{
     if(a==='react'){ await App.api(`/messages/${id}/react`,{emoji:b.dataset.emoji}); await refreshMsg(id); }
-    else if(a==='reply'){ replyTo=id; document.getElementById('reply-text').textContent='↩ '+(m.dataset.raw||'вложение').slice(0,80); document.getElementById('reply-bar').classList.remove('hidden'); inp.focus(); }
+    else if(a==='reply'){ replyTo=id; document.getElementById('reply-text').textContent=(m.dataset.raw||'Вложение').slice(0,80); document.getElementById('reply-bar').classList.remove('hidden'); inp.focus(); }
     else if(a==='edit'){ startEdit(id, m.dataset.raw); }
     else if(a==='delete'){ if(!confirm('Удалить сообщение у всех?')) return; await App.api(`/messages/${id}/delete`); await refreshMsg(id); }
     else if(a==='pin'){ const r=await App.api(`/messages/${id}/pin`); App.toast(r.pinned?'Сообщение закреплено':'Откреплено'); setTimeout(()=>location.reload(),500); }

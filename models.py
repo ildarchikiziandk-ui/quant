@@ -87,7 +87,8 @@ class User(Base):
     is_paused = Column(Boolean, default=False)
     pd_consent_at = Column(DateTime, nullable=True)  # согласие на обработку персональных данных (152-ФЗ ст. 9)
     pd_consent_version = Column(String(20), default="")
-    age_confirmed = Column(Boolean, default=False)  # подтвердил, что ему есть MIN_AGE лет
+    age_confirmed = Column(Boolean, default=False)
+    yandex_id = Column(String(32), nullable=True, index=True)  # вход через Яндекс ID  # подтвердил, что ему есть MIN_AGE лет
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -569,7 +570,7 @@ class DailyTask(Base):
     code = Column(String, unique=True)
     title = Column(String)
     description = Column(String)
-    emoji = Column(String, default="⚡")
+    emoji = Column(String, default="bolt")
     points = Column(Integer, default=10)
     task_type = Column(String)
     target_count = Column(Integer, default=1)
@@ -643,7 +644,7 @@ class WeeklyChallenge(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     description = Column(String)
-    emoji = Column(String, default="🏆")
+    emoji = Column(String, default="trophy")
     points = Column(Integer, default=100)
     task_type = Column(String)
     target_count = Column(Integer, default=1)

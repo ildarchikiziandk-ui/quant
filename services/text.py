@@ -9,6 +9,49 @@ MENTION_RE = re.compile(r"(?<![\w@])@([A-Za-z0-9_]{3,30})")
 URL_RE = re.compile(r"(https?://[^\s<]+[^\s<.,:;\"')\]!?])")
 
 
+# --- Эмодзи → SVG (Twemoji, CC-BY 4.0) ------------------------------------------------------------------------
+# Эмодзи в тексте пользователей рисуются одинаковыми SVG-картинками на всех устройствах.
+_EMOJI_DIR = __import__("os").path.join(__import__("os").path.dirname(__file__), "..", "static", "emoji")
+try:
+    _EMOJI_FILES = {f[:-4] for f in __import__("os").listdir(_EMOJI_DIR) if f.endswith(".svg")}
+except OSError:
+    _EMOJI_FILES = set()
+_EMOJI_DEFAULT = ("\u2764\u231a\u231b\u23e9-\u23ec\u23f0\u23f3\u25fd\u25fe\u2614\u2615\u2648-\u2653\u267f\u2693\u26a1"
+                  "\u26aa\u26ab\u26bd\u26be\u26c4\u26c5\u26ce\u26d4\u26ea\u26f2\u26f3\u26f5\u26fa\u26fd\u2705\u270a"
+                  "\u270b\u2728\u274c\u274e\u2753-\u2755\u2757\u2795-\u2797\u27b0\u27bf\u2b1b\u2b1c\u2b50\u2b55")
+_EMOJI_TEXT = ("\u00a9\u00ae\u203c\u2049\u2122\u2139\u2194-\u2199\u21a9\u21aa\u2328\u23cf\u23ed-\u23ef\u23f1\u23f2"
+               "\u23f8-\u23fa\u24c2\u25aa\u25ab\u25b6\u25c0\u25fb\u25fc\u2600-\u27bf\u2934\u2935\u2b05-\u2b07\u3030\u303d\u3297\u3299")
+_MOD = "(?:\ufe0f|[\U0001F3FB-\U0001F3FF])?"
+_ONE = f"(?:[\U0001F000-\U0001FAFF{_EMOJI_DEFAULT}]{_MOD}|[{_EMOJI_TEXT}]\ufe0f)"
+EMOJI_RE = re.compile(f"[\U0001F1E6-\U0001F1FF]{{2}}|[#*0-9]\ufe0f?\u20e3|{_ONE}(?:\u200d(?:[\U0001F000-\U0001FAFF\u2600-\u27bf]{_MOD}))*")
+
+
+def emoji_file(seq):
+    code = "-".join(f"{ord(c):x}" for c in seq)
+    if code in _EMOJI_FILES:
+        return code
+    short = "-".join(f"{ord(c):x}" for c in seq if c != "\ufe0f")
+    return short if short in _EMOJI_FILES else None
+
+
+def _emoji_tag(seq):
+    f = emoji_file(seq)
+    return f'<img class="emj" src="/static/emoji/{f}.svg" alt="{seq}" draggable="false">' if f else seq
+
+
+def emojify(html):
+    """Заменяет эмодзи на SVG в уже экранированном HTML (эмодзи не встречаются внутри тегов и атрибутов)."""
+    return EMOJI_RE.sub(lambda m: _emoji_tag(m.group(0)), html) if html else html
+
+
+def emoji_img(seq, cls=""):
+    """{{ emo("🔥") }} — одна SVG-эмодзи для цветных мест интерфейса (настроения, праздники)."""
+    f = emoji_file(seq)
+    if not f:
+        return Markup(escape(seq))
+    return Markup(f'<img class="emj{(" " + cls) if cls else ""}" src="/static/emoji/{f}.svg" alt="{escape(seq)}" draggable="false">')
+
+
 def extract_hashtags(text):
     return {t.lower() for t in HASHTAG_RE.findall(text or "")}
 
@@ -34,7 +77,7 @@ def richtext(text):
     lines = []
     for line in "".join(out).split("\n"):  # строка, начинающаяся с «> », — цитата
         lines.append(f'<span class="rt-quote">{line[5:]}</span>' if line.startswith("&gt; ") else line)
-    return Markup("<br>".join(lines))
+    return Markup(emojify("<br>".join(lines)))
 
 
 _CODE_RE = re.compile(r"`([^`\n]{1,300})`")

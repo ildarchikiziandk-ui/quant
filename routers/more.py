@@ -96,7 +96,7 @@ async def post_send(post_id: int, request: Request, db: Session = Depends(get_db
     note = censor((data.get("note") or "").strip()[:300], social.stop_words(db))
     preview = (post.content or "медиа")[:80]
     msg = models.Message(sender_id=user.id, receiver_id=other.id,
-                         content=(note + "\n" if note else "") + f"📎 Пост @{post.author.username}: «{preview}» {config.SITE_URL}/post/{post.id}")
+                         content=(note + "\n" if note else "") + f"Пост @{post.author.username}: «{preview}» {config.SITE_URL}/post/{post.id}")
     return _deliver(db, user, other, msg)
 
 
@@ -123,7 +123,7 @@ def deliver_reminders(db, user):
     for r in due:
         r.done = True
         if db.get(models.Post, r.post_id):
-            db.add(models.Notification(user_id=user.id, type="system", post_id=r.post_id, text="⏰ Вы просили напомнить об этом посте"))
+            db.add(models.Notification(user_id=user.id, type="system", post_id=r.post_id, text="Вы просили напомнить об этом посте"))
     if due:
         db.commit()
 
@@ -179,20 +179,6 @@ def comment_report(comment_id: int, request: Request, db: Session = Depends(get_
 
 
 # ======================================= Профиль =======================================
-@router.post("/settings/status")
-async def set_status(request: Request, db: Session = Depends(get_db)):
-    user = current_user(request, db)
-    if not user:
-        return login_redirect(request)
-    data = await read_payload(request)
-    txt = censor((data.get("status_text") or "").strip()[:80], social.stop_words(db))
-    hours = str(data.get("hours") or "24")
-    user.status_text = txt
-    user.status_until = None if hours == "0" or not txt else datetime.utcnow() + timedelta(hours=int(hours) if hours.isdigit() else 24)
-    db.commit()
-    return _ok(request, "/settings?section=profile&saved=1")
-
-
 @router.post("/settings/links")
 async def set_links(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
@@ -296,7 +282,7 @@ def wheel_spin(request: Request, db: Session = Depends(get_db)):
         return json_error("auth", 401)
     today = date.today().isoformat()
     if user.last_spin == today:
-        return json_error("Колесо можно крутить раз в день — приходите завтра 🙂")
+        return json_error("Колесо можно крутить раз в день — приходите завтра")
     prize = extras.spin_prize(user.id, today)
     user.last_spin = today
     gamification.add_points(user, db, prize)

@@ -2,46 +2,46 @@
 {% from "partials/macros.html" import avatar %}
 {% block title %}Задания — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">🎯 Задания и награды</div><div class="page-sub">Выполняйте задания, копите очки, растите в уровнях и выигрывайте {{ brand_plus }}</div>
+<div class="page-title">{{ icon("target", "i in") }} Задания и награды</div><div class="page-sub">Выполняйте задания, копите очки, растите в уровнях и выигрывайте {{ brand_plus }}</div>
 <div class="card hero">
   <div class="row" style="justify-content:space-between;align-items:flex-start">
-    <div><div class="muted small">Уровень {{ user.level or 1 }}</div><div style="font-size:34px;font-weight:800;letter-spacing:-1px">✨ {{ user.total_points or 0 }}</div><div class="muted small">очков всего · {{ user.weekly_points or 0 }} за неделю</div></div>
-    <div class="center"><div style="font-size:30px">🔥</div><div style="font-size:24px;font-weight:800">{{ user.streak_days or 0 }}</div><div class="muted tiny">дней подряд</div></div>
+    <div><div class="muted small">Уровень {{ user.level or 1 }}</div><div style="font-size:34px;font-weight:800;letter-spacing:-1px">{{ icon("sparkle", "i in") }} {{ user.total_points or 0 }}</div><div class="muted small">очков всего · {{ user.weekly_points or 0 }} за неделю</div></div>
+    <div class="center"><div style="font-size:30px">{{ icon("flame", "i in") }}</div><div style="font-size:24px;font-weight:800">{{ user.streak_days or 0 }}</div><div class="muted tiny">дней подряд</div></div>
   </div>
   <div class="lvl-bar mt"><div style="width:{{ level.pct }}%"></div></div>
   <div class="row tiny muted mt" style="justify-content:space-between"><span>{{ level.current }}/{{ level.need }} до следующего уровня</span><span>Ур. {{ (user.level or 1) + 1 }}</span></div>
 </div>
 {% set done = daily_tasks|selectattr("is_completed")|list|length %}
 <div class="card">
-  <div class="card-title">📋 Ежедневные задания <span class="muted small">{{ done }}/{{ daily_tasks|length }}</span></div>
+  <div class="card-title">{{ icon("clipboard", "i in") }} Ежедневные задания <span class="muted small">{{ done }}/{{ daily_tasks|length }}</span></div>
   <div class="lvl-bar mb"><div style="width:{{ (done / daily_tasks|length * 100)|int if daily_tasks else 0 }}%"></div></div>
   {% for ut in daily_tasks %}
   <div class="task {% if ut.is_completed %}done{% endif %}">
-    <div class="emo">{{ ut.task.emoji }}</div>
+    <div class="emo">{{ glyph(ut.task.emoji, "i") }}</div>
     <div class="grow"><div class="t" style="font-weight:700">{{ ut.task.title }}</div><div class="tiny muted">{{ ut.task.description }}</div>
       {% if not ut.is_completed and (ut.task.target_count or 1) > 1 %}<div class="lvl-bar" style="margin-top:6px;height:4px"><div style="width:{{ ((ut.progress or 0) / ut.task.target_count * 100)|int }}%"></div></div><div class="tiny faint">{{ ut.progress or 0 }}/{{ ut.task.target_count }}</div>{% endif %}</div>
-    <b class="{% if ut.is_completed %}faint{% endif %}" style="color:{% if ut.is_completed %}var(--success){% else %}var(--brand){% endif %}">{% if ut.is_completed %}✓{% else %}+{{ ut.task.points }}{% endif %}</b>
+    <b class="{% if ut.is_completed %}faint{% endif %}" style="color:{% if ut.is_completed %}var(--success){% else %}var(--brand){% endif %}">{% if ut.is_completed %}{{ icon("check", "i in") }}{% else %}+{{ ut.task.points }}{% endif %}</b>
   </div>
   {% endfor %}
-  <p class="tiny muted mt">Каждое выполненное задание = 1 билет в недельный розыгрыш 🎟</p>
+  <p class="tiny muted mt">Каждое выполненное задание = 1 билет в недельный розыгрыш {{ icon("ticket", "i in") }}</p>
 </div>
 {% if challenge %}
 <div class="card">
-  <div class="card-title">{{ challenge.emoji }} Челлендж недели <span class="tag-pill">+{{ challenge.points }}</span></div>
+  <div class="card-title">{{ glyph(challenge.emoji) }} Челлендж недели <span class="tag-pill">+{{ challenge.points }}</span></div>
   <b>{{ challenge.title }}</b><div class="small muted">{{ challenge.description }}</div>
   {% set prog = my_challenge.progress if my_challenge else 0 %}
   <div class="lvl-bar mt"><div style="width:{{ ([prog / (challenge.target_count or 1) * 100, 100]|min)|int }}%"></div></div>
-  <div class="tiny muted mt">{% if my_challenge and my_challenge.is_completed %}✅ Выполнено!{% else %}{{ prog }}/{{ challenge.target_count }} · до {{ challenge.week_end.strftime("%d.%m") }}{% endif %}</div>
+  <div class="tiny muted mt">{% if my_challenge and my_challenge.is_completed %}{{ icon("check-circle", "i in") }} Выполнено!{% else %}{{ prog }}/{{ challenge.target_count }} · до {{ challenge.week_end.strftime("%d.%m") }}{% endif %}</div>
 </div>
 {% endif %}
 <div class="card">
-  <div class="card-title">🎁 Розыгрыш недели</div>
-  <div class="row"><div style="font-size:40px">🎟</div><div class="grow"><b>{{ raffle.prize }}</b><div class="small muted">Итоги {{ raffle.week_end.strftime("%d.%m.%Y") }} · у вас <b>{{ my_tickets }}</b> из {{ total_tickets }} билетов{% if total_tickets %} ({{ (my_tickets / total_tickets * 100)|round(1) }}% шанс){% endif %}</div></div></div>
-  {% if last_raffle and last_raffle.winner %}<div class="alert success mt">🏆 Победитель прошлой недели: <a href="/profile/{{ last_raffle.winner.username }}"><b>@{{ last_raffle.winner.username }}</b></a></div>{% endif %}
+  <div class="card-title">{{ icon("gift", "i in") }} Розыгрыш недели</div>
+  <div class="row"><div style="font-size:40px">{{ icon("ticket", "i in") }}</div><div class="grow"><b>{{ raffle.prize }}</b><div class="small muted">Итоги {{ raffle.week_end.strftime("%d.%m.%Y") }} · у вас <b>{{ my_tickets }}</b> из {{ total_tickets }} билетов{% if total_tickets %} ({{ (my_tickets / total_tickets * 100)|round(1) }}% шанс){% endif %}</div></div></div>
+  {% if last_raffle and last_raffle.winner %}<div class="alert success mt">{{ icon("trophy", "i in") }} Победитель прошлой недели: <a href="/profile/{{ last_raffle.winner.username }}"><b>@{{ last_raffle.winner.username }}</b></a></div>{% endif %}
 </div>
 <div class="card">
-  <div class="card-title">🏆 Лидеры недели <a href="/leaderboard?by=weekly">Весь рейтинг →</a></div>
-  {% for u in leaderboard %}<a href="/profile/{{ u.username }}" class="row" style="padding:6px 0"><span class="rank {% if loop.index <= 3 %}top{% endif %}">{{ ["🥇","🥈","🥉"][loop.index0] if loop.index <= 3 else loop.index }}</span>{{ avatar(u, 34) }}<b class="grow ellipsis">{{ u.name or u.username }}</b><span class="small muted">{{ u.weekly_points or 0 }}</span></a>{% endfor %}
+  <div class="card-title">{{ icon("trophy", "i in") }} Лидеры недели <a href="/leaderboard?by=weekly">Весь рейтинг →</a></div>
+  {% for u in leaderboard %}<a href="/profile/{{ u.username }}" class="row" style="padding:6px 0"><span class="rank {% if loop.index <= 3 %}top{% endif %}">{% if loop.index <= 3 %}<span class="medal-{{ loop.index }}">{{ icon("medal") }}</span>{% else %}{{ loop.index }}{% endif %}</span>{{ avatar(u, 34) }}<b class="grow ellipsis">{{ u.name or u.username }}</b><span class="small muted">{{ u.weekly_points or 0 }}</span></a>{% endfor %}
 </div>
-<div class="row"><a class="btn soft" href="/achievements">🏆 Мои достижения</a><a class="btn soft" href="/leaderboard">📊 Рейтинг</a></div>
+<div class="row"><a class="btn soft" href="/achievements">{{ icon("trophy", "i in") }} Мои достижения</a><a class="btn soft" href="/leaderboard">{{ icon("chart", "i in") }} Рейтинг</a></div>
 {% endblock %}

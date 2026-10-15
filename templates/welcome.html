@@ -2,10 +2,10 @@
 {% from "partials/macros.html" import user_row %}
 {% block title %}Добро пожаловать — {{ brand }}{% endblock %}
 {% block content %}
-<div class="card hero"><div style="font-size:26px;font-weight:800">Добро пожаловать, {{ user.name or user.username }}! ✨</div><div class="muted">Несколько шагов, чтобы освоиться в {{ brand }}</div></div>
+<div class="card hero"><div style="font-size:26px;font-weight:800">Добро пожаловать, {{ user.name or user.username }}! {{ icon("sparkle", "i in") }}</div><div class="muted">Несколько шагов, чтобы освоиться в {{ brand }}</div></div>
 <div class="card">
-  {% for done, e, t, link, l in [(user.avatar, "🖼", "Загрузите аватар", "/settings?section=profile", "Загрузить"), (user.bio, "✍️", "Расскажите о себе", "/settings?section=profile", "Заполнить"), (following|length >= 3, "👥", "Подпишитесь на 3 человек", "#people", "Ниже ↓"), (false, "📝", "Напишите первый пост", "/create", "Написать"), (user.two_factor_enabled, "🔐", "Включите двухфакторную защиту", "/settings?section=security", "Включить")] %}
-  <div class="task {% if done %}done{% endif %}"><div class="emo">{{ e }}</div><div class="grow t"><b>{{ t }}</b></div>{% if done %}<b style="color:var(--success)">✓</b>{% else %}<a class="btn soft sm" href="{{ link }}">{{ l }}</a>{% endif %}</div>
+  {% for done, e, t, link, l in [(user.avatar, "image", "Загрузите аватар", "/settings?section=profile", "Загрузить"), (user.bio, "pen", "Расскажите о себе", "/settings?section=profile", "Заполнить"), (following|length >= 3, "users", "Подпишитесь на 3 человек", "#people", "Ниже ↓"), (false, "note", "Напишите первый пост", "/create", "Написать"), (user.two_factor_enabled, "secret", "Включите двухфакторную защиту", "/settings?section=security", "Включить")] %}
+  <div class="task {% if done %}done{% endif %}"><div class="emo">{{ icon(e) }}</div><div class="grow t"><b>{{ t }}</b></div>{% if done %}<b style="color:var(--success)">{{ icon("check", "i in") }}</b>{% else %}<a class="btn soft sm" href="{{ link }}">{{ l }}</a>{% endif %}</div>
   {% endfor %}
 </div>
 <div class="card" id="people"><div class="card-title">Популярные авторы</div>{% for u in popular %}{{ user_row(u, user, following) }}{% endfor %}</div>

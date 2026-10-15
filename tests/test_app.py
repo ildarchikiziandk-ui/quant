@@ -103,8 +103,7 @@ def test_post_lifecycle(alice, bob):
     assert bob.post(f"/like/{pid}", headers=J).json()["liked"] is True
     assert bob.post(f"/whale/{pid}", headers=J).json()["whaled"] is True
     assert bob.post(f"/bookmark/{pid}", headers=J).json()["bookmarked"] is True
-    r = bob.post(f"/post/{pid}/react", json={"emoji": "🔥"}, headers=J).json()
-    assert r["counts"] == {"🔥": 1}
+    assert bob.post(f"/post/{pid}/react", json={"emoji": "🔥"}, headers=J).status_code == 400  # эмодзи-реакции убраны
     assert bob.post(f"/poll/vote/{opt}", headers=J).json()["total"] == 1
     c = bob.post(f"/post/{pid}/comment", json={"content": "Круто, @alice!"}, headers=J).json()["id"]
     reply = alice.post(f"/post/{pid}/comment", json={"content": "Спасибо", "parent_id": c}, headers=J).json()["id"]
@@ -121,7 +120,7 @@ def test_post_lifecycle(alice, bob):
     assert bob.post(f"/post/{pid}/delete", headers=J).status_code == 403
     s = db()
     kinds = {n.type for n in s.query(models.Notification).join(models.User, models.User.id == models.Notification.user_id).filter(models.User.username == "alice")}
-    assert {"like", "whale", "comment", "mention", "repost", "reaction"} <= kinds
+    assert {"like", "whale", "comment", "mention", "repost"} <= kinds
     s.close()
     alice.post(f"/comment/{c}/delete", headers=J)
     s = db()
@@ -224,10 +223,10 @@ def test_stories(alice, bob):
     s = db()
     sid = s.query(models.Story).first().id
     s.close()
-    assert bob.post(f"/stories/{sid}/react", json={"emoji": "🔥"}, headers=J).json()["ok"]
+    assert bob.post(f"/stories/{sid}/react", json={"emoji": "🐋"}, headers=J).json()["ok"]
     assert bob.post(f"/stories/{sid}/reply", json={"text": "Класс"}, headers=J).json()["ok"]
     v = alice.get(f"/stories/{sid}/viewers").json()
-    assert v["count"] == 1 and v["users"][0]["reaction"] == "🔥"
+    assert v["count"] == 1 and v["users"][0]["reaction"] == "🐋"
     hid = alice.post(f"/stories/{sid}/highlight", json={"title": "Лето"}, headers=J).json()["highlight_id"]
     assert bob.get(f"/highlights/{hid}").status_code == 200
     assert "alice" in bob.get("/").text
@@ -560,7 +559,7 @@ def test_questions_flow(alice, bob):
     assert r.json()["ok"]
     assert bob.post("/ask/alice", data={"text": "ты тупой дебил"}, headers=J).status_code == 400  # модель модерации
     inbox = alice.get("/questions").text
-    assert "любимая книга" in inbox and "🕶 Аноним" in inbox  # анонимно
+    assert "любимая книга" in inbox and "Аноним" in inbox  # анонимно
     s = db()
     q = s.query(models.Question).first()
     s.close()
@@ -590,7 +589,7 @@ def test_events(alice, bob):
     assert "Пикник в парке" in bob.get("/events").text
     bob.post(f"/events/{eid}/rsvp/going", headers=J)
     page = bob.get(f"/events/{eid}").text
-    assert "✓ Я иду" in page and "Идут · 2" in page
+    assert "Я иду" in page and "Идут · 2" in page
     assert "Пикник" in alice.get("/events?tab=mine").text
 
 
@@ -603,7 +602,7 @@ def test_gifts(alice, bob):
     r = alice.post("/gifts/bob/send", data={"gift": "rose", "message": "Спасибо!"}, headers=J).json()
     assert r["ok"] and r["balance"] == 100  # −20 за розу, +20 за достижение «Щедрая душа»
     assert alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).status_code == 400  # не хватает очков
-    assert "🌹" in alice.get("/profile/bob").text and "Спасибо!" in bob.get("/gifts/bob").text
+    assert "/static/gifts/rose.svg" in alice.get("/profile/bob").text and "Спасибо!" in bob.get("/gifts/bob").text
     s = db()
     a = s.query(models.User).filter_by(username="alice").first()
     assert a.total_points >= 100 and a.spent_points == 20  # уровень не падает от трат
@@ -619,7 +618,7 @@ def test_bookmark_collections(alice, bob):
     s.close()
     alice.post(f"/bookmarks/{pid}/move", data={"collection_id": c.id}, headers=J)
     assert "Рецепт борща" in alice.get(f"/bookmarks?c={c.id}").text
-    assert "🍲 Рецепты" in alice.get("/bookmarks").text
+    assert "1f372.svg" in alice.get("/bookmarks").text and "Рецепты" in alice.get("/bookmarks").text
 
 
 def test_quiz(alice, bob):
@@ -636,7 +635,7 @@ def test_quiz(alice, bob):
     assert v["right"] is True and v["correct"] == paris.id and pts() == before + 10
     carol = register(make_client(), "carolq")
     assert carol.post(f"/poll/vote/{rome.id}", headers=J).json()["right"] is False
-    assert "🧠 Викторина" in alice.get(f"/post/{r['post_id']}").text
+    assert "Викторина" in alice.get(f"/post/{r['post_id']}").text
 
 
 def test_invite_and_interests(alice, bob):
@@ -684,7 +683,7 @@ def test_rich_formatting_and_post_extras(alice, bob):
                       content_warning="Спойлеры", expires="24")
     page = bob.get(f"/post/{pid}").text
     for frag in ("<b>жирно</b>", "<i>курсив</i>", "<s>нет</s>", 'class="rt-code"', 'class="spoiler"', 'class="rt-quote"',
-                 "чувствует себя радостно", "📍 Казань", "⚠️ Спойлеры", "пост исчезнет"):
+                 "чувствует себя радостно", "Казань", "Спойлеры", "пост исчезнет"):
         assert frag in page, frag
     bgp = create_post(alice, "Короткий пост на фоне", bg="sunset")
     assert "bg-sunset" in bob.get(f"/post/{bgp}").text
@@ -740,11 +739,10 @@ def test_comment_features(alice, bob):
 
 
 def test_profile_extras(alice, bob):
-    alice.post("/settings/status", data={"status_text": "🎧 слушаю музыку", "hours": "24"})
     alice.post("/settings/links", data={"link_title_0": "Портфолио", "link_url_0": "example.com"})
     alice.post("/settings/profile", data={"name": "Alice", "birthday": "2000-03-25"})
     page = bob.get("/profile/alice").text
-    assert "🎧 слушаю музыку" in page and "Портфолио" in page and "https://example.com" in page and "Овен" in page
+    assert "Портфолио" in page and "https://example.com" in page and "25.03" in page
     alice.post("/settings/dnd", data={"hours": "3"}, headers=J)
     assert "не беспокоить" in bob.get("/profile/alice").text
     pid = create_post(alice, "пост до паузы")
@@ -835,7 +833,7 @@ def test_secret_chats_server_sees_only_ciphertext(alice, bob):
     r = alice.post("/secret/start", json={"username": "@Bob", "pub": pa, "ttl": 30}, headers=J).json()
     assert r["ok"] and len(r["ukm"]) == 16
     cid = r["id"]
-    assert "🔐" in alice.get("/secret").text and alice.get(f"/secret/{cid}").status_code == 200
+    assert "Секретные чаты" in alice.get("/secret").text and alice.get(f"/secret/{cid}").status_code == 200
     # пока bob не принял — писать нельзя, и принять может только bob
     payload = base64.b64encode(os.urandom(60)).decode()
     assert alice.post(f"/secret/{cid}/send", json={"payload": payload}, headers=J).json()["ok"] is False

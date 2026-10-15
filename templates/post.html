@@ -7,7 +7,7 @@
   {% if c.author %}<a href="/profile/{{ c.author.username }}">{{ avatar(c.author, 34 if not depth else 28) }}</a>{% endif %}
   <div class="grow">
     <div style="background:var(--input);border-radius:14px;padding:8px 12px;{% if c.is_pinned %}border:1.5px solid var(--brand);{% endif %}">
-      <div class="row small" style="gap:6px">{% if c.author %}{{ name(c.author) }}{% endif %}<span class="faint tiny">{{ c.created_at|ago }}{% if c.edited_at %} · изм.{% endif %}</span>{% if c.is_pinned %}<span class="tag-pill">📌 закреплён</span>{% endif %}{% if c.author and c.author.id == post.user_id %}<span class="pill-info">автор</span>{% endif %}</div>
+      <div class="row small" style="gap:6px">{% if c.author %}{{ name(c.author) }}{% endif %}<span class="faint tiny">{{ c.created_at|ago }}{% if c.edited_at %} · изм.{% endif %}</span>{% if c.is_pinned %}<span class="tag-pill">{{ icon("pin", "i in") }} закреплён</span>{% endif %}{% if c.author and c.author.id == post.user_id %}<span class="pill-info">автор</span>{% endif %}</div>
       {% set can_see_hidden = user and (user.id == post.user_id or user.id == c.user_id or can_mod) %}
       {% if c.is_hidden and not can_see_hidden %}<div class="cmt-hidden small" style="margin-top:2px">Комментарий скрыт автором поста</div>
       {% else %}<div style="margin-top:2px;overflow-wrap:anywhere" class="{% if c.is_hidden %}cmt-hidden{% endif %}" id="ctext-{{ c.id }}" data-raw="{{ c.content }}">{{ c.content|rich }}</div>{% endif %}
@@ -29,23 +29,23 @@
 {% endmacro %}
 {% block content %}
 <div class="page-head"><div class="row"><a href="javascript:history.back()" class="back-link">{{ icon("back") }}</a><span class="page-title" style="margin:0">Пост</span></div>
-<div class="row" style="gap:6px">{% if post.is_long %}<button class="btn ghost sm" onclick="document.body.classList.toggle('reader');this.textContent=document.body.classList.contains('reader')?'✕ Выйти из чтения':'📖 Режим чтения'">📖 Режим чтения</button>{% endif %}
+<div class="row" style="gap:6px">{% if post.is_long %}<button class="btn ghost sm" onclick="document.body.classList.toggle('reader');this.lastChild.textContent=document.body.classList.contains('reader')?' Выйти из чтения':' Режим чтения'">{{ icon("book", "i in") }} Режим чтения</button>{% endif %}
 {% if user and user.id == post.user_id %}<a class="btn soft sm" href="/post/{{ post.id }}/stats">{{ icon("chart") }} Статистика</a>{% endif %}</div></div>
-{% if post.scheduled_at and post.scheduled_at > now %}<div class="alert info">⏰ Пост запланирован на {{ post.scheduled_at|lt }}. <form method="post" action="/post/{{ post.id }}/publish-now" style="display:inline"><button class="btn sm">Опубликовать сейчас</button></form></div>{% endif %}
+{% if post.scheduled_at and post.scheduled_at > now %}<div class="alert info">{{ icon("alarm", "i in") }} Пост запланирован на {{ post.scheduled_at|lt }}. <form method="post" action="/post/{{ post.id }}/publish-now" style="display:inline"><button class="btn sm">Опубликовать сейчас</button></form></div>{% endif %}
 {{ post_card(post, user, st, originals, repost_counts, can_mod, full=true) }}
 <div class="row small muted" style="padding:0 6px 10px;gap:14px">
   <span>{{ post.created_at|lt("%d.%m.%Y, %H:%M") }}</span>
-  <span>👁 {{ post.views or 0 }}</span>
+  <span>{{ icon("eye", "i in") }} {{ post.views or 0 }}</span>
   {% if not post.author.hide_likes or (user and user.id == post.user_id) %}<button class="act" data-act="likers" data-id="{{ post.id }}" style="padding:2px 6px">Кому понравилось</button>{% endif %}
 </div>
 <div class="card" id="comments">
-  <div class="card-title">💬 Комментарии · {{ comment_count }}
+  <div class="card-title">{{ icon("chat", "i in") }} Комментарии · {{ comment_count }}
     {% if comment_count > 1 %}<span class="row tiny" style="gap:4px">{% for k, l in [("old","Сначала старые"),("new","Новые"),("top","Популярные")] %}<a href="?sort={{ k }}#comments" class="chip {% if sort == k %}active{% endif %}" style="margin:0;padding:3px 10px">{{ l }}</a>{% endfor %}</span>{% endif %}</div>
   {% if post.comments_disabled %}<div class="alert info">Автор отключил комментарии</div>
   {% elif user %}
   <form id="comment-form" method="post" action="/post/{{ post.id }}/comment" data-ajax data-reload class="mb">
     <input type="hidden" name="parent_id" value="">
-    <div id="reply-to" class="reply-bar hidden"><span id="reply-to-label" class="grow"></span><button type="button" class="icon-btn" onclick="this.form.parent_id.value='';this.parentElement.classList.add('hidden')">✕</button></div>
+    <div id="reply-to" class="reply-bar hidden"><span id="reply-to-label" class="grow"></span><button type="button" class="icon-btn" onclick="this.form.parent_id.value='';this.parentElement.classList.add('hidden')">{{ icon("x", "i in") }}</button></div>
     <div class="row">{{ avatar(user, 34) }}<input name="content" maxlength="2000" placeholder="Написать комментарий…" required data-suggest style="border-radius:999px"><button class="btn">{{ icon("send") }}</button></div>
   </form>
   {% else %}<div class="alert info"><a href="/login?next=/post/{{ post.id }}" style="font-weight:700">Войдите</a>, чтобы комментировать</div>{% endif %}

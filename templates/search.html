@@ -7,17 +7,17 @@
 {% if query and type in ("all", "posts") %}
 {% set base = "/search?q=" ~ (query|urlencode) ~ "&type=" ~ type %}
 <div class="chips">
-  <a class="chip {% if media %}active{% endif %}" href="{{ base }}&media={{ 0 if media else 1 }}&period={{ period }}&scope={{ scope }}">🖼 Только с фото</a>
-  {% if user %}<a class="chip {% if scope == 'following' %}active{% endif %}" href="{{ base }}&media={{ media }}&period={{ period }}&scope={{ 'all' if scope == 'following' else 'following' }}">👥 Из подписок</a>{% endif %}
+  <a class="chip {% if media %}active{% endif %}" href="{{ base }}&media={{ 0 if media else 1 }}&period={{ period }}&scope={{ scope }}">{{ icon("image", "i in") }} Только с фото</a>
+  {% if user %}<a class="chip {% if scope == 'following' %}active{% endif %}" href="{{ base }}&media={{ media }}&period={{ period }}&scope={{ 'all' if scope == 'following' else 'following' }}">{{ icon("users", "i in") }} Из подписок</a>{% endif %}
   {% for k, l in [("all","За всё время"),("day","За сутки"),("week","За неделю"),("month","За месяц"),("year","За год")] %}<a class="chip {% if period == k %}active{% endif %}" href="{{ base }}&media={{ media }}&period={{ k }}&scope={{ scope }}">{{ l }}</a>{% endfor %}
 </div>
 {% endif %}
 {% if not query %}
-<div class="card empty"><div class="big">🔎</div>Введите запрос. Подсказка: ищите <b>@логин</b>, <b>#тег</b> или любые слова из постов.</div>
+<div class="card empty"><div class="big">{{ icon("search", "i in") }}</div>Введите запрос. Подсказка: ищите <b>@логин</b>, <b>#тег</b> или любые слова из постов.</div>
 {% else %}
   {% if users %}<div class="card"><div class="card-title">Люди</div>{% for u in users %}{{ user_row(u, user, following) }}{% endfor %}</div>{% endif %}
   {% if tags %}<div class="card"><div class="card-title">Теги</div><div class="row wrap">{% for t in tags %}<a class="chip" href="/hashtag/{{ t.tag }}">#{{ t.tag }} <span class="faint">{{ t.count }}</span></a>{% endfor %}</div></div>{% endif %}
   {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% endfor %}
-  {% if not users and not tags and not posts %}<div class="card empty"><div class="big">🤷</div>По запросу «{{ query }}» ничего не найдено</div>{% endif %}
+  {% if not users and not tags and not posts %}<div class="card empty"><div class="big">{{ icon("search") }}</div>По запросу «{{ query }}» ничего не найдено</div>{% endif %}
 {% endif %}
 {% endblock %}

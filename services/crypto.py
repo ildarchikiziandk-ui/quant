@@ -57,7 +57,7 @@ def decrypt(value):
         data = base64.b64decode(str(value)[len(PREFIX):])
         return _cipher().decrypt(data[:12], data[12:], b"nuvora-msg").decode("utf-8")
     except Exception:
-        return "🔒 Сообщение не удалось расшифровать"
+        return "Сообщение не удалось расшифровать"
 
 
 def is_encrypted(value):

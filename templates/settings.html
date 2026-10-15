@@ -2,7 +2,7 @@
 {% from "partials/macros.html" import avatar %}{% from "partials/icons.html" import icon %}
 {% block title %}Настройки — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">⚙️ Настройки</div>
+<div class="page-title">{{ icon("settings", "i in") }} Настройки</div>
 <div class="settings-nav">
   {% for key, label in [("profile","👤 Профиль"),("account","🔑 Аккаунт"),("feed","📰 Лента"),("privacy","🔒 Приватность"),("notifications","🔔 Уведомления"),("messages","💬 Сообщения"),("appearance","🎨 Оформление"),("accessibility","♿ Доступность"),("security","🛡 Безопасность"),("plus","✨ " ~ brand_plus),("data","📦 Данные")] %}
   <a href="/settings?section={{ key }}" class="chip {% if section == key %}active{% endif %}">{{ label }}</a>
@@ -24,8 +24,7 @@
 </div>
 <form class="card" method="post" action="/settings/profile">
   <div class="card-title">Информация</div>
-  <div class="form-row"><label class="field"><span>Имя</span><input name="name" value="{{ user.name or '' }}" maxlength="60"></label>
-  <label class="field" style="max-width:120px"><span>Эмодзи-статус</span><input name="emoji_status" value="{{ user.emoji_status or '' }}" maxlength="8" placeholder="🌙"></label></div>
+  <label class="field"><span>Имя</span><input name="name" value="{{ user.name or '' }}" maxlength="60"></label>
   <label class="field"><span>О себе <span class="faint" id="bio-n"></span></span><textarea name="bio" maxlength="300" oninput="document.getElementById('bio-n').textContent=300-this.value.length">{{ user.bio or '' }}</textarea></label>
   <div class="form-row">
     <label class="field"><span>Город</span><input name="city" value="{{ user.city or '' }}" maxlength="60"></label>
@@ -43,14 +42,8 @@
   <button class="btn">Сохранить</button>
 </form>
 
-<form class="card" method="post" action="/settings/status">
-  <div class="card-title">💬 Статус {% if status_active(user) %}<span class="tag-pill">активен{% if user.status_until %} до {{ user.status_until|lt("%d.%m %H:%M") }}{% endif %}</span>{% endif %}</div>
-  <div class="row" style="gap:8px"><input name="status_text" maxlength="80" value="{{ user.status_text or '' }}" placeholder="🎧 слушаю новый альбом, 🏖 в отпуске…" style="margin:0">
-  <select name="hours" style="width:auto;margin:0"><option value="1">на 1 час</option><option value="4">на 4 часа</option><option value="24" selected>на сутки</option><option value="168">на неделю</option><option value="0">без срока</option></select><button class="btn">Сохранить</button></div>
-  <p class="tiny faint mt">Чтобы убрать статус, очистите поле и сохраните.</p>
-</form>
 <form class="card" method="post" action="/settings/links">
-  <div class="card-title">🔗 Ссылки в профиле <span class="faint small">до 5</span></div>
+  <div class="card-title">{{ icon("link", "i in") }} Ссылки в профиле <span class="faint small">до 5</span></div>
   {% set ls = profile_links %}
   {% for i in range(5) %}<div class="form-row"><label class="field" style="max-width:200px"><span>Название</span><input name="link_title_{{ i }}" maxlength="40" value="{{ ls[i].title if ls|length > i else '' }}" placeholder="Портфолио"></label>
   <label class="field"><span>Адрес</span><input name="link_url_{{ i }}" maxlength="200" value="{{ ls[i].url if ls|length > i else '' }}" placeholder="example.com"></label></div>{% endfor %}
@@ -97,9 +90,9 @@
   <button class="btn">Сохранить</button>
 </form>
 <form class="card" method="post" action="/settings/pause" onsubmit="return confirm('{{ 'Снять паузу?' if user.is_paused else 'Поставить аккаунт на паузу? Ваш профиль и посты скроются от других, пока вы не вернётесь.' }}')">
-  <div class="card-title">⏸ Пауза аккаунта {% if user.is_paused %}<span class="tag-pill">включена</span>{% endif %}</div>
+  <div class="card-title">{{ icon("pause", "i in") }} Пауза аккаунта {% if user.is_paused %}<span class="tag-pill">включена</span>{% endif %}</div>
   <p class="small muted mb">Профиль и посты временно скрываются от всех. Данные не удаляются, вернуть всё можно одной кнопкой.</p>
-  <button class="btn {% if not user.is_paused %}ghost{% endif %}">{% if user.is_paused %}▶ Снять паузу{% else %}⏸ Поставить на паузу{% endif %}</button>
+  <button class="btn {% if not user.is_paused %}ghost{% endif %}">{% if user.is_paused %}{{ icon("play", "i in") }} Снять паузу{% else %}{{ icon("pause", "i in") }} Поставить на паузу{% endif %}</button>
 </form>
 <div class="card"><div class="card-title">Заблокированные · {{ blocked_users|length }}</div>
   {% for b in blocked_users %}<div class="user-row">{{ avatar(b, 36) }}<div class="info"><b>{{ b.name or b.username }}</b><div class="bio">@{{ b.username }}</div></div><form method="post" action="/unblock/{{ b.username }}"><button class="btn ghost sm">Разблокировать</button></form></div>
@@ -119,16 +112,16 @@
   <button class="btn mt">Сохранить</button>
 </form>
 <form class="card" method="post" action="/settings/dnd">
-  <div class="card-title">🌙 Не беспокоить {% if user.dnd_until and user.dnd_until > now %}<span class="tag-pill">до {{ user.dnd_until|lt("%d.%m %H:%M") }}</span>{% endif %}</div>
-  <p class="small muted mb">Push-уведомления не приходят, а в профиле и чатах видно «🌙 не беспокоить».</p>
+  <div class="card-title">{{ icon("moon", "i in") }} Не беспокоить {% if user.dnd_until and user.dnd_until > now %}<span class="tag-pill">до {{ user.dnd_until|lt("%d.%m %H:%M") }}</span>{% endif %}</div>
+  <p class="small muted mb">Push-уведомления не приходят, а в профиле и чатах видно «{{ icon("moon", "i in") }} не беспокоить».</p>
   <div class="row wrap" style="gap:6px">{% for h, l in [("1","1 час"),("3","3 часа"),("8","8 часов"),("24","Сутки")] %}<button class="btn soft sm" name="hours" value="{{ h }}">{{ l }}</button>{% endfor %}{% if user.dnd_until and user.dnd_until > now %}<button class="btn ghost sm" name="hours" value="0">Выключить</button>{% endif %}</div>
 </form>
-{% if push_enabled %}<div class="card"><div class="card-title">Push-уведомления на этом устройстве</div><p class="small muted mb">Получайте уведомления, даже когда сайт закрыт.</p><button class="btn soft" onclick="window.enablePush ? enablePush() : App.toast('Браузер не поддерживает push', true)">🔔 Включить push</button></div>{% endif %}
+{% if push_enabled %}<div class="card"><div class="card-title">Push-уведомления на этом устройстве</div><p class="small muted mb">Получайте уведомления, даже когда сайт закрыт.</p><button class="btn soft" onclick="window.enablePush ? enablePush() : App.toast('Браузер не поддерживает push', true)">{{ icon("bell", "i in") }} Включить push</button></div>{% endif %}
 
 {% elif section == "appearance" %}
 <form class="card" method="post" action="/settings/appearance">
   <div class="card-title">Тема</div>
-  <div class="row wrap mb">{% for v, l in [("light","☀️ Светлая"),("dark","🌙 Тёмная"),("auto","🖥 Как в системе")] %}<label class="chip {% if user.theme == v %}active{% endif %}"><input type="radio" name="theme" value="{{ v }}" class="hidden" {% if user.theme == v %}checked{% endif %} onchange="try{localStorage.setItem('theme','{{ v }}')}catch(e){};this.form.submit()">{{ l }}</label>{% endfor %}</div>
+  <div class="row wrap mb">{% for v, l in [("light","Светлая"),("dark","Тёмная"),("auto","Как в системе")] %}<label class="chip {% if user.theme == v %}active{% endif %}"><input type="radio" name="theme" value="{{ v }}" class="hidden" {% if user.theme == v %}checked{% endif %} onchange="try{localStorage.setItem('theme','{{ v }}')}catch(e){};this.form.submit()">{{ l }}</label>{% endfor %}</div>
   <div class="card-title">Размер текста</div>
   <div class="row wrap mb">{% for v, l in [("small","Мелкий"),("medium","Обычный"),("large","Крупный")] %}<label class="chip {% if (user.font_size or 'medium') == v %}active{% endif %}"><input type="radio" name="font_size" value="{{ v }}" class="hidden" {% if (user.font_size or 'medium') == v %}checked{% endif %} onchange="this.form.submit()">{{ l }}</label>{% endfor %}</div>
   <div class="card-title">Акцентный цвет</div>
@@ -141,7 +134,7 @@
 
 {% elif section == "security" %}
 <div class="card">
-  <div class="card-title">🔐 Двухфакторная аутентификация {% if user.two_factor_enabled %}<span class="tag-pill">включена</span>{% endif %}</div>
+  <div class="card-title">{{ icon("secret", "i in") }} Двухфакторная аутентификация {% if user.two_factor_enabled %}<span class="tag-pill">включена</span>{% endif %}</div>
   {% if user.two_factor_enabled %}
   <p class="small muted mb">При входе потребуется код из приложения-аутентификатора.</p>
   <form method="post" action="/settings/2fa/disable" class="row"><input type="password" name="password" placeholder="Пароль" required style="margin:0"><button class="btn danger ghost">Отключить</button></form>
@@ -157,10 +150,10 @@
   {% endif %}
 </div>
 <div class="card">
-  <div class="card-title">💻 Активные сеансы · {{ sessions|length }}
+  <div class="card-title">{{ icon("laptop", "i in") }} Активные сеансы · {{ sessions|length }}
     {% if sessions|length > 1 %}<form method="post" action="/settings/sessions/revoke-others"><button class="btn ghost sm">Завершить все другие</button></form>{% endif %}</div>
   {% for s in sessions %}
-  <div class="user-row"><span style="font-size:24px">{% if 'iPhone' in s.device or 'Android' in s.device %}📱{% else %}💻{% endif %}</span>
+  <div class="user-row"><span style="font-size:24px">{% if 'iPhone' in s.device or 'Android' in s.device %}{{ icon("smartphone", "i in") }}{% else %}{{ icon("laptop", "i in") }}{% endif %}</span>
     <div class="info"><b>{{ s.device or "Устройство" }}</b>{% if s.id == current_session_id %} <span class="tag-pill">это устройство</span>{% endif %}<div class="bio">{{ s.ip }} · активность {{ s.last_active|ago }}</div></div>
     {% if s.id != current_session_id %}<form method="post" action="/settings/sessions/{{ s.id }}/revoke"><button class="btn ghost sm">Завершить</button></form>{% endif %}
   </div>
@@ -169,7 +162,7 @@
 
 {% elif section == "plus" %}
 <div class="card hero">
-  <div style="font-size:22px;font-weight:800">✨ {{ brand_plus }}</div>
+  <div style="font-size:22px;font-weight:800">{{ icon("sparkle", "i in") }} {{ brand_plus }}</div>
   {% if is_plus %}<div class="muted">Активен{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
   {% else %}<div class="muted">Цветной бейдж, цвет обложки, ранний доступ к функциям. <a href="/plus" style="color:var(--link)">Подробнее</a></div>{% endif %}
 </div>
@@ -179,13 +172,14 @@
 </form>
 {% if is_plus %}
 <form class="card" method="post" action="/settings/plus-color">
-  <div class="card-title">Цвет PLUS-бейджа и обложки</div>
-  <div class="row"><input type="color" name="color" value="{{ user.plus_color or '#a855f7' }}"><button class="btn">Сохранить</button></div>
+  <div class="card-title">Цвет значка PLUS и обложки</div>
+  <div class="plus-palette">{% for k, label, css in plus_palette %}<label title="{{ label }}"><input type="radio" name="preset" value="{{ k }}" {% if (user.plus_color or 'violet') == k %}checked{% endif %}><span style="background:{{ css }}"></span></label>{% endfor %}</div>
+  <div class="row mt" style="gap:10px"><span class="small muted">Или свой цвет:</span><input type="color" id="plus-custom" value="{{ user.plus_color if (user.plus_color or '').startswith('#') else '#a855f7' }}" style="width:48px;margin:0" onchange="var r=this.form.querySelector('[name=preset]:checked');if(r)r.checked=false;this.name='color'"><span class="grow"></span><span>Пример: <span class="plus-tag" style="background:{{ plus_bg(user) }}"><svg viewBox="0 0 24 24"><path d="M12 2.5c.8 5.1 2.6 7 7.7 7.8-5.1.8-6.9 2.6-7.7 7.7-.8-5.1-2.6-6.9-7.7-7.7 5.1-.8 6.9-2.7 7.7-7.8z"/></svg>PLUS</span></span><button class="btn">Сохранить</button></div>
 </form>
 {% endif %}
 
 {% elif section == "data" %}
-<div class="card"><div class="card-title">📦 Экспорт данных</div><p class="small muted mb">Скачайте архив своих постов, комментариев, подписок и сообщений в формате JSON.</p><a class="btn soft" href="/export-data">Скачать мои данные</a></div>
+<div class="card"><div class="card-title">{{ icon("package", "i in") }} Экспорт данных</div><p class="small muted mb">Скачайте архив своих постов, комментариев, подписок и сообщений в формате JSON.</p><a class="btn soft" href="/export-data">Скачать мои данные</a></div>
 <div class="card" style="border-color:color-mix(in srgb,var(--danger) 40%,transparent)">
   <div class="card-title" style="color:var(--danger)">Удалить аккаунт</div>
   <p class="small muted mb">Все посты, истории, сообщения и подписки будут удалены безвозвратно.</p>
@@ -204,7 +198,7 @@
       <label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>
       {% elif p.kind == "select" %}
       <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><select name="{{ p.key }}" id="pref-{{ p.key }}">{% for v, l in p.options %}<option value="{{ v }}" {% if pref_values[p.key] == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
-      {% if p.key == "timezone" %}<div class="row mb" style="gap:8px"><button type="button" class="btn soft sm" id="tz-detect">🧭 Определить по устройству</button><span class="small muted" id="tz-now"></span></div>
+      {% if p.key == "timezone" %}<div class="row mb" style="gap:8px"><button type="button" class="btn soft sm" id="tz-detect">{{ icon("compass", "i in") }} Определить по устройству</button><span class="small muted" id="tz-now"></span></div>
       <script>(function(){var map={{ tz_map|tojson }};var b=document.getElementById('tz-detect'),s=document.getElementById('pref-timezone'),n=document.getElementById('tz-now');
       b.onclick=function(){var z='';try{z=Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){}if(map[z]){s.value=map[z];n.textContent='Найдено: '+s.options[s.selectedIndex].text+'. Нажмите «Сохранить».'}else n.textContent='Не удалось определить ('+(z||'?')+') — выберите город вручную.'};})();</script>{% endif %}
       {% else %}

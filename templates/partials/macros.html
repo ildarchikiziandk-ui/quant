@@ -9,12 +9,12 @@
 {%- endmacro %}
 
 {% macro badges(u) -%}
-{%- if u.is_owner %}<span class="badge" title="Основатель"><svg viewBox="0 0 24 24"><rect width="24" height="24" rx="7" style="fill:var(--text)"/><path d="M12 4.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z" style="fill:var(--card)"/></svg></span>{% endif -%}
+{%- if u.is_owner %}<span class="badge owner-b" title="Основатель {{ brand }}">{{ icon("crown", "i") }}</span>{% endif -%}
 {%- if u.is_verified_badge %}<span class="badge" title="Подтверждённый аккаунт"><svg viewBox="0 0 24 24"><path fill="#1d9bf0" d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/><path fill="#fff" d="M10.54 16.2 6.8 12.46l1.41-1.41 2.26 2.26 4.8-5.23 1.47 1.36z"/></svg></span>{% endif -%}
 {%- if u.is_starred %}<span class="badge" title="Звезда автора"><svg viewBox="0 0 24 24"><polygon fill="#f59e0b" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>{% endif -%}
 {%- if u.is_moderator and not u.is_owner %}<span class="badge" title="Модератор"><svg viewBox="0 0 24 24"><path fill="#10b981" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path fill="#fff" d="m10.5 15.2-3-3 1.4-1.4 1.6 1.6 4.1-4.1 1.4 1.4z"/></svg></span>{% endif -%}
-{%- if user_is_plus(u) %}<span class="plus-tag" style="{% if u.plus_color %}background:{{ u.plus_color }}{% endif %}">PLUS</span>{% endif -%}
-{%- if u.emoji_status %}<span class="emoji-status">{{ u.emoji_status }}</span>{% endif -%}
+{%- if user_is_plus(u) %}<span class="plus-tag" style="background:{{ plus_bg(u) }}" title="{{ brand_plus }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.8 5.1 2.6 7 7.7 7.8-5.1.8-6.9 2.6-7.7 7.7-.8-5.1-2.6-6.9-7.7-7.7 5.1-.8 6.9-2.7 7.7-7.8z"/></svg>PLUS</span>{% endif -%}
+
 {%- endmacro %}
 
 {% macro name(u, link=true) -%}
@@ -66,12 +66,12 @@
 {%- set ended = poll.ends_at and poll.ends_at < utcnow() -%}
 {%- set show = my or ended or not user or (user and user.id == p.user_id) -%}
 <div class="poll">
-  <div class="poll-q">{% if poll.correct_option_id %}🧠 Викторина: {% else %}📊 {% endif %}{{ poll.question }}</div>
+  <div class="poll-q">{% if poll.correct_option_id %}{{ icon("bulb", "i in") }} Викторина: {% else %}{{ icon("chart", "i in") }} {% endif %}{{ poll.question }}</div>
   {%- for o in poll.options %}
   {%- set pct = ((o.votes|length) / total.n * 100)|round|int if total.n else 0 %}
   <button type="button" class="poll-opt {% if show %}done{% endif %} {% if my == o.id %}mine{% endif %}" data-opt="{{ o.id }}" {% if not show %}data-act="vote" data-id="{{ o.id }}"{% endif %}>
     <span class="bar" style="width:{{ pct if show else 0 }}%"></span>
-    <span class="lbl"><span>{{ o.text }}{% if show and poll.correct_option_id == o.id %} ✅{% elif my == o.id and poll.correct_option_id %} ❌{% elif my == o.id %} ✓{% endif %}</span><b class="pct">{% if show %}{{ pct }}%{% endif %}</b></span>
+    <span class="lbl"><span>{{ o.text }}{% if show and poll.correct_option_id == o.id %} {{ icon("check-circle", "i in") }}{% elif my == o.id and poll.correct_option_id %} {{ icon("x", "i in") }}{% elif my == o.id %} {{ icon("check", "i in") }}{% endif %}</span><b class="pct">{% if show %}{{ pct }}%{% endif %}</b></span>
   </button>
   {%- endfor %}
   <div class="tiny muted"><span class="poll-total">{{ total.n }} голос(ов)</span>{% if poll.ends_at %} · {% if ended %}опрос завершён{% else %}до {{ poll.ends_at|lt("%d.%m %H:%M") }}{% endif %}{% endif %}</div>
@@ -79,8 +79,8 @@
 {%- endmacro %}
 
 {% macro post_inner(p, user, st, can_mod, full=false) -%}
-{%- if p.mood or p.location %}<div class="post-sub tiny muted">{% if p.mood and mood_by.get(p.mood) %}{% set m = mood_by[p.mood] %}{{ m[1] }} чувствует себя {{ m[2] }}{% endif %}{% if p.mood and p.location %} · {% endif %}{% if p.location %}📍 {{ p.location }}{% endif %}</div>{% endif %}
-{%- if p.content_warning %}<div class="cw-wrap" data-cw><button type="button" class="cw-btn" data-cw-open>⚠️ {{ p.content_warning }} <span>— показать</span></button><div class="cw-body">{% endif %}
+{%- if p.mood or p.location %}<div class="post-sub tiny muted">{% if p.mood and mood_by.get(p.mood) %}{% set m = mood_by[p.mood] %}{{ emo(m[1]) }} чувствует себя {{ m[2] }}{% endif %}{% if p.mood and p.location %} · {% endif %}{% if p.location %}{{ icon("map", "i in") }} {{ p.location }}{% endif %}</div>{% endif %}
+{%- if p.content_warning %}<div class="cw-wrap" data-cw><button type="button" class="cw-btn" data-cw-open>{{ icon("alert", "i in") }} {{ p.content_warning }} <span>— показать</span></button><div class="cw-body">{% endif %}
 {%- if p.content %}
 <div class="post-text {% if p.is_long and not full %}clamp{% endif %}{% if p.bg %} bg-text bg-{{ p.bg }}{% endif %}" id="text-{{ p.id }}">{{ p.content|rich }}</div>
 {%- if p.is_long and not full %}<button class="read-more" data-act="expand" data-id="{{ p.id }}">Читать полностью · ~{{ reading_minutes(p.content) }} мин</button>{% endif %}
@@ -88,7 +88,7 @@
 {%- if p.poll %}{{ poll_block(p, user, st) }}{% endif %}
 {{ media_block(p) }}
 {%- if p.content_warning %}</div></div>{% endif %}
-{%- if p.expires_at %}<div class="tiny faint" style="margin-top:-4px">⏳ пост исчезнет {{ p.expires_at|lt("%d.%m в %H:%M") }}</div>{% endif %}
+{%- if p.expires_at %}<div class="tiny faint" style="margin-top:-4px">{{ icon("hourglass", "i in") }} пост исчезнет {{ p.expires_at|lt("%d.%m в %H:%M") }}</div>{% endif %}
 {%- endmacro %}
 
 {% macro post_card(p, user, st, originals={}, repost_counts={}, can_mod=false, full=false) -%}
@@ -108,25 +108,25 @@
         <span class="faint">·</span>
         <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at|lt('%d.%m.%Y %H:%M') }}">{{ main.created_at|ago }}</a>
         {%- if main.edited_at %}<a class="faint tiny" href="/post/{{ main.id }}/history" title="История правок">· изм.</a>{% endif %}
-        {%- if main.is_archived %}<span class="pill-info">🗄 в архиве</span>{% endif %}
+        {%- if main.is_archived %}<span class="pill-info">{{ icon("archive", "i in") }} в архиве</span>{% endif %}
         {%- if main.visibility == "followers" %}<span class="faint" title="Только для подписчиков">{{ icon("lock") }}</span>{% endif %}
-        {%- if user and user.pinned_post_id == main.id and main.user_id == user.id %}<span class="pill-info">📌 закреплён</span>{% endif %}
+        {%- if user and user.pinned_post_id == main.id and main.user_id == user.id %}<span class="pill-info">{{ icon("pin", "i in") }} закреплён</span>{% endif %}
         <div class="menu-wrap">
           <button class="icon-btn" data-menu aria-label="Меню">{{ icon("more") }}</button>
           <div class="menu">
             <button data-act="copy" data-id="{{ main.id }}">{{ icon("link") }} Копировать ссылку</button>
-            {%- if main.content %}<button data-act="copy-text" data-id="{{ main.id }}">📋 Копировать текст</button>{% endif %}
-            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">✈️ В Telegram</a>
-            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">💬 В WhatsApp</a>
-            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">🅥 ВКонтакте</a>
-            <a href="/post/{{ main.id }}/qr">🔳 QR-код поста</a>
-            {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">📨 Отправить в чат</button>
-            <button data-act="remind" data-id="{{ main.id }}">⏰ Напомнить завтра</button>{% endif %}
+            {%- if main.content %}<button data-act="copy-text" data-id="{{ main.id }}">{{ icon("clipboard", "i in") }} Копировать текст</button>{% endif %}
+            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("plane", "i in") }} В Telegram</a>
+            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("chat", "i in") }} В WhatsApp</a>
+            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">ВКонтакте</a>
+            <a href="/post/{{ main.id }}/qr">{{ icon("qr", "i in") }} QR-код поста</a>
+            {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">{{ icon("inbox", "i in") }} Отправить в чат</button>
+            <button data-act="remind" data-id="{{ main.id }}">{{ icon("alarm", "i in") }} Напомнить завтра</button>{% endif %}
             {%- if user and user.id == main.user_id %}
             <button data-act="edit-post" data-id="{{ main.id }}">{{ icon("edit") }} Редактировать</button>
             <button data-act="pin-post" data-id="{{ main.id }}">{{ icon("pin") }} Закрепить в профиле</button>
             <a href="/post/{{ main.id }}/stats">{{ icon("chart") }} Статистика</a>
-            <button data-act="toggle" data-url="/post/{{ main.id }}/archive" data-reload="1" data-msg="Готово">🗄 {% if main.is_archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
+            <button data-act="toggle" data-url="/post/{{ main.id }}/archive" data-reload="1" data-msg="Готово">{{ icon("archive", "i in") }} {% if main.is_archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
             {%- endif %}
             {%- if user and user.id != main.user_id %}
             <button data-act="not-interested" data-id="{{ main.id }}">{{ icon("eye") }} Не интересно</button>
@@ -150,12 +150,10 @@
       {%- else %}
         {{ post_inner(main, user, st, can_mod, full) }}
       {%- endif %}
-      {%- set rc = {} -%}
-      {%- for r in main.reactions %}{% set _ = rc.update({r.emoji: rc.get(r.emoji, 0) + 1}) %}{% endfor %}
-      <div class="reaction-bar" id="reactions-{{ main.id }}">{% for em, n in rc.items() %}<button class="reaction-pill {% if st.my_reactions.get(main.id) == em %}mine{% endif %}" data-act="react" data-id="{{ main.id }}" data-emoji="{{ em }}">{{ em }} <b>{{ n }}</b></button>{% endfor %}</div>
       <div class="post-actions">
         {%- set hide = main.author.hide_likes and not (user and user.id == main.user_id) %}
-        <button class="act like {% if main.id in st.liked %}on{% endif %}" data-act="like" data-id="{{ main.id }}" title="Нравится">{{ icon("heart") }}<span class="n">{% if not hide %}{{ main.likes|length }}{% endif %}</span></button>
+        <button class="act like {% if main.id in st.liked %}on{% endif %}" data-act="like" data-id="{{ main.id }}" title="Нравится">{{ icon("heart", "i off-ico") }}{{ icon("heart-fill", "i on-ico") }}<span class="n">{% if not hide %}{{ main.likes|length }}{% endif %}</span></button>
+        <button class="act whale {% if main.id in st.whaled %}on{% endif %}" data-act="whale" data-id="{{ main.id }}" title="Кит — суперлайк">{{ icon("whale", "i off-ico") }}{{ icon("whale-fill", "i on-ico") }}<span class="n">{{ main.whales|length }}</span></button>
         <a class="act" href="/post/{{ main.id }}#comments" title="Комментарии">{{ icon("comment") }}<span>{{ main.comments|length }}</span></a>
         <span class="menu-wrap" style="margin-left:0">
           <button class="act repost {% if main.id in st.reposted %}on{% endif %}" data-menu title="Репост">{{ icon("repost") }}<span class="n">{{ repost_counts.get(main.id, 0) }}</span></button>
@@ -164,8 +162,6 @@
             <button data-act="quote" data-id="{{ main.id }}">{{ icon("edit") }} Цитировать</button>
           </div>
         </span>
-        <button class="act whale {% if main.id in st.whaled %}on{% endif %}" data-act="whale" data-id="{{ main.id }}" title="Кит — суперлайк">🐋<span class="n">{{ main.whales|length }}</span></button>
-        <span style="position:relative"><button class="act" data-act="react-open" data-id="{{ main.id }}" title="Реакция">{{ icon("smile") }}</button></span>
         <span class="act faint hide-mobile" title="Просмотры" style="cursor:default">{{ icon("eye") }}{{ (main.views or 0)|compact }}</span>
         <button class="act {% if main.id in st.bookmarked %}on{% endif %} bm" data-act="bookmark" data-id="{{ main.id }}" title="В закладки" style="margin-left:auto">{{ icon("bookmark") }}</button>
         <button class="act" data-act="share" data-id="{{ main.id }}" title="Поделиться">{{ icon("share") }}</button>

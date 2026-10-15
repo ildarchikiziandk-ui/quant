@@ -3,20 +3,20 @@
 {% block title %}{{ ev.title }} — {{ brand }}{% endblock %}
 {% block content %}
 <div class="card">
-  <div class="tiny muted">📅 Мероприятие{% if past %} · прошло{% endif %}</div>
+  <div class="tiny muted">{{ icon("calendar", "i in") }} Мероприятие{% if past %} · прошло{% endif %}</div>
   <div style="font-size:24px;font-weight:800;margin:4px 0 8px">{{ ev.title }}</div>
-  <div class="row wrap small" style="gap:8px"><span class="tag-pill">🕒 {{ ev.starts_at|lt("%d.%m.%Y %H:%M") }} ({{ tz_city(user) }})</span>{% if ev.place %}<span class="tag-pill">📍 {{ ev.place }}</span>{% endif %}
-  <a class="tag-pill" href="/profile/{{ ev.author.username if ev.author else '' }}">👤 @{{ ev.author.username if ev.author else "?" }}</a></div>
+  <div class="row wrap small" style="gap:8px"><span class="tag-pill">{{ icon("clock", "i in") }} {{ ev.starts_at|lt("%d.%m.%Y %H:%M") }} ({{ tz_city(user) }})</span>{% if ev.place %}<span class="tag-pill">{{ icon("map", "i in") }} {{ ev.place }}</span>{% endif %}
+  <a class="tag-pill" href="/profile/{{ ev.author.username if ev.author else '' }}">{{ icon("user", "i in") }} @{{ ev.author.username if ev.author else "?" }}</a></div>
   {% if ev.description %}<div class="mt" style="white-space:pre-wrap">{{ ev.description|rich }}</div>{% endif %}
   {% if user and not past %}<div class="row mt" style="gap:8px">
-    <form method="post" action="/events/{{ ev.id }}/rsvp/going"><button class="btn sm {% if my != 'going' %}soft{% endif %}">{% if my == 'going' %}✓ Я иду{% else %}🙋 Пойду{% endif %}</button></form>
-    <form method="post" action="/events/{{ ev.id }}/rsvp/maybe"><button class="btn sm {% if my != 'maybe' %}ghost{% endif %}">{% if my == 'maybe' %}✓ Интересно{% else %}🤔 Интересно{% endif %}</button></form>
-    <button class="btn ghost sm" data-act="copy" data-url="/events/{{ ev.id }}">🔗 Ссылка</button>
+    <form method="post" action="/events/{{ ev.id }}/rsvp/going"><button class="btn sm {% if my != 'going' %}soft{% endif %}">{% if my == 'going' %}{{ icon("check", "i in") }} Я иду{% else %}{{ icon("wave", "i in") }} Пойду{% endif %}</button></form>
+    <form method="post" action="/events/{{ ev.id }}/rsvp/maybe"><button class="btn sm {% if my != 'maybe' %}ghost{% endif %}">{% if my == 'maybe' %}{{ icon("check", "i in") }} Интересно{% else %}{{ icon("star", "i in") }} Интересно{% endif %}</button></form>
+    <button class="btn ghost sm" data-act="copy" data-url="/events/{{ ev.id }}">{{ icon("link", "i in") }} Ссылка</button>
   </div>{% elif not user %}<div class="mt small"><a href="/login?next=/events/{{ ev.id }}" style="color:var(--link);font-weight:600">Войдите</a>, чтобы отметиться.</div>{% endif %}
   {% if user and (user.id == ev.user_id or can_mod) %}<form method="post" action="/events/{{ ev.id }}/delete" class="mt" onsubmit="return confirm('Удалить мероприятие?')"><button class="btn danger ghost sm">Удалить</button></form>{% endif %}
 </div>
 <div class="grid-2">
-  <div class="card"><div class="card-title">🙋 Идут · {{ going|length }}</div>{% for u in going %}<a href="/profile/{{ u.username }}" class="row small" style="padding:4px 0">{{ avatar(u, 28) }}<span>{{ u.name or u.username }}</span></a>{% else %}<div class="small muted">Пока никого</div>{% endfor %}</div>
-  <div class="card"><div class="card-title">🤔 Интересно · {{ maybe|length }}</div>{% for u in maybe %}<a href="/profile/{{ u.username }}" class="row small" style="padding:4px 0">{{ avatar(u, 28) }}<span>{{ u.name or u.username }}</span></a>{% else %}<div class="small muted">Пока никого</div>{% endfor %}</div>
+  <div class="card"><div class="card-title">{{ icon("wave", "i in") }} Идут · {{ going|length }}</div>{% for u in going %}<a href="/profile/{{ u.username }}" class="row small" style="padding:4px 0">{{ avatar(u, 28) }}<span>{{ u.name or u.username }}</span></a>{% else %}<div class="small muted">Пока никого</div>{% endfor %}</div>
+  <div class="card"><div class="card-title">{{ icon("star", "i in") }} Интересно · {{ maybe|length }}</div>{% for u in maybe %}<a href="/profile/{{ u.username }}" class="row small" style="padding:4px 0">{{ avatar(u, 28) }}<span>{{ u.name or u.username }}</span></a>{% else %}<div class="small muted">Пока никого</div>{% endfor %}</div>
 </div>
 {% endblock %}

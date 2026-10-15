@@ -44,7 +44,7 @@ def settings_page(request: Request, section: str = "profile", saved: int = 0, db
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
-    extra = {"success": "Настройки сохранены ✓"} if saved else {}
+    extra = {"success": "Настройки сохранены"} if saved else {}
     if section == "security" and not user.two_factor_enabled:
         secret = request.cookies.get("totp_setup") or auth.totp_new_secret()
         extra = {"totp_secret": secret, "totp_uri": auth.totp_uri(secret, user.username)}
@@ -96,7 +96,6 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
     user.city = _clean(form, "city", 60)
     bday = _clean(form, "birthday", 10)
     user.birthday = bday if re.match(r"^\d{4}-\d{2}-\d{2}$", bday) else ""
-    user.emoji_status = _clean(form, "emoji_status", 8)
     user.telegram_link = _clean(form, "telegram_link", 100)
     user.youtube_link = _clean(form, "youtube_link", 100)
     user.tiktok_link = _clean(form, "tiktok_link", 100)
@@ -278,8 +277,9 @@ async def plus_color(request: Request, db: Session = Depends(get_db)):
     if not user or not social.is_plus(user):
         return redirect("/settings?section=plus")
     form = await request.form()
-    color = form.get("color") or ""
-    if re.match(r"^#[0-9a-fA-F]{6}$", color):
+    color = (form.get("preset") or form.get("color") or "").strip()
+    from services import plus as plus_srv
+    if plus_srv.valid_color(color):
         user.plus_color = color
         db.commit()
     return redirect("/settings?section=plus")
@@ -362,7 +362,7 @@ async def enable_2fa(request: Request, db: Session = Depends(get_db)):
     user.two_factor_enabled = True
     gamification.check_achievement(user, db, "secure")
     db.commit()
-    resp = _settings(request, db, user, "security", success="Двухфакторная защита включена 🔐")
+    resp = _settings(request, db, user, "security", success="Двухфакторная защита включена")
     resp.delete_cookie("totp_setup")
     return resp
 

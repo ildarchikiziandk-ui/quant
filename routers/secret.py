@@ -101,7 +101,7 @@ async def secret_start(request: Request, db: Session = Depends(get_db)):
     chat = models.SecretChat(a_id=user.id, b_id=peer.id, a_pub=pub, ukm=ukm, ttl=ttl)
     db.add(chat)
     db.commit()
-    push.send_push_to_user(peer.id, db, "🔐 Секретный чат", f"@{user.username} приглашает в секретный чат", f"/secret/{chat.id}")
+    push.send_push_to_user(peer.id, db, "Секретный чат", f"@{user.username} приглашает в секретный чат", f"/secret/{chat.id}")
     return {"ok": True, "id": chat.id, "ukm": ukm}
 
 
@@ -187,7 +187,7 @@ async def secret_send(chat_id: int, request: Request, db: Session = Depends(get_
     db.add(msg)
     db.commit()
     # текст зашифрован — в пуше его быть не может
-    push.send_push_to_user(peer.id, db, "🔐 Секретный чат", "Новое сообщение", f"/secret/{chat.id}")
+    push.send_push_to_user(peer.id, db, "Секретный чат", "Новое сообщение", f"/secret/{chat.id}")
     return {"ok": True, "id": msg.id}
 
 

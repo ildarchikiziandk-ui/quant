@@ -4,7 +4,7 @@
 {% block content %}
 <div class="card hero"><div style="font-size:28px;font-weight:800">#{{ tag }}</div><div class="muted">{{ plural(posts|length, "пост", "поста", "постов") }}{% if trend %} · упоминаний всего: {{ trend.count }}{% endif %}</div>
 <div class="tiny muted">{{ plural(tag_followers, "подписчик", "подписчика", "подписчиков") }} темы</div>
-{% if user %}<div class="row mt"><button class="btn sm {% if followed %}ghost{% endif %}" data-act="toggle" data-url="/hashtag/{{ tag }}/follow" data-reload="1" data-msg="{% if followed %}Вы отписались от темы{% else %}Посты с #{{ tag }} появятся в вашей ленте{% endif %}">{% if followed %}✓ Вы подписаны на тему{% else %}+ Подписаться на тему{% endif %}</button>
+{% if user %}<div class="row mt"><button class="btn sm {% if followed %}ghost{% endif %}" data-act="toggle" data-url="/hashtag/{{ tag }}/follow" data-reload="1" data-msg="{% if followed %}Вы отписались от темы{% else %}Посты с #{{ tag }} появятся в вашей ленте{% endif %}">{% if followed %}{{ icon("check", "i in") }} Вы подписаны на тему{% else %}+ Подписаться на тему{% endif %}</button>
 <a href="/create" class="btn soft sm" onclick="try{localStorage.setItem('composer-draft','#{{ tag }} ')}catch(e){}">Написать с #{{ tag }}</a></div>{% endif %}</div>
 {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty">Постов с этим тегом пока нет</div>{% endfor %}
 {% endblock %}

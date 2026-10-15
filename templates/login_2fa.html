@@ -1,7 +1,7 @@
 {% extends "bare.html" %}
 {% block title %}Подтверждение входа — {{ brand }}{% endblock %}
 {% block card %}
-<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">🔐 Двухфакторная защита</h1>
+<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">{{ icon("secret", "i in") }} Двухфакторная защита</h1>
 <p class="center muted small mb">Введите 6-значный код из приложения-аутентификатора</p>
 {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
 <form method="post" action="/login/2fa">

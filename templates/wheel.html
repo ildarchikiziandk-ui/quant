@@ -2,10 +2,10 @@
 {% block title %}Колесо фортуны — {{ brand }}{% endblock %}
 {% block content %}
 <div class="card center" style="padding:24px">
-  <div class="page-title">🎡 Колесо фортуны</div><div class="small muted">Раз в день можно получить от 5 до 50 очков бесплатно</div>
+  <div class="page-title">{{ icon("wheel", "i in") }} Колесо фортуны</div><div class="small muted">Раз в день можно получить от 5 до 50 очков бесплатно</div>
   <div class="wheel-pin mt"></div>
   <div class="wheel" id="wheel">{% for p in prizes %}<span style="transform:rotate({{ loop.index0 * 45 + 22.5 - 90 }}deg) translate(70px,-8px)">{{ p }}</span>{% endfor %}</div>
-  {% if spun %}<div class="alert info">Вы уже крутили колесо сегодня. Приходите завтра! 🙂</div>
+  {% if spun %}<div class="alert info">Вы уже крутили колесо сегодня. Приходите завтра! {{ icon("smile", "i in") }}</div>
   {% else %}<button class="btn" id="spin">Крутить!</button>{% endif %}
   <div id="won" class="mt" style="font-size:22px;font-weight:800"></div>
 </div>
@@ -14,6 +14,6 @@
 document.getElementById('spin')?.addEventListener('click', async function(){ this.disabled=true;
   try{ const r=await App.api('/wheel/spin'); const w=document.getElementById('wheel');
     const target=360*6 + (360 - (r.index*45 + 22.5)); w.style.transform=`rotate(${target}deg)`;
-    setTimeout(()=>{ document.getElementById('won').textContent=`+${r.prize} очков ✨`; App.toast(`Выигрыш: +${r.prize} очков`); this.remove(); }, 3100);
+    setTimeout(()=>{ document.getElementById('won').textContent=`+${r.prize} очков`; App.toast(`Выигрыш: +${r.prize} очков`); this.remove(); }, 3100);
   }catch(e){ this.disabled=false; } });
 </script>{% endblock %}

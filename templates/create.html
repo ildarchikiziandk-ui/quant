@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Новый пост — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">✍️ Новый пост</div>
+<div class="page-title">{{ icon("pen", "i in") }} Новый пост</div>
 {% include "partials/composer.html" %}
 {% if drafts %}
-<div class="card"><div class="card-title">📝 Черновики <a href="/drafts">Все →</a></div>
+<div class="card"><div class="card-title">{{ icon("note", "i in") }} Черновики <a href="/drafts">Все →</a></div>
   <div class="chips">{% for d in drafts %}<a href="#" class="chip" data-draft-load="{{ d.id }}" data-content="{{ d.content }}">{{ d.content[:40] }}{% if d.content|length > 40 %}…{% endif %}</a>{% endfor %}</div>
 </div>
 {% endif %}

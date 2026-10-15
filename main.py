@@ -15,6 +15,9 @@ from routers import (admin, api, auth_routes, explore, extras, feed, more, group
 
 migrations.run()
 
+from services import icons as _icons  # noqa: E402
+_icons.write_sprite("static/icons.svg")
+
 app = FastAPI(title=config.BRAND_NAME, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")

@@ -2,19 +2,19 @@
 {% from "partials/macros.html" import avatar %}
 {% block title %}Магазин — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">🛍 Магазин</div><span class="tag-pill">у вас ✨ {{ balance }}</span></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bag", "i in") }} Магазин</div><span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ balance }}</span></div>
 {% if request.query_params.get('err') %}<div class="alert error">Не хватает очков</div>{% endif %}
-<div class="card"><div class="card-title">🖼 Рамки для аватарки</div><p class="small muted mb">Рамка видна везде, где показывается ваша аватарка. Купленные рамки остаются навсегда.</p>
+<div class="card"><div class="card-title">{{ icon("image", "i in") }} Рамки для аватарки</div><p class="small muted mb">Рамка видна везде, где показывается ваша аватарка. Купленные рамки остаются навсегда.</p>
   <div class="gift-grid">
     <form method="post" action="/shop/frame/none" class="gift" style="cursor:default">{{ avatar(user, 54) }}<span class="tiny">Без рамки</span><button class="btn ghost sm" {% if not user.avatar_frame %}disabled{% endif %}>{% if not user.avatar_frame %}Сейчас{% else %}Снять{% endif %}</button></form>
     {% for code, title, price in frames %}
     <form method="post" action="/shop/frame/{{ code }}" class="gift" style="cursor:default"><span class="av-wrap frame-{{ code }}"><span class="av" style="width:54px;height:54px;">{% if user.avatar %}<img src="{{ user.avatar }}" alt="">{% else %}<span style="font-size:21px">{{ (user.name or user.username)[0]|upper }}</span>{% endif %}</span></span>
       <span class="tiny">{{ title }}</span>
-      {% if user.avatar_frame == code %}<button class="btn sm" disabled>Надето</button>{% elif code in owned %}<button class="btn soft sm">Надеть</button>{% else %}<button class="btn sm" {% if balance < price %}disabled{% endif %}>✨ {{ price }}</button>{% endif %}</form>
+      {% if user.avatar_frame == code %}<button class="btn sm" disabled>Надето</button>{% elif code in owned %}<button class="btn soft sm">Надеть</button>{% else %}<button class="btn sm" {% if balance < price %}disabled{% endif %}>{{ icon("sparkle", "i in") }} {{ price }}</button>{% endif %}</form>
     {% endfor %}
   </div></div>
-<div class="card row" style="gap:14px"><span style="font-size:40px">🧊</span><div class="grow"><b>Заморозка стрика</b><div class="small muted">Если пропустите день, стрик не сгорит. Срабатывает автоматически. У вас: <b>{{ user.streak_freezes or 0 }}</b> из 5.</div></div>
-  <form method="post" action="/shop/freeze"><button class="btn sm" {% if balance < freeze_price or (user.streak_freezes or 0) >= 5 %}disabled{% endif %}>✨ {{ freeze_price }}</button></form></div>
-<div class="card row" style="gap:14px"><span style="font-size:40px">🎁</span><div class="grow"><b>Подарки друзьям</b><div class="small muted">Откройте профиль друга и нажмите «🎁 Подарить»</div></div><a class="btn soft sm" href="/explore">К людям</a></div>
-<div class="card row" style="gap:14px"><span style="font-size:40px">🎡</span><div class="grow"><b>Колесо фортуны</b><div class="small muted">Раз в день — бесплатно до 50 очков</div></div><a class="btn soft sm" href="/wheel">Крутить</a></div>
+<div class="card row" style="gap:14px"><span style="font-size:40px">{{ icon("snowflake", "i in") }}</span><div class="grow"><b>Заморозка стрика</b><div class="small muted">Если пропустите день, стрик не сгорит. Срабатывает автоматически. У вас: <b>{{ user.streak_freezes or 0 }}</b> из 5.</div></div>
+  <form method="post" action="/shop/freeze"><button class="btn sm" {% if balance < freeze_price or (user.streak_freezes or 0) >= 5 %}disabled{% endif %}>{{ icon("sparkle", "i in") }} {{ freeze_price }}</button></form></div>
+<div class="card row" style="gap:14px"><span style="font-size:40px">{{ icon("gift", "i in") }}</span><div class="grow"><b>Подарки друзьям</b><div class="small muted">Откройте профиль друга и нажмите «{{ icon("gift", "i in") }} Подарить»</div></div><a class="btn soft sm" href="/explore">К людям</a></div>
+<div class="card row" style="gap:14px"><span style="font-size:40px">{{ icon("wheel", "i in") }}</span><div class="grow"><b>Колесо фортуны</b><div class="small muted">Раз в день — бесплатно до 50 очков</div></div><a class="btn soft sm" href="/wheel">Крутить</a></div>
 {% endblock %}

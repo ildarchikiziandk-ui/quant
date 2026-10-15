@@ -3,12 +3,12 @@
 {% set pu = profile_user %}{% set me = user and user.id == pu.id %}
 {% block title %}Подарки @{{ pu.username }} — {{ brand }}{% endblock %}
 {% block content %}
-<div class="card row" style="gap:14px"><a href="/profile/{{ pu.username }}">{{ avatar(pu, 56) }}</a><div class="grow"><div class="page-title" style="margin:0;font-size:22px">🎁 Подарки</div><div class="muted small">{{ name(pu) }} · получено {{ received|length }}</div></div></div>
+<div class="card row" style="gap:14px"><a href="/profile/{{ pu.username }}">{{ avatar(pu, 56) }}</a><div class="grow"><div class="page-title" style="margin:0;font-size:22px">{{ icon("gift", "i in") }} Подарки</div><div class="muted small">{{ name(pu) }} · получено {{ received|length }}</div></div></div>
 {% if user and not me %}
-<form class="card" method="post" action="/gifts/{{ pu.username }}/send" data-ajax data-reload data-success="Подарок отправлен 🎁">
-  <div class="card-title">Подарить {{ pu.name or pu.username }} <span class="tag-pill">у вас ✨ {{ balance }}</span></div>
+<form class="card" method="post" action="/gifts/{{ pu.username }}/send" data-ajax data-reload data-success="Подарок отправлен">
+  <div class="card-title">Подарить {{ pu.name or pu.username }} <span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ balance }}</span></div>
   <div class="gift-grid">{% for code, emoji, title, price in gifts %}
-    <label class="gift {% if balance < price %}poor{% endif %}"><input type="radio" name="gift" value="{{ code }}" {% if loop.first and balance >= price %}checked{% endif %} {% if balance < price %}disabled{% endif %}><span class="ge">{{ emoji }}</span><span class="tiny">{{ title }}</span><b class="tiny">✨ {{ price }}</b></label>
+    <label class="gift {% if balance < price %}poor{% endif %}"><input type="radio" name="gift" value="{{ code }}" {% if loop.first and balance >= price %}checked{% endif %} {% if balance < price %}disabled{% endif %}><img class="ge" src="/static/gifts/{{ code }}.svg" alt=""><span class="tiny">{{ title }}</span><b class="tiny">{{ icon("sparkle", "i in") }} {{ price }}</b></label>
   {% endfor %}</div>
   <input name="message" maxlength="140" placeholder="Подпись (необязательно)" class="mt">
   <div class="row" style="justify-content:space-between;margin-top:8px"><label class="check" style="margin:0"><input type="checkbox" name="anonymous" value="1"><span><b>Анонимно</b></span></label><button class="btn">Подарить</button></div>
@@ -17,8 +17,8 @@
 {% endif %}
 <div class="card"><div class="card-title">Полученные</div>
 {% for g in received %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}
-  <div class="row" style="padding:8px 0;border-top:1px solid var(--border);gap:12px"><span style="font-size:34px">{{ gi[1] }}</span><div class="grow"><b>{{ gi[2] }}</b>
-  <div class="small muted">{% if g.is_anonymous or not g.from_user %}🕶 от анонима{% else %}от <a href="/profile/{{ g.from_user.username }}">@{{ g.from_user.username }}</a>{% endif %} · {{ g.created_at|ago }}</div>{% if g.message %}<div class="small">«{{ g.message }}»</div>{% endif %}</div></div>
+  <div class="row" style="padding:8px 0;border-top:1px solid var(--border);gap:12px"><img src="/static/gifts/{{ gi[0] }}.svg" width="44" height="44" alt="{{ gi[2] }}"><div class="grow"><b>{{ gi[2] }}</b>
+  <div class="small muted">{% if g.is_anonymous or not g.from_user %}{{ icon("incognito", "i in") }} от анонима{% else %}от <a href="/profile/{{ g.from_user.username }}">@{{ g.from_user.username }}</a>{% endif %} · {{ g.created_at|ago }}</div>{% if g.message %}<div class="small">«{{ g.message }}»</div>{% endif %}</div></div>
 {% endif %}{% else %}<div class="small muted">Пока подарков нет{% if not me and user %} — станьте первым!{% endif %}</div>{% endfor %}
 </div>
 {% endblock %}

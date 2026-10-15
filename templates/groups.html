@@ -2,17 +2,17 @@
 {% from "partials/icons.html" import icon %}
 {% block title %}Группы — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">👥 Группы</div><button class="btn sm" data-modal="new-group">{{ icon("plus") }} Создать</button></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("users", "i in") }} Группы</div><button class="btn sm" data-modal="new-group">{{ icon("plus") }} Создать</button></div>
 <div class="card flat chat-list">
 {% for g in groups %}
   <a class="chat" href="/groups/{{ g.id }}">
     <span class="av" style="width:50px;height:50px;border-radius:16px">{% if g.avatar %}<img src="{{ g.avatar }}" alt="">{% else %}<span style="font-size:20px">{{ g.name[0]|upper }}</span>{% endif %}</span>
     <div class="grow"><b>{{ g.name }}</b><div class="preview ellipsis">{{ plural(counts.get(g.id, 0), "участник", "участника", "участников") }}{% if g.description %} · {{ g.description }}{% endif %}</div></div>
   </a>
-{% else %}<div class="empty"><div class="big">👥</div>Вы пока не состоите в группах.<br><button class="btn mt" data-modal="new-group">Создать первую</button></div>{% endfor %}
+{% else %}<div class="empty"><div class="big">{{ icon("users", "i in") }}</div>Вы пока не состоите в группах.<br><button class="btn mt" data-modal="new-group">Создать первую</button></div>{% endfor %}
 </div>
 <div class="modal-bg" id="new-group"><div class="modal">
-  <div class="modal-head">Новая группа <button class="icon-btn" data-close>✕</button></div>
+  <div class="modal-head">Новая группа <button class="icon-btn" data-close>{{ icon("x", "i in") }}</button></div>
   <form method="post" action="/groups/create" enctype="multipart/form-data">
     <label class="field"><span>Название</span><input name="name" maxlength="60" required></label>
     <label class="field"><span>Описание</span><textarea name="description" maxlength="300"></textarea></label>

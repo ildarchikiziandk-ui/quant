@@ -148,7 +148,7 @@ async def admin_plus(username: str, request: Request, db: Session = Depends(get_
         form = await request.form()
         days = int(form.get("days") or 30) if str(form.get("days") or "30").isdigit() else 30
         gamification.grant_plus(target, days)
-        db.add(models.Notification(user_id=target.id, type="system", text=f"Вам подарили Plus на {days} дней ✨"))
+        db.add(models.Notification(user_id=target.id, type="system", text=f"Вам подарили Plus на {days} дней"))
         log_mod(db, user, "grant_plus", target.username, f"{days}")
         db.commit()
     return _back(request)
@@ -182,7 +182,7 @@ def admin_reset_password(username: str, request: Request, db: Session = Depends(
     db.query(models.UserSession).filter_by(user_id=target.id).update({"is_active": False})
     log_mod(db, user, "reset_password", target.username)
     db.commit()
-    return render(request, db, "error.html", sidebar=False, code="🔑", title=f"Новый пароль для @{target.username}",
+    return render(request, db, "error.html", sidebar=False, code="key", title=f"Новый пароль для @{target.username}",
                   text=f"Временный пароль: {temp} — передайте его пользователю. Сменить его можно в Настройки → Аккаунт.")
 
 
@@ -277,7 +277,7 @@ async def admin_special_request(req_id: int, action: str, request: Request, db: 
         else:
             r.status = "rejected"
         db.add(models.Notification(user_id=r.user_id, type="moderation",
-                                   text=f"Заявка «{r.type}» {'одобрена ✅' if action == 'approve' else 'отклонена'}. {r.admin_comment}"))
+                                   text=f"Заявка «{r.type}» {'одобрена' if action == 'approve' else 'отклонена'}. {r.admin_comment}"))
         log_mod(db, user, f"request_{action}", r.user.username, r.type)
         db.commit()
     return redirect("/admin?tab=requests")
@@ -295,7 +295,7 @@ def admin_ai_flag(flag_id: int, action: str, request: Request, db: Session = Dep
             post = db.get(models.Post, f.object_id)
             if post:
                 post.is_published = True
-                social.notify(db, f.user_id, "moderation", None, None, text="Модератор проверил ваш пост — он опубликован ✅")
+                social.notify(db, f.user_id, "moderation", None, None, text="Модератор проверил ваш пост — он опубликован")
         f.status = "approved"
         log_mod(db, user, "ai_approve", f"{f.kind}:{f.object_id}", f.snippet[:200])
     elif action == "remove":
@@ -385,7 +385,7 @@ async def admin_challenge(request: Request, db: Session = Depends(get_db)):
         target, points = 5, 100
     db.query(models.WeeklyChallenge).filter_by(is_active=True).update({"is_active": False})
     db.add(models.WeeklyChallenge(title=(form.get("title") or "Челлендж недели")[:80], description=(form.get("description") or "")[:200],
-                                  emoji=(form.get("emoji") or "🏆")[:4], points=points, task_type=ttype, target_count=target,
+                                  emoji=(form.get("emoji") or "trophy")[:20], points=points, task_type=ttype, target_count=target,
                                   week_start=now, week_end=now + timedelta(days=7)))
     log_mod(db, user, "challenge", ttype)
     db.commit()

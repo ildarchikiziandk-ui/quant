@@ -96,7 +96,7 @@ async def question_answer(qid: int, request: Request, db: Session = Depends(get_
         return json_error("Ответ пустой")
     q.answer, q.answered_at = answer, datetime.utcnow()
     if data.get("to_feed"):
-        content = f"❓ {q.text}\n\n{answer}\n\n#вопросответ"
+        content = f"Вопрос: {q.text}\n\n{answer}\n\n#вопросответ"
         post = models.Post(content=content, user_id=user.id, is_long=len(content) > 500)
         db.add(post)
         db.flush()
@@ -268,7 +268,7 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
     anon = bool(data.get("anonymous"))
     user.spent_points = (user.spent_points or 0) + g[3]
     db.add(models.UserGift(gift_code=g[0], from_user_id=user.id, to_user_id=pu.id, message=msg, is_anonymous=anon))
-    social.notify(db, pu.id, "gift", None if anon else user, text=f"Вам подарили {g[1]} {g[2]}" + (f": «{msg}»" if msg else ""),
+    social.notify(db, pu.id, "gift", None if anon else user, text=f"Вам подарили подарок «{g[2]}»" + (f": «{msg}»" if msg else ""),
                   url=f"/gifts/{pu.username}")
     gamification.check_achievement(user, db, "generous")
     db.commit()
@@ -351,7 +351,7 @@ def reward_inviter(db, new_user, ref):
     new_user.referred_by = inviter.id
     gamification.add_points(inviter, db, 100)
     gamification.check_achievement(inviter, db, "inviter")
-    social.notify(db, inviter.id, "invite", new_user, text="зарегистрировался(лась) по вашему приглашению · +100 ✨")
+    social.notify(db, inviter.id, "invite", new_user, text="зарегистрировался(лась) по вашему приглашению · +100 очков")
 
 
 # ===================================== Воспоминания =====================================

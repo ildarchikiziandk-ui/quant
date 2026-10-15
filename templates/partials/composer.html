@@ -13,7 +13,7 @@
         <div id="poll-options"><input name="poll_options" maxlength="100" placeholder="Вариант 1"><input name="poll_options" maxlength="100" placeholder="Вариант 2"></div>
         <div class="row"><button type="button" class="btn soft sm" id="add-poll-option">+ вариант</button>
           <select name="poll_days" style="width:auto;margin:0"><option value="0">Без срока</option><option value="1">1 день</option><option value="3">3 дня</option><option value="7">7 дней</option></select></div>
-        <div class="row mt" style="gap:8px"><label class="check" style="margin:0"><input type="checkbox" name="quiz" value="1"><span><b>🧠 Викторина</b><small>за правильный ответ +10 очков</small></span></label>
+        <div class="row mt" style="gap:8px"><label class="check" style="margin:0"><input type="checkbox" name="quiz" value="1"><span><b>{{ icon("bulb", "i in") }} Викторина</b><small>за правильный ответ +10 очков</small></span></label>
           <select name="quiz_correct" style="width:auto;margin:0" title="Правильный ответ">{% for i in range(1, 7) %}<option value="{{ i }}">Верный: вариант {{ i }}</option>{% endfor %}</select></div>
       </div>
       <div class="composer-extra hidden" id="panel-settings">
@@ -25,7 +25,7 @@
       </div>
       <div class="composer-extra hidden" id="panel-more">
         <div class="form-row">
-          <label class="field"><span>Настроение</span><select name="mood"><option value="">— без настроения —</option>{% for k, e, t in moods %}<option value="{{ k }}">{{ e }} {{ t }}</option>{% endfor %}</select></label>
+          <div class="field"><span>Настроение</span><div class="mood-grid"><label class="mood-chip"><input type="radio" name="mood" value="" checked><span>без настроения</span></label>{% for k, e, t in moods %}<label class="mood-chip"><input type="radio" name="mood" value="{{ k }}"><span>{{ emo(e) }} {{ t }}</span></label>{% endfor %}</div></div>
           <label class="field"><span>Где вы</span><input name="location" maxlength="60" placeholder="Казань, кофейня «Утро»"></label>
         </div>
         <div class="form-row">

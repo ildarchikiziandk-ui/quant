@@ -14,7 +14,7 @@ NOTIFY_PREF = {"like": "notify_likes", "whale": "notify_likes", "reaction": "not
                "follow_request": "notify_follows", "follow_accept": "notify_follows", "mention": "notify_mentions",
                "repost": "notify_likes"}
 
-NOTIFY_TEXT = {"like": "оценил(а) ваш пост", "whale": "отправил(а) 🐋 вашему посту", "comment": "прокомментировал(а) ваш пост",
+NOTIFY_TEXT = {"like": "оценил(а) ваш пост", "whale": "отправил(а) кита вашему посту", "comment": "прокомментировал(а) ваш пост",
                "reply": "ответил(а) на ваш комментарий", "follow": "подписался(лась) на вас", "mention": "упомянул(а) вас",
                "follow_request": "хочет подписаться на вас", "follow_accept": "принял(а) вашу заявку", "repost": "репостнул(а) ваш пост",
                "reaction": "отреагировал(а) на ваш пост", "comment_like": "оценил(а) ваш комментарий",

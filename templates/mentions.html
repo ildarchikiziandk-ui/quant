@@ -3,5 +3,5 @@
 {% block title %}Упоминания — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-title">@ Упоминания</div><div class="page-sub">Посты, где вас отметили</div>
-{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty"><div class="big">📭</div>Вас пока никто не упоминал</div>{% endfor %}
+{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty"><div class="big">{{ icon("inbox", "i in") }}</div>Вас пока никто не упоминал</div>{% endfor %}
 {% endblock %}

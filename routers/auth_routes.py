@@ -50,6 +50,10 @@ def _client_ip(request: Request):
     return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "?")
 
 
+def _tz_ctx():
+    return {"tz_options": timezones.options(), "tz_map": timezones.iana_map()}
+
+
 def _finish_login(request, db, user, next_url="/"):
     token = auth.start_session(db, user, request)
     resp = redirect(safe_next(next_url))
@@ -122,15 +126,15 @@ def login_2fa(request: Request, code: str = Form(...), next: str = Form("/"), db
 def register_page(request: Request, db: Session = Depends(get_db)):
     if current_user(request, db):
         return redirect("/")
-    return render(request, db, "register.html", sidebar=False, beta=bool(config.BETA_CODE))
+    return render(request, db, "register.html", sidebar=False, beta=bool(config.BETA_CODE), **_tz_ctx())
 
 
 @router.post("/register")
 def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...),
              confirm_password: str = Form(...), agree: str = Form(""), consent: str = Form(""), adult: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
-             tz: str = Form(""), ref: str = Form(""), db: Session = Depends(get_db)):
+             tz: str = Form(""), tz_key: str = Form(""), ref: str = Form(""), db: Session = Depends(get_db)):
     username, email = username.strip().lstrip("@"), email.strip().lower()
-    form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE)}
+    form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE), "tz_key": tz_key, **_tz_ctx()}
 
     def fail(msg):
         return render(request, db, "register.html", sidebar=False, error=msg, **form)
@@ -160,15 +164,15 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
                        name=(name.strip() or username)[:60], email_verified=not config.EMAIL_ENABLED,
                        is_owner=(username == config.OWNER_USERNAME), pd_consent_at=datetime.utcnow(),
                        pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True)
-    tz_key = timezones.iana_map().get(tz.strip()[:64])
-    if tz_key:  # пояс определён браузером при регистрации
+    tz_key = tz_key if tz_key in timezones.BY_KEY else timezones.iana_map().get(tz.strip()[:64])
+    if tz_key:  # пояс выбран при регистрации (по умолчанию — определённый браузером)
         user.prefs = json.dumps({"timezone": tz_key}, ensure_ascii=False)
     db.add(user)
     db.commit()
     if config.EMAIL_ENABLED:
         _send_code(db, email, "register")
     db.add(models.Notification(user_id=user.id, type="system",
-                               text=f"Добро пожаловать в {config.BRAND_NAME}! Заполни профиль и выполни первые задания ✨"))
+                               text=f"Добро пожаловать в {config.BRAND_NAME}! Заполни профиль и выполни первые задания"))
     ref = (ref or request.cookies.get("ref") or "").strip()[:30]
     if ref and ratelimit.hit(f"invite-reward:{ref.lower()}", 5, 86400):  # не больше 5 наград в сутки — защита от накрутки
         from routers.extras import reward_inviter
@@ -314,22 +318,102 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
     yid = str(yu.get("id", ""))
     if not yid:
         return redirect("/login")
-    email = (yu.get("default_email") or f"yandex_{yid}@yandex.ru").lower()
-    user = db.query(models.User).filter(func.lower(models.User.email) == email).first()
+    user = db.query(models.User).filter(models.User.yandex_id == yid).first()
+    email = (yu.get("default_email") or "").lower()
+    if not user and email:
+        # Яндекс отдаёт только подтверждённый адрес — можно привязать существующий аккаунт с той же почтой
+        user = db.query(models.User).filter(func.lower(models.User.email) == email).first()
+        if user:
+            user.yandex_id = yid
+            db.commit()
+    new = False
     if not user:
+        current = current_user(request, db)
+        if current and not current.yandex_id:  # привязка Яндекса к уже вошедшему аккаунту
+            current.yandex_id = yid
+            db.commit()
+            return redirect("/settings/security")
         ubase = re.sub(r"[^A-Za-z0-9_]", "_", yu.get("login") or f"y_{yid}")[:26] or f"y_{yid}"
         if len(ubase) < 3:
             ubase = f"user_{ubase}"
         un, i = ubase, 1
         while db.query(models.User).filter(func.lower(models.User.username) == un.lower()).first():
             un, i = f"{ubase}_{i}", i + 1
-        user = models.User(name=(yu.get("real_name") or yu.get("display_name") or un)[:60], username=un, email=email,
-                           password=auth.hash_password(secrets.token_urlsafe(32)), is_verified=True, email_verified=True)
+        user = models.User(name=(yu.get("real_name") or yu.get("display_name") or un)[:60], username=un,
+                           email=email or f"yandex_{yid}@users.nvra.local", yandex_id=yid,
+                           password=auth.hash_password(secrets.token_urlsafe(32)), is_verified=True, email_verified=True,
+                           avatar=await _yandex_avatar(yu))
         db.add(user)
         db.commit()
+        new = True
     if user.two_factor_enabled and user.two_factor_secret:
         pending = auth.create_token({"uid": user.id, "purpose": "2fa", "exp": datetime.utcnow() + timedelta(minutes=5)})
         resp = render(request, db, "login_2fa.html", sidebar=False, next="/")
         resp.set_cookie("pending_2fa", pending, max_age=300, httponly=True, samesite="lax", secure=config.COOKIE_SECURE)
         return resp
-    return _finish_login(request, db, user, "/")
+    return _finish_login(request, db, user, "/signup/finish" if new or not user.pd_consent_at else "/")
+
+
+async def _yandex_avatar(yu):
+    """Скачивает аватарку из Яндекса (если она есть) и сохраняет как свою."""
+    if yu.get("is_avatar_empty") or not yu.get("default_avatar_id"):
+        return ""
+    import io
+    import uuid
+    import httpx
+    from PIL import Image
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(f"https://avatars.yandex.net/get-yapic/{yu['default_avatar_id']}/islands-200")
+        if r.status_code != 200 or len(r.content) > config.MAX_IMAGE_SIZE:
+            return ""
+        img = Image.open(io.BytesIO(r.content)).convert("RGB")
+        img.thumbnail((400, 400))
+        name = f"{uuid.uuid4().hex}.jpg"
+        img.save(f"{config.UPLOAD_DIR}/{name}", quality=88)
+        return f"/uploads/{name}"
+    except Exception as e:
+        print(f"Yandex avatar error: {e}")
+        return ""
+
+
+@router.get("/signup/finish")
+def signup_finish_page(request: Request, db: Session = Depends(get_db)):
+    """Последний шаг регистрации через Яндекс: часовой пояс, согласие на обработку данных, возраст."""
+    user = current_user(request, db)
+    if not user:
+        return redirect("/login")
+    from services import prefs
+    return render(request, db, "signup_finish.html", sidebar=False, tz_key=prefs.get(user, "timezone"), **_tz_ctx())
+
+
+@router.post("/signup/finish")
+def signup_finish(request: Request, username: str = Form(""), tz_key: str = Form(""), consent: str = Form(""),
+                  adult: str = Form(""), db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect("/login")
+    from services import prefs
+
+    def fail(msg):
+        return render(request, db, "signup_finish.html", sidebar=False, error=msg, tz_key=tz_key, **_tz_ctx())
+
+    username = username.strip().lstrip("@")
+    if username and username.lower() != user.username.lower():
+        err = validate_username(username)
+        if err:
+            return fail(err)
+        if db.query(models.User).filter(func.lower(models.User.username) == username.lower()).first():
+            return fail(f"Логин @{username} уже занят")
+        user.username = username
+    if not consent:
+        return fail("Нужно дать согласие на обработку персональных данных")
+    if not adult:
+        return fail(f"Регистрация доступна с {config.MIN_AGE} лет")
+    if tz_key in timezones.BY_KEY:
+        data = dict(prefs._raw(user))
+        data["timezone"] = tz_key
+        user.prefs = json.dumps(data, ensure_ascii=False)
+    user.pd_consent_at, user.pd_consent_version, user.age_confirmed = datetime.utcnow(), legal.CONSENT_VERSION, True
+    db.commit()
+    return redirect("/welcome")

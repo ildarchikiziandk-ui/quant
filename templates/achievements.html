@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Достижения — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">🏆 Достижения{% if user and target.id != user.id %} @{{ target.username }}{% endif %}</div>
+<div class="page-title">{{ icon("trophy", "i in") }} Достижения{% if user and target.id != user.id %} @{{ target.username }}{% endif %}</div>
 <div class="page-sub">Открыто {{ earned|length }} из {{ achievements|length }}</div>
 <div class="lvl-bar mb"><div style="width:{{ (earned|length / achievements|length * 100)|int if achievements else 0 }}%"></div></div>
 <div class="grid-3">
 {% for a in achievements %}{% set got = a.id in earned %}
-  <div class="ach {% if not got %}locked{% endif %}" title="{{ a.description }}"><div class="e">{{ a.emoji }}</div><b class="small">{{ a.name }}</b><div class="tiny muted">{{ a.description }}</div><span class="tag-pill">+{{ a.points_reward }}</span>{% if got %}<div class="tiny faint">{{ earned[a.id]|ago }}</div>{% endif %}</div>
+  <div class="ach {% if not got %}locked{% endif %}" title="{{ a.description }}"><div class="e">{{ glyph(a.emoji, "i") }}</div><b class="small">{{ a.name }}</b><div class="tiny muted">{{ a.description }}</div><span class="tag-pill">+{{ a.points_reward }}</span>{% if got %}<div class="tiny faint">{{ earned[a.id]|ago }}</div>{% endif %}</div>
 {% endfor %}
 </div>
 {% endblock %}

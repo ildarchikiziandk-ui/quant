@@ -12,12 +12,12 @@ from datetime import datetime
 from services import timezones
 
 SECTIONS = {
-    "feed": "📰 Лента",
-    "privacy": "🔒 Приватность",
-    "notifications": "🔔 Уведомления",
-    "messages": "💬 Сообщения",
-    "appearance": "🎨 Оформление",
-    "accessibility": "♿ Доступность",
+    "feed": "Лента",
+    "privacy": "Приватность",
+    "notifications": "Уведомления",
+    "messages": "Сообщения",
+    "appearance": "Оформление",
+    "accessibility": "Доступность",
 }
 
 ONOFF = None
@@ -77,7 +77,7 @@ PREFS = [
     _p("allow_anonymous_questions", "privacy", "Разрешить анонимные вопросы", "", True, where="server", group="Вопросы"),
     _p("incognito_views", "privacy", "Не учитывать мои визиты в статистике чужих профилей", "", where="server", group="Следы"),
     _p("anonymous_stories", "privacy", "Смотреть истории анонимно", "Вы не попадёте в список просмотревших", where="server", group="Следы"),
-    _p("read_receipts", "privacy", "Отчёты о прочтении ✓✓", "Если выключить, собеседники не увидят, что вы прочитали сообщение", True, where="server", group="Следы"),
+    _p("read_receipts", "privacy", "Отчёты о прочтении", "Если выключить, собеседники не увидят, что вы прочитали сообщение", True, where="server", group="Следы"),
     _p("typing_status", "privacy", "Показывать «печатает…»", "", True, where="server", group="Следы"),
     # --- Уведомления --------------------------------------------------------------------------------------------
     _p("notify_reposts", "notifications", "Репосты", "Когда репостят ваш пост", True, where="server", group="Дополнительно"),

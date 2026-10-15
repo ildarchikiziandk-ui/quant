@@ -2,33 +2,33 @@
 {% from "partials/macros.html" import avatar, name %}{% from "partials/icons.html" import icon %}
 {% block title %}Сообщения — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">💬 Сообщения</div>
-  <div class="row"><a href="/secret" class="icon-btn" title="Секретные чаты (ГОСТ)">🔐</a><a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("chat", "i in") }} Сообщения</div>
+  <div class="row"><a href="/secret" class="icon-btn" title="Секретные чаты (ГОСТ)">{{ icon("secret", "i in") }}</a><a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
 <input type="search" placeholder="Поиск по чатам…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('.chat-list .chat').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')" class="mb">
 <div class="card flat chat-list">
   {% for c in chats %}
   <a href="/messages/{{ c.other.username }}" class="chat">
     {{ avatar(c.other, 50, online=true) }}
     <div class="grow">
-      <div class="row" style="justify-content:space-between"><span class="row" style="gap:4px;min-width:0">{{ name(c.other, link=false) }}{% if c.pinned %}<span class="faint" title="Закреплён">📌</span>{% endif %}{% if c.muted %}<span class="faint" title="Без звука">🔕</span>{% endif %}</span><span class="tiny faint">{{ c.time|ago }}</span></div>
-      <div class="row" style="justify-content:space-between"><span class="preview ellipsis {% if c.unread %}unread{% endif %}">{% if c.mine %}<span class="faint">{% if c.read %}✓✓{% else %}✓{% endif %} Вы:</span> {% endif %}{{ c.preview }}</span>{% if c.unread %}<span class="unread-dot">{{ c.unread }}</span>{% endif %}</div>
+      <div class="row" style="justify-content:space-between"><span class="row" style="gap:4px;min-width:0">{{ name(c.other, link=false) }}{% if c.pinned %}<span class="faint" title="Закреплён">{{ icon("pin", "i in") }}</span>{% endif %}{% if c.muted %}<span class="faint" title="Без звука">{{ icon("bell-off", "i in") }}</span>{% endif %}</span><span class="tiny faint">{{ c.time|ago }}</span></div>
+      <div class="row" style="justify-content:space-between"><span class="preview ellipsis {% if c.unread %}unread{% endif %}">{% if c.mine %}<span class="faint">{% if c.read %}{{ icon("check", "i in") }}{{ icon("check", "i in") }}{% else %}{{ icon("check", "i in") }}{% endif %} Вы:</span> {% endif %}{{ c.preview }}</span>{% if c.unread %}<span class="unread-dot">{{ c.unread }}</span>{% endif %}</div>
     </div>
   </a>
   {% endfor %}
   {% for g in groups %}
   <a href="/groups/{{ g.group.id }}" class="chat">
     <span class="av" style="width:50px;height:50px;border-radius:16px">{% if g.group.avatar %}<img src="{{ g.group.avatar }}" alt="">{% else %}<span style="font-size:20px">{{ g.group.name[0]|upper }}</span>{% endif %}</span>
-    <div class="grow"><div class="row" style="justify-content:space-between"><b class="ellipsis">👥 {{ g.group.name }}</b><span class="tiny faint">{{ g.time|ago }}</span></div>
-    <div class="preview ellipsis">{% if g.last %}{% if g.last.sender %}{{ g.last.sender.name or g.last.sender.username }}: {% endif %}{{ g.last.content or "📎 вложение" }}{% else %}Группа создана{% endif %}</div></div>
+    <div class="grow"><div class="row" style="justify-content:space-between"><b class="ellipsis">{{ icon("users", "i in") }} {{ g.group.name }}</b><span class="tiny faint">{{ g.time|ago }}</span></div>
+    <div class="preview ellipsis">{% if g.last %}{% if g.last.sender %}{{ g.last.sender.name or g.last.sender.username }}: {% endif %}{{ g.last.content or "Вложение" }}{% else %}Группа создана{% endif %}</div></div>
   </a>
   {% endfor %}
-  {% if not chats and not groups %}<div class="empty"><div class="big">💌</div>Здесь появятся ваши диалоги.<br><button class="btn mt" data-modal="new-chat">Начать переписку</button></div>{% endif %}
+  {% if not chats and not groups %}<div class="empty"><div class="big">{{ icon("mail", "i in") }}</div>Здесь появятся ваши диалоги.<br><button class="btn mt" data-modal="new-chat">Начать переписку</button></div>{% endif %}
 </div>
 <div class="modal-bg" id="new-chat"><div class="modal">
-  <div class="modal-head">Новое сообщение <button class="icon-btn" data-close>✕</button></div>
+  <div class="modal-head">Новое сообщение <button class="icon-btn" data-close>{{ icon("x", "i in") }}</button></div>
   <input type="search" id="nc-q" placeholder="Найти человека…" autocomplete="off">
   <div id="nc-res" class="mt">{% for u in contacts %}<a class="user-row" href="/messages/{{ u.username }}">{{ avatar(u, 40) }}<div class="info"><b>{{ u.name or u.username }}</b><div class="bio">@{{ u.username }}</div></div></a>{% endfor %}</div>
-  <div class="mt"><a href="/groups" class="btn soft block">👥 Создать группу</a></div>
+  <div class="mt"><a href="/groups" class="btn soft block">{{ icon("users", "i in") }} Создать группу</a></div>
 </div></div>
 {% endblock %}
 {% block scripts %}
