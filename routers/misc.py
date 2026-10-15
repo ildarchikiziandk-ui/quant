@@ -32,7 +32,8 @@ async def support_submit(request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "?"
     if not ratelimit.hit(f"support:{user.id if user else ip}", 5, 3600):
         return render(request, db, "support.html", error="Слишком много обращений, попробуйте позже")
-    text = f"От: {user.username if user else email}\nТема: {subject}\n{message}"
+    prio = "[Plus · приоритет] " if user and social.is_plus(user) else ""
+    text = f"{prio}От: {user.username if user else email}\nТема: {subject}\n{message}"
     owners = db.query(models.User).filter((models.User.is_owner == True) | (models.User.is_moderator == True)).all()
     for o in owners:
         db.add(models.Notification(user_id=o.id, from_user_id=user.id if user else None, type="support", text=text,

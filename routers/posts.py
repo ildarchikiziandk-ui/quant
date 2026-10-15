@@ -9,7 +9,7 @@ import config
 import models
 from database import get_db
 from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render
-from services import feed, gamification, moderation, prefs, ratelimit, social, timezones
+from services import feed, gamification, moderation, plus, prefs, ratelimit, social, timezones
 from services.text import censor, extract_hashtags
 from services.uploads import delete_file, is_upload, save_file
 
@@ -124,8 +124,8 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     if not ratelimit.hit(f"post:{user.id}", 20, 600):
         return json_error("Слишком часто. Подождите немного.", 429)
     form = await request.form()
-    content = (form.get("content") or "").strip()[:config.MAX_POST_LENGTH]
-    files = [f for f in form.getlist("media") + form.getlist("image") + form.getlist("video") if is_upload(f)][:config.MAX_POST_MEDIA]
+    content = (form.get("content") or "").strip()[:plus.limit(user, "post_length")]
+    files = [f for f in form.getlist("media") + form.getlist("image") + form.getlist("video") if is_upload(f)][:plus.limit(user, "post_media")]
     poll_q = (form.get("poll_question") or "").strip()[:200]
     poll_opts = [o.strip()[:100] for o in form.getlist("poll_options") if isinstance(o, str) and o.strip()]
     for i in range(1, 7):
@@ -150,14 +150,17 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     visibility = form.get("visibility") if form.get("visibility") in ("all", "followers") else "all"
     from services import extras
     exp = str(form.get("expires") or "")
+    is_plus = plus.active(user)
+    allowed_exp = ("24", "72", "168") + (tuple(k for k, _ in plus.EXPIRES) if is_plus else ())
+    allowed_bg = extras.BG_KEYS | (plus.BG_KEYS if is_plus else set())
     post = models.Post(content=content, user_id=user.id, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
                        is_long=len(content) > 500, scheduled_at=scheduled, visibility=visibility,
                        comments_disabled=bool(form.get("comments_disabled")),
                        mood=form.get("mood") if form.get("mood") in extras.MOOD_BY else "",
                        location=(form.get("location") or "").strip()[:60],
-                       bg=form.get("bg") if form.get("bg") in extras.BG_KEYS and len(content) <= 220 and not saved else "",
+                       bg=form.get("bg") if form.get("bg") in allowed_bg and len(content) <= 220 and not saved else "",
                        content_warning=censor((form.get("content_warning") or "").strip()[:80], social.stop_words(db)),
-                       expires_at=(scheduled or datetime.utcnow()) + timedelta(hours=int(exp)) if exp in ("24", "72", "168") else None)
+                       expires_at=(scheduled or datetime.utcnow()) + timedelta(hours=int(exp)) if exp in allowed_exp else None)
     db.add(post)
     db.flush()
     flag = moderation.review(db, "post", post, user, content)
@@ -212,7 +215,7 @@ async def edit_post(post_id: int, request: Request, db: Session = Depends(get_db
     if post.user_id != user.id:
         return json_error("forbidden", 403)
     data = await read_payload(request)
-    content = (data.get("content") or "").strip()[:config.MAX_POST_LENGTH]
+    content = (data.get("content") or "").strip()[:plus.limit(user, "post_length")]
     if not content and not post.image and not post.poll:
         return json_error("Пост не может быть пустым")
     update_trends(db, post.content or "", -1)
@@ -615,7 +618,7 @@ async def save_draft(request: Request, db: Session = Depends(get_db)):
     if not user:
         return json_error("auth", 401)
     data = await read_payload(request)
-    content = (data.get("content") or "").strip()[:config.MAX_POST_LENGTH]
+    content = (data.get("content") or "").strip()[:plus.limit(user, "post_length")]
     if not content:
         return json_error("Черновик пустой")
     did = data.get("draft_id")

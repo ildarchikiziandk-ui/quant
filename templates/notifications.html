@@ -18,7 +18,7 @@
       <div class="small">{% if n.from_user %}<b>{{ n.from_user.name or n.from_user.username }}</b> {% endif %}
         {%- if n.type == "support" %}<span class="pill-info">обращение в поддержку</span><div style="white-space:pre-wrap;margin-top:4px">{{ n.text }}</div>
         {%- elif n.type == "support_reply" %}<b>Ответ поддержки:</b> {{ n.text }}
-        {%- elif n.text %}{{ n.text }}
+        {%- elif n.text %}{{ n.text|noemoji }}
         {%- else %}{{ {"like":"оценил(а) ваш пост","whale":"отправил(а) кита вашему посту","comment":"прокомментировал(а) ваш пост","reply":"ответил(а) на ваш комментарий","follow":"подписался(лась) на вас","mention":"упомянул(а) вас","repost":"сделал(а) репост вашего поста","follow_request":"хочет подписаться на вас","follow_accept":"принял(а) вашу заявку","comment_like":"оценил(а) ваш комментарий"}.get(n.type, "новое уведомление") }}{% endif %}</div>
       {% if n.post and n.post.content %}<div class="tiny muted ellipsis" style="margin-top:2px">«{{ n.post.content[:90] }}»</div>{% endif %}
       {% if link %}</a>{% endif %}

@@ -11,6 +11,7 @@ GIFTS = [
     ("heart", "❤️", "Сердечко", 10), ("rose", "🌹", "Роза", 20), ("coffee", "☕", "Кофе", 25), ("cake", "🎂", "Тортик", 40),
     ("bear", "🧸", "Мишка", 50), ("star", "⭐", "Звезда", 60), ("fire", "🔥", "Огонь", 75), ("balloon", "🎈", "Шарик", 30),
     ("trophy", "🏆", "Кубок", 120), ("crown", "👑", "Корона", 200), ("diamond", "💎", "Бриллиант", 300), ("rocket", "🚀", "Ракета", 500),
+    ("whale", "🐋", "Кит Nuvora", 150), ("aurora", "✨", "Северное сияние", 250),  # только для Nuvora+
 ]
 GIFT_BY_CODE = {g[0]: g for g in GIFTS}
 
@@ -151,7 +152,7 @@ def parse_links(raw):
     except ValueError:
         return []
     out = []
-    for item in data[:5]:
+    for item in data[:10]:
         if isinstance(item, dict) and item.get("url"):
             out.append({"title": str(item.get("title") or "")[:40], "url": str(item["url"])[:200]})
     return out

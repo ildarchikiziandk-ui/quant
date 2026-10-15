@@ -578,7 +578,7 @@ document.addEventListener('click', (e) => { const s = e.target.closest('.spoiler
     if (inp.dataset.meter) return; inp.dataset.meter = 1;
     const bar = document.createElement('div'); bar.className = 'pw-meter'; bar.innerHTML = '<b></b>';
     const lbl = document.createElement('div'); lbl.className = 'tiny faint'; lbl.style.margin = '-4px 0 8px';
-    (inp.closest('label') || inp).after(bar, lbl);
+    (inp.closest('.form-row') || inp.closest('label') || inp).after(bar, lbl);
     inp.addEventListener('input', () => {
       const v = inp.value; let sc = 0;
       if (v.length >= 8) sc++; if (v.length >= 12) sc++; if (/[A-ZА-Я]/.test(v) && /[a-zа-я]/.test(v)) sc++; if (/\d/.test(v)) sc++; if (/[^\w\s]/.test(v)) sc++;

@@ -33,6 +33,8 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
     can_see = social.can_see_content(db, user, pu)
     if user and user.id != pu.id and not prefs.get(user, "incognito_views"):
         pu.profile_views = (pu.profile_views or 0) + 1
+        db.query(models.ProfileVisit).filter_by(owner_id=pu.id, viewer_id=user.id).delete()
+        db.add(models.ProfileVisit(owner_id=pu.id, viewer_id=user.id))
         db.commit()
     if not user and prefs.get(pu, "guests_hidden"):
         can_see = False
@@ -343,3 +345,24 @@ async def report_submit(username: str, request: Request, db: Session = Depends(g
     db.add(r)
     db.commit()
     return render(request, db, "report.html", target=target, success=True)
+
+
+@router.get("/guests")
+def guests_page(request: Request, db: Session = Depends(get_db)):
+    """Гости профиля за 30 дней — возможность Nuvora+."""
+    from datetime import datetime, timedelta
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    since = datetime.utcnow() - timedelta(days=30)
+    db.query(models.ProfileVisit).filter(models.ProfileVisit.created_at < since).delete(synchronize_session=False)
+    db.commit()
+    q = db.query(models.ProfileVisit).filter(models.ProfileVisit.owner_id == user.id, models.ProfileVisit.created_at >= since)
+    total = q.count()
+    visits = []
+    if social.is_plus(user):
+        rows = q.order_by(models.ProfileVisit.created_at.desc()).limit(200).all()
+        people = {u.id: u for u in db.query(models.User).filter(models.User.id.in_([r.viewer_id for r in rows] or [-1]))}
+        blocked = social.blocked_ids(db, user)
+        visits = [(people[r.viewer_id], r.created_at) for r in rows if r.viewer_id in people and r.viewer_id not in blocked]
+    return render(request, db, "guests.html", visits=visits, total=total, is_plus=social.is_plus(user))

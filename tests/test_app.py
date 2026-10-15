@@ -935,3 +935,54 @@ def test_signup_timezone_and_finish(anon):
     u = s.query(models.User).filter_by(email="nsk@example.com").one()
     assert u.username == "nsk2" and u.pd_consent_at and '"timezone": "krasnoyarsk"' in u.prefs
     s.close()
+
+
+def test_plus_features(alice, bob, owner):
+    from datetime import datetime
+    from services import plus
+    # без Plus: гости скрыты, эксклюзивный подарок недоступен, лимит поста 5000
+    bob.get("/profile/alice")
+    page = alice.get("/guests").text
+    assert "Список гостей доступен" in page and "1 человек заходил" in page
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    a.total_points = 1000
+    s.commit()
+    s.close()
+    assert alice.post("/gifts/bob/send", data={"gift": "whale"}, headers=J).json()["ok"] is False
+    # выдаём Plus
+    owner.post("/admin/plus/alice", data={"days": "30"})
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    assert plus.active(a) and plus.limit(a, "post_length") == 15000 and plus.limit(a, "voice") == 900
+    before = a.spent_points or 0
+    s.close()
+    assert "bob" in alice.get("/guests").text
+    r = alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).json()  # 500 со скидкой 30% = 350
+    assert r["ok"]
+    s = db()
+    assert s.query(models.User).filter_by(username="alice").one().spent_points - before == 350
+    s.close()
+    assert alice.post("/gifts/bob/send", data={"gift": "whale"}, headers=J).json()["ok"]
+    # очки ×1,5
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    pts = a.total_points
+    from services import gamification
+    gamification.add_points(a, s, 10)
+    assert a.total_points - pts == 15
+    s.close()
+    # два вращения колеса
+    assert alice.post("/wheel/spin", headers=J).json()["ok"]
+    assert alice.post("/wheel/spin", headers=J).json()["ok"]
+    assert alice.post("/wheel/spin", headers=J).status_code == 400
+    # цвет значка из палитры и имя с градиентом
+    alice.post("/settings/plus-color", data={"preset": "aurora"})
+    prof = bob.get("/profile/alice").text
+    assert "plus-name" in prof and "#22d3ee" in prof
+    assert "Гости профиля" in alice.get("/plus").text
+    # длинный пост
+    pid = create_post(alice, "а" * 9000)
+    s = db()
+    assert len(s.get(models.Post, pid).content) == 9000
+    s.close()

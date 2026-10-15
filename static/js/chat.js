@@ -108,6 +108,7 @@
     const recBtn = $('.cmp-rec', root), sendBtn = $('.cmp-send', root), panel = $('.rec-panel', root);
     const circleBox = $('.rec-circle', root), preview = $('video', circleBox), timeEl = $('.rec-time', panel), label = $('.rec-label', panel);
     const meter = $('.rec-meter', panel);
+    const MAXV = +root.dataset.voiceMax || MAX_VOICE, MAXC = +root.dataset.circleMax || MAX_CIRCLE;
     let mode = 'audio', rec = null, stream = null, chunks = [], t0 = 0, timer = null, pressTimer = null, cancelled = false, audioCtx = null, raf = 0;
 
     function refresh() {
@@ -163,8 +164,8 @@
       else startMeter();
       timer = setInterval(() => {
         const s = (Date.now() - t0) / 1000; timeEl.textContent = fmt(s);
-        circleBox.style.setProperty('--p', Math.min(1, s / MAX_CIRCLE));
-        if (s >= (kind === 'video' ? MAX_CIRCLE : MAX_VOICE)) stop(false);
+        circleBox.style.setProperty('--p', Math.min(1, s / MAXC));
+        if (s >= (kind === 'video' ? MAXC : MAXV)) stop(false);
       }, 200);
       refresh();
     }

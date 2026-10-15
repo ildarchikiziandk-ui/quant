@@ -20,6 +20,8 @@ def level_progress(user):
 def add_points(user, db, points):
     if not user or not points:
         return
+    from services import plus
+    points = plus.points(user, points)
     user.daily_points = (user.daily_points or 0) + points
     user.weekly_points = (user.weekly_points or 0) + points
     user.total_points = (user.total_points or 0) + points
@@ -118,6 +120,14 @@ def grant_plus(user, days):
     user.plus_until = start + timedelta(days=days)
 
 
+def _shield_ready(user):
+    from services import plus
+    if not plus.active(user):
+        return False
+    last = user.plus_shield_date or ""
+    return not last or last <= (date.today() - timedelta(days=plus.SHIELD_DAYS)).isoformat()
+
+
 def update_streak(user, db):
     today = date.today().isoformat()
     if user.last_streak_date == today:
@@ -136,6 +146,11 @@ def update_streak(user, db):
         user.streak_days = (user.streak_days or 0) + 1
         if prefs.get(user, "notify_achievements"):
             db.add(models.Notification(user_id=user.id, type="system", text=f"Заморозка спасла ваш стрик (пропущено дней: {missed})"))
+    elif missed == 1 and _shield_ready(user):  # Nuvora+: один пропуск в неделю прощается
+        user.plus_shield_date = today
+        user.streak_days = (user.streak_days or 0) + 1
+        if prefs.get(user, "notify_achievements"):
+            db.add(models.Notification(user_id=user.id, type="streak", text="Защита стрика Nuvora+ сохранила вашу серию"))
     else:
         user.streak_days = 1
     user.last_streak_date = today

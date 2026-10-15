@@ -88,7 +88,9 @@ class User(Base):
     pd_consent_at = Column(DateTime, nullable=True)  # согласие на обработку персональных данных (152-ФЗ ст. 9)
     pd_consent_version = Column(String(20), default="")
     age_confirmed = Column(Boolean, default=False)
-    yandex_id = Column(String(32), nullable=True, index=True)  # вход через Яндекс ID  # подтвердил, что ему есть MIN_AGE лет
+    yandex_id = Column(String(32), nullable=True, index=True)  # вход через Яндекс ID
+    last_spin2 = Column(String(10), default="")  # второе вращение колеса (Plus)
+    plus_shield_date = Column(String(10), default="")  # когда последний раз сработала защита стрика (Plus)  # подтвердил, что ему есть MIN_AGE лет
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -901,3 +903,12 @@ class SecretMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True, index=True)
     hidden = Column(Boolean, default=False)  # истёк таймер: пользователям не показывается
+
+
+class ProfileVisit(Base):
+    """Гости профиля (видны владельцам Nuvora+)."""
+    __tablename__ = "profile_visits"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, index=True)
+    viewer_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

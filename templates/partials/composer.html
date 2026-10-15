@@ -4,7 +4,7 @@
   <div class="row" style="align-items:flex-start;gap:12px">
     <a href="/profile/{{ user.username }}">{{ avatar(user, 44) }}</a>
     <div class="grow">
-      <textarea name="content" maxlength="5000" placeholder="Что нового, {{ user.name or user.username }}? Используйте #теги и @упоминания" data-suggest rows="2"></textarea>
+      <textarea name="content" maxlength="{{ plus_limit(user, 'post_length') }}" placeholder="Что нового, {{ user.name or user.username }}? Используйте #теги и @упоминания" data-suggest rows="2"></textarea>
       <div class="tiny faint" style="margin:-2px 0 4px">**жирный** · __курсив__ · ~~зачёркнутый~~ · `код` · ||спойлер|| · «&gt; » в начале строки — цитата</div>
       <input type="hidden" name="draft_id" value="">
       <div class="previews hidden" id="composer-previews"></div>
@@ -29,8 +29,8 @@
           <label class="field"><span>Где вы</span><input name="location" maxlength="60" placeholder="Казань, кофейня «Утро»"></label>
         </div>
         <div class="form-row">
-          <label class="field"><span>Фон для короткого текста</span><select name="bg"><option value="">Без фона</option>{% for k, t in post_bgs %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
-          <label class="field"><span>Исчезающий пост</span><select name="expires">{% for k, t in post_expires %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
+          <label class="field"><span>Фон для короткого текста</span><select name="bg"><option value="">Без фона</option>{% for k, t in post_bgs %}<option value="{{ k }}">{{ t }}</option>{% endfor %}{% if user_is_plus(user) %}<optgroup label="{{ brand_plus }}">{% for k, t in plus_bgs %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</optgroup>{% endif %}</select></label>
+          <label class="field"><span>Исчезающий пост</span><select name="expires">{% for k, t in post_expires %}<option value="{{ k }}">{{ t }}</option>{% endfor %}{% if user_is_plus(user) %}<optgroup label="{{ brand_plus }}">{% for k, t in plus_expires %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</optgroup>{% endif %}</select></label>
         </div>
         <label class="field"><span>Предупреждение о содержимом <span class="faint">— пост будет скрыт под плашкой</span></span><input name="content_warning" maxlength="80" placeholder="Спойлеры к сериалу, громкий звук…"></label>
       </div>

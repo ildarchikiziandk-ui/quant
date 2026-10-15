@@ -120,7 +120,8 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
         return login_redirect(request)
     form = await request.form()
     user.name = _clean(form, "name", 60) or user.username
-    user.bio = _clean(form, "bio", 300)
+    from services import plus
+    user.bio = _clean(form, "bio", plus.limit(user, "bio"))
     user.website = _clean_url(_clean(form, "website", 100))
     user.city = _clean(form, "city", 60)
     bday = _clean(form, "birthday", 10)

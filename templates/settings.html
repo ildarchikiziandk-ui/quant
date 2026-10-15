@@ -33,7 +33,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 <form class="card" method="post" action="/settings/profile">
   <div class="card-title">Информация</div>
   <label class="field"><span>Имя</span><input name="name" value="{{ user.name or '' }}" maxlength="60"></label>
-  <label class="field"><span>О себе <span class="faint" id="bio-n"></span></span><textarea name="bio" maxlength="300" oninput="document.getElementById('bio-n').textContent=300-this.value.length">{{ user.bio or '' }}</textarea></label>
+  <label class="field"><span>О себе <span class="faint" id="bio-n"></span></span><textarea name="bio" maxlength="{{ plus_limit(user, 'bio') }}" oninput="document.getElementById('bio-n').textContent={{ plus_limit(user, 'bio') }}-this.value.length">{{ user.bio or '' }}</textarea></label>
   <div class="form-row">
     <label class="field"><span>Город</span><input name="city" value="{{ user.city or '' }}" maxlength="60"></label>
   </div>
@@ -51,9 +51,9 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 </form>
 
 <form class="card" method="post" action="/settings/links">
-  <div class="card-title">{{ icon("link", "i in") }} Ссылки в профиле <span class="faint small">до 5</span></div>
+  <div class="card-title">{{ icon("link", "i in") }} Ссылки в профиле <span class="faint small">до {{ plus_limit(user, 'links') }}</span></div>
   {% set ls = profile_links %}
-  {% for i in range(5) %}<div class="form-row"><label class="field" style="max-width:200px"><span>Название</span><input name="link_title_{{ i }}" maxlength="40" value="{{ ls[i].title if ls|length > i else '' }}" placeholder="Портфолио"></label>
+  {% for i in range(plus_limit(user, 'links')) %}<div class="form-row"><label class="field" style="max-width:200px"><span>Название</span><input name="link_title_{{ i }}" maxlength="40" value="{{ ls[i].title if ls|length > i else '' }}" placeholder="Портфолио"></label>
   <label class="field"><span>Адрес</span><input name="link_url_{{ i }}" maxlength="200" value="{{ ls[i].url if ls|length > i else '' }}" placeholder="example.com"></label></div>{% endfor %}
   <button class="btn">Сохранить ссылки</button>
 </form>
@@ -135,7 +135,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="card-title">Акцентный цвет</div>
   <div class="row wrap mb">
     <label class="chip {% if not user.accent_color %}active{% endif %}"><input type="radio" name="accent_color" value="" class="hidden" onchange="this.form.submit()" {% if not user.accent_color %}checked{% endif %}>По умолчанию</label>
-    {% for c in accents %}<label title="{{ c }}" style="cursor:pointer"><input type="radio" name="accent_color" value="{{ c }}" class="hidden" onchange="this.form.submit()" {% if user.accent_color == c %}checked{% endif %}><span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:{{ c }};{% if user.accent_color == c %}box-shadow:0 0 0 3px var(--card),0 0 0 5px {{ c }};{% endif %}"></span></label>{% endfor %}
+    {% for c in accents + (plus_accents if is_plus else []) %}<label title="{{ c }}" style="cursor:pointer"><input type="radio" name="accent_color" value="{{ c }}" class="hidden" onchange="this.form.submit()" {% if user.accent_color == c %}checked{% endif %}><span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:{{ c }};{% if user.accent_color == c %}box-shadow:0 0 0 3px var(--card),0 0 0 5px {{ c }};{% endif %}"></span></label>{% endfor %}
   </div>
   <noscript><button class="btn">Сохранить</button></noscript>
 </form>
@@ -172,8 +172,16 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 <div class="card hero">
   <div style="font-size:22px;font-weight:800">{{ icon("sparkle", "i in") }} {{ brand_plus }}</div>
   {% if is_plus %}<div class="muted">Активен{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
-  {% else %}<div class="muted">Цветной бейдж, цвет обложки, ранний доступ к функциям. <a href="/plus" style="color:var(--link)">Подробнее</a></div>{% endif %}
+  {% else %}<div class="muted">Цветной значок и имя, гости профиля, ×1,5 очков, длинные посты и голосовые и ещё много всего. <a href="/plus" style="color:var(--link)">Все возможности</a></div>{% endif %}
 </div>
+{% if is_plus %}
+<form class="card" method="post" action="/settings/prefs/plus">
+  <div class="card-title">Возможности {{ brand_plus }}</div>
+  {% for group, items in pref_groups %}{% if group %}<div class="pref-group">{{ group }}</div>{% endif %}
+  {% for p in items %}<label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>{% endfor %}{% endfor %}
+  <div class="row mt" style="gap:8px"><button class="btn">Сохранить</button><a class="btn soft" href="/guests">{{ icon("eye", "i in") }} Гости профиля</a></div>
+</form>
+{% endif %}
 <form class="card" method="post" action="/settings/promocode">
   <div class="card-title">Активировать промокод</div>
   <div class="row"><input name="code" placeholder="PROMO2026" style="margin:0;text-transform:uppercase" required><button class="btn">Активировать</button></div>

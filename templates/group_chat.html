@@ -12,7 +12,7 @@
     <button class="icon-btn" data-modal="group-info" title="Информация">{{ icon("users") }}</button>
   </div>
   <div class="convo-box" id="box">{% with group=group %}{% include "partials/group_messages.html" %}{% endwith %}{% if not messages %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Напишите первое сообщение группе</div>{% endif %}</div>
-  <form class="convo-input cmp" id="gform" enctype="multipart/form-data">
+  <form class="convo-input cmp" id="gform" enctype="multipart/form-data" data-voice-max="{{ plus_limit(user, 'voice') }}" data-circle-max="{{ plus_limit(user, 'circle') }}">
     {% call chat_input() %}
       <label class="icon-btn cmp-tool" title="Вложение" style="cursor:pointer">{{ icon("clip") }}<input type="file" name="file" class="hidden" id="gfile"></label>
       <textarea name="content" id="ginp" rows="1" maxlength="4000" placeholder="Сообщение в группу…" data-suggest></textarea>

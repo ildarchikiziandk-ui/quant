@@ -31,7 +31,7 @@
   <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">{{ icon("lock", "i in") }} Переписка зашифрована</div>
   <div class="typing hidden" id="typing" style="padding:4px 10px">{{ other.name or other.username }} печатает…</div>
   {% if can_send %}
-  <div class="convo-input cmp" id="cmp">
+  <div class="convo-input cmp" id="cmp" data-voice-max="{{ plus_limit(user, 'voice') }}" data-circle-max="{{ plus_limit(user, 'circle') }}">
     <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">{{ icon("x", "i in") }}</button></div>
     <div class="reply-bar hidden" id="edit-bar">{{ icon("edit", "i in") }} <span class="grow">Редактирование сообщения</span><button class="icon-btn" onclick="cancelEdit()">{{ icon("x", "i in") }}</button></div>
     <div class="emoji-panel hidden" id="emoji-panel">{% for e in ['😀','😂','🥹','😍','😘','😎','🤔','😭','😡','🥳','👍','👎','👏','🙏','❤️','🔥','✨','💯','🎉','🐋','🌚','🤝','💪','😴'] %}<button type="button" onclick="insertEmoji('{{ e }}')">{{ e }}</button>{% endfor %}</div>

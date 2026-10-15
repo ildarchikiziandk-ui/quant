@@ -2,7 +2,8 @@
 
 {% macro avatar(u, size=40, online=false) -%}
 {%- if u -%}
-<span class="av-wrap{% if u.avatar_frame %} frame-{{ u.avatar_frame }}{% endif %}"><span class="av" style="width:{{ size }}px;height:{{ size }}px;">
+{%- set glow = not u.avatar_frame and user_is_plus(u) and pref(u, "plus_avatar_glow") -%}
+<span class="av-wrap{% if u.avatar_frame %} frame-{{ u.avatar_frame }}{% endif %}{% if glow %} plus-glow{% endif %}"{% if glow %} style="--pg:{{ plus_bg(u) }}"{% endif %}><span class="av" style="width:{{ size }}px;height:{{ size }}px;">
 {%- if u.avatar %}<img src="{{ u.avatar }}" alt="" loading="lazy">{% else %}<span style="font-size:{{ (size * 0.4)|int }}px;">{{ (u.name or u.username or "?")[0]|upper }}</span>{% endif -%}
 </span>{% if online and is_online(u) %}<span class="dot"></span>{% endif %}</span>
 {%- endif -%}
@@ -18,8 +19,9 @@
 {%- endmacro %}
 
 {% macro name(u, link=true) -%}
-{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis">{{ u.name or u.username }}</span>{{ badges(u) }}</a>
-{%- else %}<span class="name-line"><span class="ellipsis">{{ u.name or u.username }}</span>{{ badges(u) }}</span>{% endif -%}
+{%- set pn = user_is_plus(u) and pref(u, "plus_name_color") -%}
+{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ u.name or u.username }}</span>{{ badges(u) }}</a>
+{%- else %}<span class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ u.name or u.username }}</span>{{ badges(u) }}</span>{% endif -%}
 {%- endmacro %}
 
 {% macro follow_btn(u, user, following, small=true) -%}

@@ -2,7 +2,7 @@
 {% set groups = [
   ("Общение", [("/messages","chat","Сообщения"),("/secret","secret","Секретные чаты"),("/groups","users","Группы"),("/notifications","bell","Уведомления"),("/questions","help","Вопросы"),("/events","calendar","Мероприятия")]),
   ("Лента и поиск", [("/","home","Лента"),("/explore","compass","Обзор"),("/search","search","Поиск"),("/top","trophy","Топ постов"),("/random","shuffle","Случайный пост"),("/people/city","map","Люди рядом")]),
-  ("Моё", [("/profile/" ~ user.username,"user","Профиль"),("/bookmarks","bookmark","Закладки"),("/notes","note","Заметки"),("/drafts","draft","Черновики"),("/archive","archive","Архив"),("/memories","history","В этот день"),("/stats","chart","Статистика"),("/gifts/" ~ user.username,"gift","Подарки"),("/close-friends","star","Близкие друзья"),("/follow-requests","user-plus","Заявки")]),
+  ("Моё", [("/profile/" ~ user.username,"user","Профиль"),("/bookmarks","bookmark","Закладки"),("/notes","note","Заметки"),("/drafts","draft","Черновики"),("/archive","archive","Архив"),("/memories","history","В этот день"),("/stats","chart","Статистика"),("/guests","eye","Гости профиля"),("/gifts/" ~ user.username,"gift","Подарки"),("/close-friends","star","Близкие друзья"),("/follow-requests","user-plus","Заявки")]),
   ("Игры и награды", [("/tasks","target","Задания"),("/achievements","medal","Достижения"),("/leaderboard","chart","Рейтинг"),("/wheel","wheel","Колесо фортуны"),("/shop","bag","Магазин"),("/invite","handshake","Пригласить друзей")]),
   ("Сервис", [("/settings","settings","Настройки"),("/plus","sparkle",brand_plus),("/support","lifebuoy","Поддержка"),("/about","info","О проекте"),("/terms","scroll","Правила"),("/privacy","shield","Конфиденциальность")]),
 ] %}

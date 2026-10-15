@@ -260,13 +260,17 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
     g = extras.GIFT_BY_CODE.get(data.get("gift") or "")
     if not g:
         return json_error("Такого подарка нет")
-    if extras.balance(user) < g[3]:
-        return json_error(f"Не хватает очков: нужно {g[3]}, у вас {extras.balance(user)}")
+    from services import plus
+    if g[0] in plus.EXCLUSIVE_GIFTS and not plus.active(user):
+        return json_error("Этот подарок доступен только с Nuvora+")
+    price = plus.gift_price(user, g[3])
+    if extras.balance(user) < price:
+        return json_error(f"Не хватает очков: нужно {price}, у вас {extras.balance(user)}")
     msg = censor((data.get("message") or "").strip()[:140], social.stop_words(db))
     if msg and not _moderate_text(msg):
         return json_error("Подпись похожа на оскорбление — измените её")
     anon = bool(data.get("anonymous"))
-    user.spent_points = (user.spent_points or 0) + g[3]
+    user.spent_points = (user.spent_points or 0) + price
     db.add(models.UserGift(gift_code=g[0], from_user_id=user.id, to_user_id=pu.id, message=msg, is_anonymous=anon))
     social.notify(db, pu.id, "gift", None if anon else user, text=f"Вам подарили подарок «{g[2]}»" + (f": «{msg}»" if msg else ""),
                   url=f"/gifts/{pu.username}")

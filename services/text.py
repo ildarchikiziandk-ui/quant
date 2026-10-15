@@ -44,6 +44,13 @@ def emojify(html):
     return EMOJI_RE.sub(lambda m: _emoji_tag(m.group(0)), html) if html else html
 
 
+def strip_emoji(text):
+    """Системные тексты (старые уведомления) без эмодзи — в интерфейсе вместо них иконки."""
+    if not text:
+        return text
+    return re.sub(r"\s{2,}", " ", EMOJI_RE.sub("", str(text))).strip()
+
+
 def emoji_img(seq, cls=""):
     """{{ emo("🔥") }} — одна SVG-эмодзи для цветных мест интерфейса (настроения, праздники)."""
     f = emoji_file(seq)

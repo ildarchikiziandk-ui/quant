@@ -53,7 +53,7 @@
         <a href="/login?next=/profile/{{ pu.username }}" class="btn sm">Подписаться</a>
       {% endif %}
     </div>
-    <div class="profile-name">{{ pu.name or pu.username }}{{ badges(pu) }}</div>
+    {% set pn = profile_is_plus and pref(pu, "plus_name_color") %}<div class="profile-name"><span{% if pn %} class="plus-name" style="--pg:{{ plus_bg(pu) }}"{% endif %}>{{ pu.name or pu.username }}</span>{{ badges(pu) }}</div>
     {% if pu.is_owner %}<div class="owner-pill mt-s"><span class="badge owner-b">{{ icon("crown", "i") }}</span>Основатель {{ brand }}</div>{% endif %}
     <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span class="online-txt"><i></i>онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>

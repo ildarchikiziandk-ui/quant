@@ -186,7 +186,8 @@ async def set_links(request: Request, db: Session = Depends(get_db)):
         return login_redirect(request)
     form = await request.form()
     links = []
-    for i in range(5):
+    from services import plus
+    for i in range(plus.limit(user, "links")):
         url = (form.get(f"link_url_{i}") or "").strip()[:200]
         if not url:
             continue
@@ -242,8 +243,8 @@ def shop_frame(code: str, request: Request, db: Session = Depends(get_db)):
         user.avatar_frame = ""
     elif f and code in owned:
         user.avatar_frame = code
-    elif f and extras.balance(user) >= f[2]:
-        user.spent_points = (user.spent_points or 0) + f[2]
+    elif f and (social.is_plus(user) or extras.balance(user) >= f[2]):
+        user.spent_points = (user.spent_points or 0) + (0 if social.is_plus(user) else f[2])
         owned.add(code)
         user.frames_owned = ",".join(sorted(owned))
         user.avatar_frame = code
@@ -272,7 +273,10 @@ def wheel_page(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
-    return render(request, db, "wheel.html", spun=user.last_spin == date.today().isoformat(), prizes=extras.WHEEL)
+    from services import plus
+    today = date.today().isoformat()
+    spins_left = (0 if user.last_spin == today else 1) + (1 if plus.active(user) and user.last_spin2 != today else 0)
+    return render(request, db, "wheel.html", spun=spins_left == 0, spins_left=spins_left, prizes=extras.WHEEL)
 
 
 @router.post("/wheel/spin")
@@ -281,10 +285,16 @@ def wheel_spin(request: Request, db: Session = Depends(get_db)):
     if not user:
         return json_error("auth", 401)
     today = date.today().isoformat()
+    from services import plus
     if user.last_spin == today:
-        return json_error("Колесо можно крутить раз в день — приходите завтра")
-    prize = extras.spin_prize(user.id, today)
-    user.last_spin = today
+        if not plus.active(user) or user.last_spin2 == today:
+            return json_error("Колесо можно крутить раз в день — приходите завтра" if not plus.active(user)
+                              else "Оба вращения на сегодня использованы — приходите завтра")
+        prize = extras.spin_prize(user.id, today + ":2")
+        user.last_spin2 = today
+    else:
+        prize = extras.spin_prize(user.id, today)
+        user.last_spin = today
     gamification.add_points(user, db, prize)
     gamification.check_achievement(user, db, "lucky")
     db.commit()
