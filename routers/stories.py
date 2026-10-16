@@ -24,7 +24,9 @@ def can_see_story(db, viewer, story, close_cache=None):
         return False
     if viewer and viewer.id == owner.id:
         return True
-    if not social.can_see_content(db, viewer, owner):
+    if not social.can_see_content(db, viewer, owner) or owner.is_paused:
+        return False
+    if not viewer and prefs.get(owner, "guests_hidden"):
         return False
     mode = owner.who_can_see_stories or "all"
     is_close = viewer and db.query(models.CloseFriend.id).filter_by(user_id=owner.id, friend_id=viewer.id).first() is not None
@@ -37,14 +39,42 @@ def can_see_story(db, viewer, story, close_cache=None):
 
 def story_groups(db, user):
     now = datetime.utcnow()
-    stories = db.query(models.Story).filter(models.Story.expires_at > now).order_by(models.Story.created_at.asc()).all()
+    from sqlalchemy.orm import selectinload
+    stories = (db.query(models.Story).options(selectinload(models.Story.author)).filter(models.Story.expires_at > now)
+               .order_by(models.Story.created_at.asc()).all())
     hidden = social.blocked_ids(db, user) | social.muted_ids(db, user)
     seen = set()
-    if user:
-        seen = {v.story_id for v in db.query(models.StoryView.story_id).filter(models.StoryView.user_id == user.id)}
+    if user and stories:
+        seen = {v.story_id for v in db.query(models.StoryView.story_id).filter(
+            models.StoryView.user_id == user.id, models.StoryView.story_id.in_([s.id for s in stories]))}
+    # права проверяем один раз на автора, а не на каждую историю (главная открывается часто)
+    fids = social.following_ids(db, user)
+    close_of = {c.user_id for c in db.query(models.CloseFriend.user_id).filter(models.CloseFriend.friend_id == user.id)} if user else set()
+    memo = {}
+
+    def visible(s):
+        owner = s.author
+        if not owner:
+            return False
+        if user and owner.id == user.id:
+            return True
+        if owner.id not in memo:
+            base = not owner.is_paused and not (not user and prefs.get(owner, "guests_hidden"))
+            if base and owner.is_private and not (user and social.can_mod(user)):
+                base = owner.id in fids
+            memo[owner.id] = base
+        if not memo[owner.id]:
+            return False
+        mode = owner.who_can_see_stories or "all"
+        if s.audience == "close" or mode == "close":
+            return owner.id in close_of
+        if mode == "followers":
+            return owner.id in fids
+        return True
+
     groups = {}
     for s in stories:
-        if s.user_id in hidden or not can_see_story(db, user, s):
+        if s.user_id in hidden or not visible(s):
             continue
         g = groups.setdefault(s.user_id, {"user": s.author, "stories": [], "seen": True, "last": s.created_at})
         g["stories"].append(s)
@@ -161,7 +191,7 @@ async def reply_story(story_id: int, request: Request, db: Session = Depends(get
     if not user or not s or not can_see_story(db, user, s) or s.user_id == user.id:
         return json_error("not found", 404)
     data = await read_payload(request)
-    text = (data.get("text") or "").strip()[:1000]
+    text = str(data.get("text") or "").strip()[:1000]
     if not text:
         return json_error("Пустой ответ")
     ok, reason = social.can_message(db, user, s.author)
@@ -232,7 +262,7 @@ def view_highlight(highlight_id: int, request: Request, db: Session = Depends(ge
     owner = db.get(models.User, h.user_id)
     if not owner or not social.can_see_content(db, user, owner):
         return redirect("/")
-    stories = [i.story for i in h.items if i.story]
+    stories = [i.story for i in h.items if i.story and can_see_story(db, user, i.story)]
     if not stories:
         return redirect(f"/profile/{owner.username}")
     return render(request, db, "stories_view.html", sidebar=False, story_user=owner, stories=stories, next_user=None, start=0,

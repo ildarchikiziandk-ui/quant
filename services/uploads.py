@@ -21,6 +21,8 @@ FILE_TYPES = {
 }
 
 
+MAX_PIXELS = 50_000_000  # 50 Мп — больше, чем у любой камеры телефона
+
 def is_upload(obj) -> bool:
     return obj is not None and hasattr(obj, "filename") and bool(obj.filename)
 
@@ -57,6 +59,11 @@ def save_file(upload, allowed=("image", "video", "audio", "file")):
     if mtype == "image" and ext != ".gif":
         try:
             img = Image.open(io.BytesIO(contents))
+            # «бомба» из маленького файла с огромным разрешением съела бы всю память сервера при распаковке
+            if img.width * img.height > MAX_PIXELS:
+                return None, "Слишком большое разрешение фото"
+            if img.format == "JPEG":
+                img.draft("RGB", (config.MAX_IMAGE_DIMENSION, config.MAX_IMAGE_DIMENSION))  # JPEG сразу читаем уменьшенным
             img = ImageOps.exif_transpose(img)
             if img.width > config.MAX_IMAGE_DIMENSION or img.height > config.MAX_IMAGE_DIMENSION:
                 img.thumbnail((config.MAX_IMAGE_DIMENSION, config.MAX_IMAGE_DIMENSION), Image.LANCZOS)
@@ -74,7 +81,10 @@ def save_file(upload, allowed=("image", "video", "audio", "file")):
     else:
         if mtype == "image":
             try:
-                Image.open(io.BytesIO(contents)).verify()
+                g = Image.open(io.BytesIO(contents))
+                if g.width * g.height > MAX_PIXELS:
+                    return None, "Слишком большое разрешение"
+                g.verify()
             except Exception:
                 return None, "Повреждённое изображение"
         with open(fpath, "wb") as f:

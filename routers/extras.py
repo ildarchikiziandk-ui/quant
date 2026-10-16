@@ -56,7 +56,7 @@ async def ask_send(username: str, request: Request, db: Session = Depends(get_db
     if not ratelimit.hit(f"ask:{user.id}", 10, 3600):
         return json_error("Слишком много вопросов, попробуйте позже", 429)
     data = await read_payload(request)
-    text = censor((data.get("text") or "").strip()[:500], social.stop_words(db))
+    text = censor(str(data.get("text") or "").strip()[:500], social.stop_words(db))
     if len(text) < 2:
         return json_error("Вопрос пустой")
     if not _moderate_text(text):
@@ -91,7 +91,7 @@ async def question_answer(qid: int, request: Request, db: Session = Depends(get_
     if not user or not q or q.to_user_id != user.id:
         return json_error("not found", 404)
     data = await read_payload(request)
-    answer = censor((data.get("answer") or "").strip()[:2000], social.stop_words(db))
+    answer = censor(str(data.get("answer") or "").strip()[:2000], social.stop_words(db))
     if not answer:
         return json_error("Ответ пустой")
     q.answer, q.answered_at = answer, datetime.utcnow()
@@ -266,7 +266,7 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
     price = plus.gift_price(user, g[3])
     if extras.balance(user) < price:
         return json_error(f"Не хватает очков: нужно {price}, у вас {extras.balance(user)}")
-    msg = censor((data.get("message") or "").strip()[:140], social.stop_words(db))
+    msg = censor(str(data.get("message") or "").strip()[:140], social.stop_words(db))
     if msg and not _moderate_text(msg):
         return json_error("Подпись похожа на оскорбление — измените её")
     anon = bool(data.get("anonymous"))
@@ -288,7 +288,7 @@ async def collection_create(request: Request, db: Session = Depends(get_db)):
     if not user:
         return login_redirect(request)
     data = await read_payload(request)
-    name = (data.get("name") or "").strip()[:40]
+    name = str(data.get("name") or "").strip()[:40]
     if name and db.query(models.BookmarkCollection).filter_by(user_id=user.id).count() < 50:
         c = models.BookmarkCollection(user_id=user.id, name=name, emoji=(data.get("emoji") or "📁").strip()[:4] or "📁")
         db.add(c)
@@ -319,6 +319,8 @@ async def bookmark_move(post_id: int, request: Request, db: Session = Depends(ge
     if cid and not db.query(models.BookmarkCollection).filter_by(id=cid, user_id=user.id).first():
         return json_error("not found", 404)
     bm = db.query(models.Bookmark).filter_by(user_id=user.id, post_id=post_id).first()
+    if not bm and not db.get(models.Post, post_id):
+        return json_error("not found", 404)
     if not bm:
         bm = models.Bookmark(user_id=user.id, post_id=post_id)
         db.add(bm)

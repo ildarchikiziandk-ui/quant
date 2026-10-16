@@ -53,7 +53,7 @@
 (function(){
 const GID={{ group.id }}, box=document.getElementById('box'); let last={{ messages[-1].id if messages else 0 }};
 box.scrollTop=box.scrollHeight;
-async function poll(){ try{ const r=await (await fetch(`/api/groups/${GID}/messages?after=${last}`)).json(); if(r.html){ document.getElementById('empty-chat')?.remove(); const near=box.scrollHeight-box.scrollTop-box.clientHeight<120; box.insertAdjacentHTML('beforeend',r.html); last=r.last_id; if(near) box.scrollTop=box.scrollHeight; } }catch(e){} }
+async function poll(){ try{ const r=await (await fetch(`/api/groups/${GID}/messages?after=${last}`)).json(); if(r.html){ document.getElementById('empty-chat')?.remove(); const near=box.scrollHeight-box.scrollTop-box.clientHeight<120; const tmp=document.createElement('div'); tmp.innerHTML=r.html; [...tmp.children].forEach(el=>{ if(!el.id||!document.getElementById(el.id)) box.appendChild(el); }); last=Math.max(last,r.last_id); if(near) box.scrollTop=box.scrollHeight; } }catch(e){} }
 setInterval(()=>{ if(!document.hidden) poll(); },3000);
 const f=document.getElementById('gform'), inp=document.getElementById('ginp');
 async function send(){ const fd=new FormData(f); if(!inp.value.trim() && !document.getElementById('gfile').files.length) return; f.reset(); inp.style.height='auto'; inp.dispatchEvent(new Event('input'));

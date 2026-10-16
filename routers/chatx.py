@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
-from routers.messages import _get_user, dialog_filter, preview_of
+from routers.messages import _alive, _get_user, _visible_for, dialog_filter, preview_of
 from routers.posts import read_payload
 from services import chatstyle, push, social, streaks
 from services.uploads import save_file
@@ -67,7 +67,7 @@ async def contact_name(username: str, request: Request, db: Session = Depends(ge
         return json_error("Пользователь не найден", 404)
     data = await read_payload(request)
     chatstyle.set_name(db, user, other, data.get("name"))
-    return JSONResponse({"ok": True, "name": (data.get("name") or "").strip()[:60] or other.name or other.username})
+    return JSONResponse({"ok": True, "name": str(data.get("name") or "").strip()[:60] or other.name or other.username})
 
 
 # ---------------------------------------------------------------- архив и «непрочитано»
@@ -118,7 +118,7 @@ def chat_media(username: str, request: Request, tab: str = "photo", db: Session 
         return redirect("/messages")
     q = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_deleted == False,
                                         or_(models.Message.deleted_for == None, models.Message.deleted_for != user.id),
-                                        models.Message.scheduled_pending != True)
+                                        models.Message.scheduled_pending != True, _alive())
     counts = {
         "photo": q.filter(models.Message.image != "", models.Message.image != None).count(),
         "voice": q.filter(models.Message.voice != "", models.Message.voice != None).count(),
@@ -148,7 +148,8 @@ def chat_stats(username: str, request: Request, db: Session = Depends(get_db)):
     user, other = _peer(db, request, username)
     if not user or not other:
         return json_error("Чат не найден", 404)
-    base = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_deleted == False)
+    base = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_deleted == False, _alive(),
+                                           _visible_for(user.id), models.Message.scheduled_pending != True)
     total = base.count()
     mine = base.filter(models.Message.sender_id == user.id).count()
     first = base.order_by(models.Message.created_at.asc()).first()
@@ -169,7 +170,7 @@ def chat_export(username: str, request: Request, fmt: str = "txt", db: Session =
         return redirect("/messages")
     msgs = (db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_deleted == False,
                                             or_(models.Message.deleted_for == None, models.Message.deleted_for != user.id),
-                                            or_(models.Message.scheduled_pending != True, models.Message.sender_id == user.id))
+                                            or_(models.Message.scheduled_pending != True, models.Message.sender_id == user.id), _alive())
             .order_by(models.Message.created_at.asc()).limit(50000).all())
     from services import timezones
     names = {user.id: user.name or user.username, other.id: chatstyle.name_of(other)}
@@ -201,8 +202,16 @@ def deliver_scheduled(db):
         db.commit()
         if not n:
             continue
+        db.refresh(m)
         sender, other = db.get(models.User, m.sender_id), db.get(models.User, m.receiver_id)
-        if not sender or not other or m.silent:
+        if m.is_deleted or (m.disappear_at and m.disappear_at <= now):
+            continue
+        # за время ожидания получатель мог заблокировать отправителя или закрыть личные сообщения — тогда не доставляем
+        if not sender or not other or not social.can_message(db, sender, other)[0]:
+            m.is_deleted = True
+            db.commit()
+            continue
+        if m.silent:
             continue
         muted = db.query(models.MutedChat).filter_by(user_id=other.id, muted_user_id=sender.id).first()
         if other.notify_messages is not False and not muted:

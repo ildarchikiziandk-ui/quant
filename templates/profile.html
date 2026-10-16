@@ -89,7 +89,7 @@
   </div>
   {% if highlights or me %}
   <div class="highlights">
-    {% for h in highlights %}{% set first = h.items[0].story if h.items and h.items[0].story else None %}
+    {% for h in highlights %}{% set first = h.items[0].story if h.items and h.items[0].story and (me or h.items[0].story.audience != "close") else None %}
     <a href="/highlights/{{ h.id }}" class="highlight"><span class="hl">{% if first and first.media_type == 'image' %}<img src="{{ first.media_url }}" alt="">{% else %}<span style="font-size:22px">{{ icon("sparkle", "i in") }}</span>{% endif %}</span><span class="tiny">{{ h.title }}</span></a>
     {% endfor %}
     {% if me %}<a href="/stories/create" class="highlight"><span class="hl">{{ icon("plus") }}</span><span class="tiny muted">История</span></a>{% endif %}

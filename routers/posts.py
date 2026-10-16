@@ -179,14 +179,16 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         options = [models.PollOption(poll_id=poll.id, text=opt) for opt in poll_opts[:6]]
         db.add_all(options)
         db.flush()
-        correct = str(form.get("quiz_correct") or "")
+        correct = str(form.get("quiz_correct") or "")[:3]
         if form.get("quiz") and correct.isdigit() and 1 <= int(correct) <= len(options):
             poll.correct_option_id = options[int(correct) - 1].id  # викторина
         gamification.check_achievement(user, db, "pollster")
     draft_id = form.get("draft_id")
-    if draft_id and str(draft_id).isdigit():
+    if draft_id and str(draft_id).isdigit() and len(str(draft_id)) < 10:
         db.query(models.Draft).filter_by(id=int(draft_id), user_id=user.id).delete()
-    update_trends(db, content)
+    if post.is_published and not post.scheduled_at and post.visibility != "followers" and not user.is_private:
+        update_trends(db, content)  # темы закрытых и отложенных постов не попадают в публичные тренды
+    db.flush()
     social.process_mentions(db, user, content, post.id)
     gamification.add_points(user, db, 5)
     db.commit()
@@ -216,7 +218,7 @@ async def edit_post(post_id: int, request: Request, db: Session = Depends(get_db
     if post.user_id != user.id:
         return json_error("forbidden", 403)
     data = await read_payload(request)
-    content = (data.get("content") or "").strip()[:plus.limit(user, "post_length")]
+    content = str(data.get("content") or "").strip()[:plus.limit(user, "post_length")]
     if not content and not post.image and not post.poll:
         return json_error("Пост не может быть пустым")
     update_trends(db, post.content or "", -1)
@@ -250,8 +252,11 @@ def purge_post(db, post):
         db.query(models.CommentLike).filter(models.CommentLike.comment_id.in_(cids)).delete(synchronize_session=False)
         db.query(models.Comment).filter(models.Comment.post_id == pid).update({"parent_id": None}, synchronize_session=False)
     for model in (models.Like, models.Whale, models.Comment, models.Notification, models.Reaction, models.Bookmark,
-                  models.PostReport, models.PostMedia, models.ModerationFlag):
+                  models.PostReport, models.PostMedia, models.ModerationFlag, models.PostEdit, models.SeenPost,
+                  models.NotInterested, models.PostReminder):
         db.query(model).filter(model.post_id == pid).delete(synchronize_session=False)
+    # репосты остаются, но больше не ссылаются на удалённый пост (иначе новый пост с тем же id «унаследовал» бы их)
+    db.query(models.Post).filter(models.Post.repost_id == pid).update({"repost_id": None}, synchronize_session=False)
     db.query(models.User).filter(models.User.pinned_post_id == pid).update({"pinned_post_id": None}, synchronize_session=False)
     db.query(models.Post).filter(models.Post.id == pid).delete(synchronize_session=False)
     db.expunge(post)
@@ -270,6 +275,8 @@ async def delete_post(post_id: int, request: Request, db: Session = Depends(get_
     if post.user_id != user.id:
         from deps import log_mod
         log_mod(db, user, "delete_post", post.id, (post.content or "")[:200])
+    elif not post.is_repost and post.created_at and datetime.utcnow() - post.created_at < timedelta(days=1):
+        gamification.add_points(user, db, -5)  # создать и сразу удалить — не способ набрать очки
     purge_post(db, post)
     db.commit()
     if wants_json(request):
@@ -399,12 +406,12 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
     if not ratelimit.hit(f"comment:{user.id}", 30, 300):
         return json_error("Слишком часто", 429)
     data = await read_payload(request)
-    content = censor((data.get("content") or "").strip()[:2000], social.stop_words(db))
+    content = censor(str(data.get("content") or "").strip()[:2000], social.stop_words(db))
     if not content:
         return json_error("Пустой комментарий")
     parent = None
     pid = data.get("parent_id")
-    if pid and str(pid).isdigit():
+    if pid and str(pid).isdigit() and len(str(pid)) < 10:
         parent = db.get(models.Comment, int(pid))
         if not parent or parent.post_id != post_id:
             parent = None
@@ -438,6 +445,8 @@ def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_
     post = _get_post(db, c.post_id)
     if c.user_id != user.id and not social.can_mod(user) and not (post and post.user_id == user.id):
         return json_error("forbidden", 403)
+    if c.user_id == user.id and c.created_at and datetime.utcnow() - c.created_at < timedelta(days=1):
+        gamification.add_points(user, db, -2)
     ids = [c.id]
     frontier = [c.id]
     while frontier:
@@ -546,16 +555,19 @@ async def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
         return err
     if orig.is_repost and orig.repost_id:
         orig = _get_post(db, orig.repost_id) or orig
+        if not social.can_view_post(db, user, orig):  # репост репоста не должен открывать доступ к закрытому оригиналу
+            return json_error("Пост недоступен", 404)
     if orig.user_id != user.id and not prefs.get(orig.author, "allow_reposts"):
         return json_error("Автор запретил репосты своих постов", 403)
     data = await read_payload(request)
-    comment = censor((data.get("comment") or "").strip()[:1000], social.stop_words(db))
+    comment = censor(str(data.get("comment") or "").strip()[:1000], social.stop_words(db))
     existing = db.query(models.Post).filter_by(user_id=user.id, is_repost=True, repost_id=orig.id).first()
     if existing and not comment:
         purge_post(db, existing)
         db.commit()
         return JSONResponse({"ok": True, "reposted": False, "count": db.query(models.Post).filter_by(repost_id=orig.id).count()})
-    p = models.Post(content=orig.content, user_id=user.id, image="", media_type="", is_repost=True, repost_id=orig.id,
+    # текст оригинала не копируем: иначе закрытый или удалённый пост остался бы виден через репост
+    p = models.Post(content="", user_id=user.id, image="", media_type="", is_repost=True, repost_id=orig.id,
                     original_comment=comment)
     db.add(p)
     db.flush()
@@ -588,7 +600,7 @@ async def report_post(post_id: int, request: Request, db: Session = Depends(get_
         return err
     data = await read_payload(request)
     if not db.query(models.PostReport).filter_by(reporter_id=user.id, post_id=post_id, status="new").first():
-        db.add(models.PostReport(reporter_id=user.id, post_id=post_id, reason=(data.get("reason") or "")[:300]))
+        db.add(models.PostReport(reporter_id=user.id, post_id=post_id, reason=str(data.get("reason") or "")[:300]))
         db.commit()
     return JSONResponse({"ok": True})
 
@@ -619,7 +631,7 @@ async def save_draft(request: Request, db: Session = Depends(get_db)):
     if not user:
         return json_error("auth", 401)
     data = await read_payload(request)
-    content = (data.get("content") or "").strip()[:plus.limit(user, "post_length")]
+    content = str(data.get("content") or "").strip()[:plus.limit(user, "post_length")]
     if not content:
         return json_error("Черновик пустой")
     did = data.get("draft_id")
@@ -664,7 +676,8 @@ def publish_now(post_id: int, request: Request, db: Session = Depends(get_db)):
     post = _get_post(db, post_id)
     if not user or not post or post.user_id != user.id:
         return json_error("forbidden", 403)
-    post.scheduled_at = None
-    post.created_at = datetime.utcnow()
-    db.commit()
+    if post.scheduled_at and post.scheduled_at > datetime.utcnow():  # только для ещё не вышедших постов — не «поднимать» старые
+        post.scheduled_at = None
+        post.created_at = datetime.utcnow()
+        db.commit()
     return redirect(f"/post/{post_id}")

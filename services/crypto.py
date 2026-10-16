@@ -42,8 +42,20 @@ def _cipher():
     return _aead
 
 
+def _is_ciphertext(value):
+    try:
+        data = base64.b64decode(str(value)[len(PREFIX):], validate=True)
+        _cipher().decrypt(data[:12], data[12:], b"nuvora-msg")
+        return True
+    except Exception:
+        return False
+
+
 def encrypt(text):
-    if text is None or text == "" or str(text).startswith(PREFIX):
+    if text is None or text == "":
+        return text
+    # уже зашифрованное не шифруем повторно; но обычный текст, который просто начинается с «enc1:», шифруем как обычно
+    if str(text).startswith(PREFIX) and _is_ciphertext(text):
         return text
     nonce = os.urandom(12)
     ct = _cipher().encrypt(nonce, str(text).encode("utf-8"), b"nuvora-msg")

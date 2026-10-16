@@ -112,7 +112,10 @@ def seed(db):
             want = icons_by_code.get(row.code)
             if want and row.emoji != want:
                 row.emoji = want
-    if config.OWNER_USERNAME:
+    # репосты раньше копировали текст оригинала — убираем копии (оригинал показывается по ссылке с проверкой доступа)
+    db.query(models.Post).filter(models.Post.is_repost == True, models.Post.content != "").update({"content": ""}, synchronize_session=False)
+    # владелец назначается только один раз, пока его ещё нет: иначе любой, кто займёт этот логин, стал бы админом
+    if config.OWNER_USERNAME and not db.query(models.User.id).filter_by(is_owner=True).first():
         owner = db.query(models.User).filter_by(username=config.OWNER_USERNAME).first()
         if owner and not owner.is_owner:
             owner.is_owner = True

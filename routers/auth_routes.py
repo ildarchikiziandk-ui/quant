@@ -46,8 +46,9 @@ def validate_email(e):
 
 
 def _client_ip(request: Request):
-    fwd = request.headers.get("x-forwarded-for")
-    return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "?")
+    # адрес клиента берём от uvicorn (--proxy-headers доверяет только нашему nginx); заголовок X-Forwarded-For
+    # целиком подделывается клиентом, поэтому по нему лимиты не считаем
+    return request.client.host if request.client else "?"
 
 
 def _tz_ctx():
@@ -162,7 +163,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         return fail("Email уже зарегистрирован")
     user = models.User(username=username, email=email, password=auth.hash_password(password), is_verified=True,
                        name=(name.strip() or username)[:60], email_verified=not config.EMAIL_ENABLED,
-                       is_owner=(username == config.OWNER_USERNAME), pd_consent_at=datetime.utcnow(),
+                       is_owner=(username == config.OWNER_USERNAME and not db.query(models.User.id).filter_by(is_owner=True).first()), pd_consent_at=datetime.utcnow(),
                        pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True)
     tz_key = tz_key if tz_key in timezones.BY_KEY else timezones.iana_map().get(tz.strip()[:64])
     if tz_key:  # пояс выбран при регистрации (по умолчанию — определённый браузером)
@@ -323,9 +324,12 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
     if not user and email:
         # Яндекс отдаёт только подтверждённый адрес — можно привязать существующий аккаунт с той же почтой
         user = db.query(models.User).filter(func.lower(models.User.email) == email).first()
-        if user:
+        # но только если владелец аккаунта сам подтвердил эту почту — иначе кто-то мог заранее вписать чужой адрес
+        if user and user.email_verified and config.EMAIL_ENABLED and not user.yandex_id:
             user.yandex_id = yid
             db.commit()
+        elif user:
+            user, email = None, ""
     new = False
     if not user:
         current = current_user(request, db)

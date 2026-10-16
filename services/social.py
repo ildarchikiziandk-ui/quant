@@ -127,6 +127,8 @@ def visible_posts(db, viewer, hide_muted=True):
     hidden = blocked_ids(db, viewer)
     if hide_muted:
         hidden |= muted_ids(db, viewer)
+    if not viewer:  # «скрыть мои посты от незарегистрированных» — во всех разделах, а не только в ленте
+        hidden |= {u.id for u in db.query(models.User.id).filter(models.User.prefs.like('%"guests_hidden": true%'))}
     if hidden:
         q = q.filter(~models.Post.user_id.in_(hidden))
     return q
@@ -166,7 +168,7 @@ def can_message(db, sender, receiver):
     mode = receiver.who_can_message or "all"
     if mode == "nobody":
         return False, "Пользователь ограничил входящие сообщения"
-    if mode == "followers" and not is_following(db, sender, receiver):
+    if mode == "followers" and not is_following(db, receiver, sender):  # «те, на кого я подписан»
         # если уже есть переписка — разрешаем отвечать
         had = db.query(models.Message.id).filter(models.Message.sender_id == receiver.id, models.Message.receiver_id == sender.id).first()
         if not had:
@@ -205,7 +207,11 @@ def process_mentions(db, author, text, post_id=None, kind="mention"):
         return
     users = db.query(models.User).filter(models.User.username.in_(names)).all()
     from services import prefs
+    post = db.get(models.Post, post_id) if post_id else None
     for u in users[:20]:
+        # не уведомляем о посте, который человек не может открыть (отложенный, только для подписчиков, закрытый профиль)
+        if post and not can_view_post(db, u, post):
+            continue
         if u.id != author.id and prefs.audience_allows(db, u, author, "who_can_mention"):
             notify(db, u.id, kind, author, post_id=post_id)
 

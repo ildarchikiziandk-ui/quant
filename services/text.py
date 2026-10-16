@@ -73,18 +73,19 @@ def richtext(text):
         return Markup("")
     out = []
     pos = 0
-    raw = str(text)
+    raw = str(text).replace("\x00", "")  # нулевой байт служит меткой для `кода` в _format
     for m in URL_RE.finditer(raw):
-        out.append(_tags_and_mentions(raw[pos:m.start()]))
+        out.append(emojify(_tags_and_mentions(raw[pos:m.start()])))
         url = str(escape(m.group(1)))
         label = url if len(url) <= 60 else url[:57] + "…"
-        out.append(f'<a href="{url}" target="_blank" rel="noopener nofollow ugc" class="rt-link">{label}</a>')
+        # эмодзи превращаем в картинки только в подписи ссылки, а не внутри href
+        out.append(f'<a href="{url}" target="_blank" rel="noopener nofollow ugc" class="rt-link">{emojify(label)}</a>')
         pos = m.end()
-    out.append(_tags_and_mentions(raw[pos:]))
+    out.append(emojify(_tags_and_mentions(raw[pos:])))
     lines = []
     for line in "".join(out).split("\n"):  # строка, начинающаяся с «> », — цитата
         lines.append(f'<span class="rt-quote">{line[5:]}</span>' if line.startswith("&gt; ") else line)
-    return Markup(emojify("<br>".join(lines)))
+    return Markup("<br>".join(lines))
 
 
 _CODE_RE = re.compile(r"`([^`\n]{1,300})`")
@@ -106,7 +107,7 @@ def _format(s):
     s = _CODE_RE.sub(keep, s)
     for rx, rep in _FMT:
         s = rx.sub(rep, s)
-    return re.sub(r"\x00(\d+)\x00", lambda m: f'<code class="rt-code">{codes[int(m.group(1))]}</code>', s)
+    return re.sub(r"\x00(\d+)\x00", lambda m: f'<code class="rt-code">{codes[int(m.group(1))]}</code>' if int(m.group(1)) < len(codes) else "", s)
 
 
 def _tags_and_mentions(chunk):

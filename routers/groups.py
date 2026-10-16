@@ -67,9 +67,12 @@ async def create_group(request: Request, db: Session = Depends(get_db)):
     db.add(g)
     db.flush()
     db.add(models.GroupMember(group_id=g.id, user_id=user.id, is_admin=True))
+    added = {user.id}
     for uname in (form.get("members") or "").replace(",", " ").split()[:50]:
         u = db.query(models.User).filter(func.lower(models.User.username) == uname.lstrip("@").lower()).first()
-        if u and u.id != user.id and not social.is_blocked_between(db, user, u):
+        # добавить можно только того, кому вы и так можете написать (уважаем «кто может мне писать»), и только один раз
+        if u and u.id not in added and social.can_message(db, user, u)[0]:
+            added.add(u.id)
             db.add(models.GroupMember(group_id=g.id, user_id=u.id))
             social.notify(db, u.id, "group_invite", user, text=f"добавил(а) вас в группу «{name}»", url=f"/groups/{g.id}")
     gamification.check_achievement(user, db, "group_founder")
@@ -183,11 +186,11 @@ def delete_group_msg(group_id: int, msg_id: int, request: Request, db: Session =
 
 @router.post("/groups/{group_id}/invite/{username}")
 def invite_to_group(group_id: int, username: str, request: Request, db: Session = Depends(get_db)):
-    user, g, member, err = _ctx(db, request, group_id)
+    user, g, member, err = _ctx(db, request, group_id, admin=True)
     if err:
         return err
     target = db.query(models.User).filter(func.lower(models.User.username) == username.lower()).first()
-    if target and not _membership(db, group_id, target) and not social.is_blocked_between(db, user, target):
+    if target and not _membership(db, group_id, target) and social.can_message(db, user, target)[0]:
         db.add(models.GroupMember(group_id=group_id, user_id=target.id))
         db.add(models.GroupMessage(group_id=group_id, sender_id=user.id, content=f"добавил(а) {target.name or target.username}"))
         social.notify(db, target.id, "group_invite", user, text=f"добавил(а) вас в группу «{g.name}»", url=f"/groups/{group_id}")
@@ -204,6 +207,7 @@ def kick_member(group_id: int, user_id: int, request: Request, db: Session = Dep
         return err
     if user_id != g.owner_id:
         db.query(models.GroupMember).filter_by(group_id=group_id, user_id=user_id).delete()
+        g.invite_code = secrets.token_urlsafe(8)  # старая ссылка-приглашение больше не пустит исключённого обратно
         db.commit()
     return redirect(f"/groups/{group_id}")
 
@@ -246,7 +250,7 @@ def leave_group(group_id: int, request: Request, db: Session = Depends(get_db)):
     user, g, member, err = _ctx(db, request, group_id)
     if err:
         return err
-    db.delete(member)
+    db.query(models.GroupMember).filter_by(group_id=group_id, user_id=user.id).delete()  # вместе со старыми дублями
     db.flush()
     if g.owner_id == user.id:
         heir = db.query(models.GroupMember).filter_by(group_id=group_id).order_by(models.GroupMember.is_admin.desc(), models.GroupMember.id).first()

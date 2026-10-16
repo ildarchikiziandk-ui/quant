@@ -237,9 +237,23 @@
   document.addEventListener('click', (e) => {
     const img = e.target.closest('img[data-zoom]');
     if (!img) return;
+    // все фото того же поста или сообщения — листаем стрелками и свайпом
+    const scope = img.closest('.post, .msg, .card') || document;
+    const list = $$('img[data-zoom]', scope); let idx = Math.max(0, list.indexOf(img));
     let lb = $('#lightbox');
-    if (!lb) { lb = document.createElement('div'); lb.id = 'lightbox'; lb.className = 'lightbox'; lb.innerHTML = '<img alt="">'; lb.onclick = () => lb.classList.remove('open'); document.body.appendChild(lb); }
-    $('img', lb).src = img.src; lb.classList.add('open');
+    if (!lb) {
+      lb = document.createElement('div'); lb.id = 'lightbox'; lb.className = 'lightbox';
+      lb.innerHTML = '<img alt=""><div class="lb-bar"><span class="lb-n"></span><a class="lb-btn" download title="Скачать">' + ICON('download', 'i') + '</a><button type="button" class="lb-btn lb-x" title="Закрыть">' + ICON('x', 'i') + '</button></div><button type="button" class="lb-nav prev" title="Назад">' + ICON('back', 'i') + '</button><button type="button" class="lb-nav next" title="Дальше">' + ICON('back', 'i') + '</button>';
+      document.body.appendChild(lb);
+      lb.addEventListener('click', (ev) => { if (ev.target.closest('.lb-nav, a.lb-btn')) return; lb.classList.remove('open'); });
+      let sx = 0; lb.addEventListener('touchstart', ev => { sx = ev.touches[0].clientX; }, { passive: true });
+      lb.addEventListener('touchend', ev => { const dx = ev.changedTouches[0].clientX - sx; if (Math.abs(dx) > 60) lb._go(dx < 0 ? 1 : -1); });
+      document.addEventListener('keydown', ev => { if (!lb.classList.contains('open')) return; if (ev.key === 'Escape') lb.classList.remove('open'); else if (ev.key === 'ArrowRight') lb._go(1); else if (ev.key === 'ArrowLeft') lb._go(-1); });
+      $('.prev', lb).onclick = () => lb._go(-1); $('.next', lb).onclick = () => lb._go(1);
+    }
+    lb._go = (d) => { if (lb._list.length < 2) return; lb._idx = (lb._idx + d + lb._list.length) % lb._list.length; show(); };
+    function show() { const src = lb._list[lb._idx].src; $('img', lb).src = src; $('a.lb-btn', lb).href = src; $('.lb-n', lb).textContent = lb._list.length > 1 ? (lb._idx + 1) + ' / ' + lb._list.length : ''; lb.classList.toggle('multi', lb._list.length > 1); }
+    lb._list = list.length ? list : [img]; lb._idx = idx; show(); lb.classList.add('open');
   });
 
   // ---------- Действия с постами ----------
@@ -536,6 +550,7 @@
     try {
       const r = await (await fetch('/api/counters', { headers: { 'X-Requested-With': 'fetch' } })).json();
       if (!r.ok) return;
+      try { window.dispatchEvent(new CustomEvent('nv:counters', { detail: r })); } catch (er) { /* старый браузер */ }
       setBadge('[data-badge=notifications]', r.notifications); setBadge('[data-badge=messages]', r.messages);
       if (r.notifications > lastNotif && ME.sound) beep();
       lastNotif = r.notifications;
@@ -549,7 +564,15 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) goneOffline(); else poll(); });
   window.addEventListener('pagehide', (e) => { if (!e.persisted) goneOffline(); });
   window.nuvoraOffline = goneOffline;
-  function beep() { try { const c = new AudioContext(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.setValueAtTime(.08, c.currentTime); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime + .25); o.start(); o.stop(c.currentTime + .25); } catch (e) {} }
+  // звук уведомления — на выбор в настройках
+  const TONES = { classic: [[880, 0, .25]], soft: [[523, 0, .35]], drop: [[1200, 0, .08], [700, .08, .2]], chime: [[784, 0, .3], [1047, .15, .45]] };
+  function beep() {
+    try {
+      const c = new AudioContext(), seq = TONES[(ME.prefs || {}).notify_tone] || TONES.classic;
+      seq.forEach(([f, t0, t1]) => { const o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = f; g.gain.setValueAtTime(.08, c.currentTime + t0); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime + t1); o.start(c.currentTime + t0); o.stop(c.currentTime + t1); });
+    } catch (e) { /* без звука */ }
+  }
+  window.nvBeep = beep;
 
 
   // ---------- Горячие клавиши ----------

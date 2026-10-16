@@ -470,6 +470,8 @@ def purge_user(db, user):
         db.delete(r)
     msg_ids = [m.id for m in db.query(models.Message.id).filter(or_(models.Message.sender_id == uid, models.Message.receiver_id == uid))]
     if msg_ids:
+        db.query(models.StarredMessage).filter(models.StarredMessage.message_id.in_(msg_ids)).delete(synchronize_session=False)
+        db.query(models.MessageReminder).filter(models.MessageReminder.message_id.in_(msg_ids)).delete(synchronize_session=False)
         db.query(models.MessageReaction).filter(models.MessageReaction.message_id.in_(msg_ids)).delete(synchronize_session=False)
         db.query(models.Message).filter(models.Message.reply_to_id.in_(msg_ids)).update({"reply_to_id": None}, synchronize_session=False)
         db.query(models.Message).filter(models.Message.id.in_(msg_ids)).delete(synchronize_session=False)
@@ -506,7 +508,18 @@ def purge_user(db, user):
         (models.UserMute, "user_id"), (models.UserMute, "muted_id"), (models.CloseFriend, "user_id"), (models.CloseFriend, "friend_id"),
         (models.Notification, "user_id"), (models.Report, "reporter_id"), (models.Report, "target_id"), (models.PostReport, "reporter_id"),
         (models.SpecialRequest, "user_id"), (models.CallLog, "caller_id"), (models.CallLog, "receiver_id"),
+        # личное, что иначе досталось бы следующему пользователю с тем же id
+        (models.Note, "user_id"), (models.PostReminder, "user_id"), (models.StarredMessage, "user_id"), (models.MessageReminder, "user_id"),
+        (models.ContactName, "owner_id"), (models.ContactName, "target_id"), (models.ChatSetting, "user_id"), (models.ChatSetting, "peer_id"),
+        (models.BookmarkCollection, "user_id"), (models.HashtagFollow, "user_id"), (models.SeenPost, "user_id"),
+        (models.NotInterested, "user_id"), (models.NotInterested, "author_id"), (models.ProfileVisit, "owner_id"), (models.ProfileVisit, "viewer_id"),
+        (models.EventRSVP, "user_id"), (models.Question, "to_user_id"), (models.Question, "from_user_id"),
+        (models.UserGift, "from_user_id"), (models.UserGift, "to_user_id"), (models.ModerationFlag, "user_id"),
     ]
+    ev_ids = [e.id for e in db.query(models.Event.id).filter_by(user_id=uid)]
+    if ev_ids:
+        db.query(models.EventRSVP).filter(models.EventRSVP.event_id.in_(ev_ids)).delete(synchronize_session=False)
+        db.query(models.Event).filter(models.Event.id.in_(ev_ids)).delete(synchronize_session=False)
     for model, col in simple:
         db.query(model).filter(getattr(model, col) == uid).delete(synchronize_session=False)
     db.query(models.Notification).filter(models.Notification.from_user_id == uid).update({"from_user_id": None}, synchronize_session=False)

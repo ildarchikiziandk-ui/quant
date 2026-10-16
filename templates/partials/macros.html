@@ -149,6 +149,8 @@
           {{ post_inner(orig, user, st, can_mod) }}
         </a>
         {%- else %}<div class="quote muted small">Оригинал удалён или недоступен</div>{% endif %}
+      {%- elif simple_repost and not orig %}
+        <div class="quote muted small">Оригинал удалён или недоступен</div>
       {%- else %}
         {{ post_inner(main, user, st, can_mod, full) }}
       {%- endif %}
@@ -170,7 +172,7 @@
       </div>
       {%- if not full and main.comments and not main.comments_disabled %}
       {%- set last = (main.comments|sort(attribute="created_at"))[-1] %}
-      {%- if last.author %}
+      {%- if last.author and last.user_id not in (st.hidden_users or ()) %}
       <a href="/post/{{ main.id }}#comment-{{ last.id }}" class="row small mt" style="background:var(--input);border-radius:12px;padding:8px 12px;">
         {{ avatar(last.author, 22) }}<span class="grow ellipsis"><b>{{ last.author.name or last.author.username }}</b> <span class="muted">{{ last.content }}</span></span>
       </a>

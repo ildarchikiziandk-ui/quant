@@ -95,7 +95,7 @@ async def push_subscribe(request: Request, db: Session = Depends(get_db)):
     if not user:
         return json_error("auth", 401)
     data = await read_payload(request)
-    endpoint = (data.get("endpoint") or "")[:1000]
+    endpoint = str(data.get("endpoint") or "")[:1000]
     if not endpoint.startswith("https://"):
         return json_error("bad endpoint")
     ex = db.query(models.PushSubscription).filter_by(endpoint=endpoint).first()

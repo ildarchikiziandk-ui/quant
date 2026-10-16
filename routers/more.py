@@ -87,13 +87,13 @@ async def post_send(post_id: int, request: Request, db: Session = Depends(get_db
     if not user or not social.can_view_post(db, user, post):
         return json_error("not found", 404)
     data = await read_payload(request)
-    other = db.query(models.User).filter(models.User.username == (data.get("username") or "").strip().lstrip("@")).first()
+    other = db.query(models.User).filter(models.User.username == str(data.get("username") or "").strip().lstrip("@")).first()
     if not other or other.id == user.id:
         return json_error("Пользователь не найден")
     allowed, reason = social.can_message(db, user, other)
     if not allowed:
         return json_error(reason or "Нельзя написать этому пользователю", 403)
-    note = censor((data.get("note") or "").strip()[:300], social.stop_words(db))
+    note = censor(str(data.get("note") or "").strip()[:300], social.stop_words(db))
     preview = (post.content or "медиа")[:80]
     msg = models.Message(sender_id=user.id, receiver_id=other.id,
                          content=(note + "\n" if note else "") + f"Пост @{post.author.username}: «{preview}» {config.SITE_URL}/post/{post.id}")
@@ -131,7 +131,7 @@ def deliver_reminders(db, user):
 @router.post("/api/preview")
 async def preview(request: Request, db: Session = Depends(get_db)):
     data = await read_payload(request)
-    return JSONResponse({"ok": True, "html": str(text.richtext((data.get("content") or "")[:5000]))})
+    return JSONResponse({"ok": True, "html": str(text.richtext(str(data.get("content") or "")[:5000]))})
 
 
 # ===================================== Комментарии =====================================
@@ -142,7 +142,7 @@ async def comment_edit(comment_id: int, request: Request, db: Session = Depends(
     if not user or not c or c.user_id != user.id:
         return json_error("not found", 404)
     data = await read_payload(request)
-    content = censor((data.get("content") or "").strip()[:2000], social.stop_words(db))
+    content = censor(str(data.get("content") or "").strip()[:2000], social.stop_words(db))
     if not content:
         return json_error("Пустой комментарий")
     c.content, c.edited_at = content, datetime.utcnow()
@@ -216,7 +216,7 @@ async def set_dnd(request: Request, db: Session = Depends(get_db)):
         return json_error("auth", 401)
     data = await read_payload(request)
     hours = str(data.get("hours") or "0")
-    user.dnd_until = datetime.utcnow() + timedelta(hours=int(hours)) if hours.isdigit() and int(hours) > 0 else None
+    user.dnd_until = datetime.utcnow() + timedelta(hours=min(int(hours), 24 * 365)) if hours.isdigit() and int(hours) > 0 else None
     db.commit()
     return _ok(request, "/settings?section=notifications&saved=1")
 
@@ -431,8 +431,11 @@ def export_users(request: Request, db: Session = Depends(get_db)):
     w = csv.writer(buf)
     w.writerow(["id", "username", "name", "email", "created_at", "last_seen", "posts", "points", "level", "is_blocked"])
     counts = dict(db.query(models.Post.user_id, func.count(models.Post.id)).group_by(models.Post.user_id).all())
+    def cell(v):  # защита от формул в Excel: «=HYPERLINK(...)» в имени не выполнится
+        v = "" if v is None else str(v)
+        return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
     for u in db.query(models.User).order_by(models.User.id):
-        w.writerow([u.id, u.username, u.name, u.email, u.created_at, u.last_seen, counts.get(u.id, 0), u.total_points, u.level, u.is_blocked])
+        w.writerow([u.id, cell(u.username), cell(u.name), cell(u.email), u.created_at, u.last_seen, counts.get(u.id, 0), u.total_points, u.level, u.is_blocked])
     log_mod(db, user, "export_users", "", "")
     db.commit()
     return StreamingResponse(iter(["﻿" + buf.getvalue()]), media_type="text/csv",
@@ -444,7 +447,7 @@ def purge_user_posts(username: str, request: Request, db: Session = Depends(get_
     """Удалить все посты пользователя (например, спам-аккаунта)."""
     user = current_user(request, db)
     target = db.query(models.User).filter_by(username=username).first()
-    if not user or not social.can_mod(user) or not target or target.is_owner:
+    if not user or not social.can_mod(user) or not target or target.is_owner or (target.is_moderator and not user.is_owner):
         return redirect("/")
     ids = [p.id for p in db.query(models.Post.id).filter_by(user_id=target.id)]
     for pid in ids:

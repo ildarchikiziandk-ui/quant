@@ -90,7 +90,8 @@ async def secret_start(request: Request, db: Session = Depends(get_db)):
         return json_error("Некорректный открытый ключ")
     if ttl not in TTL_KEYS:
         ttl = 0
-    peer = db.query(models.User).filter(models.User.username.ilike(str(data.get("username", "")).strip().lstrip("@"))).first()
+    from sqlalchemy import func as _f
+    peer = db.query(models.User).filter(_f.lower(models.User.username) == str(data.get("username", "")).strip().lstrip("@").lower()).first()
     if not peer:
         return json_error("Пользователь не найден")
     ok, why = social.can_message(db, user, peer)

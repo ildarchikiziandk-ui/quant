@@ -25,11 +25,12 @@ def home(request: Request, tab: str = "", db: Session = Depends(get_db)):
     if tab == "following" and not user:
         tab = "foryou"
     posts, has_more, reasons = feed.get_feed(db, user, tab, 1)
-    if tab == "foryou":
-        recommend.mark_seen(db, user, posts)
     from services import extras
-    return render(request, db, "home.html", tab=tab, has_more=has_more, page=1, memories_n=len(extras.memories(db, user)) if user else 0,
+    resp = render(request, db, "home.html", tab=tab, has_more=has_more, page=1, memories_n=len(extras.memories(db, user)) if user else 0,
                   story_groups=_stories_strip(db, user), **feed.feed_context(db, user, posts, reasons))
+    if tab == "foryou":  # после отрисовки: commit сбросил бы уже загруженные посты и страница грузила бы их заново по одному
+        recommend.mark_seen(db, user, posts)
+    return resp
 
 
 @router.get("/create")
@@ -47,12 +48,13 @@ def feed_more(request: Request, tab: str = "foryou", page: int = 2, db: Session 
     page = max(1, min(page, 200))
     tab = tab if tab in TABS else "foryou"
     posts, has_more, reasons = feed.get_feed(db, user, tab, page)
-    if tab == "foryou":
-        recommend.mark_seen(db, user, posts)
     ctx = {"request": request, "user": user, "can_mod": social.can_mod(user), "has_more": has_more, "page": page,
            "more_url": f"/feed/more?tab={tab}&page={page + 1}"}
     ctx.update(feed.feed_context(db, user, posts, reasons))
-    return templates.TemplateResponse(request, "partials/post_list.html", ctx)
+    resp = templates.TemplateResponse(request, "partials/post_list.html", ctx)
+    if tab == "foryou":
+        recommend.mark_seen(db, user, posts)
+    return resp
 
 
 @router.get("/welcome")

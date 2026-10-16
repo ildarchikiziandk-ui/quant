@@ -100,13 +100,13 @@ async function poll(){
       const tmp=document.createElement('div'); tmp.innerHTML=r.html;
       tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else { m.classList.add('appear'); box.appendChild(m); } });
       lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); else { unseen+=tmp.querySelectorAll('.msg:not(.mine)').length; if(unseen){ jn.textContent=unseen; jn.classList.remove('hidden'); } } }
-    document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto) t.innerHTML=window.ICON_TICKS;t.classList.add('read'); });
+    document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto){ t.innerHTML=window.ICON_TICKS; t.classList.add('read'); } });
     document.getElementById('typing').classList.toggle('hidden', !r.typing); document.getElementById('typing-what').textContent = r.typing_kind==='voice' ? 'записывает голосовое' : r.typing_kind==='circle' ? 'записывает кружок' : 'печатает';
     const st=document.getElementById('chat-status'); if(r.online) st.innerHTML='<span style="color:var(--online)">в сети</span>';
   }catch(e){}
 }
 setInterval(()=>{ if(!document.hidden) poll(); }, 2500);
-document.getElementById('box').addEventListener('dblclick',async e=>{ const m=e.target.closest('.msg'); if(!m||e.target.closest('a,button,audio,video')) return; try{ await App.api(`/messages/${m.dataset.id}/react`,{emoji:'❤️'}); await refreshMsg(m.dataset.id); }catch(err){} });
+document.getElementById('box').addEventListener('dblclick',async e=>{ if((APP.prefs||{}).dbl_tap_react===false) return; const m=e.target.closest('.msg'); if(!m||e.target.closest('a,button,audio,video')) return; try{ await App.api(`/messages/${m.dataset.id}/react`,{emoji:'❤️'}); await refreshMsg(m.dataset.id); }catch(err){} });
 async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`); const tmp=document.createElement('div'); tmp.innerHTML=r.html; document.getElementById('msg-'+id)?.replaceWith(tmp.firstElementChild); }
 if(inp){
   try{ const d=localStorage.getItem(DKEY); if(d && !inp.value){ inp.value=d; setTimeout(()=>inp.dispatchEvent(new Event('input')),0); } }catch(e){}

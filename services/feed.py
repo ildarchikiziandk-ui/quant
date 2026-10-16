@@ -62,7 +62,10 @@ def post_state(db, user, posts):
     st["reposted"] = {r.repost_id for r in db.query(models.Post.repost_id).filter(models.Post.user_id == user.id, models.Post.is_repost == True,
                                                                                   models.Post.repost_id.in_(ids))}
     st["my_reactions"] = {r.post_id: r.emoji for r in db.query(models.Reaction).filter(models.Reaction.user_id == user.id, models.Reaction.post_id.in_(ids))}
-    st["voted"] = {v.poll_id: v.option_id for v in db.query(models.PollVote).filter(models.PollVote.user_id == user.id)}
+    poll_ids = db.query(models.Poll.id).filter(models.Poll.post_id.in_(ids))
+    st["voted"] = {v.poll_id: v.option_id for v in db.query(models.PollVote).filter(models.PollVote.user_id == user.id,
+                                                                                     models.PollVote.poll_id.in_(poll_ids))}
+    st["hidden_users"] = social.blocked_ids(db, user)
     return st
 
 

@@ -46,7 +46,7 @@ def needs_rehash(hashed: str) -> bool:
 # --- Токены и сессии -------------------------------------------------------
 def create_token(data: dict) -> str:
     to_encode = data.copy()
-    to_encode["exp"] = datetime.utcnow() + timedelta(days=config.TOKEN_DAYS)
+    to_encode.setdefault("exp", datetime.utcnow() + timedelta(days=config.TOKEN_DAYS))  # у токена 2FA — свои 5 минут
     return jwt.encode(to_encode, config.SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -101,7 +101,8 @@ def _resolve_user(request, db: Session):
     if not token:
         return None
     payload = decode_token(token)
-    if not payload:
+    # входом считается только токен с активной сессией; служебные токены (например, ожидание кода 2FA) не подходят
+    if not payload or payload.get("purpose") or not payload.get("sid"):
         return None
     user = None
     if payload.get("uid"):

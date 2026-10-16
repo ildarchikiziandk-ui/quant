@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, render
-from routers.messages import preview_of
+from routers.messages import preview_of, visible_to
 from routers.posts import read_payload
 from services import chatstyle, prefs, social, text
 
@@ -18,9 +18,7 @@ router = APIRouter()
 
 def _own_message(db, user, msg_id):
     m = db.get(models.Message, msg_id)
-    if not m or m.is_deleted or user.id not in (m.sender_id, m.receiver_id):
-        return None
-    return m
+    return m if visible_to(m, user.id) else None
 
 
 def _peer_of(m, user):
@@ -55,7 +53,7 @@ def starred(request: Request, q: str = "", db: Session = Depends(get_db)):
     items = []
     for r in rows:
         m = r.message
-        if not m or m.is_deleted or user.id in (m.deleted_for or "").split(","):
+        if not visible_to(m, user.id):
             continue
         prev = preview_of(m)
         if q and q.lower() not in (m.content or "").lower():

@@ -40,6 +40,22 @@ def _visible_for(user_id):
                 or_(models.Message.scheduled_pending != True, models.Message.sender_id == user_id))
 
 
+def visible_to(m, user_id):
+    """Может ли пользователь видеть это сообщение (один и тот же набор правил для всех путей: поиск, пересылка, избранное…)."""
+    if not m or m.is_deleted or m.group_id is not None or user_id not in (m.sender_id, m.receiver_id):
+        return False
+    if m.deleted_for == user_id:
+        return False
+    if m.scheduled_pending and m.sender_id != user_id:
+        return False
+    return not (m.disappear_at and m.disappear_at <= datetime.utcnow())
+
+
+def _s(v):
+    """Значение из JSON может оказаться числом или списком — приводим к строке."""
+    return v if isinstance(v, str) else ("" if v is None or isinstance(v, (list, dict)) else str(v))
+
+
 def preview_of(m):
     if m.is_deleted:
         return ""
@@ -63,7 +79,7 @@ def messages_list(request: Request, db: Session = Depends(get_db)):
         return login_redirect(request)
     last_ids = (db.query(func.max(models.Message.id))
                 .filter(models.Message.group_id == None, or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id),
-                        _visible_for(user.id))
+                        _visible_for(user.id), _alive())
                 .group_by(func.coalesce(func.nullif(models.Message.sender_id, user.id), models.Message.receiver_id)).all())
     last_msgs = db.query(models.Message).filter(models.Message.id.in_([r[0] for r in last_ids] or [-1])).all()
     unread_rows = dict(db.query(models.Message.sender_id, func.count(models.Message.id)).filter(
@@ -120,7 +136,8 @@ def message_search(request: Request, q: str = "", db: Session = Depends(get_db))
     if needle:
         # сообщения зашифрованы, поэтому ищем после расшифровки (последние 5000 сообщений пользователя)
         recent = (db.query(models.Message).filter(or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id),
-                                                  models.Message.group_id == None, models.Message.is_deleted == False)
+                                                  models.Message.group_id == None, models.Message.is_deleted == False,
+                                                  _alive(), _visible_for(user.id))
                   .order_by(models.Message.id.desc()).limit(5000).all())
         results = [m for m in recent if m.content and needle in m.content.lower()][:100]
     return render(request, db, "message_search.html", query=q, results=results)
@@ -131,9 +148,11 @@ def _load_dialog(db, user, other, after=0, limit=200):
          .filter(dialog_filter(user.id, other.id), _alive(), _visible_for(user.id)))
     if after:
         # новые сообщения и только что доставленные отложенные (у них старый id)
-        recent = datetime.utcnow() - timedelta(seconds=90)
+        # окно 15 минут: вкладка могла быть свёрнута; повторы на странице заменяются по id. Отправитель тоже получает
+        # обновлённый пузырь (без «будет отправлено»)
+        recent = datetime.utcnow() - timedelta(minutes=15)
         q = q.filter(or_(models.Message.id > after, and_(models.Message.deliver_at != None, models.Message.deliver_at >= recent,
-                                                          models.Message.receiver_id == user.id)))
+                                                          models.Message.scheduled_pending != True)))
         return q.order_by(models.Message.created_at.asc(), models.Message.id.asc()).all()
     msgs = q.order_by(models.Message.created_at.desc(), models.Message.id.desc()).limit(limit).all()
     return list(reversed(msgs))
@@ -141,7 +160,8 @@ def _load_dialog(db, user, other, after=0, limit=200):
 
 def _mark_read(db, user, other):
     n = db.query(models.Message).filter(models.Message.sender_id == other.id, models.Message.receiver_id == user.id,
-                                        models.Message.group_id == None, models.Message.is_read == False).update(
+                                        models.Message.group_id == None, models.Message.is_read == False,
+                                        models.Message.scheduled_pending != True).update(
         {"is_read": True, "is_delivered": True}, synchronize_session=False)
     if n:
         db.commit()
@@ -159,7 +179,8 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
     _mark_read(db, user, other)
     allowed, reason = social.can_message(db, user, other)
     pinned_msg = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_pinned == True,
-                                                 models.Message.is_deleted == False).order_by(models.Message.id.desc()).first()
+                                                 models.Message.is_deleted == False, _alive(), _visible_for(user.id),
+                                                 models.Message.scheduled_pending != True).order_by(models.Message.id.desc()).first()
     streak = streaks.chat_streaks(db, user, [other.id]).get(other.id)
     st = chatstyle.setting(db, user, other.id)
     if st and st.marked_unread:
@@ -216,25 +237,27 @@ async def send_message(request: Request, db: Session = Depends(get_db)):
     if not user:
         return json_error("auth", 401)
     data = await read_payload(request)
-    other = _get_user(db, data.get("receiver"))
+    other = _get_user(db, _s(data.get("receiver")))
     err = _precheck(db, user, other)
     if err:
         return err
-    content = censor((data.get("sticker_emoji") or data.get("content") or "").strip()[:4000], social.stop_words(db))
+    content = censor((_s(data.get("sticker_emoji")) or _s(data.get("content"))).strip()[:4000], social.stop_words(db))
     if not content:
         return json_error("Пустое сообщение")
     reply_to = data.get("reply_to_id")
     reply_id = None
     if reply_to and str(reply_to).isdigit():
         r = db.get(models.Message, int(reply_to))
-        if r and r.group_id is None and {r.sender_id, r.receiver_id} == {user.id, other.id}:
+        if r and visible_to(r, user.id) and not r.scheduled_pending and {r.sender_id, r.receiver_id} == {user.id, other.id}:
             reply_id = r.id
     msg = models.Message(sender_id=user.id, receiver_id=other.id, content=content, reply_to_id=reply_id,
                          disappear_at=_ttl(data.get("ttl")), is_delivered=social.is_online(other),
                          silent=bool(data.get("silent")))
-    when = _schedule(user, data.get("schedule"))
+    when = _schedule(user, _s(data.get("schedule")))
     if when:
         msg.deliver_at, msg.scheduled_pending, msg.created_at = when, True, when
+        if msg.disappear_at:  # исчезающее отложенное: таймер идёт с момента доставки, а не отправки
+            msg.disappear_at = when + (msg.disappear_at - datetime.utcnow())
     return _deliver(db, user, other, msg)
 
 
@@ -272,7 +295,7 @@ async def send_media(request: Request, db: Session = Depends(get_db)):
     url, mt = save_file(upload)
     if not url:
         return json_error(mt)
-    msg = models.Message(sender_id=user.id, receiver_id=other.id, content=(form.get("caption") or "").strip()[:1000],
+    msg = models.Message(sender_id=user.id, receiver_id=other.id, content=censor((form.get("caption") or "").strip()[:1000], social.stop_words(db)),
                          disappear_at=_ttl(form.get("ttl")))
     if mt == "image":
         msg.image = url
@@ -335,7 +358,7 @@ def poll_messages(username: str, request: Request, after: int = 0, db: Session =
 def message_fragment(msg_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     m = db.get(models.Message, msg_id)
-    if not user or not m or user.id not in (m.sender_id, m.receiver_id):
+    if not user or not visible_to(m, user.id):
         return json_error("not found", 404)
     return JSONResponse({"ok": True, "html": render_messages(request, user, [m])})
 
@@ -344,7 +367,7 @@ def message_fragment(msg_id: int, request: Request, db: Session = Depends(get_db
 def typing(username: str, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     other = _get_user(db, username)
-    if not user or not other:
+    if not user or not other or social.is_blocked_between(db, user, other):
         return JSONResponse({"ok": False})
     if not prefs.get(user, "typing_status"):
         return JSONResponse({"ok": True})
@@ -363,8 +386,8 @@ def _own_msg(db, user, msg_id, any_party=False):
     m = db.get(models.Message, msg_id)
     if not m or m.group_id is not None:
         return None
-    if any_party and user.id in (m.sender_id, m.receiver_id):
-        return m
+    if any_party:
+        return m if visible_to(m, user.id) else None
     return m if m.sender_id == user.id else None
 
 
@@ -392,7 +415,7 @@ async def edit_msg(msg_id: int, request: Request, db: Session = Depends(get_db))
     if (datetime.utcnow() - m.created_at) > timedelta(hours=48):
         return json_error("Сообщение можно редактировать только 48 часов")
     data = await read_payload(request)
-    content = censor((data.get("content") or "").strip()[:4000], social.stop_words(db))
+    content = censor(_s(data.get("content")).strip()[:4000], social.stop_words(db))
     if not content:
         return json_error("Пустое сообщение")
     m.content, m.is_edited, m.edited_at = content, True, datetime.utcnow()
@@ -447,7 +470,7 @@ async def forward_msg(msg_id: int, request: Request, db: Session = Depends(get_d
     if not m or m.is_deleted:
         return json_error("not found", 404)
     data = await read_payload(request)
-    other = _get_user(db, data.get("to"))
+    other = _get_user(db, _s(data.get("to")))
     err = _precheck(db, user, other)
     if err:
         return err
