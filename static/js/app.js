@@ -544,6 +544,11 @@
     } catch (e) {}
   }
   setInterval(poll, 20000);
+  // «в сети» точно: при сворачивании сразу сообщаем серверу, при возврате — сразу обновляем статус
+  function goneOffline() { try { navigator.sendBeacon && ME.user && navigator.sendBeacon('/api/offline'); } catch (e) { /* без статуса */ } }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) goneOffline(); else poll(); });
+  window.addEventListener('pagehide', (e) => { if (!e.persisted) goneOffline(); });
+  window.nuvoraOffline = goneOffline;
   function beep() { try { const c = new AudioContext(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.setValueAtTime(.08, c.currentTime); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime + .25); o.start(); o.stop(c.currentTime + .25); } catch (e) {} }
 
 

@@ -46,6 +46,7 @@ class User(Base):
     plus_until = Column(DateTime, nullable=True)
     plus_color = Column(String, default="#a855f7")
     last_seen = Column(DateTime, nullable=True)
+    offline_at = Column(DateTime, nullable=True)  # закрыл приложение — сразу «не в сети»
     pinned_post_id = Column(Integer, nullable=True)
     is_private = Column(Boolean, default=False)
     daily_points = Column(Integer, default=0)

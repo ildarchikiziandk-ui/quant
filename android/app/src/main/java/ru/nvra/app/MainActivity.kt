@@ -195,8 +195,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        // приложение свёрнуто: сразу «не в сети» и без фоновой работы страницы
+        web.evaluateJavascript("window.nuvoraOffline && window.nuvoraOffline()", null)
+        web.onPause()
         super.onPause()
         CookieManager.getInstance().flush()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        web.onResume()
     }
 
     private fun startUrl(intent: Intent?): String {

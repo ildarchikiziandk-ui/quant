@@ -172,8 +172,12 @@ def filesize(n):
 
 
 def censor(text, stop_words):
-    """Заменяет стоп-слова звёздочками."""
-    if not text or not stop_words:
+    """Заменяет мат и стоп-слова звёздочками — в любом написании (латиница, цифры, похожие буквы)."""
+    if not text:
+        return text
+    from services import profanity
+    text = profanity.mask(text, [w for w in (stop_words or ()) if w and " " not in w])
+    if not stop_words:
         return text
     for w in stop_words:
         if not w:

@@ -754,3 +754,26 @@ html.p-reduce-motion::view-transition-old(root),html.p-reduce-motion::view-trans
 @keyframes img-in{from{opacity:0}}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Профиль: аватарка и кнопки — две колонки, кнопки никогда не налезают на фото */
+.profile-top{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px}
+.profile-top>*{grid-column:1/-1}
+.profile-top>.profile-av{grid-column:1;grid-row:1}
+.profile-top>.profile-actions{grid-column:2;grid-row:1;position:static;align-self:end;justify-self:end;flex-wrap:wrap;justify-content:flex-end;padding-bottom:6px;min-width:0}
+@media (max-width:640px){.profile-top>.profile-actions{gap:4px}.profile-actions .btn.sm{padding-left:12px;padding-right:12px}}
+.av-wrap.plus-glow{display:inline-flex;line-height:0;vertical-align:middle}.profile-av .av-wrap.plus-glow{padding:3px}
+.profile-top>.profile-av{align-self:start;align-items:flex-start}.profile-av>.av-wrap,.profile-av>a{align-self:flex-start}
+.mmenu-rows{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:6px}
+.mmenu-rows a{display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;font-size:14px;font-weight:600;color:var(--text);min-width:0}
+.mmenu-rows a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mmenu-rows a:active{background:var(--hover)}
+.mmenu-rows svg.i{width:19px;height:19px;color:var(--text-2);flex-shrink:0}
+.mmenu-more{margin-top:10px}
+.mmenu-more summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--card);border:1px solid var(--border);border-radius:16px;font-weight:700;cursor:pointer}
+.mmenu-more summary::-webkit-details-marker{display:none}
+.mmenu-more summary span{flex:1}.mmenu-more summary svg.i{width:20px;height:20px}
+.mmenu-more .chev{transform:rotate(-90deg);transition:transform .2s;color:var(--text-3)}
+.mmenu-more[open] .chev{transform:rotate(90deg)}
+.mmenu-more[open] summary{border-radius:16px 16px 0 0;border-bottom:none}
+.mmenu-more[open] .mmenu-rows{border-radius:0 0 16px 16px;border-top:none}
+.mmenu .mmenu-grid{margin-top:10px}

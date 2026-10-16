@@ -96,7 +96,17 @@ def _get_model():
 
 
 def toxicity(text: str) -> float:
-    """Вероятность (0..1), что текст содержит оскорбления, мат или агрессию."""
+    """Вероятность (0..1), что текст содержит оскорбления, мат или агрессию (в т. ч. написанные латиницей)."""
+    from services import profanity
+    base = _toxicity(text)
+    if text and re.search(r"[A-Za-z]", text):
+        base = max(base, _toxicity(profanity.to_cyrillic(text)))
+    if profanity.has_bad(text):
+        base = max(base, 0.9)
+    return base
+
+
+def _toxicity(text: str) -> float:
     bias, w = _get_model()
     if not w or not text or not text.strip():
         return 0.0

@@ -997,3 +997,11 @@ def test_secret_chats_disabled_by_default(alice, bob):
     page = alice.get("/secret").text
     assert "временно отключены" in page and "gost.js" not in page
     assert 'href="/secret' not in alice.get("/messages").text
+
+
+def test_latin_profanity_masked_in_chats(alice, bob):
+    from services import profanity
+    assert profanity.has_bad("ty cyka blyat") and not profanity.has_bad("небо и хлеб, колебание, hello")
+    alice.post("/messages/send", json={"receiver": "bob", "content": "ну ты и cyka blyat, xyi"}, headers=J)
+    page = bob.get("/messages/alice").text
+    assert "cyka" not in page and "blyat" not in page and "c***" in page

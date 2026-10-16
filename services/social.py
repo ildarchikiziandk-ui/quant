@@ -49,9 +49,15 @@ def can_mod(user):
     return bool(user and (user.is_owner or user.is_moderator))
 
 
+ONLINE_SECONDS = 120  # «в сети» — если был активен последние 2 минуты и не закрыл приложение
+
+
 def is_online(user):
-    return bool(user and user.show_online is not False and user.last_seen
-                and (datetime.utcnow() - user.last_seen).total_seconds() < 300)
+    if not (user and user.show_online is not False and user.last_seen):
+        return False
+    if user.offline_at and user.offline_at >= user.last_seen:
+        return False
+    return (datetime.utcnow() - user.last_seen).total_seconds() < ONLINE_SECONDS
 
 
 def following_ids(db, user):

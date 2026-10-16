@@ -25,6 +25,16 @@ def ping(request: Request, db: Session = Depends(get_db)):
     return JSONResponse({"ok": True})
 
 
+@router.post("/offline")
+def offline(request: Request, db: Session = Depends(get_db)):
+    """Страница закрыта или приложение свёрнуто — показываем «не в сети» сразу, а не через 2 минуты."""
+    user = current_user(request, db)
+    if user:
+        user.offline_at = datetime.utcnow()
+        db.commit()
+    return JSONResponse({"ok": True})
+
+
 @router.get("/counters")
 def counters(request: Request, bg: int = 0, db: Session = Depends(get_db)):
     user = current_user(request, db)

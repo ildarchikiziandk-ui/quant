@@ -62,7 +62,7 @@ def base_context(request: Request, db: Session, sidebar=True):
     user = current_user(request, db)
     if user:
         now = datetime.utcnow()
-        if not user.last_seen or (now - user.last_seen).total_seconds() > 60:
+        if not user.last_seen or (now - user.last_seen).total_seconds() > 20 or (user.offline_at and user.offline_at >= user.last_seen):
             user.last_seen = now
             db.commit()
         gamification.update_streak(user, db)

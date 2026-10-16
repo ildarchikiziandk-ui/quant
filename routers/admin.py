@@ -44,7 +44,7 @@ def admin_page(request: Request, tab: str = "dashboard", q: str = "", db: Sessio
     stats = {
         "users": db.query(models.User).count(), "users_day": db.query(models.User).filter(models.User.created_at > day).count(),
         "users_week": db.query(models.User).filter(models.User.created_at > week).count(),
-        "online": db.query(models.User).filter(models.User.last_seen > now - timedelta(minutes=5)).count(),
+        "online": db.query(models.User).filter(models.User.last_seen > now - timedelta(minutes=2)).count(),
         "dau": db.query(models.User).filter(models.User.last_seen > day).count(),
         "posts": db.query(models.Post).count(), "posts_day": db.query(models.Post).filter(models.Post.created_at > day).count(),
         "messages": db.query(models.Message).count(), "comments": db.query(models.Comment).count(),
@@ -411,5 +411,5 @@ def admin_stats_api(request: Request, db: Session = Depends(get_db)):
     if not _mod(request, db):
         return JSONResponse({"ok": False}, status_code=403)
     now = datetime.utcnow()
-    return JSONResponse({"ok": True, "online": db.query(models.User).filter(models.User.last_seen > now - timedelta(minutes=5)).count(),
+    return JSONResponse({"ok": True, "online": db.query(models.User).filter(models.User.last_seen > now - timedelta(minutes=2)).count(),
                          "users": db.query(models.User).count(), "posts": db.query(models.Post).count()})
