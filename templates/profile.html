@@ -26,6 +26,7 @@
             <a href="/shop">{{ icon("bag") }} Рамки и заморозки</a>
             <a href="/invite">{{ icon("handshake") }} Пригласить друзей</a>
             <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код профиля</a>
+            <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
             <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
           </div>
         </div>
@@ -40,9 +41,10 @@
           <div class="menu">
             {% if secret_enabled %}<a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>{% endif %}
             <a href="/ask/{{ pu.username }}">{{ icon("help") }} Задать анонимный вопрос</a>
-            <button onclick="(async()=>{const n=prompt('Как записать контакт?', {{ (custom_name(pu) or '')|tojson }}); if(n===null) return; await App.api('/contacts/{{ pu.username }}/name',{name:n}); location.reload();})()">{{ icon("pen") }} Записать контакт как…</button>
+            <button data-cname="{{ custom_name(pu) or '' }}" onclick="(async(b)=>{const n=prompt('Как записать контакт?', b.dataset.cname); if(n===null) return; await App.api('/contacts/{{ pu.username }}/name',{name:n}); location.reload();})(this)">{{ icon("pen") }} Записать контакт как…</button>
             <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
             <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код</a>
+            <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
             {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">{{ icon("star", "i in") }} {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
             {% if rel.follows_me %}<button data-act="toggle" data-url="/follower/{{ pu.username }}/remove" data-msg="Подписчик удалён" data-reload="1">{{ icon("x") }} Удалить из подписчиков</button>{% endif %}
             <button data-act="toggle" data-url="/mute/{{ pu.username }}" data-msg="Готово" data-reload="1">{{ icon("mute") }} {% if rel.is_muted %}Показывать посты{% else %}Скрыть посты из ленты{% endif %}</button>
@@ -57,16 +59,18 @@
     {% set pn = profile_is_plus and pref(pu, "plus_name_color") %}<div class="profile-name"><span{% if pn %} class="plus-name" style="--pg:{{ plus_bg(pu) }}"{% endif %}>{{ pu.name or pu.username }}</span>{{ badges(pu) }}</div>
     {% if not me and custom_name(pu) %}<div class="small muted mt-s">{{ icon("pen", "i in") }} У вас записан(а) как <b>{{ custom_name(pu) }}</b></div>{% endif %}
     {% if pu.is_owner %}<div class="owner-pill mt-s"><span class="badge owner-b">{{ icon("crown", "i") }}</span>Основатель {{ brand }}</div>{% endif %}
-    <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
+    <div class="row small muted" style="gap:8px"><span data-copy-username="{{ pu.username }}" title="Нажмите, чтобы скопировать" style="cursor:copy">@{{ pu.username }}</span>{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span class="online-txt"><i></i>онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
     {% if pu.dnd_until and pu.dnd_until > now %}<div class="status-pill">{{ icon("moon", "i in") }} не беспокоить</div>{% endif %}
     {% if pu.bio %}<div style="margin-top:10px;white-space:normal">{{ pu.bio|rich }}</div>{% endif %}
+    {% if common_interests and not me %}<div class="small muted mt">{{ icon("sparkle", "i in") }} У вас {{ plural(common_interests|length, "общий интерес", "общих интереса", "общих интересов") }}: {{ common_interests|join(", ") }}</div>{% endif %}
     {% if pu_interests %}<div class="row wrap mt" style="gap:6px">{% for t in pu_interests %}<a class="chip" style="margin:0;padding:4px 10px;font-size:12.5px" href="/interests/{{ t }}">#{{ t }}</a>{% endfor %}</div>{% endif %}
     <div class="profile-links">
       {% if pu.city %}<span>{{ icon("map") }} {{ pu.city }}</span>{% endif %}
+      {% if pu.work %}<span>{{ icon("bag") }} {{ pu.work }}</span>{% endif %}
       {% if pu.website %}<span>{{ icon("link") }} <a href="{{ pu.website }}" target="_blank" rel="noopener nofollow">{{ pu.website.replace('https://','').replace('http://','')[:40] }}</a></span>{% endif %}
-      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}</span>{% endif %}
-      <span>{{ icon("calendar") }} С нами с {{ pu.created_at.strftime("%m.%Y") if pu.created_at else "давно" }}</span>
+      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}{% if bday_in is not none %}{% if bday_in == 0 %} · <b style="color:var(--accent,#db2777)">сегодня день рождения!</b>{% elif bday_in <= 30 %} · через {{ plural(bday_in, "день", "дня", "дней") }}{% endif %}{% endif %}</span>{% endif %}
+      <span>{{ icon("calendar") }} С нами с {{ pu.created_at.strftime("%m.%Y") if pu.created_at else "давно" }}{% if pu.created_at %} · {{ plural(((utcnow() - pu.created_at).days) + 1, "день", "дня", "дней") }}{% endif %}</span>
       {% for l in profile_links %}<a href="{{ l.url }}" target="_blank" rel="noopener nofollow">{{ icon("link", "i in") }} {{ l.title }}</a>{% endfor %}
       {% if pu.telegram_link %}<a href="https://t.me/{{ pu.telegram_link.lstrip('@').replace('https://t.me/','') }}" target="_blank" rel="noopener">Telegram</a>{% endif %}
       {% if pu.youtube_link %}<a href="{{ pu.youtube_link if pu.youtube_link.startswith('http') else 'https://youtube.com/@' ~ pu.youtube_link.lstrip('@') }}" target="_blank" rel="noopener">YouTube</a>{% endif %}

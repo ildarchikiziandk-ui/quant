@@ -29,8 +29,10 @@ def ping(request: Request, db: Session = Depends(get_db)):
 def offline(request: Request, db: Session = Depends(get_db)):
     """Страница закрыта или приложение свёрнуто — показываем «не в сети» сразу, а не через 2 минуты."""
     user = current_user(request, db)
-    if user:
-        user.offline_at = datetime.utcnow()
+    now = datetime.utcnow()
+    # сигнал от старой страницы может прийти уже после загрузки новой — его не считаем
+    if user and not (user.last_seen and (now - user.last_seen).total_seconds() < 3):
+        user.offline_at = now
         db.commit()
     return JSONResponse({"ok": True})
 

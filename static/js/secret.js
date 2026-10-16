@@ -171,7 +171,8 @@
       if (!s.ok) { setStatus(s.error || 'Чат не найден', true); return; }
       state = s;
       var priv = lsGet(store(me, chatId));
-      if (s.status === 'pending' && s.b_id === me && !priv) {
+      // приглашение ещё не принято на сервере (в том числе если прошлый раз «Принять» не дошёл) — создаём ключи заново
+      if (s.status === 'pending' && s.b_id === me && !s.b_pub) {
         setStatus('Создаём ключи шифрования…');
         setTimeout(function () {
           var k = Core.generateKeys();
@@ -179,7 +180,7 @@
           post('/secret/' + chatId + '/accept', { pub: k.pub }).then(function (r) {
             if (!r.ok) { setStatus(r.error, true); return; }
             boot();
-          });
+          }).catch(function () { setStatus('Нет связи с сервером. Обновите страницу, чтобы попробовать ещё раз.', true); });
         }, 20);
         return;
       }

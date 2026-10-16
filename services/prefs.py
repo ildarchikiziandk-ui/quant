@@ -229,6 +229,35 @@ def update(user, section, form):
     user._prefs_cache = data
 
 
+def raw(user):
+    return dict(_raw(user))
+
+
+def replace(user, data):
+    user.prefs = json.dumps(data, ensure_ascii=False)
+    user._prefs_cache = data
+
+
+def update_many(user, incoming):
+    """Импорт настроек из файла: берём только известные ключи и только допустимые значения."""
+    data, n = dict(_raw(user)), 0
+    for k, v in (incoming or {}).items():
+        p = BY_KEY.get(k)
+        if not p:
+            continue
+        if p["kind"] == "bool":
+            data[k] = bool(v)
+        elif p["kind"] == "select":
+            if str(v) not in [o[0] for o in p["options"]]:
+                continue
+            data[k] = str(v)
+        else:
+            data[k] = re.sub(r"\s+", " ", str(v))[:500].strip()
+        n += 1
+    replace(user, data)
+    return n
+
+
 # --- Хелперы для серверных настроек ---------------------------------------------------------------------------------
 def muted_words(user):
     return [w.strip().lower() for w in (get(user, "feed_muted_words") or "").split(",") if len(w.strip()) >= 2][:50]

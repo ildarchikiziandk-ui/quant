@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timedelta
 
 import models
 from database import SessionLocal
@@ -1103,3 +1104,69 @@ def test_starred_reminders_birthdays_similar(alice, bob):
     assert "Похожие посты" in bob.get(f"/post/{first.id}").text and "Ещё волны" in bob.get(f"/post/{first.id}").text
     # вкладки чатов
     assert 'id="chat-tabs"' in bob.get("/messages").text
+
+
+def test_v2_server_features(alice, bob):
+    # «Что нового» открывается и в нём больше 100 пунктов
+    page = alice.get("/whats-new")
+    assert page.status_code == 200 and "новинок" in page.text
+    from services.whatsnew import GROUPS
+    assert sum(len(i) for _, _, i in GROUPS) >= 100
+    # плашка «новые посты»
+    bob.post("/follow/alice", headers=J)
+    alice.post("/post/create", data={"content": "первый"}, headers=J)
+    s = db()
+    first = s.query(models.Post).order_by(models.Post.id.desc()).first().id
+    s.close()
+    alice.post("/post/create", data={"content": "второй"}, headers=J)
+    assert bob.get(f"/api/feed/new?after={first}").json()["count"] == 1
+    # прочитать все
+    alice.post("/messages/send", json={"receiver": "bob", "content": "раз"}, headers=J)
+    assert bob.post("/messages/read-all", headers=J).json()["count"] == 1
+    # без звука на время
+    assert bob.post("/chats/alice/mute-for", json={"hours": 8}, headers=J).json()["muted"]
+    s = db()
+    m = s.query(models.MutedChat).first()
+    assert m.until is not None
+    m.until = datetime.utcnow() - timedelta(minutes=1)
+    s.commit()
+    from routers import features
+    features.cleanup(s)
+    assert s.query(models.MutedChat).count() == 0
+    s.close()
+    # перенос настроек
+    alice.post("/settings/prefs/feed", data={"feed_hide_polls": "on"})
+    exported = alice.get("/settings/backup/export").content
+    assert b"feed_hide_polls" in exported
+    r = bob.post("/settings/backup/import", files={"file": ("s.json", exported, "application/json")}, headers=J).json()
+    assert r["count"] > 10
+    assert bob.post("/settings/backup/reset", headers=J).json()["ok"]
+    # работа в профиле, календарь
+    alice.post("/settings/profile", data={"name": "Alice", "work": "Дизайнер в студии"})
+    assert "Дизайнер в студии" in bob.get("/profile/alice").text
+    assert bob.get("/calendar/birthdays.ics").text.startswith("BEGIN:VCALENDAR")
+
+
+def test_v2_security_fixes(alice, bob):
+    import auth
+    # токен ожидания 2FA не даёт войти
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    pending = auth.create_token({"uid": a.id, "purpose": "2fa", "exp": datetime.utcnow() + timedelta(minutes=5)})
+    s.close()
+    c = make_client()
+    c.cookies.set("token", pending)
+    assert c.get("/api/me").status_code in (401, 403) or not c.get("/api/me").json().get("ok", False)
+    # нулевой байт в посте не роняет страницы
+    alice.post("/post/create", data={"content": "hi \x000\x00 `x`"}, headers=J)
+    assert alice.get("/").status_code == 200 and make_client().get("/explore").status_code == 200
+    # отложенное сообщение не видно получателю ни в поиске, ни через fragment
+    mid = alice.post("/messages/send", json={"receiver": "bob", "content": "сюрприз-секрет", "schedule": "60"}, headers=J).json()["id"]
+    assert "сюрприз-секрет" not in bob.get("/messages/search?q=сюрприз").text
+    assert bob.get(f"/messages/fragment/{mid}").status_code == 404
+    assert bob.post(f"/messages/{mid}/star", headers=J).status_code == 404
+    # нечисловой получатель не роняет сервер
+    assert alice.post("/messages/send", json={"receiver": 5, "content": ["x"]}, headers=J).status_code < 500
+    # мат: обычные слова не трогаем
+    from services import profanity
+    assert not profanity.is_bad("мандарин") and not profanity.is_bad("Себастьян") and profanity.is_bad("blyat")

@@ -211,6 +211,8 @@ def apply_filters(q, user):
         q = q.filter((models.Post.image == "") | (models.Post.image == None))
     if prefs.get(user, "feed_hide_polls"):
         q = q.filter(~models.Post.poll.has())
+    if prefs.get(user, "feed_only_media"):
+        q = q.filter(models.Post.image != "", models.Post.image != None)
     return q
 
 

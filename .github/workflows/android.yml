@@ -26,10 +26,19 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
+      # Свой закрытый ключ подписи: секреты ANDROID_KEYSTORE_B64 (файл .keystore в base64, псевдоним nuvora)
+      # и ANDROID_KEYSTORE_PASSWORD в настройках репозитория. Без них сборка подписывается старым ключом из репозитория.
+      - name: Use private signing key
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        if: ${{ env.KS != '' }}
+        run: echo "$KS" | base64 -d > android/nuvora.keystore
+
       - name: Build APK
         working-directory: android
         env:
           SITE_URL: https://nvra.ru
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Rename APK

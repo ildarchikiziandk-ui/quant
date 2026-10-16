@@ -28,9 +28,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../nuvora.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "nuvora-android"
+            storePassword = System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() } ?: "nuvora-android"
             keyAlias = "nuvora"
-            keyPassword = System.getenv("KEYSTORE_PASSWORD") ?: "nuvora-android"
+            keyPassword = System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() } ?: "nuvora-android"
         }
     }
 

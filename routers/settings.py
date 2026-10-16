@@ -124,6 +124,7 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
     user.bio = _clean(form, "bio", plus.limit(user, "bio"))
     user.website = _clean_url(_clean(form, "website", 100))
     user.city = _clean(form, "city", 60)
+    user.work = _clean(form, "work", 80)
     bday = _clean(form, "birthday", 10)
     user.birthday = bday if re.match(r"^\d{4}-\d{2}-\d{2}$", bday) else ""
     user.telegram_link = _clean(form, "telegram_link", 100)

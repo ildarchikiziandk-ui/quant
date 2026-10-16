@@ -4,6 +4,7 @@
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("cake", "i in") }} Дни рождения</div></div>
 <div class="page-sub">Ближайшие два месяца — у ваших друзей и подписчиков. В сам день придёт напоминание.</div>
+{% if items %}<a class="btn soft sm mb" href="/calendar/birthdays.ics">{{ icon("calendar", "i in") }} Добавить все в календарь телефона</a>{% endif %}
 {% set months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"] %}
 <div class="card flat">
   {% for it in items %}

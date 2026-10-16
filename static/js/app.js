@@ -146,8 +146,12 @@
   // Android-приложение красит полосы под строкой состояния и навигацией в цвет сайта
   function syncAppTheme() {
     if (!window.NuvoraApp || !window.NuvoraApp.setTheme) return;
-    const m = getComputedStyle(document.body || document.documentElement).backgroundColor.match(/\d+/g) || [255, 255, 255];
-    const hex = '#' + m.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
+    // цвет берём из переменной темы: у body есть плавный переход, и сразу после смены темы там ещё старый цвет
+    let hex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    if (!/^#[0-9a-f]{3,8}$/i.test(hex)) {
+      const m = getComputedStyle(document.body || document.documentElement).backgroundColor.match(/\d+/g) || [255, 255, 255];
+      hex = '#' + m.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
+    }
     try { window.NuvoraApp.setTheme(document.documentElement.getAttribute('data-theme') === 'dark', hex); } catch (e) { /* старое приложение */ }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncAppTheme); else syncAppTheme();
@@ -194,7 +198,8 @@
       if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank' || a.hasAttribute('download')) return;
       const u = new URL(a.href, location.href);
       if (u.origin !== location.origin || (u.pathname === location.pathname && u.search === location.search && u.hash)) return;
-      start();
+      if (/^\/(export-data|download\/|admin\/export|messages\/[^/]+\/export|uploads\/)/.test(u.pathname)) return;  // скачивание — страница не сменится
+      start(); setTimeout(stop, 10000);
     });
     document.addEventListener('submit', (e) => { setTimeout(() => { if (!e.defaultPrevented) start(); }, 0); });
     window.addEventListener('pageshow', stop);
@@ -245,14 +250,22 @@
       lb = document.createElement('div'); lb.id = 'lightbox'; lb.className = 'lightbox';
       lb.innerHTML = '<img alt=""><div class="lb-bar"><span class="lb-n"></span><a class="lb-btn" download title="Скачать">' + ICON('download', 'i') + '</a><button type="button" class="lb-btn lb-x" title="Закрыть">' + ICON('x', 'i') + '</button></div><button type="button" class="lb-nav prev" title="Назад">' + ICON('back', 'i') + '</button><button type="button" class="lb-nav next" title="Дальше">' + ICON('back', 'i') + '</button>';
       document.body.appendChild(lb);
-      lb.addEventListener('click', (ev) => { if (ev.target.closest('.lb-nav, a.lb-btn')) return; lb.classList.remove('open'); });
+      let lastTap = 0;
+      lb.addEventListener('click', (ev) => {
+        if (ev.target.closest('.lb-nav, a.lb-btn')) return;
+        if (ev.target.tagName === 'IMG') {  // двойное нажатие по фото — увеличить вдвое, ещё раз — обратно
+          const now = Date.now(); if (now - lastTap < 320) { lb.classList.toggle('zoom'); lastTap = 0; return; } lastTap = now;
+          setTimeout(() => { if (lastTap === now && !lb.classList.contains('zoom')) lb.classList.remove('open'); }, 330); return;
+        }
+        lb.classList.remove('open', 'zoom');
+      });
       let sx = 0; lb.addEventListener('touchstart', ev => { sx = ev.touches[0].clientX; }, { passive: true });
       lb.addEventListener('touchend', ev => { const dx = ev.changedTouches[0].clientX - sx; if (Math.abs(dx) > 60) lb._go(dx < 0 ? 1 : -1); });
       document.addEventListener('keydown', ev => { if (!lb.classList.contains('open')) return; if (ev.key === 'Escape') lb.classList.remove('open'); else if (ev.key === 'ArrowRight') lb._go(1); else if (ev.key === 'ArrowLeft') lb._go(-1); });
       $('.prev', lb).onclick = () => lb._go(-1); $('.next', lb).onclick = () => lb._go(1);
     }
     lb._go = (d) => { if (lb._list.length < 2) return; lb._idx = (lb._idx + d + lb._list.length) % lb._list.length; show(); };
-    function show() { const src = lb._list[lb._idx].src; $('img', lb).src = src; $('a.lb-btn', lb).href = src; $('.lb-n', lb).textContent = lb._list.length > 1 ? (lb._idx + 1) + ' / ' + lb._list.length : ''; lb.classList.toggle('multi', lb._list.length > 1); }
+    function show() { lb.classList.remove('zoom'); const src = lb._list[lb._idx].src; $('img', lb).src = src; $('a.lb-btn', lb).href = src; $('.lb-n', lb).textContent = lb._list.length > 1 ? (lb._idx + 1) + ' / ' + lb._list.length : ''; lb.classList.toggle('multi', lb._list.length > 1); }
     lb._list = list.length ? list : [img]; lb._idx = idx; show(); lb.classList.add('open');
   });
 
@@ -561,8 +574,11 @@
   setInterval(poll, 20000);
   // «в сети» точно: при сворачивании сразу сообщаем серверу, при возврате — сразу обновляем статус
   function goneOffline() { try { navigator.sendBeacon && ME.user && navigator.sendBeacon('/api/offline'); } catch (e) { /* без статуса */ } }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) goneOffline(); else poll(); });
-  window.addEventListener('pagehide', (e) => { if (!e.persisted) goneOffline(); });
+  // переход на другую страницу сайта — не «ушёл»: иначе сигнал приходил после загрузки новой страницы и человек выглядел оффлайн
+  let leaving = false;
+  window.addEventListener('beforeunload', () => { leaving = true; });
+  window.addEventListener('pageshow', () => { leaving = false; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (!leaving) goneOffline(); } else { leaving = false; poll(); } });
   window.nuvoraOffline = goneOffline;
   // звук уведомления — на выбор в настройках
   const TONES = { classic: [[880, 0, .25]], soft: [[523, 0, .35]], drop: [[1200, 0, .08], [700, .08, .2]], chime: [[784, 0, .3], [1047, .15, .45]] };
@@ -582,7 +598,7 @@
     if ((ME.prefs || {}).hotkeys === false) return;
     if (e.key === 'n') { const t = $('#composer textarea'); if (t) { e.preventDefault(); t.focus(); } else location.href = '/create'; }
     else if (e.key === '/') { e.preventDefault(); location.href = '/search'; }
-    else if (e.key === '?') { modal('Горячие клавиши', `<div class="stack small"><div><span class="kbd">n</span> — новый пост</div><div><span class="kbd">/</span> — поиск</div><div><span class="kbd">g</span> <span class="kbd">h</span> — лента</div><div><span class="kbd">g</span> <span class="kbd">m</span> — сообщения</div><div><span class="kbd">g</span> <span class="kbd">n</span> — уведомления</div><div><span class="kbd">g</span> <span class="kbd">p</span> — профиль</div><div><span class="kbd">g</span> <span class="kbd">e</span> — обзор</div><div><span class="kbd">t</span> — сменить тему</div></div>`); }
+    else if (e.key === '?') { modal('Горячие клавиши', `<div class="stack small"><div><span class="kbd">n</span> — новый пост</div><div><span class="kbd">/</span> — поиск</div><div><span class="kbd">g</span> <span class="kbd">h</span> — лента</div><div><span class="kbd">g</span> <span class="kbd">m</span> — сообщения</div><div><span class="kbd">g</span> <span class="kbd">n</span> — уведомления</div><div><span class="kbd">g</span> <span class="kbd">p</span> — профиль</div><div><span class="kbd">g</span> <span class="kbd">e</span> — обзор</div><div><span class="kbd">t</span> — сменить тему</div><div><span class="kbd">Ctrl</span> <span class="kbd">K</span> — быстрый переход</div><div><span class="kbd">Ctrl</span> <span class="kbd">Enter</span> — отправить комментарий или пост</div><div><span class="kbd">Esc</span> — отменить ответ в чате</div></div>`); }
     else if (e.key === 't') toggleTheme();
     else if (e.key === 'g') { gPressed = true; setTimeout(() => gPressed = false, 900); }
     else if (gPressed) {
@@ -605,9 +621,16 @@
         const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(key) });
         const j = sub.toJSON();
         await api('/api/push/subscribe', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth });
-        toast('Push-уведомления включены');
+        try { localStorage.setItem('nv_push_ep', ME.user + '|' + j.endpoint); } catch (e) { /* приватный режим */ }
+        if (!window._pushSilent) toast('Push-уведомления включены');
       };
-      if (Notification.permission === 'granted') { try { await window.enablePush(); } catch (e) {} }
+      // тихая синхронизация: отправляем подписку на сервер, только если она поменялась
+      if (Notification.permission === 'granted') {
+        try {
+          const cur = await reg.pushManager.getSubscription(); let saved = ''; try { saved = localStorage.getItem('nv_push_ep') || ''; } catch (e) { /* приватный режим */ }
+          if (!cur || saved !== ME.user + '|' + cur.endpoint) { window._pushSilent = true; await window.enablePush(); window._pushSilent = false; }
+        } catch (e) { /* push недоступен */ }
+      }
     }).catch(() => {});
   }
 })();

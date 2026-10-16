@@ -29,6 +29,7 @@ class User(Base):
     cover = Column(String, default="")
     bio = Column(String, default="")
     website = Column(String, default="")
+    work = Column(String(80), default="")  # работа или учёба — показывается в профиле
     birthday = Column(String, default="")
     emoji_status = Column(String, default="")
     city = Column(String, default="")
@@ -334,6 +335,7 @@ class MutedChat(Base):
     muted_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     muted_group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    until = Column(DateTime, nullable=True)  # «без звука на время»; пусто — навсегда
 
 class Sticker(Base):
     __tablename__ = "stickers"

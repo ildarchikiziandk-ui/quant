@@ -11,6 +11,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.PowerManager
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.util.Base64
 import android.provider.Settings
 import android.graphics.Color
 import android.view.ViewGroup
@@ -44,7 +47,17 @@ class MainActivity : AppCompatActivity() {
     private val fileChooser = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = fileCallback
         fileCallback = null
-        callback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data))
+        val data = result.data
+        var uris: Array<Uri>? = null
+        if (result.resultCode == RESULT_OK && data != null) {
+            val clip = data.clipData
+            uris = if (clip != null && clip.itemCount > 0) {
+                Array(clip.itemCount) { i -> clip.getItemAt(i).uri }
+            } else {
+                data.data?.let { arrayOf(it) }
+            }
+        }
+        callback?.onReceiveValue(uris)
     }
 
     private val mediaPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -100,13 +113,16 @@ class MainActivity : AppCompatActivity() {
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
-                if (isOwn(uri)) return false
+                if (isOwn(uri) || isAuthHost(uri)) return false  // вход через Яндекс идёт внутри приложения, чтобы cookie остались здесь
                 openExternal(uri)
                 return true
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 CookieManager.getInstance().flush()
+                // после входа включаем мгновенные уведомления (служба сама выключается, когда пользователь вышел)
+                val c = CookieManager.getInstance().getCookie(BuildConfig.SITE_URL)
+                if (c != null && c.contains("token=") && !NotifyService.running) NotifyService.start(this@MainActivity)
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -120,8 +136,16 @@ class MainActivity : AppCompatActivity() {
             override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
                 fileCallback?.onReceiveValue(null)
                 fileCallback = callback
+                // свой выбор файлов: все типы из accept (фото и видео сразу) и несколько файлов за раз
+                val types = params.acceptTypes.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }
+                val pick = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = if (types.size == 1) types[0] else "*/*"
+                    if (types.size > 1) putExtra(Intent.EXTRA_MIME_TYPES, types.toTypedArray())
+                    if (params.mode == FileChooserParams.MODE_OPEN_MULTIPLE) putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                }
                 return try {
-                    fileChooser.launch(params.createIntent())
+                    fileChooser.launch(Intent.createChooser(pick, null))
                     true
                 } catch (e: ActivityNotFoundException) {
                     fileCallback = null
@@ -130,6 +154,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onPermissionRequest(request: PermissionRequest) {
+                if (!isOwn(request.origin)) {
+                    request.deny()
+                    return
+                }
                 runOnUiThread {
                     val needed = mutableListOf<String>()
                     if (request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE) && !has(Manifest.permission.RECORD_AUDIO)) {
@@ -158,7 +186,12 @@ class MainActivity : AppCompatActivity() {
                     .addRequestHeader("User-Agent", userAgent)
                     .setTitle(name)
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+                if (Build.VERSION.SDK_INT >= 29) {
+                    req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+                } else {
+                    // Android 7–9: в общую папку нужно отдельное разрешение — сохраняем в папку приложения
+                    req.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, name)
+                }
                 (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
                 Toast.makeText(this, "Скачивание: $name", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -171,8 +204,7 @@ class MainActivity : AppCompatActivity() {
                 if (web.canGoBack()) {
                     web.goBack()
                 } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    moveTaskToBack(true)
                 }
             }
         })
@@ -196,7 +228,7 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         val data = intent.data
         if (data != null && isOwn(data)) web.loadUrl(data.toString())
-        else intent.getStringExtra(NotifyWorker.EXTRA_PATH)?.let { web.loadUrl(BuildConfig.SITE_URL + it) }
+        else safePath(intent.getStringExtra(NotifyWorker.EXTRA_PATH))?.let { web.loadUrl(it) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -239,13 +271,25 @@ class MainActivity : AppCompatActivity() {
     private fun startUrl(intent: Intent?): String {
         val data = intent?.data
         if (data != null && isOwn(data)) return data.toString()
-        val path = intent?.getStringExtra(NotifyWorker.EXTRA_PATH)
-        return if (path != null) BuildConfig.SITE_URL + path else BuildConfig.SITE_URL
+        return safePath(intent?.getStringExtra(NotifyWorker.EXTRA_PATH)) ?: BuildConfig.SITE_URL
     }
 
     private fun isOwn(uri: Uri): Boolean {
         val host = uri.host ?: return false
-        return host == BuildConfig.SITE_HOST || host == "www." + BuildConfig.SITE_HOST
+        return uri.scheme == "https" && (host == BuildConfig.SITE_HOST || host == "www." + BuildConfig.SITE_HOST)
+    }
+
+    private fun isAuthHost(uri: Uri): Boolean {
+        val host = uri.host ?: return false
+        return uri.scheme == "https" && (host == "oauth.yandex.ru" || host == "passport.yandex.ru" || host == "id.yandex.ru" ||
+            host == "sso.passport.yandex.ru" || host == "oauth.yandex.com" || host == "passport.yandex.com")
+    }
+
+    /** Путь из уведомления: только внутренний адрес сайта, без подмены хоста («@evil.com», «.evil.com»). */
+    private fun safePath(path: String?): String? {
+        if (path == null || !path.startsWith("/") || path.startsWith("//") || path.contains("\\")) return null
+        val url = BuildConfig.SITE_URL + path
+        return if (isOwn(Uri.parse(url))) url else null
     }
 
     private fun openExternal(uri: Uri) {
@@ -267,11 +311,35 @@ class MainActivity : AppCompatActivity() {
         if (allowed.isEmpty()) request.deny() else request.grant(allowed.toTypedArray())
     }
 
-    /** Сайт сообщает свою тему: тёмная/светлая и цвет фона — красим полосы под системными панелями. */
+    /** Мост для сайта: тема (цвет полос под системными панелями) и сохранение картинок, созданных на странице. */
     inner class ThemeBridge {
         @JavascriptInterface
         fun setTheme(dark: Boolean, color: String?) {
             runOnUiThread { applyTheme(dark, color) }
+        }
+
+        @JavascriptInterface
+        fun saveImage(base64: String, name: String): Boolean {
+            return try {
+                val bytes = Base64.decode(base64.substringAfter(","), Base64.DEFAULT)
+                val file = name.replace(Regex("[^A-Za-z0-9._-]"), "_").ifEmpty { "nuvora.png" }
+                if (Build.VERSION.SDK_INT >= 29) {
+                    val values = ContentValues().apply {
+                        put(MediaStore.Images.Media.DISPLAY_NAME, file)
+                        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Nuvora")
+                    }
+                    val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return false
+                    contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return false
+                } else {
+                    val dir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: return false
+                    java.io.File(dir, file).writeBytes(bytes)
+                }
+                runOnUiThread { Toast.makeText(this@MainActivity, "Картинка сохранена в «Галерею»", Toast.LENGTH_SHORT).show() }
+                true
+            } catch (e: Exception) {
+                false
+            }
         }
     }
 

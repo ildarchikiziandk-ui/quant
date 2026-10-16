@@ -33,14 +33,24 @@
 {% if user and user.id == post.user_id %}<a class="btn soft sm" href="/post/{{ post.id }}/stats">{{ icon("chart") }} Статистика</a>{% endif %}</div></div>
 {% if post.scheduled_at and post.scheduled_at > now %}<div class="alert info">{{ icon("alarm", "i in") }} Пост запланирован на {{ post.scheduled_at|lt }}. <form method="post" action="/post/{{ post.id }}/publish-now" style="display:inline"><button class="btn sm">Опубликовать сейчас</button></form></div>{% endif %}
 {{ post_card(post, user, st, originals, repost_counts, can_mod, full=true) }}
+{%- set tid = post.repost_id if (post.is_repost and not post.original_comment and originals.get(post.repost_id)) else post.id %}
+{%- set tauthor = (originals.get(post.repost_id).author if tid != post.id else post.author) %}
+<div class="post-tools" style="padding:0 6px 8px">
+  <button type="button" class="btn ghost sm" data-tts="text-{{ tid }}" title="Прочитать пост вслух">{{ icon("volume", "i in") }} Прослушать</button>
+  <button type="button" class="btn ghost sm" data-readsize="-" title="Мельче">A−</button>
+  <button type="button" class="btn ghost sm" data-readsize="+" title="Крупнее">A+</button>
+  <button type="button" class="btn ghost sm" data-quote-img="text-{{ tid }}" data-author="{{ (tauthor.name or tauthor.username) if tauthor else '' }}" title="Поделиться текстом как картинкой">{{ icon("image", "i in") }} Картинкой</button>
+  <button type="button" class="btn ghost sm" data-copytext="text-{{ tid }}">{{ icon("copy", "i in") }} Текст</button>
+  <button type="button" class="btn ghost sm hide-in-app" data-print>{{ icon("download", "i in") }} PDF</button>
+</div>
 <div class="row small muted" style="padding:0 6px 10px;gap:14px">
   <span>{{ post.created_at|lt("%d.%m.%Y, %H:%M") }}</span>
   <span>{{ icon("eye", "i in") }} {{ post.views or 0 }}</span>
   {% if not post.author.hide_likes or (user and user.id == post.user_id) %}<button class="act" data-act="likers" data-id="{{ post.id }}" style="padding:2px 6px">Кому понравилось</button>{% endif %}
 </div>
 <div class="card" id="comments">
-  <div class="card-title">{{ icon("chat", "i in") }} Комментарии · {{ comment_count }}
-    {% if comment_count > 1 %}<span class="row tiny" style="gap:4px">{% for k, l in [("old","Сначала старые"),("new","Новые"),("top","Популярные")] %}<a href="?sort={{ k }}#comments" class="chip {% if sort == k %}active{% endif %}" style="margin:0;padding:3px 10px">{{ l }}</a>{% endfor %}</span>{% endif %}</div>
+  <div class="card-title" style="flex-wrap:wrap;row-gap:6px">{{ icon("chat", "i in") }} Комментарии · {{ comment_count }}
+    {% if comment_count > 1 %}<span class="row tiny" style="gap:4px;flex-wrap:wrap">{% for k, l in [("old","Сначала старые"),("new","Новые"),("top","Популярные")] %}<a href="?sort={{ k }}#comments" class="chip {% if sort == k %}active{% endif %}" style="margin:0;padding:3px 10px">{{ l }}</a>{% endfor %}</span>{% endif %}</div>
   {% if post.comments_disabled %}<div class="alert info">Автор отключил комментарии</div>
   {% elif user %}
   <form id="comment-form" method="post" action="/post/{{ post.id }}/comment" data-ajax data-reload class="mb">

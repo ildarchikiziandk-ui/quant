@@ -176,6 +176,8 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
     if not other or other.id == user.id:
         return redirect("/messages")
     msgs = _load_dialog(db, user, other)
+    # первое непрочитанное — над ним появится полоска «Новые сообщения»
+    first_unread = next((m.id for m in msgs if m.sender_id == other.id and not m.is_read and not m.scheduled_pending), 0)
     _mark_read(db, user, other)
     allowed, reason = social.can_message(db, user, other)
     pinned_msg = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_pinned == True,
@@ -187,7 +189,7 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
         st.marked_unread = False
         db.commit()
     return render(request, db, "conversation.html", look=chatstyle.look(db, user, other.id), archived=bool(st and st.archived), sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason, streak=streak,
-                  pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS, starred_ids=_starred_ids(db, user, msgs),
+                  pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS, starred_ids=_starred_ids(db, user, msgs), first_unread=first_unread,
                   is_muted=db.query(models.MutedChat).filter_by(user_id=user.id, muted_user_id=other.id).first() is not None,
                   is_pinned=db.query(models.PinnedChat).filter_by(user_id=user.id, pinned_user_id=other.id).first() is not None)
 

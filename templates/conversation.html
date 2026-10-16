@@ -23,7 +23,9 @@
         <button data-act="toggle" data-url="/chats/{{ other.username }}/archive" data-msg="Готово" data-reload="1">{{ icon("archive") }} {% if archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
         <a href="/messages/{{ other.username }}/export">{{ icon("download") }} Сохранить переписку</a>
         <button data-act="toggle" data-url="/chats/pin/{{ other.username }}" data-msg="Готово">{{ icon("pin") }} {% if is_pinned %}Открепить чат{% else %}Закрепить чат{% endif %}</button>
-        <button data-act="toggle" data-url="/chats/mute/{{ other.username }}" data-msg="Готово">{{ icon("mute") }} {% if is_muted %}Включить звук{% else %}Без звука{% endif %}</button>
+        <button type="button" onclick="muteFor({{ 1 if is_muted else 0 }})">{{ icon("mute") }} {% if is_muted %}Включить звук{% else %}Без звука…{% endif %}</button>
+        <button type="button" onclick="jumpToDate()">{{ icon("calendar") }} Перейти к дате</button>
+        <button type="button" onclick="selectMode(true)">{{ icon("check-circle") }} Выбрать сообщения</button>
         <button onclick="toggleTtl()">{{ icon("hourglass", "i in") }} Исчезающие сообщения: <b id="ttl-label">выкл</b></button>
         <button class="danger" onclick="clearChat()">{{ icon("trash") }} Удалить мои сообщения</button>
       </div>
@@ -47,7 +49,7 @@
       <button class="icon-btn cmp-tool" title="Эмодзи" onclick="document.getElementById('emoji-panel').classList.toggle('hidden')">{{ icon("smile") }}</button>
       <textarea id="inp" rows="1" maxlength="4000" placeholder="Сообщение…" data-suggest></textarea>
     {% endcall %}
-    <input type="file" id="att" class="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.xlsx,.pptx">
+    <input type="file" id="att" class="hidden" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.xlsx,.pptx">
   </div>
   {% else %}
   <div class="alert info mt">{{ block_reason or "Отправка сообщений недоступна" }}</div>
@@ -168,6 +170,9 @@ function startEdit(id, raw){ editId=id; inp.value=raw; inp.focus(); inp.dispatch
 window.cancelEdit = ()=>{ editId=null; inp.value=''; inp.dispatchEvent(new Event('input')); document.getElementById('edit-bar').classList.add('hidden'); };
 window.insertEmoji = (e)=>{ const p=inp.selectionStart??inp.value.length; inp.value=inp.value.slice(0,p)+e+inp.value.slice(p); inp.focus(); inp.selectionStart=inp.selectionEnd=p+e.length; inp.dispatchEvent(new Event('input')); };
 window.toggleTtl = ()=>{ const opts=[0,3600,86400,604800], names=['выкл','1 час','24 часа','7 дней']; const i=(opts.indexOf(ttl)+1)%opts.length; ttl=opts[i]; document.getElementById('ttl-label').textContent=names[i]; App.toast('Исчезающие сообщения: '+names[i]); };
+// Esc — отменить ответ или редактирование, Ctrl+F — поиск по чату
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(editId) cancelEdit(); else if(replyTo) clearReply(); else if(document.getElementById('convo').classList.contains('select-mode')) selectMode(false); }
+  if((e.ctrlKey||e.metaKey) && (e.key==='f'||e.key==='а') && document.getElementById('chat-search')){ e.preventDefault(); toggleSearch(); } });
 window.toggleSearch = ()=>{ const s=document.getElementById('chat-search'); s.classList.toggle('hidden'); document.getElementById('chat-search-q').focus(); };
 document.getElementById('chat-search-q').addEventListener('input',e=>{ const q=e.target.value.toLowerCase(); let first=null;
   box.querySelectorAll('.msg').forEach(m=>{ const hit=q && m.dataset.text.includes(q); m.classList.toggle('highlight',hit); m.style.opacity=(!q||hit)?1:.35; if(hit&&!first) first=m; }); first?.scrollIntoView({block:'center'}); });
@@ -191,8 +196,34 @@ document.addEventListener('click', async e=>{
       md.querySelector('#fw-go').onclick=async()=>{ const to=md.querySelector('#fw-q').value.trim().replace(/^@/,''); if(!to) return; await App.api(`/messages/${id}/forward`,{to}); md.classList.remove('open'); App.toast('Переслано @'+to); }; }
   }catch(err){}
 });
-// вложения
-document.getElementById('att')?.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(er){} e.target.value=''; });
+// вложения: можно выбрать несколько файлов сразу или перетащить их в чат
+async function sendFiles(list){ for(const f of [...list].slice(0,10)){ const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); try{ await App.api('/messages/send-media',fd); }catch(er){ break; } } await poll(); toBottom(); }
+document.getElementById('att')?.addEventListener('change', async e=>{ if(e.target.files.length) await sendFiles(e.target.files); e.target.value=''; });
+if(inp){ box.addEventListener('dragover',e=>{ e.preventDefault(); box.classList.add('drag'); }); box.addEventListener('dragleave',()=>box.classList.remove('drag'));
+  box.addEventListener('drop',e=>{ e.preventDefault(); box.classList.remove('drag'); if(e.dataTransfer.files.length) sendFiles(e.dataTransfer.files); }); }
+// «Новые сообщения» — полоска над первым непрочитанным
+(function(){ const id={{ first_unread or 0 }}; const m=id&&document.getElementById('msg-'+id); if(!m) return; const s=document.createElement('div'); s.className='unread-sep'; s.textContent='Новые сообщения'; m.before(s);
+  if(box.scrollHeight-m.offsetTop>box.clientHeight) setTimeout(()=>{ box.scrollTop=Math.max(0,s.offsetTop-80); },50); })();
+// без звука на время
+window.muteFor = (isMuted)=>{ if(isMuted){ App.api(`/chats/${OTHER}/mute-for`,{off:1}).then(()=>{ App.toast('Звук включён'); setTimeout(()=>location.reload(),400); }); return; }
+  const md=App.modal('Без звука',[[1,'На 1 час'],[8,'На 8 часов'],[24,'На сутки'],[168,'На неделю'],[0,'Навсегда']].map(([h,l])=>`<button class="btn soft block mt" data-h="${h}">${l}</button>`).join(''));
+  md.querySelector('.b').onclick=async ev=>{ const x=ev.target.closest('[data-h]'); if(!x) return; await App.api(`/chats/${OTHER}/mute-for`,{hours:+x.dataset.h}); md.classList.remove('open'); App.toast('Без звука: '+x.textContent.toLowerCase()); setTimeout(()=>location.reload(),500); }; };
+// перейти к дате
+window.jumpToDate = ()=>{ const md=App.modal('Перейти к дате','<input type="date" id="jd-d"><button class="btn block mt" id="jd-go">Показать</button><p class="tiny faint mt">Показываются последние 200 сообщений чата.</p>');
+  md.querySelector('#jd-go').onclick=()=>{ const d=md.querySelector('#jd-d').value; if(!d) return; const t=[...box.querySelectorAll('.msg')].find(m=>m.dataset.time>=d); md.classList.remove('open');
+    if(t){ t.scrollIntoView({block:'start'}); t.classList.add('flash'); setTimeout(()=>t.classList.remove('flash'),2000); } else App.toast('В этот день сообщений нет', true); }; };
+// выбор нескольких сообщений: скопировать или удалить у себя
+window.selectMode = (on)=>{ const cv=document.getElementById('convo'); cv.classList.toggle('select-mode',on); box.querySelectorAll('.msg.picked').forEach(m=>m.classList.remove('picked'));
+  let bar=document.getElementById('select-bar');
+  if(!on){ bar?.remove(); return; }
+  if(!bar){ bar=document.createElement('div'); bar.id='select-bar'; bar.className='select-bar'; bar.innerHTML='<b class="grow" id="sel-n">Выберите сообщения</b><button type="button" class="btn soft sm" data-sel="copy">Копировать</button><button type="button" class="btn soft sm" data-sel="hide">Удалить у меня</button><button type="button" class="btn ghost sm" data-sel="cancel">Отмена</button>'; box.after(bar);
+    bar.onclick=async e=>{ const b=e.target.closest('[data-sel]'); if(!b) return; const picked=[...box.querySelectorAll('.msg.picked')];
+      if(b.dataset.sel==='cancel') return selectMode(false);
+      if(!picked.length) return App.toast('Ничего не выбрано', true);
+      if(b.dataset.sel==='copy'){ await navigator.clipboard.writeText(picked.map(m=>m.dataset.raw).filter(Boolean).join('\n')); App.toast('Скопировано: '+picked.length); selectMode(false); }
+      else { if(!confirm('Удалить у вас '+picked.length+' сообщ.? У собеседника они останутся.')) return; for(const m of picked){ try{ await App.api(`/messages/${m.dataset.id}/hide`); m.remove(); }catch(er){} } App.toast('Удалено у вас'); selectMode(false); } }; }
+};
+box.addEventListener('click',e=>{ if(!document.getElementById('convo').classList.contains('select-mode')) return; const m=e.target.closest('.msg'); if(!m) return; e.preventDefault(); e.stopPropagation(); m.classList.toggle('picked'); const n=box.querySelectorAll('.msg.picked').length; document.getElementById('sel-n').textContent=n?('Выбрано: '+n):'Выберите сообщения'; },true);
 inp?.addEventListener('paste', async e=>{ for(const it of e.clipboardData?.items||[]){ if(it.type.startsWith('image/')){ e.preventDefault(); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',it.getAsFile(),'paste.png'); await App.api('/messages/send-media',fd); await poll(); toBottom(); } } });
 // запись голоса и кружков — одна кнопка (static/js/chat.js)
 if(inp) window.chatComposer({root: document.getElementById('cmp'), input: inp, onRecord: k=>typingPing(k==='video'?'circle':'voice'),

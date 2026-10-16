@@ -190,3 +190,159 @@ def similar_posts(db, user, post, limit=6):
         if len(out) >= limit:
             break
     return out
+
+
+# ---------------------------------------------------------------- Nuvora 2.0
+@router.get("/api/feed/new")
+def feed_new(request: Request, after: int = 0, db: Session = Depends(get_db)):
+    """Сколько новых постов у тех, на кого вы подписаны, появилось после поста `after` — для плашки «Новые посты»."""
+    user = current_user(request, db)
+    if not user or after <= 0:
+        return JSONResponse({"ok": True, "count": 0})
+    fids = social.following_ids(db, user)
+    if not fids:
+        return JSONResponse({"ok": True, "count": 0})
+    n = (social.visible_posts(db, user).filter(models.Post.id > after, models.Post.user_id.in_(fids),
+                                               models.Post.user_id != user.id).count())
+    return JSONResponse({"ok": True, "count": min(n, 99)})
+
+
+@router.post("/messages/read-all")
+def read_all_chats(request: Request, db: Session = Depends(get_db)):
+    """«Прочитать все»: отмечает прочитанными все входящие личные сообщения."""
+    user = current_user(request, db)
+    if not user:
+        return json_error("auth", 401)
+    n = db.query(models.Message).filter(models.Message.receiver_id == user.id, models.Message.group_id == None,
+                                        models.Message.is_read == False, models.Message.scheduled_pending != True).update(
+        {"is_read": True, "is_delivered": True}, synchronize_session=False)
+    db.query(models.ChatSetting).filter(models.ChatSetting.user_id == user.id, models.ChatSetting.marked_unread == True).update(
+        {"marked_unread": False}, synchronize_session=False)
+    db.commit()
+    return JSONResponse({"ok": True, "count": n})
+
+
+@router.post("/chats/{username}/mute-for")
+async def mute_for(username: str, request: Request, db: Session = Depends(get_db)):
+    """Без звука на время: hours = 1, 8, 24, 168 или 0 — навсегда; off=1 — включить звук."""
+    from routers.messages import _get_user
+    user = current_user(request, db)
+    other = _get_user(db, username)
+    if not user or not other or other.id == user.id:
+        return json_error("Чат не найден", 404)
+    data = await read_payload(request)
+    db.query(models.MutedChat).filter_by(user_id=user.id, muted_user_id=other.id).delete()
+    if str(data.get("off") or "") not in ("1", "true", "True"):
+        try:
+            hours = max(0, min(int(str(data.get("hours") or 0)[:4]), 24 * 365))
+        except ValueError:
+            hours = 0
+        db.add(models.MutedChat(user_id=user.id, muted_user_id=other.id, until=datetime.utcnow() + timedelta(hours=hours) if hours else None))
+        db.commit()
+        return JSONResponse({"ok": True, "muted": True, "until": hours})
+    db.commit()
+    return JSONResponse({"ok": True, "muted": False})
+
+
+def cleanup(db):
+    """Фоновая уборка: закончившиеся «без звука», старые прочитанные уведомления, выполненные напоминания."""
+    now = datetime.utcnow()
+    db.query(models.MutedChat).filter(models.MutedChat.until != None, models.MutedChat.until <= now).delete(synchronize_session=False)
+    db.query(models.Notification).filter(models.Notification.is_read == True,
+                                         models.Notification.created_at < now - timedelta(days=90)).delete(synchronize_session=False)
+    db.query(models.MessageReminder).filter(models.MessageReminder.done == True,
+                                            models.MessageReminder.remind_at < now - timedelta(days=7)).delete(synchronize_session=False)
+    db.commit()
+
+
+# ---------------------------------------------------------------- перенос настроек
+@router.get("/settings/backup/export")
+def prefs_export(request: Request, db: Session = Depends(get_db)):
+    import json
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    data = {"nuvora_settings": 1, "theme": user.theme, "prefs": prefs.values(user)}
+    from fastapi.responses import Response
+    return Response(json.dumps(data, ensure_ascii=False, indent=2), media_type="application/json",
+                    headers={"Content-Disposition": 'attachment; filename="nuvora-settings.json"'})
+
+
+@router.post("/settings/backup/import")
+async def prefs_import(request: Request, db: Session = Depends(get_db)):
+    import json
+    user = current_user(request, db)
+    if not user:
+        return json_error("auth", 401)
+    form = await request.form()
+    f = form.get("file")
+    try:
+        raw = await f.read(200_000) if hasattr(f, "read") else str(form.get("json") or "").encode()
+        data = json.loads(raw.decode("utf-8"))
+        assert isinstance(data, dict) and isinstance(data.get("prefs"), dict)
+    except Exception:
+        return json_error("Это не файл настроек Nuvora")
+    n = prefs.update_many(user, data["prefs"])
+    if data.get("theme") in ("light", "dark", "auto"):
+        user.theme = data["theme"]
+    db.commit()
+    return JSONResponse({"ok": True, "count": n})
+
+
+@router.post("/settings/backup/reset")
+def prefs_reset(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return json_error("auth", 401)
+    keep = {k: v for k, v in prefs.raw(user).items() if k == "timezone"}  # часовой пояс оставляем
+    prefs.replace(user, keep)
+    db.commit()
+    return JSONResponse({"ok": True})
+
+
+@router.get("/whats-new")
+def whats_new(request: Request, db: Session = Depends(get_db)):
+    from services.whatsnew import GROUPS
+    total = sum(len(items) for _, _, items in GROUPS)
+    return render(request, db, "whats_new.html", groups=GROUPS, total=total)
+
+
+# ---------------------------------------------------------------- календарь (.ics)
+def _ics(lines):
+    from fastapi.responses import Response
+    body = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Nuvora//RU", "CALSCALE:GREGORIAN"] + lines + ["END:VCALENDAR"]) + "\r\n"
+    return Response(body, media_type="text/calendar; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="nuvora.ics"'})
+
+
+def _ics_text(s):
+    return (s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r", "").replace("\n", "\\n")[:500]
+
+
+@router.get("/calendar/event/{eid}.ics")
+def event_ics(eid: int, request: Request, db: Session = Depends(get_db)):
+    """«Добавить в календарь» — файл для Google, Яндекс и Apple Календаря."""
+    import config
+    ev = db.get(models.Event, eid)
+    if not ev or not ev.starts_at:
+        return json_error("not found", 404)
+    st = ev.starts_at
+    return _ics(["BEGIN:VEVENT", f"UID:event-{ev.id}@nuvora", f"DTSTAMP:{datetime.utcnow():%Y%m%dT%H%M%SZ}",
+                 f"DTSTART:{st:%Y%m%dT%H%M%SZ}", f"DTEND:{st + timedelta(hours=2):%Y%m%dT%H%M%SZ}",
+                 f"SUMMARY:{_ics_text(ev.title)}", f"LOCATION:{_ics_text(ev.place)}",
+                 f"DESCRIPTION:{_ics_text((ev.description or '') + chr(10) + config.SITE_URL + '/events/' + str(ev.id))}",
+                 "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", "DESCRIPTION:Скоро мероприятие", "END:VALARM", "END:VEVENT"])
+
+
+@router.get("/calendar/birthdays.ics")
+def birthdays_ics(request: Request, db: Session = Depends(get_db)):
+    """Дни рождения друзей в календарь телефона — повторяются каждый год."""
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    lines = []
+    for it in upcoming_birthdays(db, user, days=366):
+        u, d = it["user"], it["date"]
+        lines += ["BEGIN:VEVENT", f"UID:bday-{u.id}@nuvora", f"DTSTAMP:{datetime.utcnow():%Y%m%dT%H%M%SZ}",
+                  f"DTSTART;VALUE=DATE:{d:%Y%m%d}", "RRULE:FREQ=YEARLY", f"SUMMARY:{_ics_text('День рождения: ' + (u.name or u.username))}",
+                  "TRANSP:TRANSPARENT", "END:VEVENT"]
+    return _ics(lines)

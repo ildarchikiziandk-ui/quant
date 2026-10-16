@@ -20,6 +20,8 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const IC = (n) => window.ICON ? ICON(n, 'i') : '';
   const path = location.pathname;
+  // дата по часам устройства (а не UTC): иначе в Москве «сегодня» начиналось бы в 3 часа ночи
+  const localDate = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const safe = (name, fn) => { try { fn(); } catch (e) { console.warn('[nuvora] ' + name, e); } };
   window.NV = { on, ls, esc };
 
@@ -60,7 +62,7 @@
   // 5. Время в приложении сегодня + 6. напоминание отдохнуть
   safe('screentime', () => {
     if (!APP.user) return;
-    const key = 'nv_time_' + new Date().toISOString().slice(0, 10);
+    const key = 'nv_time_' + localDate();
     let session = 0; const limit = (+P.break_reminder || 0) * 60;
     setInterval(() => {
       if (document.hidden) return;
@@ -68,8 +70,15 @@
       if (limit && session >= limit) { session = 0; window.App && App.modal && App.modal('Время сделать перерыв', `<p class="muted">Вы в ${esc(document.title.split('—').pop().trim() || 'Nuvora')} уже ${Math.round(limit / 60)} минут подряд. Разомнитесь, попейте воды и дайте глазам отдохнуть.</p><button class="btn block mt" data-close>Хорошо</button>`); }
     }, 30000);
     document.addEventListener('visibilitychange', () => { if (document.hidden) session = Math.max(0, session - 60); });
+    const fmt = (s) => s < 60 ? 'меньше минуты' : s < 3600 ? Math.round(s / 60) + ' мин' : (s / 3600).toFixed(1).replace('.', ',') + ' ч';
     const out = $('#time-today');
-    if (out) { const s = +ls.get(key, 0); out.textContent = s < 60 ? 'меньше минуты' : s < 3600 ? Math.round(s / 60) + ' мин' : (s / 3600).toFixed(1).replace('.', ',') + ' ч'; }
+    if (out) out.textContent = fmt(+ls.get(key, 0));
+    const wk = $('#time-week');
+    if (wk) {  // последние 7 дней столбиками
+      const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(Date.now() - i * 86400000); const k2 = 'nv_time_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); days.push([d, +ls.get(k2, 0)]); }
+      const max = Math.max(60, ...days.map(x => x[1])), total = days.reduce((a, x) => a + x[1], 0);
+      wk.innerHTML = '<div class="tw-bars">' + days.map(([d, s]) => `<div title="${fmt(s)}"><i style="height:${Math.round(s / max * 100)}%"></i><span>${['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'][d.getDay()]}</span></div>`).join('') + '</div><div class="small muted">За неделю: <b>' + fmt(total) + '</b></div>';
+    }
   });
 
   // 7. Размытие при сворачивании
@@ -177,7 +186,8 @@
       ['Черновики', '/drafts', 'draft'], ['Статистика', '/stats', 'chart'], ['Гости профиля', '/guests', 'eye'], ['Подарки', '/gifts/' + APP.user, 'gift'], ['Достижения', '/achievements', 'medal'],
       ['Колесо фортуны', '/wheel', 'wheel'], ['Магазин', '/shop', 'bag'], ['Что нового', '/whats-new', 'sparkle'], ['Настройки', '/settings', 'settings'], ['Оформление', '/settings?section=appearance', 'palette'],
       ['Приватность', '/settings?section=privacy', 'lock'], ['Безопасность и код-пароль', '/settings?section=security', 'shield'], ['Уведомления: настройки', '/settings?section=notifications', 'bell'],
-      ['Настройки чатов', '/settings?section=messages', 'chat'], ['Доступность', '/settings?section=accessibility', 'accessibility'], ['Мои данные', '/settings?section=data', 'package'], ['Поддержка', '/support', 'lifebuoy']];
+      ['Настройки чатов', '/settings?section=messages', 'chat'], ['Доступность', '/settings?section=accessibility', 'accessibility'], ['Мои данные', '/settings?section=data', 'package'], ['Поддержка', '/support', 'lifebuoy'],
+      ['Действие: сменить тему', 'javascript:toggleTheme()', 'contrast'], ['Действие: наверх страницы', 'javascript:scrollTo(0,0)', 'back'], ['Действие: новая история', '/stories/create', 'camera']];
     let md = null, sel = 0, items = [];
     function render(q) {
       const list = $('.pal-list', md); q = q.trim().toLowerCase();
@@ -189,14 +199,15 @@
       }).catch(() => {});
       function draw() { sel = Math.min(sel, Math.max(0, items.length - 1)); list.innerHTML = items.map((it, i) => `<a href="${esc(it.href)}" class="pal-item${i === sel ? ' sel' : ''}">${IC(it.ic)}<span>${esc(it.label)}</span></a>`).join('') || '<div class="muted small" style="padding:10px">Ничего не найдено</div>'; }
     }
+    function go(href) { if (href.startsWith('javascript:')) { md.classList.remove('open'); if (href.includes('toggleTheme')) window.toggleTheme && toggleTheme(); else scrollTo(0, 0); } else location.href = href; }
     function open() {
       if (!md) { md = document.createElement('div'); md.className = 'modal-bg pal-bg'; md.innerHTML = '<div class="modal pal"><input class="pal-in" placeholder="Куда перейти? Раздел или @человек" autocomplete="off"><div class="pal-list"></div><div class="tiny faint" style="padding:8px 4px 0">↑↓ — выбрать · Enter — открыть · Esc — закрыть</div></div>'; document.body.appendChild(md);
-        md.addEventListener('click', e => { if (e.target === md) md.classList.remove('open'); });
+        md.addEventListener('click', e => { if (e.target === md) md.classList.remove('open'); const a = e.target.closest('.pal-item'); if (a && a.getAttribute('href').startsWith('javascript:')) { e.preventDefault(); go(a.getAttribute('href')); } });
         const inp = $('.pal-in', md);
         inp.addEventListener('input', () => { sel = 0; render(inp.value); });
         inp.addEventListener('keydown', e => {
           if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % Math.max(1, items.length); $$('.pal-item', md).forEach((a, i) => a.classList.toggle('sel', i === sel)); }
-          else if (e.key === 'Enter' && items[sel]) location.href = items[sel].href;
+          else if (e.key === 'Enter' && items[sel]) go(items[sel].href);
           else if (e.key === 'Escape') md.classList.remove('open');
         });
       }
@@ -344,6 +355,9 @@
     c.toBlob(async blob => {
       const file = new File([blob], 'nuvora-post.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (er) { /* отменили */ } }
+      if (window.NuvoraApp && NuvoraApp.saveImage) {  // в приложении для Android ссылки blob: не скачиваются — сохраняет само приложение
+        const r = new FileReader(); r.onload = () => { if (!NuvoraApp.saveImage(String(r.result), 'nuvora-post.png')) toast('Не удалось сохранить', true); }; r.readAsDataURL(blob); return;
+      }
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'nuvora-post.png'; a.click(); toast('Картинка сохранена');
     }, 'image/png');
   });
@@ -361,6 +375,11 @@
   safe('video', () => {
     const vol = +ls.get('nv_vol', 1);
     const prep = (v) => { if (v.dataset.nvv) return; v.dataset.nvv = 1; if (!isNaN(vol)) v.volume = vol; v.addEventListener('volumechange', () => ls.set('nv_vol', v.volume));
+      if (v.closest('.post') && !v.closest('.has-circle')) {  // скорость 1× / 1,5× / 2×
+        const sp = document.createElement('button'); sp.type = 'button'; sp.className = 'speed-btn'; sp.textContent = '1×'; sp.title = 'Скорость';
+        sp.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const r = v.playbackRate >= 2 ? 1 : v.playbackRate >= 1.5 ? 2 : 1.5; v.playbackRate = r; sp.textContent = String(r).replace('.', ',') + '×'; };
+        const p0 = v.parentElement; if (p0) { if (getComputedStyle(p0).position === 'static') p0.style.position = 'relative'; p0.appendChild(sp); }
+      }
       if (document.pictureInPictureEnabled && v.closest('.post') && !v.closest('.has-circle')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'pip-btn'; b.title = 'Картинка в картинке'; b.innerHTML = IC('layers'); b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); v.requestPictureInPicture().catch(() => toast('Не удалось открыть', true)); }; const p = v.parentElement; if (p && getComputedStyle(p).position === 'static') p.style.position = 'relative'; p && p.appendChild(b); } };
     $$('video').forEach(prep);
     if (window.MutationObserver) new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) (n.tagName === 'VIDEO' ? [n] : $$('video', n)).forEach(prep); }))).observe(document.body, { childList: true, subtree: true });
@@ -450,13 +469,13 @@
     if (path !== '/' || !APP.user || !on('greeting')) return;
     const anchor = $('.tabs'); if (!anchor) return;
     const h = new Date().getHours(), part = h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
-    const today = new Date().toISOString().slice(5, 10), bday = APP.bday && APP.bday === today;
+    const today = localDate().slice(5), bday = APP.bday && APP.bday === today;
     const TIPS = ['Нажмите Ctrl+K, чтобы быстро перейти в любой раздел.', 'Зажмите сообщение и нажмите звёздочку — оно попадёт в «Избранное».', 'В чате можно поставить свой фон: меню ⋯ → «Оформление».',
       'Запишите контакт по-своему: в профиле нажмите ⋯ → «Записать как…».', 'Зажмите «Отправить», чтобы отправить сообщение позже или без звука.', 'Код-пароль на приложение — в настройках безопасности.',
       'Напишите /roll в чате — и бросьте кубик.', 'Забыли переключить раскладку? Nuvora предложит исправить «ghbdtn» на «привет».', 'Потяните ленту вниз, чтобы обновить её.',
       'Кнопка «Прослушать» на странице поста прочитает его вслух.', 'Посмотрите, у кого скоро день рождения: Меню → Дни рождения.', 'Включите «Экономию трафика» в настройках ленты для мобильного интернета.'];
     const tip = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
-    const k = 'nv_greet_' + new Date().toISOString().slice(0, 10); if (ls.get(k, '') === 'x') return;
+    const k = 'nv_greet_' + localDate(); if (ls.get(k, '') === 'x') return;
     const card = document.createElement('div'); card.className = 'card greet' + (bday ? ' bday' : '');
     card.innerHTML = `<button type="button" class="icon-btn greet-x" title="Скрыть на сегодня">${IC('x')}</button><b>${bday ? 'С днём рождения, ' + esc(APP.name || APP.user) + '!' : part + ', ' + esc(APP.name || APP.user) + '!'}</b><div class="small muted">${bday ? 'Вся команда Nuvora желает вам счастья. Сегодня ваш день!' : IC('bulb') + ' ' + esc(tip)}</div>`;
     anchor.before(card); $('.greet-x', card).onclick = () => { ls.set(k, 'x'); card.remove(); };
@@ -514,6 +533,45 @@
   document.addEventListener('click', async e => {
     if (!e.target.closest('[data-read-all-chats]')) return;
     try { const r = await App.api('/messages/read-all'); toast(r.count ? 'Прочитано сообщений: ' + r.count : 'Непрочитанных нет'); setTimeout(() => location.reload(), 500); } catch (er) { /* ошибка показана */ }
+  });
+
+  // 50. Выход из аккаунта: отписываем push этого браузера и стираем кэш фото — на общем компьютере ничего не останется
+  document.addEventListener('submit', e => {
+    const f = e.target; if (e.defaultPrevented || !f.matches || !f.matches('form[action="/logout"]') || f.dataset.clean) return;
+    e.preventDefault(); f.dataset.clean = 1;
+    const done = () => f.submit();
+    const tasks = [];
+    try { if (window.caches) tasks.push(caches.delete('media-v1')); } catch (er) { /* нет кэша */ }
+    try { sessionStorage.removeItem('nv_unlock'); } catch (er) { /* без сессии */ }
+    ls.del('nv_push_ep');
+    if (navigator.serviceWorker && window.PushManager) tasks.push(navigator.serviceWorker.getRegistration().then(reg => reg && reg.pushManager.getSubscription()).then(sub => {
+      if (!sub) return; const ep = sub.endpoint;
+      return fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, body: JSON.stringify({ endpoint: ep }) }).catch(() => {}).then(() => sub.unsubscribe());
+    }).catch(() => {}));
+    Promise.race([Promise.all(tasks), new Promise(r => setTimeout(r, 1500))]).then(done, done);
+  });
+
+  // 51. Черновики в групповых чатах
+  safe('gdraft', () => {
+    const g = $('#ginp'); if (!g) return; const k = 'nv_draft_g' + path;
+    const d = ls.get(k, ''); if (d && !g.value) g.value = d;
+    g.addEventListener('input', () => g.value.trim() ? ls.set(k, g.value) : ls.del(k));
+    const f = g.closest('form'); if (f) f.addEventListener('submit', () => ls.del(k), true);
+    document.addEventListener('keydown', e => { if (e.target === g && e.key === 'Enter' && !e.shiftKey) setTimeout(() => { if (!g.value.trim()) ls.del(k); }, 50); });
+  });
+
+  // 52. Уведомления: смахните влево, чтобы удалить
+  safe('notifswipe', () => {
+    if (path !== '/notifications' || !('ontouchstart' in window)) return;
+    let row = null, x0 = 0, y0 = 0, dx = 0;
+    document.addEventListener('touchstart', e => { row = e.target.closest('[id^="n-"]'); if (!row) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; }, { passive: true });
+    document.addEventListener('touchmove', e => { if (!row) return; dx = e.touches[0].clientX - x0; if (Math.abs(e.touches[0].clientY - y0) > 25) { row.style.transform = ''; row = null; return; } row.style.transform = `translateX(${Math.max(-140, Math.min(dx, 100))}px)`; if (dx < 0) row.style.opacity = 1 + dx / 300; }, { passive: true });
+    document.addEventListener('touchend', async () => {
+      if (!row) return; const r = row; row = null; const id = r.id.slice(2);
+      if (dx > 90 && /^\d+$/.test(id)) { vib(8); r.style.transition = 'transform .2s'; r.style.transform = ''; r.style.background = ''; try { await App.api(`/notifications/${id}/read`); toast('Отмечено прочитанным'); } catch (e) { /* ошибка показана */ } return; }
+      if (dx < -110 && /^\d+$/.test(id)) { vib(12); r.style.transition = 'transform .2s, opacity .2s'; r.style.transform = 'translateX(-100%)'; r.style.opacity = 0; try { await App.api(`/notifications/${id}/delete`); } catch (e) { /* ошибка показана */ } setTimeout(() => r.remove(), 200); }
+      else { r.style.transition = 'transform .2s'; r.style.transform = ''; r.style.opacity = ''; setTimeout(() => { r.style.transition = ''; }, 220); }
+    });
   });
 
   // ======================================================================== ЧТО НОВОГО

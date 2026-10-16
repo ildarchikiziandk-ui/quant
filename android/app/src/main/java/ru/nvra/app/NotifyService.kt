@@ -26,8 +26,6 @@ import java.net.URL
  */
 class NotifyService : Service() {
 
-    @Volatile
-    private var running = false
     private var worker: Thread? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -75,8 +73,11 @@ class NotifyService : Service() {
             try {
                 val cookie = CookieManager.getInstance().getCookie(BuildConfig.SITE_URL)
                 if (cookie == null || !cookie.contains("token=")) {
-                    Thread.sleep(60000)
-                    continue
+                    // вышли из аккаунта — убираем постоянное уведомление; после входа приложение запустит службу снова
+                    running = false
+                    ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                    return
                 }
                 val sn = prefs.getInt("stream_notif", -1)
                 val sm = prefs.getInt("stream_msg", -1)
@@ -88,8 +89,10 @@ class NotifyService : Service() {
                 val code = conn.responseCode
                 if (code == 401) {
                     conn.disconnect()
-                    Thread.sleep(60000)
-                    continue
+                    running = false
+                    ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                    return
                 }
                 if (code != 200) {
                     conn.disconnect()
@@ -130,6 +133,10 @@ class NotifyService : Service() {
         const val CHANNEL_SERVICE = "nuvora_service"
         const val CHANNEL_MESSAGES = "nuvora_messages"
         private const val ONGOING_ID = 7
+
+        /** Служба уже работает (одна на приложение). */
+        @Volatile
+        var running = false
 
         /** Приложение на экране — сообщения и так видны, системные уведомления о них не нужны. */
         @Volatile

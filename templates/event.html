@@ -10,6 +10,7 @@
   {% if ev.description %}<div class="mt" style="white-space:pre-wrap">{{ ev.description|rich }}</div>{% endif %}
   {% if user and not past %}<div class="row mt" style="gap:8px">
     <form method="post" action="/events/{{ ev.id }}/rsvp/going"><button class="btn sm {% if my != 'going' %}soft{% endif %}">{% if my == 'going' %}{{ icon("check", "i in") }} Я иду{% else %}{{ icon("wave", "i in") }} Пойду{% endif %}</button></form>
+    <a class="btn sm ghost" href="/calendar/event/{{ ev.id }}.ics" title="Добавить в календарь телефона">{{ icon("calendar", "i in") }} В календарь</a>
     <form method="post" action="/events/{{ ev.id }}/rsvp/maybe"><button class="btn sm {% if my != 'maybe' %}ghost{% endif %}">{% if my == 'maybe' %}{{ icon("check", "i in") }} Интересно{% else %}{{ icon("star", "i in") }} Интересно{% endif %}</button></form>
     <button class="btn ghost sm" data-act="copy" data-url="/events/{{ ev.id }}">{{ icon("link", "i in") }} Ссылка</button>
   </div>{% elif not user %}<div class="mt small"><a href="/login?next=/events/{{ ev.id }}" style="color:var(--link);font-weight:600">Войдите</a>, чтобы отметиться.</div>{% endif %}

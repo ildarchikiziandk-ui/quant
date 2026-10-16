@@ -58,7 +58,7 @@ async def security_middleware(request: Request, call_next):
 async def _background_jobs():
     """Фоновые задачи (раз в 10 секунд): отложенные сообщения, напоминания; раз в час — дни рождения друзей."""
     import asyncio
-    state = {"bday": ""}
+    state = {"bday": "", "n": 0}
 
     def tick():
         from datetime import datetime as _dt
@@ -66,6 +66,9 @@ async def _background_jobs():
         try:
             chatx.deliver_scheduled(db)
             features.deliver_reminders(db)
+            state["n"] += 1
+            if state["n"] % 60 == 1:  # примерно раз в 10 минут — уборка старого
+                features.cleanup(db)
             now = _dt.utcnow()
             key = now.strftime("%Y-%m-%d")
             if now.hour >= 6 and state["bday"] != key:  # около 9 утра по Москве

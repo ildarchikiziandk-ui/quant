@@ -55,7 +55,8 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || '/';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
-    for (const c of cs) { if (new URL(c.url).pathname === url && 'focus' in c) return c.focus(); }
+    const want = new URL(url, self.location.origin);
+    for (const c of cs) { const u = new URL(c.url); if (u.pathname === want.pathname && 'focus' in c) return c.navigate && want.href !== c.url ? c.navigate(want.href).then(w => w && w.focus()) : c.focus(); }
     if (self.clients.openWindow) return self.clients.openWindow(url);
   }));
 });

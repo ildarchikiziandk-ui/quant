@@ -19,6 +19,16 @@ def _get_user(db, username):
     return db.query(models.User).filter(func.lower(models.User.username) == username.lower().lstrip("@")).first()
 
 
+def _bday_in(bday):
+    """Через сколько дней день рождения (0 — сегодня), или None."""
+    from routers.features import _next_birthday
+    if not bday:
+        return None
+    today = datetime.utcnow().date()
+    d = _next_birthday(bday, today)
+    return (d - today).days if d else None
+
+
 @router.get("/profile/{username}")
 def profile(username: str, request: Request, tab: str = "posts", db: Session = Depends(get_db)):
     user = current_user(request, db)
@@ -95,6 +105,8 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
     return render(request, db, "profile.html", profile_user=pu, tab=tab, can_see=can_see, pinned_post=pinned,
                   gifts=gifts, gifts_total=gifts_total, gift_by=extras.GIFT_BY_CODE, q_answered=q_answered, q_inbox=q_inbox,
                   pu_interests=extras.interests(pu), profile_links=extras.parse_links(pu.links),
+                  common_interests=sorted(set(extras.interests(pu)) & set(extras.interests(user))) if user and user.id != pu.id else [],
+                  bday_in=_bday_in(pu.birthday),
                   replies=liked_posts, stats=stats, rel=rel, mutual=mutual, achievements=achievements, highlights=highlights,
                   has_story=has_story, level=gamification.level_progress(pu), profile_is_plus=social.is_plus(pu), **ctx)
 

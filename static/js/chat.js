@@ -145,12 +145,19 @@
     recBtn.addEventListener('contextmenu', e => e.preventDefault());
     recBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); start(); } });
 
+    let starting = false;
     async function start() {
-      if (rec && rec.state === 'recording') return;
+      if (starting || (rec && rec.state === 'recording')) return;  // второе нажатие, пока система спрашивает доступ
+      starting = true;
       const kind = mode;
       try {
         stream = kind === 'video' ? await videoStream() : await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (e) { App.toast('Нет доступа к ' + (kind === 'video' ? 'камере' : 'микрофону'), true); return; }
+      } catch (e) {
+        if (kind === 'video') { stopCamera(); preview.srcObject = null; }  // камера не должна остаться включённой без микрофона
+        starting = false;
+        App.toast('Нет доступа к ' + (kind === 'video' ? 'камере или микрофону' : 'микрофону'), true); return;
+      }
+      starting = false;
       const types = kind === 'video' ? ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'] : ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
       const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
       chunks = []; cancelled = false;
