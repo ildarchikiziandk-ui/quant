@@ -1061,3 +1061,45 @@ def test_stream_long_poll(alice, bob):
     r2 = bob.get(f"/api/stream?since_notif={r['notif']}&since_msg={r['msg']}&wait=1").json()
     assert not [e for e in r2["events"] if e["kind"] == "message"]
     assert make_client().get("/api/stream").status_code == 401
+
+
+def test_starred_reminders_birthdays_similar(alice, bob):
+    from datetime import datetime, timedelta
+    from routers import features
+    mid = alice.post("/messages/send", json={"receiver": "bob", "content": "адрес: Ленина 5"}, headers=J).json()["id"]
+    # избранное
+    assert bob.post(f"/messages/{mid}/star", headers=J).json()["starred"]
+    assert "Ленина 5" in bob.get("/messages/starred").text
+    assert "Ленина 5" not in alice.get("/messages/starred").text
+    assert make_client().post(f"/messages/{mid}/star").status_code in (401, 303)
+    # чужое сообщение отметить нельзя
+    carol = register(make_client(), "carol")
+    assert carol.post(f"/messages/{mid}/star", headers=J).status_code == 404
+    # напоминание
+    assert bob.post(f"/messages/{mid}/remind", json={"minutes": 20}, headers=J).json()["ok"]
+    s = db()
+    r = s.query(models.MessageReminder).first()
+    r.remind_at = datetime.utcnow() - timedelta(seconds=1)
+    s.commit()
+    assert features.deliver_reminders(s) == 1 and features.deliver_reminders(s) == 0
+    s.close()
+    assert "напоминание о сообщении" in bob.get("/notifications").text
+    # дни рождения
+    bob.post("/follow/alice", headers=J)
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").first()
+    a.birthday = "2000" + datetime.utcnow().strftime("-%m-%d")
+    s.commit()
+    assert features.notify_birthdays(s) >= 1 and features.notify_birthdays(s) == 0
+    s.close()
+    page = bob.get("/birthdays").text
+    assert "сегодня" in page and "Поздравить" in page
+    # похожие посты по хэштегу
+    p1 = alice.post("/post/create", data={"content": "Закат на море #море"}, headers=J, follow_redirects=False)
+    alice.post("/post/create", data={"content": "Ещё волны #море"}, headers=J, follow_redirects=False)
+    s = db()
+    first = s.query(models.Post).filter(models.Post.content.like("Закат%")).first()
+    s.close()
+    assert "Похожие посты" in bob.get(f"/post/{first.id}").text and "Ещё волны" in bob.get(f"/post/{first.id}").text
+    # вкладки чатов
+    assert 'id="chat-tabs"' in bob.get("/messages").text

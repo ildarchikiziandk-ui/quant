@@ -87,6 +87,7 @@ box.addEventListener('scroll',()=>{ const far=box.scrollHeight-box.scrollTop-box
 jd.onclick=()=>{ box.scrollTo({top:box.scrollHeight,behavior:'smooth'}); };
 // черновик чата сохраняется на устройстве
 const DKEY='nv_draft_'+{{ other.id }};
+if(inp && new URLSearchParams(location.search).has('greet') && !inp.value){ inp.value='С днём рождения! Счастья, здоровья и всего самого лучшего '; setTimeout(()=>inp.focus(),300); }
 toBottom();
 function addDaySeps(){ let prev=null; box.querySelectorAll('.day-sep').forEach(d=>d.remove());
   box.querySelectorAll('.msg').forEach(m=>{ const d=m.dataset.time; if(d!==prev){ const s=document.createElement('div'); s.className='day-sep'; const dt=new Date(d+'T00:00:00'); const today=new Date(); s.textContent = dt.toDateString()===today.toDateString()?'Сегодня':dt.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); m.before(s); prev=d; } }); }
@@ -182,6 +183,9 @@ document.addEventListener('click', async e=>{
     else if(a==='delete'){ if(!confirm('Удалить сообщение у всех?')) return; await App.api(`/messages/${id}/delete`); m.remove(); }
     else if(a==='hide'){ await App.api(`/messages/${id}/hide`); m.remove(); App.toast('Удалено у вас'); }
     else if(a==='pin'){ const r=await App.api(`/messages/${id}/pin`); App.toast(r.pinned?'Сообщение закреплено':'Откреплено'); setTimeout(()=>location.reload(),500); }
+    else if(a==='star'){ const r=await App.api(`/messages/${id}/star`); b.classList.toggle('on', r.starred); App.toast(r.starred?'Добавлено в избранное':'Убрано из избранного'); }
+    else if(a==='remind'){ const md=App.modal('Напомнить об этом сообщении', [[20,'Через 20 минут'],[60,'Через час'],[180,'Через 3 часа'],[600,'Вечером (через 10 часов)'],[1440,'Завтра'],[10080,'Через неделю']].map(([v,l])=>`<button class="btn soft block mt" data-min="${v}">${l}</button>`).join(''));
+      md.querySelector('.b').onclick=async ev=>{ const x=ev.target.closest('[data-min]'); if(!x) return; await App.api(`/messages/${id}/remind`,{minutes:+x.dataset.min}); md.classList.remove('open'); App.toast('Напомним: '+x.textContent.toLowerCase()); }; }
     else if(a==='copy'){ await navigator.clipboard.writeText(m.dataset.raw); App.toast('Скопировано'); }
     else if(a==='forward'){ const md=App.modal('Переслать сообщение','<input id="fw-q" placeholder="Кому? Логин…" data-suggest><button class="btn block mt" id="fw-go">Переслать</button>'); App.attachSuggest(md.querySelector('#fw-q'));
       md.querySelector('#fw-go').onclick=async()=>{ const to=md.querySelector('#fw-q').value.trim().replace(/^@/,''); if(!to) return; await App.api(`/messages/${id}/forward`,{to}); md.classList.remove('open'); App.toast('Переслано @'+to); }; }

@@ -89,8 +89,9 @@ def post_page(post_id: int, request: Request, sort: str = "old", db: Session = D
         liked_comments = {r.comment_id for r in db.query(models.CommentLike.comment_id).filter(
             models.CommentLike.user_id == user.id, models.CommentLike.comment_id.in_([c.id for c in comments]))}
     ctx = feed.feed_context(db, user, [post])
+    from routers.features import similar_posts
     return render(request, db, "post.html", post=post, roots=roots, children=children, liked_comments=liked_comments,
-                  comment_count=len(comments), sort=sort, **ctx)
+                  comment_count=len(comments), sort=sort, similar=similar_posts(db, user, post), **ctx)
 
 
 @router.get("/post/{post_id}/stats")

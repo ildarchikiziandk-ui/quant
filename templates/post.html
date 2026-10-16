@@ -51,4 +51,13 @@
   {% else %}<div class="alert info"><a href="/login?next=/post/{{ post.id }}" style="font-weight:700">Войдите</a>, чтобы комментировать</div>{% endif %}
   {% for c in roots %}{{ comment_item(c) }}{% else %}<div class="empty" style="padding:24px">Комментариев пока нет — начните обсуждение!</div>{% endfor %}
 </div>
+{% if similar %}
+<div class="card" id="similar"><div class="card-title">{{ icon("layers", "i in") }} Похожие посты</div>
+  <div class="similar-grid">{% for p in similar %}<a href="/post/{{ p.id }}" class="similar-item">
+    {% if p.image and p.media_type == "image" %}<img src="{{ p.image }}" alt="" loading="lazy">{% elif p.image and p.media_type == "video" %}<video src="{{ p.image }}#t=0.5" muted preload="metadata"></video>{% endif %}
+    <div class="si-text">{{ (p.content or p.original_comment or "Пост")[:110] }}</div>
+    <div class="row tiny faint" style="gap:6px;margin-top:auto">{{ avatar(p.author, 18) }}<span class="ellipsis">{{ dname(p.author) }}</span><span style="margin-left:auto">{{ icon("heart", "i in") }} {{ p.likes|length }}</span></div>
+  </a>{% endfor %}</div>
+</div>
+{% endif %}
 {% endblock %}

@@ -941,3 +941,24 @@ class ContactName(Base):
     owner_id = Column(Integer, index=True)
     target_id = Column(Integer, index=True)
     name = Column(String(60), default="")
+
+
+class StarredMessage(Base):
+    """Сообщение в «Избранном» — у каждого своё."""
+    __tablename__ = "starred_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    message = relationship("Message")
+
+
+class MessageReminder(Base):
+    """«Напомнить позже» о сообщении: в нужное время придёт уведомление."""
+    __tablename__ = "message_reminders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"))
+    remind_at = Column(DateTime, index=True)
+    done = Column(Boolean, default=False)
+    message = relationship("Message")

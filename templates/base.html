@@ -22,7 +22,7 @@
   window.APP.sound=window.APP.prefs.sound!==false;
 </script>
 <meta name="view-transition" content="same-origin">
-<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/logout*"}},{"not":{"href_matches":"/auth/*"}},{"not":{"href_matches":"/export-data*"}},{"not":{"href_matches":"/random*"}},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/uploads/*"}},{"not":{"href_matches":"/static/*"}}]},"eagerness":"conservative"}]}</script>
+{% if not (user and pref(user, "data_saver")) %}<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/logout*"}},{"not":{"href_matches":"/auth/*"}},{"not":{"href_matches":"/export-data*"}},{"not":{"href_matches":"/random*"}},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/uploads/*"}},{"not":{"href_matches":"/static/*"}}]},"eagerness":"conservative"}]}</script>{% endif %}
 {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">

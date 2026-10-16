@@ -621,7 +621,9 @@
 
   function apply(root) {
     // Автовоспроизведение видео без звука
-    if (P.autoplay_video !== false && 'IntersectionObserver' in window) {
+    // Экономия трафика: видео загружаются только по нажатию
+    if (P.data_saver) $$('video:not([data-ds])', root).forEach(v => { v.dataset.ds = 1; if (!v.autoplay) v.preload = 'none'; });
+    if (P.autoplay_video !== false && !P.data_saver && 'IntersectionObserver' in window) {
       const io = apply.io || (apply.io = new IntersectionObserver((es) => es.forEach(en => {
         const v = en.target; if (en.isIntersecting && en.intersectionRatio > .6) { v.muted = true; v.play().catch(() => {}); } else if (!v.paused) v.pause();
       }), { threshold: [0, .6] }));

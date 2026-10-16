@@ -10,8 +10,8 @@ import config
 import migrations
 from database import SessionLocal
 from deps import templates
-from routers import (admin, api, auth_routes, chatx, explore, extras, feed, more, groups, messages, misc, notifications, posts,
-                     profile, secret, settings, stories, tasks)
+from routers import (admin, api, auth_routes, chatx, explore, extras, features, feed, more, groups, messages, misc, notifications,
+                     posts, profile, secret, settings, stories, tasks)
 
 migrations.run()
 
@@ -56,13 +56,21 @@ async def security_middleware(request: Request, call_next):
 
 @app.on_event("startup")
 async def _background_jobs():
-    """Фоновые задачи: доставка отложенных сообщений (раз в 10 секунд)."""
+    """Фоновые задачи (раз в 10 секунд): отложенные сообщения, напоминания; раз в час — дни рождения друзей."""
     import asyncio
+    state = {"bday": ""}
 
     def tick():
+        from datetime import datetime as _dt
         db = SessionLocal()
         try:
             chatx.deliver_scheduled(db)
+            features.deliver_reminders(db)
+            now = _dt.utcnow()
+            key = now.strftime("%Y-%m-%d")
+            if now.hour >= 6 and state["bday"] != key:  # около 9 утра по Москве
+                state["bday"] = key
+                features.notify_birthdays(db)
         except Exception as e:  # фоновая задача не должна падать
             print(f"[jobs] {e}")
         finally:
@@ -75,7 +83,7 @@ async def _background_jobs():
     asyncio.get_running_loop().create_task(loop())
 
 
-for r in (auth_routes, feed, posts, profile, settings, chatx, messages, groups, stories, explore, notifications,
+for r in (auth_routes, feed, posts, profile, settings, chatx, features, messages, groups, stories, explore, notifications,
           tasks, extras, more, secret, admin, api, misc):
     app.include_router(r.router)
 

@@ -7,6 +7,8 @@
     <button data-mact="reply" title="Ответить">{{ icon("reply", "i in") }}</button>
     <button data-mact="forward" title="Переслать">{{ icon("forward", "i in") }}</button>
     <button data-mact="pin" title="Закрепить">{{ icon("pin", "i in") }}</button>
+    <button data-mact="star" title="В избранное"{% if m.id in starred_ids %} class="on"{% endif %}>{{ icon("star", "i in") }}</button>
+    <button data-mact="remind" title="Напомнить позже">{{ icon("alarm", "i in") }}</button>
     {% if m.content %}<button data-mact="copy" title="Копировать">{{ icon("copy", "i in") }}</button>{% endif %}
     {% if mine and m.content %}<button data-mact="edit" title="Изменить">{{ icon("edit", "i in") }}</button>{% endif %}
     <button data-mact="hide" title="Удалить у меня">{{ icon("eye-off", "i in") }}</button>

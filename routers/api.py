@@ -144,7 +144,8 @@ def _events(db, user, since_notif, since_msg):
               .order_by(models.Notification.id.asc()).limit(30)):
         who = n.from_user
         title = (names.get(who.id) or who.name or who.username) if who else config.BRAND_NAME
-        url = f"/post/{n.post_id}" if n.post_id else "/notifications"
+        url = (f"/messages/{who.username}" if who and n.type in ("reminder", "birthday")
+               else f"/post/{n.post_id}" if n.post_id else "/notifications")
         out.append({"kind": "notification", "id": n.id, "title": title, "text": (n.text or social.NOTIFY_TEXT.get(n.type, "новое уведомление"))[:200], "url": url})
     return out
 

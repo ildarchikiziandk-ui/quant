@@ -816,3 +816,17 @@ html{scroll-behavior:smooth}
 .chat.marked .grow::after{content:"";display:block}
 .chat.marked{position:relative}.chat.marked::after{content:"";position:absolute;right:16px;top:50%;width:11px;height:11px;border-radius:50%;background:var(--link);transform:translateY(-50%)}
 .archive-row{color:var(--text)}.archive-row svg.i{width:22px;height:22px;color:var(--text-2)}
+
+/* избранные сообщения, дни рождения, похожие посты, вкладки чатов */
+.starred-row,.bday-row{gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start}
+.bday-row{align-items:center}
+.bday-row.today{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.starred-row:last-child,.bday-row:last-child{border-bottom:0}
+.msg-tools button.on{color:#f59e0b}
+.chat-tabs{margin-bottom:10px}
+.chat-tabs .chip{white-space:nowrap;flex-shrink:0;cursor:pointer;border:0;font:inherit}
+.similar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.similar-item{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--border);border-radius:14px;min-height:110px;color:inherit;transition:transform .15s}
+.similar-item:hover{transform:translateY(-2px)}
+.similar-item img,.similar-item video{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:var(--border)}
+.si-text{font-size:13px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}

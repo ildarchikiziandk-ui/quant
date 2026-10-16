@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/macros.html" import avatar %}
 {% block title %}Уведомления — {{ brand }}{% endblock %}
-{% set ICONS = {"like":"heart","whale":"whale","comment":"comment","reply":"reply","follow":"user-plus","follow_request":"user-plus","follow_accept":"user-check","mention":"at","repost":"repost","reaction":"heart","comment_like":"heart","achievement":"trophy","level":"medal","raffle":"party","support":"lifebuoy","support_reply":"lifebuoy","system":"sparkle","group_invite":"users","story_reaction":"camera","moderation":"shield","question":"help","answer":"bulb","gift":"gift","event":"calendar","invite":"handshake","secret":"secret","streak":"flame"} %}
+{% set ICONS = {"like":"heart","whale":"whale","comment":"comment","reply":"reply","follow":"user-plus","follow_request":"user-plus","follow_accept":"user-check","mention":"at","repost":"repost","reaction":"heart","comment_like":"heart","achievement":"trophy","level":"medal","raffle":"party","support":"lifebuoy","support_reply":"lifebuoy","system":"sparkle","group_invite":"users","story_reaction":"camera","moderation":"shield","question":"help","answer":"bulb","gift":"gift","event":"calendar","invite":"handshake","secret":"secret","streak":"flame","reminder":"alarm","birthday":"cake"} %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("bell", "i in") }} Уведомления</div>
   <div class="row"><a class="btn soft sm" href="/mentions">@ Упоминания</a><form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="btn ghost sm">Очистить</button></form></div></div>
@@ -9,7 +9,7 @@
 <div class="chips">{% for k, l in [("all","Все"),("mentions","Упоминания"),("likes","Реакции"),("comments","Комментарии"),("follows","Подписки"),("system","Системные")] %}<a href="/notifications?f={{ k }}" class="chip {% if f == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
 <div class="card flat">
 {% for n in notifications %}
-  {% set link = ("/post/" ~ n.post_id) if n.post_id else (("/profile/" ~ n.from_user.username) if n.from_user and n.type in ("follow","follow_accept") else ("/follow-requests" if n.type == "follow_request" else ("/achievements" if n.type in ("achievement","level") else ""))) %}
+  {% set link = ("/messages/" ~ n.from_user.username) if n.from_user and n.type in ("reminder","birthday") else ("/post/" ~ n.post_id) if n.post_id else (("/profile/" ~ n.from_user.username) if n.from_user and n.type in ("follow","follow_accept") else ("/follow-requests" if n.type == "follow_request" else ("/achievements" if n.type in ("achievement","level") else ""))) %}
   <div class="row" id="n-{{ n.id }}" style="padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;{% if n.id in unread_ids %}background:color-mix(in srgb,var(--brand) 6%,transparent);{% endif %}">
     <div style="position:relative">{% if n.from_user %}<a href="/profile/{{ n.from_user.username }}">{{ avatar(n.from_user, 42) }}</a>{% else %}<span class="av notif-ico t-{{ n.type }}" style="width:42px;height:42px">{{ icon(ICONS.get(n.type, "sparkle")) }}</span>{% endif %}
       {% if n.from_user %}<span class="notif-badge t-{{ n.type }}">{{ icon(ICONS.get(n.type, "sparkle")) }}</span>{% endif %}</div>

@@ -3,14 +3,18 @@
 {% block title %}Сообщения — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("chat", "i in") }} Сообщения</div>
-  <div class="row">{% if secret_enabled %}<a href="/secret" class="icon-btn" title="Секретные чаты (ГОСТ)">{{ icon("secret", "i in") }}</a>{% endif %}<a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
+  <div class="row">{% if secret_enabled %}<a href="/secret" class="icon-btn" title="Секретные чаты (ГОСТ)">{{ icon("secret", "i in") }}</a>{% endif %}<a href="/messages/starred" class="icon-btn" title="Избранные сообщения">{{ icon("star") }}</a><a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
 <input type="search" placeholder="Поиск по чатам…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('.chat-list .chat').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')" class="mb">
 {% if show_archived %}<a href="/messages" class="row small mb" style="gap:6px;color:var(--link);font-weight:700">{{ icon("back", "i in") }} Все чаты</a>
 <div class="page-sub">Архив: чаты вернутся в общий список, когда придёт новое сообщение.</div>
 {% elif archived_count %}<a href="/messages?archived=1" class="card row archive-row" style="gap:12px">{{ icon("archive") }}<b class="grow">Архив</b><span class="faint">{{ archived_count }}</span></a>{% endif %}
+{% if chats or groups %}<div class="chips chat-tabs" id="chat-tabs">
+  <button type="button" class="chip active" data-f="all">Все</button><button type="button" class="chip" data-f="unread">Непрочитанные</button>
+  <button type="button" class="chip" data-f="people">Личные</button><button type="button" class="chip" data-f="group">Группы</button><button type="button" class="chip" data-f="online">В сети</button>
+</div>{% endif %}
 <div class="card flat chat-list" id="chat-list">
   {% for c in chats %}
-  <a href="/messages/{{ c.other.username }}" class="chat{% if c.marked %} marked{% endif %}" data-user="{{ c.other.username }}">
+  <a href="/messages/{{ c.other.username }}" class="chat{% if c.marked %} marked{% endif %}" data-user="{{ c.other.username }}" data-kind="people" data-unread="{{ 1 if c.unread or c.marked else 0 }}" data-online="{{ 1 if is_online(c.other) else 0 }}">
     {{ avatar(c.other, 50, online=true) }}
     <div class="grow">
       <div class="row" style="justify-content:space-between"><span class="row" style="gap:4px;min-width:0">{{ name(c.other, link=false) }}{{ streak_badge(c.streak) }}{% if c.pinned %}<span class="faint" title="Закреплён">{{ icon("pin", "i in") }}</span>{% endif %}{% if c.muted %}<span class="faint" title="Без звука">{{ icon("bell-off", "i in") }}</span>{% endif %}</span><span class="tiny faint">{{ c.time|ago }}</span></div>
@@ -19,7 +23,7 @@
   </a>
   {% endfor %}
   {% for g in groups %}
-  <a href="/groups/{{ g.group.id }}" class="chat">
+  <a href="/groups/{{ g.group.id }}" class="chat" data-kind="group" data-unread="{{ 1 if g.unread else 0 }}" data-online="0">
     <span class="av" style="width:50px;height:50px;border-radius:16px">{% if g.group.avatar %}<img src="{{ g.group.avatar }}" alt="">{% else %}<span style="font-size:20px">{{ g.group.name[0]|upper }}</span>{% endif %}</span>
     <div class="grow"><div class="row" style="justify-content:space-between"><b class="ellipsis">{{ icon("users", "i in") }} {{ g.group.name }}</b><span class="tiny faint">{{ g.time|ago }}</span></div>
     <div class="preview ellipsis">{% if g.last %}{% if g.last.sender %}{{ g.last.sender.name or g.last.sender.username }}: {% endif %}{{ g.last.content or "Вложение" }}{% else %}Группа создана{% endif %}</div></div>
@@ -39,6 +43,13 @@
   <button type="button" data-c="pin">{{ icon("pin") }} <span>Закрепить / открепить</span></button>
   <button type="button" data-c="mute">{{ icon("bell-off") }} <span>Без звука / со звуком</span></button>
 </div>
+<script>(function(){ const tabs=document.getElementById('chat-tabs'); if(!tabs) return;
+  const apply=f=>{ tabs.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.f===f));
+    document.querySelectorAll('#chat-list .chat').forEach(r=>{ const ok=f==='all'||(f==='unread'&&r.dataset.unread==='1')||(f==='online'&&r.dataset.online==='1')||r.dataset.kind===f; r.classList.toggle('hidden',!ok); });
+    try{ localStorage.setItem('nv_chat_tab',f); }catch(e){} };
+  tabs.addEventListener('click',e=>{ const c=e.target.closest('[data-f]'); if(c) apply(c.dataset.f); });
+  let saved='all'; try{ saved=localStorage.getItem('nv_chat_tab')||'all'; }catch(e){} if(saved!=='all') apply(saved);
+})();</script>
 <script>(function(){ const menu=document.getElementById('chat-ctx'); let target=null, t=0;
   const open=(a,x,y)=>{ target=a; menu.style.left=Math.min(x, innerWidth-260)+'px'; menu.style.top=Math.min(y, innerHeight-220)+'px'; menu.style.right='auto'; menu.style.bottom='auto'; menu.classList.remove('hidden'); navigator.vibrate?.(12); };
   document.getElementById('chat-list').addEventListener('contextmenu',e=>{ const a=e.target.closest('.chat[data-user]'); if(!a) return; e.preventDefault(); open(a,e.clientX,e.clientY); });

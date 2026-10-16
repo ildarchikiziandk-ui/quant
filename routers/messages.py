@@ -166,7 +166,7 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
         st.marked_unread = False
         db.commit()
     return render(request, db, "conversation.html", look=chatstyle.look(db, user, other.id), archived=bool(st and st.archived), sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason, streak=streak,
-                  pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS,
+                  pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS, starred_ids=_starred_ids(db, user, msgs),
                   is_muted=db.query(models.MutedChat).filter_by(user_id=user.id, muted_user_id=other.id).first() is not None,
                   is_pinned=db.query(models.PinnedChat).filter_by(user_id=user.id, pinned_user_id=other.id).first() is not None)
 
@@ -289,15 +289,24 @@ async def send_media(request: Request, db: Session = Depends(get_db)):
     return _deliver(db, user, other, msg)
 
 
+def _starred_ids(db, user, msgs):
+    ids = [m.id for m in msgs]
+    if not ids:
+        return set()
+    return {r.message_id for r in db.query(models.StarredMessage.message_id).filter(
+        models.StarredMessage.user_id == user.id, models.StarredMessage.message_id.in_(ids))}
+
+
 def render_messages(request, user, msgs):
     from database import SessionLocal
     s = SessionLocal()
     try:
         chatstyle.load_names(s, user)
+        starred_ids = _starred_ids(s, user, msgs)
     finally:
         s.close()
     return templates.get_template("partials/messages.html").render(request=request, user=user, messages=msgs,
-                                                                   msg_reactions=MSG_REACTIONS)
+                                                                   msg_reactions=MSG_REACTIONS, starred_ids=starred_ids)
 
 
 @router.get("/messages/poll/{username}")
