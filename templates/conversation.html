@@ -4,7 +4,7 @@
 {% block layout_class %}wide{% endblock %}
 {% block body_class %}chat-page{% endblock %}
 {% block content %}
-<div class="convo">
+<div class="convo{% if look.wp_css %} has-wp{% endif %}{% if look.dark %} wp-dark{% endif %}{% if look.font %} cf-{{ look.font }}{% endif %}" id="convo" style="{% if look.wp_css %}--wp:{{ look.wp_css }};{% endif %}{% if look.bubble_color %}--mine:{{ look.bubble_color }};{% endif %}">
   <div class="convo-head">
     <a href="/messages" class="back-link">{{ icon("back") }}</a>
     <a href="/profile/{{ other.username }}" class="row grow" style="min-width:0">
@@ -16,6 +16,12 @@
       <button class="icon-btn" data-menu>{{ icon("more") }}</button>
       <div class="menu">
         <button onclick="toggleSearch()">{{ icon("search") }} Поиск в чате</button>
+        <button data-modal="chat-look">{{ icon("palette") }} Оформление чата</button>
+        <button onclick="renameContact()">{{ icon("pen") }} {% if custom_name(other) %}Изменить имя контакта{% else %}Записать контакт как…{% endif %}</button>
+        <a href="/messages/{{ other.username }}/media">{{ icon("image") }} Медиа, файлы и ссылки</a>
+        <button onclick="chatStats()">{{ icon("chart") }} Статистика переписки</button>
+        <button data-act="toggle" data-url="/chats/{{ other.username }}/archive" data-msg="Готово" data-reload="1">{{ icon("archive") }} {% if archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
+        <a href="/messages/{{ other.username }}/export">{{ icon("download") }} Сохранить переписку</a>
         <button data-act="toggle" data-url="/chats/pin/{{ other.username }}" data-msg="Готово">{{ icon("pin") }} {% if is_pinned %}Открепить чат{% else %}Закрепить чат{% endif %}</button>
         <button data-act="toggle" data-url="/chats/mute/{{ other.username }}" data-msg="Готово">{{ icon("mute") }} {% if is_muted %}Включить звук{% else %}Без звука{% endif %}</button>
         <button onclick="toggleTtl()">{{ icon("hourglass", "i in") }} Исчезающие сообщения: <b id="ttl-label">выкл</b></button>
@@ -29,7 +35,8 @@
     {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Начните диалог с {{ other.name or other.username }}<div class="tiny faint mt">{{ icon("lock", "i in") }} Сообщения хранятся в зашифрованном виде (AES-256)</div></div>{% endif %}
   </div>
   <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">{{ icon("lock", "i in") }} Переписка зашифрована</div>
-  <div class="typing hidden" id="typing" style="padding:4px 10px">{{ other.name or other.username }} печатает…</div>
+  <button type="button" class="jump-down hidden" id="jump-down" title="Вниз">{{ icon("back", "i") }}<b id="jump-n" class="hidden">0</b></button>
+  <div class="typing hidden" id="typing" style="padding:4px 10px"><span id="typing-who">{{ dname(other) }}</span> <span id="typing-what">печатает</span><span class="typing-dots"><i></i><i></i><i></i></span></div>
   {% if can_send %}
   <div class="convo-input cmp" id="cmp" data-voice-max="{{ plus_limit(user, 'voice') }}" data-circle-max="{{ plus_limit(user, 'circle') }}">
     <div class="reply-bar hidden" id="reply-bar"><span class="grow ellipsis" id="reply-text"></span><button class="icon-btn" onclick="clearReply()">{{ icon("x", "i in") }}</button></div>
@@ -46,6 +53,24 @@
   <div class="alert info mt">{{ block_reason or "Отправка сообщений недоступна" }}</div>
   {% endif %}
 </div>
+<div class="modal-bg" id="chat-look"><div class="modal">
+  <div class="modal-head">Оформление чата <button class="icon-btn" data-close>{{ icon("x", "i in") }}</button></div>
+  <form id="look-form">
+    <div class="pref-group">Фон</div>
+    <div class="wp-grid">{% for k, label, css in wallpapers %}<label title="{{ label }}"><input type="radio" name="wallpaper" value="{{ k }}" {% if look.wallpaper == k %}checked{% endif %}><span style="{% if css %}background:{{ css }}{% endif %}">{% if not k %}{{ icon("ban", "i") }}{% endif %}</span><small>{{ label }}</small></label>{% endfor %}
+      <label title="Своё фото"><input type="file" name="wallpaper_file" accept="image/*" hidden><span class="wp-upload"{% if look.wallpaper.startswith('/uploads/') %} style="background:url('{{ look.wallpaper }}') center/cover"{% endif %}>{{ icon("image", "i") }}</span><small>Своё фото</small></label></div>
+    <div class="pref-group">Цвет моих сообщений</div>
+    <div class="bubble-row">{% for k, label, c in bubbles %}<label title="{{ label }}"><input type="radio" name="bubble" value="{{ k }}" {% if look.bubble == k %}checked{% endif %}><span style="background:{{ c or 'var(--brand)' }}"></span></label>{% endfor %}</div>
+    <div class="pref-group">Размер текста</div>
+    <div class="row wrap" style="gap:6px">{% for k, label in chat_fonts %}<label class="mood-chip"><input type="radio" name="font" value="{{ k }}" {% if look.font == k %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+    <label class="check mt"><input type="checkbox" name="scope" value="all"><span><b>Применить ко всем чатам</b><small>Иначе — только к чату с {{ dname(other) }}</small></span></label>
+    <div class="row mt" style="gap:8px"><button class="btn">Сохранить</button><button type="button" class="btn ghost" id="look-reset">Сбросить</button></div>
+  </form>
+</div></div>
+<div class="send-menu hidden" id="send-menu">
+  <button type="button" data-send="silent">{{ icon("bell-off") }} Отправить без звука</button>
+  <button type="button" data-send="later">{{ icon("clock") }} Отправить позже…</button>
+</div>
 {% endblock %}
 {% block right %}{% endblock %}
 {% block scripts %}
@@ -56,6 +81,12 @@ const OTHER = {{ other.username|tojson }};
 const box = document.getElementById('box'), inp = document.getElementById('inp');
 let lastId = {{ (messages[-1].id if messages else 0) }}, replyTo = null, editId = null, ttl = 0;
 const toBottom = () => box.scrollTop = box.scrollHeight;
+// кнопка «вниз» и счётчик новых, пока вы читаете старые сообщения
+const jd=document.getElementById('jump-down'), jn=document.getElementById('jump-n'); let unseen=0;
+box.addEventListener('scroll',()=>{ const far=box.scrollHeight-box.scrollTop-box.clientHeight>300; jd.classList.toggle('hidden',!far); if(!far){ unseen=0; jn.classList.add('hidden'); } },{passive:true});
+jd.onclick=()=>{ box.scrollTo({top:box.scrollHeight,behavior:'smooth'}); };
+// черновик чата сохраняется на устройстве
+const DKEY='nv_draft_'+{{ other.id }};
 toBottom();
 function addDaySeps(){ let prev=null; box.querySelectorAll('.day-sep').forEach(d=>d.remove());
   box.querySelectorAll('.msg').forEach(m=>{ const d=m.dataset.time; if(d!==prev){ const s=document.createElement('div'); s.className='day-sep'; const dt=new Date(d+'T00:00:00'); const today=new Date(); s.textContent = dt.toDateString()===today.toDateString()?'Сегодня':dt.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); m.before(s); prev=d; } }); }
@@ -67,9 +98,9 @@ async function poll(){
     if(r.html){ document.getElementById('empty-chat')?.remove(); const near = box.scrollHeight-box.scrollTop-box.clientHeight<120;
       const tmp=document.createElement('div'); tmp.innerHTML=r.html;
       tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else { m.classList.add('appear'); box.appendChild(m); } });
-      lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); }
+      lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); else { unseen+=tmp.querySelectorAll('.msg:not(.mine)').length; if(unseen){ jn.textContent=unseen; jn.classList.remove('hidden'); } } }
     document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto) t.innerHTML=window.ICON_TICKS;t.classList.add('read'); });
-    document.getElementById('typing').classList.toggle('hidden', !r.typing);
+    document.getElementById('typing').classList.toggle('hidden', !r.typing); document.getElementById('typing-what').textContent = r.typing_kind==='voice' ? 'записывает голосовое' : r.typing_kind==='circle' ? 'записывает кружок' : 'печатает';
     const st=document.getElementById('chat-status'); if(r.online) st.innerHTML='<span style="color:var(--online)">в сети</span>';
   }catch(e){}
 }
@@ -77,19 +108,60 @@ setInterval(()=>{ if(!document.hidden) poll(); }, 2500);
 document.getElementById('box').addEventListener('dblclick',async e=>{ const m=e.target.closest('.msg'); if(!m||e.target.closest('a,button,audio,video')) return; try{ await App.api(`/messages/${m.dataset.id}/react`,{emoji:'❤️'}); await refreshMsg(m.dataset.id); }catch(err){} });
 async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`); const tmp=document.createElement('div'); tmp.innerHTML=r.html; document.getElementById('msg-'+id)?.replaceWith(tmp.firstElementChild); }
 if(inp){
-  inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; typingPing(); });
+  try{ const d=localStorage.getItem(DKEY); if(d && !inp.value){ inp.value=d; setTimeout(()=>inp.dispatchEvent(new Event('input')),0); } }catch(e){}
+  inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; if(inp.value) typingPing(); try{ inp.value.trim()?localStorage.setItem(DKEY,inp.value):localStorage.removeItem(DKEY); }catch(e){} });
   inp.addEventListener('keydown',e=>{ if(e.key==='Enter' && ((APP.prefs||{}).enter_to_send===false ? (e.ctrlKey||e.metaKey) : !e.shiftKey) && !document.querySelector('.suggest.open')){ e.preventDefault(); submit(); } if(e.key==='ArrowUp' && !inp.value){ const mine=[...box.querySelectorAll('.msg.mine')].pop(); if(mine) startEdit(mine.dataset.id, mine.dataset.raw); } });
 }
-let lastTyping=0; function typingPing(){ const n=Date.now(); if(n-lastTyping>3000){ lastTyping=n; fetch(`/messages/typing/${OTHER}`,{method:'POST'}); } }
+let lastTyping=0; function typingPing(kind){ const n=Date.now(); if(n-lastTyping>3000){ lastTyping=n; fetch(`/messages/typing/${OTHER}?kind=${kind||'text'}`,{method:'POST'}); } }
+window.chatTyping = typingPing;
 async function submit(){
   const text = inp.value.trim(); if(!text) return;
   if(editId){ await App.api(`/messages/${editId}/edit`,{content:text}); await refreshMsg(editId); cancelEdit(); return; }
-  inp.value=''; inp.style.height='auto'; inp.dispatchEvent(new Event('input'));
+  inp.value=''; inp.style.height='auto'; inp.dispatchEvent(new Event('input')); try{ localStorage.removeItem(DKEY); }catch(e){}
   await sendText(text);
 }
 window.sendText = async function(text){
-  try{ await App.api('/messages/send',{receiver:OTHER, content:text, reply_to_id:replyTo, ttl:ttl}); clearReply(); document.getElementById('emoji-panel').classList.add('hidden'); await poll(); toBottom(); }catch(e){}
+  const extra = window._sendExtra || {}; window._sendExtra = null;
+  try{ const r=await App.api('/messages/send',Object.assign({receiver:OTHER, content:text, reply_to_id:replyTo, ttl:ttl}, extra)); if(r.scheduled) App.toast('Сообщение запланировано'); else if(extra.silent) App.toast('Отправлено без звука'); clearReply(); document.getElementById('emoji-panel').classList.add('hidden'); await poll(); toBottom(); }catch(e){}
 };
+// долгое нажатие на «Отправить» — без звука или по расписанию
+(function(){ const sb=document.querySelector('.cmp-send'), sm=document.getElementById('send-menu'); if(!sb||!sm) return; let t=0;
+  sb.addEventListener('pointerdown',()=>{ t=setTimeout(()=>{ t=-1; if(!inp.value.trim()) return; sm.classList.remove('hidden'); navigator.vibrate?.(15); },450); });
+  sb.addEventListener('pointerup',e=>{ if(t===-1){ e.stopPropagation(); } clearTimeout(t); });
+  sb.addEventListener('click',e=>{ if(t===-1){ e.stopImmediatePropagation(); e.preventDefault(); t=0; } },true);
+  sb.addEventListener('contextmenu',e=>{ e.preventDefault(); if(inp.value.trim()) sm.classList.remove('hidden'); });
+  document.addEventListener('click',e=>{ if(!e.target.closest('#send-menu') && !e.target.closest('.cmp-send')) sm.classList.add('hidden'); });
+  sm.addEventListener('click',async e=>{ const b=e.target.closest('[data-send]'); if(!b) return; sm.classList.add('hidden');
+    if(b.dataset.send==='silent'){ window._sendExtra={silent:1}; submit(); return; }
+    const d=new Date(Date.now()+3600e3), pad=n=>String(n).padStart(2,'0'), def=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const md=App.modal('Отправить позже',`<div class="row wrap" style="gap:6px;margin-bottom:10px"><button class="chip" data-m="60">Через час</button><button class="chip" data-m="180">Через 3 часа</button><button class="chip" data-m="tomorrow">Завтра в 9:00</button></div><input type="datetime-local" id="sched-at" value="${def}"><button class="btn block mt" id="sched-go">Запланировать</button>`);
+    const go=(v)=>{ window._sendExtra={schedule:v}; md.classList.remove('open'); submit(); };
+    md.querySelectorAll('[data-m]').forEach(c=>c.onclick=()=>{ if(c.dataset.m==='tomorrow'){ const t2=new Date(); t2.setDate(t2.getDate()+1); go(`${t2.getFullYear()}-${pad(t2.getMonth()+1)}-${pad(t2.getDate())}T09:00`); } else go(c.dataset.m); });
+    md.querySelector('#sched-go').onclick=()=>go(md.querySelector('#sched-at').value); });
+})();
+// своё имя контакта
+window.renameContact = async ()=>{ const md=App.modal('Как записать контакт',`<p class="small muted mb">Имя видите только вы — в чатах, ленте и профиле. Оставьте пустым, чтобы вернуть имя из профиля.</p><input id="cn" maxlength="60" value="${App.esc({{ (custom_name(other) or '')|tojson }})}" placeholder="${App.esc({{ (other.name or other.username)|tojson }})}"><button class="btn block mt" id="cn-go">Сохранить</button>`);
+  md.querySelector('#cn').focus(); md.querySelector('#cn-go').onclick=async()=>{ await App.api(`/contacts/${OTHER}/name`,{name:md.querySelector('#cn').value}); location.reload(); }; };
+// статистика переписки
+window.chatStats = async ()=>{ const r=await App.get(`/messages/${OTHER}/stats`); App.modal('Статистика переписки',`<div class="grid-2"><div class="stat-tile"><b>${r.total}</b><span>сообщений</span></div><div class="stat-tile"><b>${r.since||'—'}</b><span>первое сообщение</span></div><div class="stat-tile"><b>${r.mine} / ${r.theirs}</b><span>ваших / собеседника</span></div><div class="stat-tile"><b>${r.voices}</b><span>голосовых</span></div><div class="stat-tile"><b>${r.media}</b><span>фото и кружков</span></div><div class="stat-tile"><b>${r.streak||0}</b><span>дней огонька</span></div></div>`); };
+// оформление
+(function(){ const f=document.getElementById('look-form'); if(!f) return; const cv=document.getElementById('convo');
+  const save=async(reset)=>{ const fd=new FormData(f); if(reset) fd.set('reset','1'); const r=await App.api(`/chats/${OTHER}/look`,fd); location.reload(); };
+  f.addEventListener('submit',e=>{ e.preventDefault(); save(false); });
+  document.getElementById('look-reset').onclick=()=>save(true);
+  f.querySelector('[name=wallpaper_file]').addEventListener('change',()=>{ f.querySelectorAll('[name=wallpaper]').forEach(r=>r.checked=false); save(false); });
+  f.querySelectorAll('[name=wallpaper]').forEach(r=>r.addEventListener('change',()=>{ const sp=r.nextElementSibling; cv.style.setProperty('--wp', sp.style.background||'none'); cv.classList.toggle('has-wp', !!r.value); }));
+  f.querySelectorAll('[name=bubble]').forEach(r=>r.addEventListener('change',()=>{ if(r.value) cv.style.setProperty('--mine', r.nextElementSibling.style.background); else cv.style.removeProperty('--mine'); }));
+})();
+// свайп вправо по сообщению — ответить
+(function(){ let sx=0, sy=0, el=null;
+  box.addEventListener('touchstart',e=>{ el=e.target.closest('.msg'); if(!el) return; sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+  box.addEventListener('touchmove',e=>{ if(!el) return; const dx=e.touches[0].clientX-sx, dy=Math.abs(e.touches[0].clientY-sy); if(dy>30){ el.style.transform=''; el=null; return; } if(dx>0) el.style.transform=`translateX(${Math.min(dx,80)}px)`; },{passive:true});
+  box.addEventListener('touchend',e=>{ if(!el) return; const dx=(e.changedTouches[0].clientX-sx); el.style.transition='transform .2s'; el.style.transform=''; setTimeout(()=>{ if(el) el.style.transition=''; },220);
+    if(dx>70){ const b=el.querySelector('[data-mact=reply]'); b?.click(); navigator.vibrate?.(10); } el=null; });
+})();
+// голосовые подряд: после одного автоматически играет следующее
+document.addEventListener('ended',e=>{ const a=e.target; if(a.tagName!=='AUDIO') return; const all=[...box.querySelectorAll('.vmsg audio')]; const nx=all[all.indexOf(a)+1]; if(nx) setTimeout(()=>nx.play(),300); },true);
 window.clearReply = ()=>{ replyTo=null; document.getElementById('reply-bar').classList.add('hidden'); };
 function startEdit(id, raw){ editId=id; inp.value=raw; inp.focus(); inp.dispatchEvent(new Event('input')); document.getElementById('edit-bar').classList.remove('hidden'); }
 window.cancelEdit = ()=>{ editId=null; inp.value=''; inp.dispatchEvent(new Event('input')); document.getElementById('edit-bar').classList.add('hidden'); };
@@ -107,7 +179,8 @@ document.addEventListener('click', async e=>{
     if(a==='react'){ await App.api(`/messages/${id}/react`,{emoji:b.dataset.emoji}); await refreshMsg(id); }
     else if(a==='reply'){ replyTo=id; document.getElementById('reply-text').textContent=(m.dataset.raw||'Вложение').slice(0,80); document.getElementById('reply-bar').classList.remove('hidden'); inp.focus(); }
     else if(a==='edit'){ startEdit(id, m.dataset.raw); }
-    else if(a==='delete'){ if(!confirm('Удалить сообщение у всех?')) return; await App.api(`/messages/${id}/delete`); await refreshMsg(id); }
+    else if(a==='delete'){ if(!confirm('Удалить сообщение у всех?')) return; await App.api(`/messages/${id}/delete`); m.remove(); }
+    else if(a==='hide'){ await App.api(`/messages/${id}/hide`); m.remove(); App.toast('Удалено у вас'); }
     else if(a==='pin'){ const r=await App.api(`/messages/${id}/pin`); App.toast(r.pinned?'Сообщение закреплено':'Откреплено'); setTimeout(()=>location.reload(),500); }
     else if(a==='copy'){ await navigator.clipboard.writeText(m.dataset.raw); App.toast('Скопировано'); }
     else if(a==='forward'){ const md=App.modal('Переслать сообщение','<input id="fw-q" placeholder="Кому? Логин…" data-suggest><button class="btn block mt" id="fw-go">Переслать</button>'); App.attachSuggest(md.querySelector('#fw-q'));
@@ -118,7 +191,7 @@ document.addEventListener('click', async e=>{
 document.getElementById('att')?.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(er){} e.target.value=''; });
 inp?.addEventListener('paste', async e=>{ for(const it of e.clipboardData?.items||[]){ if(it.type.startsWith('image/')){ e.preventDefault(); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',it.getAsFile(),'paste.png'); await App.api('/messages/send-media',fd); await poll(); toBottom(); } } });
 // запись голоса и кружков — одна кнопка (static/js/chat.js)
-if(inp) window.chatComposer({root: document.getElementById('cmp'), input: inp,
+if(inp) window.chatComposer({root: document.getElementById('cmp'), input: inp, onRecord: k=>typingPing(k==='video'?'circle':'voice'),
   onText: ()=>submit(),
   onMedia: async (blob, kind, name)=>{ const fd=new FormData(); fd.append('receiver',OTHER); fd.append('ttl',ttl); fd.append('file',blob,name); if(kind==='video') fd.append('circle','1');
     try{ await App.api('/messages/send-media',fd); await poll(); toBottom(); }catch(e){} }});

@@ -20,8 +20,8 @@
 
 {% macro name(u, link=true) -%}
 {%- set pn = user_is_plus(u) and pref(u, "plus_name_color") -%}
-{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ u.name or u.username }}</span>{{ badges(u) }}</a>
-{%- else %}<span class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ u.name or u.username }}</span>{{ badges(u) }}</span>{% endif -%}
+{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ dname(u) }}</span>{{ badges(u) }}</a>
+{%- else %}<span class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ dname(u) }}</span>{{ badges(u) }}</span>{% endif -%}
 {%- endmacro %}
 
 {% macro follow_btn(u, user, following, small=true) -%}
@@ -197,7 +197,7 @@
 
 {# Поле ввода чата: одна кнопка записи (голосовое / кружок), отправка появляется, когда есть что отправить #}
 {% macro chat_input() -%}
-<div class="rec-circle hidden" aria-hidden="true"><video muted playsinline></video><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div>
+<div class="rec-circle hidden"><video muted playsinline></video><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48"/></svg><button type="button" class="rec-flip" title="Сменить камеру: фронтальная / основная">{{ icon("refresh") }}</button></div>
 <div class="cmp-row">
   {{ caller() }}
   <div class="rec-panel hidden"><button type="button" class="icon-btn rec-cancel" title="Отменить запись">{{ icon("trash") }}</button><span class="rec-dot"></span><span class="rec-time">0:00</span><span class="rec-label small muted"></span><div class="rec-meter"></div></div>

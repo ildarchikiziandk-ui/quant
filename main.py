@@ -10,7 +10,7 @@ import config
 import migrations
 from database import SessionLocal
 from deps import templates
-from routers import (admin, api, auth_routes, explore, extras, feed, more, groups, messages, misc, notifications, posts,
+from routers import (admin, api, auth_routes, chatx, explore, extras, feed, more, groups, messages, misc, notifications, posts,
                      profile, secret, settings, stories, tasks)
 
 migrations.run()
@@ -54,7 +54,28 @@ async def security_middleware(request: Request, call_next):
     return response
 
 
-for r in (auth_routes, feed, posts, profile, settings, messages, groups, stories, explore, notifications,
+@app.on_event("startup")
+async def _background_jobs():
+    """Фоновые задачи: доставка отложенных сообщений (раз в 10 секунд)."""
+    import asyncio
+
+    def tick():
+        db = SessionLocal()
+        try:
+            chatx.deliver_scheduled(db)
+        except Exception as e:  # фоновая задача не должна падать
+            print(f"[jobs] {e}")
+        finally:
+            db.close()
+
+    async def loop():
+        while True:
+            await asyncio.get_running_loop().run_in_executor(None, tick)
+            await asyncio.sleep(10)
+    asyncio.get_running_loop().create_task(loop())
+
+
+for r in (auth_routes, feed, posts, profile, settings, chatx, messages, groups, stories, explore, notifications,
           tasks, extras, more, secret, admin, api, misc):
     app.include_router(r.router)
 

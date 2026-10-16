@@ -248,6 +248,10 @@ class Message(Base):
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     is_edited = Column(Boolean, default=False)
     edited_at = Column(DateTime, nullable=True)
+    deliver_at = Column(DateTime, nullable=True, index=True)  # отложенное сообщение
+    scheduled_pending = Column(Boolean, default=False)  # ещё не доставлено (нужно отправить push)
+    silent = Column(Boolean, default=False)  # без звука: без push-уведомления
+    deleted_for = Column(Integer, nullable=True)  # «удалить у меня» — скрыто только у этого пользователя
     disappear_at = Column(DateTime, nullable=True)
     is_pinned = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -461,6 +465,7 @@ class TypingStatus(Base):
     target_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
+    kind = Column(String(10), default="text")  # text / voice / circle — «печатает», «записывает голосовое»…
 
 class StopWord(Base):
     __tablename__ = "stop_words"
@@ -913,3 +918,26 @@ class ProfileVisit(Base):
     owner_id = Column(Integer, index=True)
     viewer_id = Column(Integer, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ChatSetting(Base):
+    """Личные настройки чата: оформление, архив, «отметить непрочитанным». peer_id=0 — оформление для всех чатов."""
+    __tablename__ = "chat_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    peer_id = Column(Integer, nullable=True, index=True)
+    group_id = Column(Integer, nullable=True, index=True)
+    wallpaper = Column(String(300), default="")
+    bubble = Column(String(20), default="")
+    font = Column(String(10), default="")
+    archived = Column(Boolean, default=False)
+    marked_unread = Column(Boolean, default=False)
+
+
+class ContactName(Base):
+    """Как пользователь записал контакт у себя — видно только ему."""
+    __tablename__ = "contact_names"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, index=True)
+    target_id = Column(Integer, index=True)
+    name = Column(String(60), default="")

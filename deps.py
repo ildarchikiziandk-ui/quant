@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import auth
 import config
 import models
-from services import extras, gamification, icons, legal, plus, prefs, social, streaks, text, timezones
+from services import chatstyle, extras, gamification, icons, legal, plus, prefs, social, streaks, text, timezones
 
 templates = Jinja2Templates(directory="templates")
 env = templates.env
@@ -38,7 +38,7 @@ env.globals.update(
     post_expires=extras.EXPIRES, zodiac=extras.zodiac, frame_by=extras.FRAME_BY, status_active=extras.status_active, pref_client=prefs.client_values,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
     push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.INSTANCE_ID, utcnow=datetime.utcnow,
-    min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, streak_level=streaks.level, emo=text.emoji_img,
+    min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, dname=chatstyle.name_of, custom_name=chatstyle.custom_name, wallpapers=chatstyle.WALLPAPERS, bubbles=chatstyle.BUBBLES, chat_fonts=chatstyle.FONTS, streak_level=streaks.level, emo=text.emoji_img,
 )
 
 REACTIONS = []  # эмодзи-реакции на посты убраны: остались лайк и кит
@@ -54,12 +54,13 @@ def unread_counts(user, db):
         return 0, 0
     notif = db.query(models.Notification.id).filter(models.Notification.user_id == user.id, models.Notification.is_read == False).count()
     msgs = db.query(models.Message.id).filter(models.Message.receiver_id == user.id, models.Message.is_read == False,
-                                              models.Message.is_deleted == False).count()
+                                              models.Message.is_deleted == False, models.Message.scheduled_pending != True).count()
     return notif, msgs
 
 
 def base_context(request: Request, db: Session, sidebar=True):
     user = current_user(request, db)
+    chatstyle.load_names(db, user)
     if user:
         now = datetime.utcnow()
         if not user.last_seen or (now - user.last_seen).total_seconds() > 20 or (user.offline_at and user.offline_at >= user.last_seen):

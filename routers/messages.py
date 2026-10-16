@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render, templates
 from routers.posts import read_payload
-from services import gamification, prefs, push, ratelimit, social, streaks
+from services import chatstyle, gamification, prefs, push, ratelimit, social, streaks
 from services.text import censor
 from services.uploads import save_file
 
@@ -32,6 +32,12 @@ def dialog_filter(a_id, b_id):
 def _alive():
     now = datetime.utcnow()
     return or_(models.Message.disappear_at == None, models.Message.disappear_at > now)
+
+
+def _visible_for(user_id):
+    """Скрыть сообщения, удалённые «только у меня», и чужие отложенные, которые ещё не пришли."""
+    return and_(or_(models.Message.deleted_for == None, models.Message.deleted_for != user_id),
+                or_(models.Message.scheduled_pending != True, models.Message.sender_id == user_id))
 
 
 def preview_of(m):
@@ -56,12 +62,13 @@ def messages_list(request: Request, db: Session = Depends(get_db)):
     if not user:
         return login_redirect(request)
     last_ids = (db.query(func.max(models.Message.id))
-                .filter(models.Message.group_id == None, or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id))
+                .filter(models.Message.group_id == None, or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id),
+                        _visible_for(user.id))
                 .group_by(func.coalesce(func.nullif(models.Message.sender_id, user.id), models.Message.receiver_id)).all())
     last_msgs = db.query(models.Message).filter(models.Message.id.in_([r[0] for r in last_ids] or [-1])).all()
     unread_rows = dict(db.query(models.Message.sender_id, func.count(models.Message.id)).filter(
         models.Message.receiver_id == user.id, models.Message.is_read == False, models.Message.is_deleted == False,
-        models.Message.group_id == None).group_by(models.Message.sender_id).all())
+        models.Message.group_id == None, models.Message.scheduled_pending != True).group_by(models.Message.sender_id).all())
     pinned = {p.pinned_user_id for p in db.query(models.PinnedChat).filter_by(user_id=user.id) if p.pinned_user_id}
     muted = {m.muted_user_id for m in db.query(models.MutedChat).filter_by(user_id=user.id) if m.muted_user_id}
     hidden_cleared = set()
@@ -76,6 +83,14 @@ def messages_list(request: Request, db: Session = Depends(get_db)):
         chats.append({"other": other, "preview": preview_of(m), "mine": m.sender_id == user.id, "time": m.created_at,
                       "unread": unread_rows.get(other_id, 0), "muted": other_id in muted, "pinned": other_id in pinned,
                       "read": m.is_read, "online": social.is_online(other)})
+    sets = {s.peer_id: s for s in db.query(models.ChatSetting).filter(models.ChatSetting.user_id == user.id, models.ChatSetting.peer_id > 0)}
+    for c in chats:
+        st = sets.get(c["other"].id)
+        c["archived"] = bool(st and st.archived)
+        c["marked"] = bool(st and st.marked_unread)
+    show_archived = request.query_params.get("archived") == "1"
+    archived_count = sum(1 for c in chats if c["archived"])
+    chats = [c for c in chats if c["archived"] == show_archived]
     chats.sort(key=lambda c: (not c["pinned"], -c["time"].timestamp()))
     fires = streaks.chat_streaks(db, user, [c["other"].id for c in chats])
     for c in chats:
@@ -89,7 +104,10 @@ def messages_list(request: Request, db: Session = Depends(get_db)):
         groups.append({"group": g, "last": last, "time": last.created_at if last else g.created_at})
     groups.sort(key=lambda x: -x["time"].timestamp())
     contacts = db.query(models.User).filter(models.User.id.in_(social.following_ids(db, user) or {-1})).limit(30).all()
-    return render(request, db, "messages.html", chats=chats, groups=groups, contacts=contacts)
+    if show_archived:
+        groups = []
+    return render(request, db, "messages.html", chats=chats, groups=groups, contacts=contacts, show_archived=show_archived,
+                  archived_count=archived_count)
 
 
 @router.get("/messages/search")
@@ -110,11 +128,14 @@ def message_search(request: Request, q: str = "", db: Session = Depends(get_db))
 
 def _load_dialog(db, user, other, after=0, limit=200):
     q = (db.query(models.Message).options(selectinload(models.Message.msg_reactions), selectinload(models.Message.reply_to))
-         .filter(dialog_filter(user.id, other.id), _alive()))
+         .filter(dialog_filter(user.id, other.id), _alive(), _visible_for(user.id)))
     if after:
-        q = q.filter(models.Message.id > after)
-        return q.order_by(models.Message.id.asc()).all()
-    msgs = q.order_by(models.Message.id.desc()).limit(limit).all()
+        # новые сообщения и только что доставленные отложенные (у них старый id)
+        recent = datetime.utcnow() - timedelta(seconds=90)
+        q = q.filter(or_(models.Message.id > after, and_(models.Message.deliver_at != None, models.Message.deliver_at >= recent,
+                                                          models.Message.receiver_id == user.id)))
+        return q.order_by(models.Message.created_at.asc(), models.Message.id.asc()).all()
+    msgs = q.order_by(models.Message.created_at.desc(), models.Message.id.desc()).limit(limit).all()
     return list(reversed(msgs))
 
 
@@ -140,7 +161,11 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
     pinned_msg = db.query(models.Message).filter(dialog_filter(user.id, other.id), models.Message.is_pinned == True,
                                                  models.Message.is_deleted == False).order_by(models.Message.id.desc()).first()
     streak = streaks.chat_streaks(db, user, [other.id]).get(other.id)
-    return render(request, db, "conversation.html", sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason, streak=streak,
+    st = chatstyle.setting(db, user, other.id)
+    if st and st.marked_unread:
+        st.marked_unread = False
+        db.commit()
+    return render(request, db, "conversation.html", look=chatstyle.look(db, user, other.id), archived=bool(st and st.archived), sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason, streak=streak,
                   pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS,
                   is_muted=db.query(models.MutedChat).filter_by(user_id=user.id, muted_user_id=other.id).first() is not None,
                   is_pinned=db.query(models.PinnedChat).filter_by(user_id=user.id, pinned_user_id=other.id).first() is not None)
@@ -150,8 +175,14 @@ def _deliver(db, user, other, msg):
     db.add(msg)
     db.commit()
     gamification.complete_task(user, db, "message")
+    if msg.scheduled_pending:  # отложенное: уведомление придёт, когда сообщение будет доставлено
+        return JSONResponse({"ok": True, "id": msg.id, "scheduled": True})
+    st = chatstyle.setting(db, other, user.id)
+    if st and st.archived:  # новое сообщение возвращает чат из архива
+        st.archived = False
+        db.commit()
     muted = db.query(models.MutedChat).filter_by(user_id=other.id, muted_user_id=user.id).first()
-    if other.notify_messages is not False and not muted:
+    if other.notify_messages is not False and not muted and not msg.silent:
         push.send_push_to_user(other.id, db, user.name or user.username, preview_of(msg), f"/messages/{user.username}")
     return JSONResponse({"ok": True, "id": msg.id})
 
@@ -199,8 +230,29 @@ async def send_message(request: Request, db: Session = Depends(get_db)):
         if r and r.group_id is None and {r.sender_id, r.receiver_id} == {user.id, other.id}:
             reply_id = r.id
     msg = models.Message(sender_id=user.id, receiver_id=other.id, content=content, reply_to_id=reply_id,
-                         disappear_at=_ttl(data.get("ttl")), is_delivered=social.is_online(other))
+                         disappear_at=_ttl(data.get("ttl")), is_delivered=social.is_online(other),
+                         silent=bool(data.get("silent")))
+    when = _schedule(user, data.get("schedule"))
+    if when:
+        msg.deliver_at, msg.scheduled_pending, msg.created_at = when, True, when
     return _deliver(db, user, other, msg)
+
+
+def _schedule(user, value):
+    """«Отправить позже»: время в поясе пользователя (ГГГГ-ММ-ДДTЧЧ:ММ) или через N минут."""
+    if not value:
+        return None
+    from services import timezones
+    try:
+        if str(value).isdigit():
+            when = datetime.utcnow() + timedelta(minutes=int(value))
+        else:
+            when = timezones.from_local(datetime.strptime(str(value)[:16], "%Y-%m-%dT%H:%M"), user)
+    except (ValueError, TypeError):
+        return None
+    if when <= datetime.utcnow() + timedelta(seconds=30) or when > datetime.utcnow() + timedelta(days=365):
+        return None
+    return when
 
 
 @router.post("/messages/send-media")
@@ -238,6 +290,12 @@ async def send_media(request: Request, db: Session = Depends(get_db)):
 
 
 def render_messages(request, user, msgs):
+    from database import SessionLocal
+    s = SessionLocal()
+    try:
+        chatstyle.load_names(s, user)
+    finally:
+        s.close()
     return templates.get_template("partials/messages.html").render(request=request, user=user, messages=msgs,
                                                                    msg_reactions=MSG_REACTIONS)
 
@@ -258,8 +316,9 @@ def poll_messages(username: str, request: Request, after: int = 0, db: Session =
         last_read = 0
     typing = db.query(models.TypingStatus).filter_by(user_id=other.id, target_id=user.id).first()
     is_typing = bool(typing and (datetime.utcnow() - typing.updated_at).total_seconds() < 6)
+    typing_kind = (typing.kind or "text") if is_typing else ""
     return JSONResponse({"ok": True, "html": render_messages(request, user, msgs) if msgs else "", "ids": [m.id for m in msgs],
-                         "last_id": max([after] + [m.id for m in msgs]), "read_upto": last_read, "typing": is_typing,
+                         "last_id": max([after] + [m.id for m in msgs]), "read_upto": last_read, "typing": is_typing, "typing_kind": typing_kind,
                          "online": social.is_online(other)})
 
 
@@ -280,11 +339,13 @@ def typing(username: str, request: Request, db: Session = Depends(get_db)):
         return JSONResponse({"ok": False})
     if not prefs.get(user, "typing_status"):
         return JSONResponse({"ok": True})
+    kind = request.query_params.get("kind") or "text"
+    kind = kind if kind in ("text", "voice", "circle") else "text"
     t = db.query(models.TypingStatus).filter_by(user_id=user.id, target_id=other.id).first()
     if t:
-        t.updated_at = datetime.utcnow()
+        t.updated_at, t.kind = datetime.utcnow(), kind
     else:
-        db.add(models.TypingStatus(user_id=user.id, target_id=other.id))
+        db.add(models.TypingStatus(user_id=user.id, target_id=other.id, kind=kind))
     db.commit()
     return JSONResponse({"ok": True})
 

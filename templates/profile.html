@@ -40,6 +40,7 @@
           <div class="menu">
             {% if secret_enabled %}<a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>{% endif %}
             <a href="/ask/{{ pu.username }}">{{ icon("help") }} Задать анонимный вопрос</a>
+            <button onclick="(async()=>{const n=prompt('Как записать контакт?', {{ (custom_name(pu) or '')|tojson }}); if(n===null) return; await App.api('/contacts/{{ pu.username }}/name',{name:n}); location.reload();})()">{{ icon("pen") }} Записать контакт как…</button>
             <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
             <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код</a>
             {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">{{ icon("star", "i in") }} {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
@@ -54,6 +55,7 @@
       {% endif %}
     </div>
     {% set pn = profile_is_plus and pref(pu, "plus_name_color") %}<div class="profile-name"><span{% if pn %} class="plus-name" style="--pg:{{ plus_bg(pu) }}"{% endif %}>{{ pu.name or pu.username }}</span>{{ badges(pu) }}</div>
+    {% if not me and custom_name(pu) %}<div class="small muted mt-s">{{ icon("pen", "i in") }} У вас записан(а) как <b>{{ custom_name(pu) }}</b></div>{% endif %}
     {% if pu.is_owner %}<div class="owner-pill mt-s"><span class="badge owner-b">{{ icon("crown", "i") }}</span>Основатель {{ brand }}</div>{% endif %}
     <div class="row small muted" style="gap:8px">@{{ pu.username }}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span class="online-txt"><i></i>онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>

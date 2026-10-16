@@ -149,7 +149,7 @@
       if (rec && rec.state === 'recording') return;
       const kind = mode;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(kind === 'video' ? { audio: true, video: { facingMode: 'user', width: 480, height: 480 } } : { audio: true });
+        stream = kind === 'video' ? await videoStream() : await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) { App.toast('Нет доступа к ' + (kind === 'video' ? 'камере' : 'микрофону'), true); return; }
       const types = kind === 'video' ? ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'] : ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
       const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
@@ -160,15 +160,58 @@
       rec.start(250); t0 = Date.now(); navigator.vibrate?.(20);
       label.textContent = kind === 'video' ? 'Видеокружок' : 'Голосовое';
       panel.classList.remove('hidden');
-      if (kind === 'video') { preview.srcObject = stream; circleBox.classList.remove('hidden'); preview.play().catch(() => {}); }
+      if (kind === 'video') circleBox.classList.remove('hidden');
       else startMeter();
       timer = setInterval(() => {
         const s = (Date.now() - t0) / 1000; timeEl.textContent = fmt(s);
         circleBox.style.setProperty('--p', Math.min(1, s / MAXC));
+        opts.onRecord?.(kind);
         if (s >= (kind === 'video' ? MAXC : MAXV)) stop(false);
       }, 200);
       refresh();
     }
+    // ---- кружок: камера рисуется в квадратный холст, записывается холст + микрофон.
+    // Поэтому камеру (фронтальная / основная) можно переключать прямо во время записи.
+    let facing = 'user', cam = null, drawRaf = 0, canvas = null;
+    try { facing = localStorage.getItem('nv_circle_cam') || 'user'; } catch (e) { /* по умолчанию фронтальная */ }
+    async function openCamera() {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 720 }, height: { ideal: 720 } } });
+      cam?.getTracks().forEach(t => t.stop());
+      cam = s; preview.srcObject = s; preview.play().catch(() => {});
+      circleBox.classList.toggle('back', facing !== 'user');
+    }
+    function stopCamera() { cancelAnimationFrame(drawRaf); cam?.getTracks().forEach(t => t.stop()); cam = null; }
+    async function videoStream() {
+      await openCamera();
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+      canvas = canvas || document.createElement('canvas');
+      if (!canvas.captureStream) {  // старый браузер — пишем камеру напрямую
+        return new MediaStream([...cam.getVideoTracks(), ...mic.getAudioTracks()]);
+      }
+      canvas.width = canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+      const draw = () => {
+        const vw = preview.videoWidth, vh = preview.videoHeight;
+        if (vw && vh) {
+          const side = Math.min(vw, vh), sx = (vw - side) / 2, sy = (vh - side) / 2;
+          ctx.save();
+          if (facing === 'user') { ctx.translate(480, 0); ctx.scale(-1, 1); }  // фронтальная — как в зеркале
+          ctx.drawImage(preview, sx, sy, side, side, 0, 0, 480, 480);
+          ctx.restore();
+        }
+        drawRaf = requestAnimationFrame(draw);
+      };
+      draw();
+      return new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...mic.getAudioTracks()]);
+    }
+    const flip = $('.rec-flip', root);
+    if (flip) flip.addEventListener('click', async (e) => {
+      e.preventDefault();
+      facing = facing === 'user' ? 'environment' : 'user';
+      try { localStorage.setItem('nv_circle_cam', facing); } catch (er) { /* не запомним */ }
+      try { await openCamera(); navigator.vibrate?.(10); } catch (er) { App.toast('Не удалось переключить камеру', true); }
+    });
+
     function startMeter() {
       try {
         const AC = window.AudioContext || window.webkitAudioContext; audioCtx = new AC();
@@ -182,7 +225,7 @@
     function stop(cancel) { cancelled = !!cancel; if (rec && rec.state === 'recording') rec.stop(); }
     async function finish(kind, mime) {
       clearInterval(timer); cancelAnimationFrame(raf); audioCtx?.close?.(); audioCtx = null; meter.innerHTML = '';
-      stream?.getTracks().forEach(t => t.stop()); preview.srcObject = null;
+      stream?.getTracks().forEach(t => t.stop()); stopCamera(); preview.srcObject = null;
       panel.classList.add('hidden'); circleBox.classList.add('hidden'); timeEl.textContent = '0:00';
       const blob = new Blob(chunks, { type: (mime || '').split(';')[0] || (kind === 'video' ? 'video/webm' : 'audio/webm') });
       rec = null; refresh();

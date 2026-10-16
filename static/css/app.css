@@ -777,3 +777,42 @@ html{scroll-behavior:smooth}
 .mmenu-more[open] summary{border-radius:16px 16px 0 0;border-bottom:none}
 .mmenu-more[open] .mmenu-rows{border-radius:0 0 16px 16px;border-top:none}
 .mmenu .mmenu-grid{margin-top:10px}
+.rec-circle.back video{transform:none}
+.rec-flip{position:absolute;right:6px;bottom:6px;width:46px;height:46px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px)}
+.rec-flip svg.i{width:22px;height:22px}
+
+/* ===== Оформление чатов ===== */
+.convo.has-wp .convo-box{background:var(--wp);background-attachment:local}
+.convo.has-wp.wp-dark .day-sep,.convo.has-wp.wp-dark .msg-meta,.convo.has-wp.wp-dark .typing{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.convo.has-wp.wp-dark .day-sep{background:rgba(0,0,0,.28)}
+.convo.has-wp .msg:not(.mine) .bubble{background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(6px)}
+.convo[style*="--mine"] .msg.mine .bubble{background:var(--mine);color:#fff}
+.convo[style*="--mine"] .msg.mine .vplay{background:#fff;color:var(--mine)}
+.convo[style*="--mine"] .msg.mine .vmsg,.convo[style*="--mine"] .msg.mine .vdur{color:#fff}
+.convo.cf-s .bubble{font-size:13px}.convo.cf-l .bubble{font-size:17px}.convo.cf-xl .bubble{font-size:19.5px}
+.wp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.wp-grid label{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:0}
+.wp-grid input{display:none}
+.wp-grid span{width:100%;aspect-ratio:3/4;border-radius:14px;background:var(--input);display:flex;align-items:center;justify-content:center;color:var(--text-3);box-shadow:inset 0 0 0 1px var(--border)}
+.wp-grid input:checked+span{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--link)}
+.wp-grid small{font-size:11.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.bubble-row{display:flex;flex-wrap:wrap;gap:10px}.bubble-row input{display:none}
+.bubble-row span{display:block;width:36px;height:36px;border-radius:50%;cursor:pointer}
+.bubble-row input:checked+span{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--text)}
+.jump-down{position:absolute;right:18px;bottom:92px;width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;color:var(--text)}
+.jump-down svg.i{transform:rotate(-90deg);width:20px;height:20px}
+.jump-down b{position:absolute;top:-6px;right:-4px;background:var(--link);color:#fff;font-size:11px;border-radius:999px;padding:1px 6px}
+.convo{position:relative}
+.typing-dots{display:inline-flex;gap:3px;margin-left:4px;vertical-align:middle}
+.typing-dots i{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.4;animation:tdot 1.2s infinite}
+.typing-dots i:nth-child(2){animation-delay:.2s}.typing-dots i:nth-child(3){animation-delay:.4s}
+@keyframes tdot{30%{opacity:1;transform:translateY(-2px)}}
+.send-menu{position:fixed;right:16px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:60;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:6px;animation:pop-in .16s}
+.send-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:none;border-radius:10px;font:inherit;color:var(--text);cursor:pointer;white-space:nowrap}
+.send-menu button:hover{background:var(--hover)}.send-menu svg.i{width:18px;height:18px}
+.msg.scheduled .bubble{opacity:.75;border:1.5px dashed color-mix(in srgb,var(--text) 30%,transparent)}
+.sched-tag{display:inline-flex;align-items:center;gap:3px;color:var(--link);font-weight:600}
+.msg{transition:transform .2s}
+.chat.marked .grow::after{content:"";display:block}
+.chat.marked{position:relative}.chat.marked::after{content:"";position:absolute;right:16px;top:50%;width:11px;height:11px;border-radius:50%;background:var(--link);transform:translateY(-50%)}
+.archive-row{color:var(--text)}.archive-row svg.i{width:22px;height:22px;color:var(--text-2)}

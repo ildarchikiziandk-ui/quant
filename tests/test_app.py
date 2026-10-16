@@ -1005,3 +1005,46 @@ def test_latin_profanity_masked_in_chats(alice, bob):
     alice.post("/messages/send", json={"receiver": "bob", "content": "ну ты и cyka blyat, xyi"}, headers=J)
     page = bob.get("/messages/alice").text
     assert "cyka" not in page and "blyat" not in page and "c***" in page
+
+
+def test_chat_features(alice, bob):
+    from datetime import datetime, timedelta
+    from routers import chatx
+    # своё имя контакта — видно только мне
+    assert alice.post("/contacts/bob/name", json={"name": "Бобёр с работы"}, headers=J).json()["ok"]
+    assert "Бобёр с работы" in alice.get("/messages/bob").text
+    assert "Бобёр с работы" not in bob.get("/profile/bob").text
+    # оформление чата
+    r = alice.post("/chats/bob/look", data={"wallpaper": "whales", "bubble": "violet", "font": "l"}, headers=J).json()
+    assert r["look"]["wallpaper"] == "whales" and r["look"]["bubble_color"] == "#7c3aed"
+    page = alice.get("/messages/bob").text
+    assert "has-wp" in page and "--mine:#7c3aed" in page and "cf-l" in page
+    # отложенное сообщение: собеседник не видит до времени доставки
+    mid = alice.post("/messages/send", json={"receiver": "bob", "content": "с днём рождения!", "schedule": "30"}, headers=J).json()["id"]
+    assert "с днём рождения" not in bob.get("/messages/alice").text
+    assert "будет отправлено" in alice.get("/messages/bob").text
+    s = db()
+    m = s.get(models.Message, mid)
+    m.deliver_at = datetime.utcnow() - timedelta(seconds=1)
+    s.commit()
+    assert chatx.deliver_scheduled(s) == 1
+    s.close()
+    assert "с днём рождения" in bob.get("/messages/alice").text
+    # «удалить у меня»
+    mid2 = alice.post("/messages/send", json={"receiver": "bob", "content": "секретик"}, headers=J).json()["id"]
+    bob.post(f"/messages/{mid2}/hide", headers=J)
+    assert "секретик" not in bob.get("/messages/alice").text and "секретик" in alice.get("/messages/bob").text
+    # архив и «непрочитано»
+    assert bob.post("/chats/alice/archive", headers=J).json()["archived"]
+    assert 'href="/messages/alice"' not in bob.get("/messages").text and "Архив" in bob.get("/messages").text
+    assert 'href="/messages/alice"' in bob.get("/messages?archived=1").text
+    alice.post("/messages/send", json={"receiver": "bob", "content": "вернись"}, headers=J)
+    assert 'href="/messages/alice"' in bob.get("/messages").text  # новое сообщение возвращает из архива
+    assert bob.post("/chats/alice/unread", headers=J).json()["marked"]
+    assert "chat marked" in bob.get("/messages").text
+    # медиа, статистика, экспорт
+    assert alice.get("/messages/bob/media?tab=link").status_code == 200
+    st = alice.get("/messages/bob/stats").json()
+    assert st["total"] >= 3
+    ex = alice.get("/messages/bob/export")
+    assert ex.status_code == 200 and "attachment" in ex.headers["content-disposition"] and "вернись" in ex.text

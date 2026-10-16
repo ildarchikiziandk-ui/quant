@@ -5,9 +5,12 @@
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("chat", "i in") }} Сообщения</div>
   <div class="row">{% if secret_enabled %}<a href="/secret" class="icon-btn" title="Секретные чаты (ГОСТ)">{{ icon("secret", "i in") }}</a>{% endif %}<a href="/messages/search" class="icon-btn" title="Поиск по сообщениям">{{ icon("search") }}</a><button class="btn sm" data-modal="new-chat">{{ icon("plus") }} Новый чат</button></div></div>
 <input type="search" placeholder="Поиск по чатам…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('.chat-list .chat').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')" class="mb">
-<div class="card flat chat-list">
+{% if show_archived %}<a href="/messages" class="row small mb" style="gap:6px;color:var(--link);font-weight:700">{{ icon("back", "i in") }} Все чаты</a>
+<div class="page-sub">Архив: чаты вернутся в общий список, когда придёт новое сообщение.</div>
+{% elif archived_count %}<a href="/messages?archived=1" class="card row archive-row" style="gap:12px">{{ icon("archive") }}<b class="grow">Архив</b><span class="faint">{{ archived_count }}</span></a>{% endif %}
+<div class="card flat chat-list" id="chat-list">
   {% for c in chats %}
-  <a href="/messages/{{ c.other.username }}" class="chat">
+  <a href="/messages/{{ c.other.username }}" class="chat{% if c.marked %} marked{% endif %}" data-user="{{ c.other.username }}">
     {{ avatar(c.other, 50, online=true) }}
     <div class="grow">
       <div class="row" style="justify-content:space-between"><span class="row" style="gap:4px;min-width:0">{{ name(c.other, link=false) }}{{ streak_badge(c.streak) }}{% if c.pinned %}<span class="faint" title="Закреплён">{{ icon("pin", "i in") }}</span>{% endif %}{% if c.muted %}<span class="faint" title="Без звука">{{ icon("bell-off", "i in") }}</span>{% endif %}</span><span class="tiny faint">{{ c.time|ago }}</span></div>
@@ -30,6 +33,23 @@
   <div id="nc-res" class="mt">{% for u in contacts %}<a class="user-row" href="/messages/{{ u.username }}">{{ avatar(u, 40) }}<div class="info"><b>{{ u.name or u.username }}</b><div class="bio">@{{ u.username }}</div></div></a>{% endfor %}</div>
   <div class="mt"><a href="/groups" class="btn soft block">{{ icon("users", "i in") }} Создать группу</a></div>
 </div></div>
+<div class="send-menu hidden" id="chat-ctx">
+  <button type="button" data-c="unread">{{ icon("mail") }} <span>Отметить непрочитанным</span></button>
+  <button type="button" data-c="archive">{{ icon("archive") }} <span>{% if show_archived %}Вернуть из архива{% else %}В архив{% endif %}</span></button>
+  <button type="button" data-c="pin">{{ icon("pin") }} <span>Закрепить / открепить</span></button>
+  <button type="button" data-c="mute">{{ icon("bell-off") }} <span>Без звука / со звуком</span></button>
+</div>
+<script>(function(){ const menu=document.getElementById('chat-ctx'); let target=null, t=0;
+  const open=(a,x,y)=>{ target=a; menu.style.left=Math.min(x, innerWidth-260)+'px'; menu.style.top=Math.min(y, innerHeight-220)+'px'; menu.style.right='auto'; menu.style.bottom='auto'; menu.classList.remove('hidden'); navigator.vibrate?.(12); };
+  document.getElementById('chat-list').addEventListener('contextmenu',e=>{ const a=e.target.closest('.chat[data-user]'); if(!a) return; e.preventDefault(); open(a,e.clientX,e.clientY); });
+  document.getElementById('chat-list').addEventListener('touchstart',e=>{ const a=e.target.closest('.chat[data-user]'); if(!a) return; const p=e.touches[0]; t=setTimeout(()=>{ t=-1; open(a,p.clientX,p.clientY); },500); },{passive:true});
+  document.getElementById('chat-list').addEventListener('touchend',e=>{ if(t===-1){ e.preventDefault(); } clearTimeout(t); t=0; });
+  document.getElementById('chat-list').addEventListener('touchmove',()=>clearTimeout(t),{passive:true});
+  document.addEventListener('click',e=>{ if(!e.target.closest('#chat-ctx')) menu.classList.add('hidden'); });
+  menu.addEventListener('click',async e=>{ const b=e.target.closest('[data-c]'); if(!b||!target) return; const u=target.dataset.user; menu.classList.add('hidden');
+    const url={unread:`/chats/${u}/unread`,archive:`/chats/${u}/archive`,pin:`/chats/pin/${u}`,mute:`/chats/mute/${u}`}[b.dataset.c];
+    try{ await App.api(url); location.reload(); }catch(er){} });
+})();</script>
 {% endblock %}
 {% block scripts %}
 <script>
