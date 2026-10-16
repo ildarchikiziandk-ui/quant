@@ -42,6 +42,12 @@ class NotifyWorker(context: Context, params: WorkerParameters) : Worker(context,
             val messages = json.optInt("messages")
             val notifications = json.optInt("notifications")
             val prefs = applicationContext.getSharedPreferences("notify", Context.MODE_PRIVATE)
+            // служба мгновенных уведомлений работает — она уже всё показала, только перезапускаем её на всякий случай
+            if (System.currentTimeMillis() - prefs.getLong("stream_ok", 0L) < 5 * 60 * 1000L) {
+                prefs.edit().putInt("messages", messages).putInt("notifications", notifications).apply()
+                return Result.success()
+            }
+            NotifyService.start(applicationContext)
             if (messages > prefs.getInt("messages", 0)) {
                 show(1, "Новые сообщения", "Непрочитанных сообщений: $messages", "/messages")
             }

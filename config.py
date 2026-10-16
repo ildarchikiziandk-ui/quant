@@ -87,6 +87,38 @@ MIN_AGE = int(env("MIN_AGE", "14"))
 # --- Push (VAPID) --------------------------------------------------------
 VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", "")
+
+
+def _auto_vapid():
+    """Если ключи не заданы — создаём их один раз и храним рядом с приложением (push в браузере заработает сам)."""
+    import base64
+    import json as _json
+    path = os.path.join(BASE_DIR, ".vapid.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = _json.load(f)
+        return d["public"], d["private"]
+    except (OSError, ValueError, KeyError):
+        pass
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        key = ec.generate_private_key(ec.SECP256R1())
+        raw_priv = key.private_numbers().private_value.to_bytes(32, "big")
+        raw_pub = key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+        b64 = lambda b: base64.urlsafe_b64encode(b).decode().rstrip("=")
+        pub, priv = b64(raw_pub), b64(raw_priv)
+        with open(path, "w", encoding="utf-8") as f:
+            _json.dump({"public": pub, "private": priv}, f)
+        os.chmod(path, 0o600)
+        return pub, priv
+    except Exception as e:  # нет прав на запись — push в браузере останется выключенным
+        print(f"[config] VAPID: {e}")
+        return "", ""
+
+
+if not (VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY) and env_bool("VAPID_AUTO", True):
+    VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY = _auto_vapid()
 VAPID_EMAIL = env("VAPID_EMAIL", f"mailto:{BRAND_EMAIL}")
 
 # --- Яндекс OAuth --------------------------------------------------------

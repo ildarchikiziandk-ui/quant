@@ -10,6 +10,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.PowerManager
+import android.provider.Settings
 import android.graphics.Color
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
@@ -51,7 +53,12 @@ class MainActivity : AppCompatActivity() {
         grantAllowed(request)
     }
 
-    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            NotifyService.start(this)
+            askBatteryOnce()
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -178,6 +185,9 @@ class MainActivity : AppCompatActivity() {
 
         if (Build.VERSION.SDK_INT >= 33 && !has(Manifest.permission.POST_NOTIFICATIONS)) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            NotifyService.start(this)
+            askBatteryOnce()
         }
         NotifyWorker.schedule(this)
     }
@@ -194,7 +204,25 @@ class MainActivity : AppCompatActivity() {
         web.saveState(outState)
     }
 
+    /** Один раз просим не «усыплять» приложение — иначе прошивка может остановить связь с сервером. */
+    private fun askBatteryOnce() {
+        if (Build.VERSION.SDK_INT < 23) return
+        val prefs = getSharedPreferences("notify", MODE_PRIVATE)
+        if (prefs.getBoolean("battery_asked", false)) return
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        if (pm.isIgnoringBatteryOptimizations(packageName)) return
+        prefs.edit().putBoolean("battery_asked", true).apply()
+        try {
+            @SuppressLint("BatteryLife")
+            val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+            startActivity(i)
+        } catch (e: Exception) {
+            // на некоторых прошивках такого экрана нет
+        }
+    }
+
     override fun onPause() {
+        NotifyService.appVisible = false
         // приложение свёрнуто: сразу «не в сети» и без фоновой работы страницы
         web.evaluateJavascript("window.nuvoraOffline && window.nuvoraOffline()", null)
         web.onPause()
@@ -204,6 +232,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        NotifyService.appVisible = true
         web.onResume()
     }
 

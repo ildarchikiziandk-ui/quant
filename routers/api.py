@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 import config
@@ -116,3 +116,69 @@ async def push_unsubscribe(request: Request, db: Session = Depends(get_db)):
     db.query(models.PushSubscription).filter_by(user_id=user.id, endpoint=data.get("endpoint", "")).delete()
     db.commit()
     return JSONResponse({"ok": True})
+
+
+# ---------------------------------------------------------------- мгновенные уведомления для приложения
+def _events(db, user, since_notif, since_msg):
+    """Новые уведомления и сообщения после указанных id — для фоновой службы Android-приложения."""
+    from routers.messages import preview_of
+    from services import chatstyle
+    names = chatstyle.load_names(db, user)
+    out = []
+    hide_text = prefs.get(user, "push_hide_text")
+    if user.notify_messages is not False:
+        muted = {m.muted_user_id for m in db.query(models.MutedChat).filter_by(user_id=user.id) if m.muted_user_id}
+        for m in (db.query(models.Message).filter(models.Message.receiver_id == user.id, models.Message.id > since_msg,
+                                                  models.Message.group_id == None, models.Message.is_deleted == False,
+                                                  models.Message.is_read == False, models.Message.scheduled_pending != True,
+                                                  models.Message.silent != True)
+                  .order_by(models.Message.id.asc()).limit(30)):
+            if m.sender_id in muted:
+                continue
+            s = m.sender
+            out.append({"kind": "message", "id": m.id, "chat": s.username if s else "", "url": f"/messages/{s.username}" if s else "/messages",
+                        "title": names.get(m.sender_id) or (s.name or s.username if s else "Сообщение"),
+                        "text": "Новое сообщение" if hide_text else preview_of(m)})
+    for n in (db.query(models.Notification).filter(models.Notification.user_id == user.id, models.Notification.id > since_notif,
+                                                   models.Notification.is_read == False)
+              .order_by(models.Notification.id.asc()).limit(30)):
+        who = n.from_user
+        title = (names.get(who.id) or who.name or who.username) if who else config.BRAND_NAME
+        url = f"/post/{n.post_id}" if n.post_id else "/notifications"
+        out.append({"kind": "notification", "id": n.id, "title": title, "text": (n.text or social.NOTIFY_TEXT.get(n.type, "новое уведомление"))[:200], "url": url})
+    return out
+
+
+@router.get("/stream")
+async def stream(request: Request, since_notif: int = -1, since_msg: int = -1, wait: int = 25):
+    """Long-poll: ждёт до 25 секунд и сразу отвечает, как только появилось новое сообщение или уведомление.
+    Первый запрос (since=-1) только возвращает текущие id, чтобы не показывать старое."""
+    import asyncio
+    from database import SessionLocal
+
+    def check():
+        db = SessionLocal()
+        try:
+            user = current_user(request, db)
+            if not user:
+                return None
+            if since_notif < 0 or since_msg < 0:
+                ln = db.query(func.max(models.Notification.id)).filter(models.Notification.user_id == user.id).scalar() or 0
+                lm = db.query(func.max(models.Message.id)).filter(models.Message.receiver_id == user.id).scalar() or 0
+                return {"ok": True, "events": [], "notif": ln, "msg": lm}
+            ev = _events(db, user, since_notif, since_msg)
+            n_id = max([since_notif] + [e["id"] for e in ev if e["kind"] == "notification"])
+            m_id = max([since_msg] + [e["id"] for e in ev if e["kind"] == "message"])
+            return {"ok": True, "events": ev, "notif": n_id, "msg": m_id}
+        finally:
+            db.close()
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + max(1, min(wait, 25))
+    while True:
+        res = await loop.run_in_executor(None, check)
+        if res is None:
+            return JSONResponse({"ok": False}, status_code=401)
+        if res["events"] or since_notif < 0 or since_msg < 0 or loop.time() >= deadline or await request.is_disconnected():
+            return JSONResponse(res)
+        await asyncio.sleep(1.5)

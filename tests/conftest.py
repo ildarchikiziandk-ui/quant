@@ -10,6 +10,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["UPLOAD_DIR"] = os.path.join(_tmp, "uploads")
 os.environ["SECRET_KEY"] = "test-secret"
 os.environ["OWNER_USERNAME"] = "owner"
+os.environ.setdefault("VAPID_AUTO", "0")
 os.environ.setdefault("SMTP_USER", "")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)

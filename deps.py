@@ -84,9 +84,9 @@ def base_context(request: Request, db: Session, sidebar=True):
             ctx["can_spin"] = user.last_spin != _d.today().isoformat()
             fids = social.following_ids(db, user)
             ctx["online_friends"] = (db.query(models.User).filter(models.User.id.in_(fids or {-1}),
-                                                                  models.User.last_seen > datetime.utcnow() - _td(minutes=5))
+                                                                  models.User.last_seen > datetime.utcnow() - _td(seconds=social.ONLINE_SECONDS))
                                      .limit(8).all() if fids else [])
-            ctx["online_friends"] = [u for u in ctx["online_friends"] if u.show_online is not False]
+            ctx["online_friends"] = [u for u in ctx["online_friends"] if u.show_online is not False and social.is_online(u)]
         if user:
             excl = social.following_ids(db, user) | social.blocked_ids(db, user) | {user.id}
             known = [u for u, _ in extras.people_you_may_know(db, user, 4)]  # сначала друзья друзей и люди с общими интересами

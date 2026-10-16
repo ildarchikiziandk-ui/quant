@@ -1048,3 +1048,16 @@ def test_chat_features(alice, bob):
     assert st["total"] >= 3
     ex = alice.get("/messages/bob/export")
     assert ex.status_code == 200 and "attachment" in ex.headers["content-disposition"] and "вернись" in ex.text
+
+
+def test_stream_long_poll(alice, bob):
+    first = bob.get("/api/stream").json()
+    assert first["ok"] and first["events"] == []
+    alice.post("/messages/send", json={"receiver": "bob", "content": "привет из фона"}, headers=J)
+    r = bob.get(f"/api/stream?since_notif={first['notif']}&since_msg={first['msg']}&wait=1").json()
+    ev = [e for e in r["events"] if e["kind"] == "message"]
+    assert ev and ev[0]["chat"] == "alice" and "привет из фона" in ev[0]["text"] and r["msg"] == ev[0]["id"]
+    # повторный запрос с новым id — пусто
+    r2 = bob.get(f"/api/stream?since_notif={r['notif']}&since_msg={r['msg']}&wait=1").json()
+    assert not [e for e in r2["events"] if e["kind"] == "message"]
+    assert make_client().get("/api/stream").status_code == 401
