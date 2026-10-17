@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Новый пост — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("pen", "i in") }} Новый пост</div>
+{% include "partials/composer.html" %}
+{% if drafts %}
+<div class="card"><div class="card-title">{{ icon("note", "i in") }} Черновики <a href="/drafts">Все →</a></div>
+  <div class="chips">{% for d in drafts %}<a href="#" class="chip" data-draft-load="{{ d.id }}" data-content="{{ d.content }}">{{ d.content[:40] }}{% if d.content|length > 40 %}…{% endif %}</a>{% endfor %}</div>
+</div>
+{% endif %}
+<div class="card small muted">
+  <div class="card-title">Подсказки</div>
+  <div>• <b>#тег</b> помогает людям найти пост, а рекомендации — показать его тем, кому интересна тема.</div>
+  <div>• <b>@логин</b> — упомянуть человека, он получит уведомление.</div>
+  <div>• Можно прикрепить до {{ plus_limit(user, "post_media") }} фото и видео, добавить опрос или запланировать публикацию.</div>
+  <div>• Еще — <a href="/stories/create" style="color:var(--link)">история на 24 часа</a>.</div>
+</div>
+{% endblock %}

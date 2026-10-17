@@ -1,7 +1,22 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
+
+
+class EncryptedText(TypeDecorator):
+    """Текст, который хранится в базе зашифрованным (AES-256-GCM, см. services/crypto.py)."""
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        from services import crypto
+        return crypto.encrypt(value)
+
+    def process_result_value(self, value, dialect):
+        from services import crypto
+        return crypto.decrypt(value)
 
 class User(Base):
     __tablename__ = "users"
@@ -14,6 +29,7 @@ class User(Base):
     cover = Column(String, default="")
     bio = Column(String, default="")
     website = Column(String, default="")
+    work = Column(String(80), default="")  # работа или учёба — показывается в профиле
     birthday = Column(String, default="")
     emoji_status = Column(String, default="")
     city = Column(String, default="")
@@ -31,6 +47,7 @@ class User(Base):
     plus_until = Column(DateTime, nullable=True)
     plus_color = Column(String, default="#a855f7")
     last_seen = Column(DateTime, nullable=True)
+    offline_at = Column(DateTime, nullable=True)  # закрыл приложение — сразу «не в сети»
     pinned_post_id = Column(Integer, nullable=True)
     is_private = Column(Boolean, default=False)
     daily_points = Column(Integer, default=0)
@@ -48,6 +65,34 @@ class User(Base):
     who_can_see_stories = Column(String, default="all")
     hide_likes = Column(Boolean, default=False)
     language = Column(String, default="ru")
+    accent_color = Column(String, default="")
+    show_online = Column(Boolean, default=True)
+    notify_likes = Column(Boolean, default=True)
+    notify_comments = Column(Boolean, default=True)
+    notify_follows = Column(Boolean, default=True)
+    notify_mentions = Column(Boolean, default=True)
+    notify_messages = Column(Boolean, default=True)
+    profile_views = Column(Integer, default=0)
+    pronouns = Column(String, default="")
+    prefs = Column(Text, default="")
+    interests = Column(String, default="")
+    referred_by = Column(Integer, nullable=True)
+    spent_points = Column(Integer, default=0)
+    status_text = Column(String, default="")
+    status_until = Column(DateTime, nullable=True)
+    links = Column(Text, default="")
+    avatar_frame = Column(String, default="")
+    frames_owned = Column(String, default="")
+    streak_freezes = Column(Integer, default=0)
+    last_spin = Column(String, default="")
+    dnd_until = Column(DateTime, nullable=True)
+    is_paused = Column(Boolean, default=False)
+    pd_consent_at = Column(DateTime, nullable=True)  # согласие на обработку персональных данных (152-ФЗ ст. 9)
+    pd_consent_version = Column(String(20), default="")
+    age_confirmed = Column(Boolean, default=False)
+    yandex_id = Column(String(32), nullable=True, index=True)  # вход через Яндекс ID
+    last_spin2 = Column(String(10), default="")  # второе вращение колеса (Plus)
+    plus_shield_date = Column(String(10), default="")  # когда последний раз сработала защита стрика (Plus)  # подтвердил, что ему есть MIN_AGE лет
     created_at = Column(DateTime, default=datetime.utcnow)
     posts = relationship("Post", back_populates="author")
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
@@ -81,6 +126,15 @@ class Post(Base):
     exclusive_until = Column(DateTime, nullable=True)
     is_long = Column(Boolean, default=False)
     pinned_comment_id = Column(Integer, nullable=True)
+    edited_at = Column(DateTime, nullable=True)
+    comments_disabled = Column(Boolean, default=False)
+    visibility = Column(String, default="all")
+    content_warning = Column(String, default="")
+    mood = Column(String, default="")
+    location = Column(String, default="")
+    bg = Column(String, default="")
+    is_archived = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=True)
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
@@ -169,9 +223,12 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey("posts.id"))
     parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
     is_pinned = Column(Boolean, default=False)
+    edited_at = Column(DateTime, nullable=True)
+    is_hidden = Column(Boolean, default=False)
     author = relationship("User")
     post = relationship("Post", back_populates="comments")
     replies = relationship("Comment", foreign_keys=[parent_id])
+    comment_likes = relationship("CommentLike", back_populates="comment")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -179,7 +236,7 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
-    content = Column(Text, default="")
+    content = Column(EncryptedText, default="")
     content_encrypted = Column(Text, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
@@ -192,6 +249,10 @@ class Message(Base):
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     is_edited = Column(Boolean, default=False)
     edited_at = Column(DateTime, nullable=True)
+    deliver_at = Column(DateTime, nullable=True, index=True)  # отложенное сообщение
+    scheduled_pending = Column(Boolean, default=False)  # ещё не доставлено (нужно отправить push)
+    silent = Column(Boolean, default=False)  # без звука: без push-уведомления
+    deleted_for = Column(Integer, nullable=True)  # «удалить у меня» — скрыто только у этого пользователя
     disappear_at = Column(DateTime, nullable=True)
     is_pinned = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -214,6 +275,7 @@ class GroupChat(Base):
     avatar = Column(String, default="")
     description = Column(String, default="")
     owner_id = Column(Integer, ForeignKey("users.id"))
+    invite_code = Column(String, default="", index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     owner = relationship("User", foreign_keys=[owner_id])
     members = relationship("GroupMember", back_populates="group")
@@ -234,7 +296,7 @@ class GroupMessage(Base):
     id = Column(Integer, primary_key=True, index=True)
     group_id = Column(Integer, ForeignKey("group_chats.id"))
     sender_id = Column(Integer, ForeignKey("users.id"))
-    content = Column(Text, default="")
+    content = Column(EncryptedText, default="")
     image = Column(String, default="")
     voice = Column(String, default="")
     file_url = Column(String, default="")
@@ -243,6 +305,7 @@ class GroupMessage(Base):
     gif_url = Column(String, default="")
     reply_to_id = Column(Integer, ForeignKey("group_messages.id"), nullable=True)
     is_deleted = Column(Boolean, default=False)
+    is_video_circle = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     group = relationship("GroupChat", back_populates="messages")
     sender = relationship("User", foreign_keys=[sender_id])
@@ -272,6 +335,7 @@ class MutedChat(Base):
     muted_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     muted_group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    until = Column(DateTime, nullable=True)  # «без звука на время»; пусто — навсегда
 
 class Sticker(Base):
     __tablename__ = "stickers"
@@ -292,7 +356,7 @@ class StickerPack(Base):
     cover_url = Column(String, default="")
     is_free = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    stickers = relationship("Sticker", foreign_keys="Sticker.pack_id")
+    stickers = relationship("Sticker", foreign_keys="Sticker.pack_id", overlaps="pack")
 
 class UserSticker(Base):
     __tablename__ = "user_stickers"
@@ -352,6 +416,8 @@ class Story(Base):
     media_type = Column(String, default="image")
     text_overlay = Column(String, default="")
     music_url = Column(String, default="")
+    audience = Column(String, default="all")
+    bg_color = Column(String, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     author = relationship("User")
@@ -371,6 +437,8 @@ class Poll(Base):
     id = Column(Integer, primary_key=True, index=True)
     post_id = Column(Integer, ForeignKey("posts.id"), unique=True)
     question = Column(String)
+    ends_at = Column(DateTime, nullable=True)
+    correct_option_id = Column(Integer, nullable=True)  # викторина: правильный ответ
     created_at = Column(DateTime, default=datetime.utcnow)
     post = relationship("Post", back_populates="poll")
     options = relationship("PollOption", back_populates="poll")
@@ -399,6 +467,7 @@ class TypingStatus(Base):
     target_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     group_id = Column(Integer, ForeignKey("group_chats.id"), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
+    kind = Column(String(10), default="text")  # text / voice / circle — «печатает», «записывает голосовое»…
 
 class StopWord(Base):
     __tablename__ = "stop_words"
@@ -438,6 +507,7 @@ class Bookmark(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     post_id = Column(Integer, ForeignKey("posts.id"))
+    collection_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="bookmarks")
     post = relationship("Post")
@@ -511,7 +581,7 @@ class DailyTask(Base):
     code = Column(String, unique=True)
     title = Column(String)
     description = Column(String)
-    emoji = Column(String, default="⚡")
+    emoji = Column(String, default="bolt")
     points = Column(Integer, default=10)
     task_type = Column(String)
     target_count = Column(Integer, default=1)
@@ -534,7 +604,7 @@ class WeeklyRaffle(Base):
     id = Column(Integer, primary_key=True, index=True)
     week_start = Column(DateTime)
     week_end = Column(DateTime)
-    prize = Column(String, default="Quant Plus 30 дней")
+    prize = Column(String, default="Plus на 30 дней")
     prize_days = Column(Integer, default=30)
     winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_finished = Column(Boolean, default=False)
@@ -585,7 +655,7 @@ class WeeklyChallenge(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     description = Column(String)
-    emoji = Column(String, default="🏆")
+    emoji = Column(String, default="trophy")
     points = Column(Integer, default=100)
     task_type = Column(String)
     target_count = Column(Integer, default=1)
@@ -604,3 +674,293 @@ class UserWeeklyChallenge(Base):
     completed_at = Column(DateTime, nullable=True)
     user = relationship("User")
     challenge = relationship("WeeklyChallenge")
+
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+    id = Column(Integer, primary_key=True, index=True)
+    comment_id = Column(Integer, ForeignKey("comments.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    comment = relationship("Comment", back_populates="comment_likes")
+
+
+class FollowRequest(Base):
+    __tablename__ = "follow_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    requester_id = Column(Integer, ForeignKey("users.id"), index=True)
+    target_id = Column(Integer, ForeignKey("users.id"), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    requester = relationship("User", foreign_keys=[requester_id])
+    target = relationship("User", foreign_keys=[target_id])
+
+
+class UserMute(Base):
+    __tablename__ = "user_mutes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    muted_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    muted = relationship("User", foreign_keys=[muted_id])
+
+
+class CloseFriend(Base):
+    __tablename__ = "close_friends"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    friend_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    friend = relationship("User", foreign_keys=[friend_id])
+
+
+class StoryHighlight(Base):
+    __tablename__ = "story_highlights"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    title = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    items = relationship("StoryHighlightItem", back_populates="highlight")
+
+
+class StoryHighlightItem(Base):
+    __tablename__ = "story_highlight_items"
+    id = Column(Integer, primary_key=True, index=True)
+    highlight_id = Column(Integer, ForeignKey("story_highlights.id"), index=True)
+    story_id = Column(Integer, ForeignKey("stories.id"))
+    highlight = relationship("StoryHighlight", back_populates="items")
+    story = relationship("Story")
+
+
+class Announcement(Base):
+    __tablename__ = "announcements"
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(Text, default="")
+    level = Column(String, default="info")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ModLog(Base):
+    __tablename__ = "mod_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    actor_id = Column(Integer, ForeignKey("users.id"))
+    action = Column(String, default="")
+    target = Column(String, default="")
+    details = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    actor = relationship("User", foreign_keys=[actor_id])
+
+
+class ModerationFlag(Base):
+    """Пометка собственной модели модерации: подозрительный пост или комментарий ждёт решения модератора."""
+    __tablename__ = "moderation_flags"
+    id = Column(Integer, primary_key=True, index=True)
+    kind = Column(String, default="post")  # post | comment
+    object_id = Column(Integer, index=True)
+    post_id = Column(Integer, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    label = Column(String, default="")
+    score = Column(Float, default=0.0)
+    snippet = Column(Text, default="")
+    held = Column(Boolean, default=False)
+    status = Column(String, default="new")  # new | approved | removed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", foreign_keys=[user_id])
+
+
+class SeenPost(Base):
+    """Какие посты пользователь уже видел в рекомендациях — чтобы не показывать одно и то же."""
+    __tablename__ = "seen_posts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    post_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class NotInterested(Base):
+    """Кнопка «Не интересно»: пост скрывается, а похожее показывается реже."""
+    __tablename__ = "not_interested"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    post_id = Column(Integer, index=True)
+    author_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Question(Base):
+    """Анонимные вопросы в профиль (как на ask.fm)."""
+    __tablename__ = "questions"
+    id = Column(Integer, primary_key=True, index=True)
+    to_user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    from_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # хранится и для анонимных — для разбора жалоб
+    is_anonymous = Column(Boolean, default=True)
+    text = Column(Text, default="")
+    answer = Column(Text, default="")
+    answered_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    to_user = relationship("User", foreign_keys=[to_user_id])
+    from_user = relationship("User", foreign_keys=[from_user_id])
+
+
+class HashtagFollow(Base):
+    __tablename__ = "hashtag_follows"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    tag = Column(String, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Event(Base):
+    __tablename__ = "events"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String, default="")
+    description = Column(Text, default="")
+    place = Column(String, default="")
+    starts_at = Column(DateTime, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    author = relationship("User")
+    rsvps = relationship("EventRSVP", back_populates="event")
+
+
+class EventRSVP(Base):
+    __tablename__ = "event_rsvps"
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(String, default="going")  # going | maybe
+    created_at = Column(DateTime, default=datetime.utcnow)
+    event = relationship("Event", back_populates="rsvps")
+    user = relationship("User")
+
+
+class UserGift(Base):
+    """Подарок за очки: виден в профиле получателя."""
+    __tablename__ = "user_gifts"
+    id = Column(Integer, primary_key=True, index=True)
+    gift_code = Column(String)
+    from_user_id = Column(Integer, ForeignKey("users.id"))
+    to_user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    message = Column(String, default="")
+    is_anonymous = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    from_user = relationship("User", foreign_keys=[from_user_id])
+    to_user = relationship("User", foreign_keys=[to_user_id])
+
+
+class BookmarkCollection(Base):
+    __tablename__ = "bookmark_collections"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    name = Column(String, default="")
+    emoji = Column(String, default="📁")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PostEdit(Base):
+    """История правок поста: предыдущие версии текста."""
+    __tablename__ = "post_edits"
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, index=True)
+    content = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Note(Base):
+    """Личные заметки — видны только владельцу."""
+    __tablename__ = "notes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    title = Column(String, default="")
+    content = Column(Text, default="")
+    is_pinned = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PostReminder(Base):
+    """«Напомнить о посте» — через время придёт уведомление."""
+    __tablename__ = "post_reminders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    post_id = Column(Integer)
+    remind_at = Column(DateTime, index=True)
+    done = Column(Boolean, default=False)
+
+
+class SecretChat(Base):
+    """Секретный чат: сквозное шифрование по ГОСТ в браузере. Сервер хранит только открытые ключи и шифротекст."""
+    __tablename__ = "secret_chats"
+    id = Column(Integer, primary_key=True, index=True)
+    a_id = Column(Integer, index=True)  # кто начал
+    b_id = Column(Integer, index=True)  # кого пригласили
+    a_pub = Column(String(128), default="")  # открытый ключ ГОСТ Р 34.10-2012 (hex, 64 байта)
+    b_pub = Column(String(128), default="")
+    ukm = Column(String(16), default="")  # 8 случайных байт для VKO
+    ttl = Column(Integer, default=0)  # таймер самоуничтожения сообщений, секунд (0 — выкл.)
+    status = Column(String(10), default="pending")  # pending / active / closed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SecretMessage(Base):
+    __tablename__ = "secret_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, index=True)
+    sender_id = Column(Integer)
+    payload = Column(Text, default="")  # base64(iv ‖ имитовставка ‖ шифротекст) — сервер не может прочитать
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True, index=True)
+    hidden = Column(Boolean, default=False)  # истёк таймер: пользователям не показывается
+
+
+class ProfileVisit(Base):
+    """Гости профиля (видны владельцам Nuvora+)."""
+    __tablename__ = "profile_visits"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, index=True)
+    viewer_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ChatSetting(Base):
+    """Личные настройки чата: оформление, архив, «отметить непрочитанным». peer_id=0 — оформление для всех чатов."""
+    __tablename__ = "chat_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    peer_id = Column(Integer, nullable=True, index=True)
+    group_id = Column(Integer, nullable=True, index=True)
+    wallpaper = Column(String(300), default="")
+    bubble = Column(String(20), default="")
+    font = Column(String(10), default="")
+    archived = Column(Boolean, default=False)
+    marked_unread = Column(Boolean, default=False)
+
+
+class ContactName(Base):
+    """Как пользователь записал контакт у себя — видно только ему."""
+    __tablename__ = "contact_names"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, index=True)
+    target_id = Column(Integer, index=True)
+    name = Column(String(60), default="")
+
+
+class StarredMessage(Base):
+    """Сообщение в «Избранном» — у каждого своё."""
+    __tablename__ = "starred_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    message = relationship("Message")
+
+
+class MessageReminder(Base):
+    """«Напомнить позже» о сообщении: в нужное время придёт уведомление."""
+    __tablename__ = "message_reminders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"))
+    remind_at = Column(DateTime, index=True)
+    done = Column(Boolean, default=False)
+    message = relationship("Message")

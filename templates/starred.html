@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Избранные сообщения — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/messages" class="icon-btn" title="Назад">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">{{ icon("star", "i in") }} Избранные сообщения</div></div>
+<div class="page-sub">Важное из переписок в одном месте. Отметить сообщение: наведите или зажмите его и нажмите звёздочку.</div>
+<form class="mb"><input type="search" name="q" value="{{ q }}" placeholder="Поиск в избранном…"></form>
+<div class="card flat">
+  {% for it in items %}
+  <a class="row starred-row" href="/messages/{{ it.peer.username if it.peer else '' }}#msg-{{ it.m.id }}">
+    {{ avatar(it.m.sender, 40) }}
+    <div class="grow" style="min-width:0">
+      <div class="row" style="justify-content:space-between;gap:8px"><b class="ellipsis">{{ dname(it.m.sender) if it.m.sender else "" }}{% if it.peer and it.m.sender_id == user.id %} <span class="faint">→ {{ dname(it.peer) }}</span>{% endif %}</b><span class="tiny faint">{{ it.m.created_at|lt("%d.%m.%Y") }}</span></div>
+      <div class="small" style="white-space:pre-wrap;word-break:break-word">{{ it.preview }}</div>
+    </div>
+  </a>
+  {% else %}
+  <div class="empty" style="padding:30px">{{ icon("star", "i in") }}<br>{% if q %}Ничего не найдено{% else %}Здесь будут сообщения, которые вы отметите звёздочкой{% endif %}</div>
+  {% endfor %}
+</div>
+{% endblock %}

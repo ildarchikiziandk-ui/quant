@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import post_card %}
+{% block title %}В этот день — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("history", "i in") }} В этот день</div><div class="page-sub">Ваши посты, опубликованные {{ utcnow().strftime("%d.%m") }} в прошлые годы</div>
+{% for p in posts %}<div class="rec-reason">{{ icon("sparkle", "i in") }} {{ plural(utcnow().year - p.created_at.year, "год", "года", "лет") }} назад</div>{{ post_card(p, user, st, originals, repost_counts, can_mod) }}
+{% else %}<div class="card empty"><div class="big">{{ icon("history", "i in") }}</div>В этот день в прошлые годы вы ничего не публиковали.<br><span class="small">Загляните сюда через год — здесь появятся воспоминания.</span></div>{% endfor %}
+{% endblock %}

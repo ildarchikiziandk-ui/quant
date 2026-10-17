@@ -1,0 +1,22 @@
+{% extends "bare.html" %}
+{% block title %}Восстановление пароля — {{ brand }}{% endblock %}
+{% block card %}
+<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:12px">Восстановление пароля</h1>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+{% if not email_enabled %}<div class="alert warning">Отправка писем не настроена на сервере. Обратитесь в <a href="/support" style="text-decoration:underline">поддержку</a>.</div>{% endif %}
+{% if step == "email" %}
+<form method="post" action="/forgot">
+  <label class="field"><span>Email аккаунта</span><input type="email" name="email" required autofocus></label>
+  <button class="btn block">Получить код</button>
+</form>
+{% else %}
+<p class="muted small mb">Если аккаунт с адресом <b>{{ email }}</b> существует, мы отправили на него код.</p>
+<form method="post" action="/forgot/reset">
+  <input type="hidden" name="email" value="{{ email }}">
+  <label class="field"><span>Код из письма</span><input name="code" inputmode="numeric" maxlength="6" required></label>
+  <label class="field"><span>Новый пароль</span><input type="password" name="password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
+  <button class="btn block">Сменить пароль</button>
+</form>
+{% endif %}
+<p class="center mt small"><a href="/login" class="muted">← Ко входу</a></p>
+{% endblock %}

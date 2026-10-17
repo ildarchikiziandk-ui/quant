@@ -1,0 +1,64 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main, claude/happy-wozniak-vvu5w4]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      # Свой закрытый ключ подписи: секреты ANDROID_KEYSTORE_B64 (файл .keystore в base64, псевдоним nuvora)
+      # и ANDROID_KEYSTORE_PASSWORD в настройках репозитория. Без них сборка подписывается старым ключом из репозитория.
+      - name: Use private signing key
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        if: ${{ env.KS != '' }}
+        run: echo "$KS" | base64 -d > android/nuvora.keystore
+
+      - name: Build APK
+        working-directory: android
+        env:
+          SITE_URL: https://nvra.ru
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk Nuvora.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvora-apk
+          path: Nuvora.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v1.0.${{ github.run_number }}
+          name: Nuvora для Android 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            Приложение Nuvora для Android.
+
+            **Как установить:** скачайте `Nuvora.apk` ниже на телефон, откройте файл и разрешите установку из этого источника.
+            Новые версии ставятся поверх старой — данные и вход сохраняются.
+          files: Nuvora.apk

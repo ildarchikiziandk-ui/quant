@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar, name %}
+{% block title %}Близкие друзья — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("star", "i in") }} Близкие друзья</div><div class="page-sub">Только они увидят истории с пометкой «для близких»</div>
+<div class="card"><div class="card-title">В списке · {{ friends|length }}</div>
+{% for u in friends %}<div class="user-row">{{ avatar(u, 40) }}<div class="info"><div>{{ name(u) }}</div><div class="bio">@{{ u.username }}</div></div><button class="btn ghost sm" data-act="toggle" data-url="/close-friends/{{ u.username }}" data-reload="1" data-msg="Удалено">Убрать</button></div>
+{% else %}<div class="muted small">Список пуст</div>{% endfor %}</div>
+<div class="card"><div class="card-title">Ваши подписчики</div>
+<input type="search" placeholder="Поиск…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('#cands .user-row').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')">
+<div id="cands" class="mt">{% for u in candidates %}<div class="user-row">{{ avatar(u, 40) }}<div class="info"><div>{{ name(u) }}</div><div class="bio">@{{ u.username }}</div></div><button class="btn sm" data-act="toggle" data-url="/close-friends/{{ u.username }}" data-reload="1" data-msg="Добавлено">Добавить</button></div>
+{% else %}<div class="muted small">Нет подписчиков для добавления</div>{% endfor %}</div></div>
+{% endblock %}

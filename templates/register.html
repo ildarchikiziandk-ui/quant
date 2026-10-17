@@ -1,34 +1,28 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="card" style="max-width: 400px; margin: 40px auto;">
-    <div style="text-align:center; margin-bottom: 24px;">
-        <img src="/static/icon-192.png" style="width:56px;height:56px;border-radius:14px;margin-bottom:12px;">
-        <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">Регистрация</h2>
-        <div style="display:inline-block;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:6px 14px;margin-top:8px;">
-            <span style="font-size:12px;color:#92400e;font-weight:600;">🔒 Закрытое бета-тестирование</span>
-        </div>
-    </div>
-
-    {% if error %}<div class="alert-error">⚠️ {{ error }}</div>{% endif %}
-
-    <form method="post" action="/register">
-        <input type="hidden" name="beta" value="{{ beta_code }}">
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Имя</label>
-        <input type="text" name="name" placeholder="Например: Ильдар" required>
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Никнейм</label>
-        <input type="text" name="username" placeholder="Например: ildar_99" required>
-        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px;">Буквы, цифры, точка, дефис, подчёркивание. От 3 до 30 символов.</p>
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Email</label>
-        <input type="email" name="email" placeholder="example@mail.ru" required>
-        <label style="font-size: 13px; color: #555; margin-bottom: 4px; display: block;">Пароль</label>
-        <input type="password" name="password" placeholder="Минимум 8 символов" required>
-        <p style="font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 16px;">Минимум 8 символов, хотя бы одна буква и одна цифра.</p>
-        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; background: #f9f9f9; padding: 12px; border-radius: 8px;">
-            <input type="checkbox" name="agree" id="agree" required style="width: auto; margin: 0; margin-top: 2px; flex-shrink: 0;">
-            <label for="agree" style="font-size: 13px; color: #555; cursor: pointer;">Я прочитал(а) и соглашаюсь с <a href="/terms" target="_blank" style="color: #0f0f0f; font-weight: 600; text-decoration: underline;">Пользовательским соглашением</a> Quant</label>
-        </div>
-        <button class="btn" style="width: 100%;">Зарегистрироваться</button>
-    </form>
-    <p style="margin-top: 16px; font-size: 14px; color: #555; text-align: center;">Уже есть аккаунт? <a href="/login?beta={{ beta_code }}" style="font-weight: 600;">Войти</a></p>
-</div>
+{% extends "bare.html" %}
+{% block title %}Регистрация — {{ brand }}{% endblock %}
+{% block card %}
+<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">Создайте аккаунт</h1>
+<p class="center muted small mb">{{ brand_tagline }}</p>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<form method="post" action="/register">
+  <label class="field"><span>Имя</span><input name="name" value="{{ full_name or '' }}" maxlength="60" placeholder="Как вас называть"></label>
+  <label class="field"><span>Логин</span><input name="username" value="{{ username or '' }}" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" placeholder="латиница, цифры и _" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
+  <label class="field"><span>Email</span><input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" required></label>
+  <div class="form-row">
+    <label class="field"><span>Пароль</span><input type="password" name="password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
+    <label class="field"><span>Повторите</span><input type="password" name="confirm_password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
+  </div>
+  <p class="tiny muted mb">Минимум 8 символов, буквы и цифры.</p>
+  {% if beta %}<label class="field"><span>Инвайт-код</span><input name="beta_code" required></label>{% endif %}
+  <label class="field"><span>Часовой пояс</span><select name="tz_key" id="reg-tz-key" required>{% for k, label in tz_options %}<option value="{{ k }}" {% if k == (tz_key or 'moscow') %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <p class="tiny muted mb" id="reg-tz-hint">Время постов и сообщений будет показано по этому поясу. Его можно изменить в настройках.</p>
+  <input type="hidden" name="tz" id="reg-tz"><input type="hidden" name="ref" value="{{ request.query_params.get('ref', '')[:30] }}">
+  {% if request.query_params.get('ref') %}<div class="alert info small">{{ icon("handshake", "i in") }} Вас пригласил @{{ request.query_params.get('ref')[:30] }}</div>{% endif %}<script>(function(){var map={{ tz_map|tojson }},z='';try{z=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}document.getElementById('reg-tz').value=z;{% if not tz_key %}if(map[z])document.getElementById('reg-tz-key').value=map[z];{% endif %}})();</script>
+  <label class="check"><input type="checkbox" name="agree" value="1" required><span class="small">Я принимаю <a href="/terms" target="_blank" style="color:var(--link);font-weight:600">пользовательское соглашение</a> {{ brand }}</span></label>
+  <label class="check"><input type="checkbox" name="consent" value="1" required><span class="small">Даю <a href="/consent" target="_blank" style="color:var(--link);font-weight:600">согласие на обработку персональных данных</a> в соответствии с <a href="/privacy" target="_blank" style="color:var(--link);font-weight:600">политикой конфиденциальности</a></span></label>
+  <label class="check"><input type="checkbox" name="adult" value="1" required><span class="small">Мне исполнилось {{ min_age }} лет</span></label>
+  <button class="btn block mt">Зарегистрироваться</button>
+</form>
+<p class="center mt small">Уже есть аккаунт? <a href="/login" style="color:var(--link);font-weight:600">Войти</a></p>
+{% if yandex_enabled %}<div class="or">или</div><a href="/auth/yandex" class="btn ya-btn block"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#FC3F1D"/><path d="M13.6 19.2h2.2V4.8h-3.2c-3.2 0-4.9 1.6-4.9 4.1 0 2 1 3.1 2.7 4.3l-3 6h2.4l3.3-6.6-1.2-.8c-1.4-1-2.1-1.7-2.1-3.1 0-1.5 1-2.5 2.9-2.5h.9v13z" fill="#fff"/></svg><span>Зарегистрироваться с Яндекс ID</span></a>{% endif %}
 {% endblock %}

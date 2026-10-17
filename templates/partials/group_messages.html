@@ -1,0 +1,15 @@
+{% from "partials/macros.html" import voice_player, circle_player %}{%- for m in messages %}{% set mine = m.sender_id == user.id %}
+{%- if m.is_deleted %}<div class="msg gone" id="gmsg-{{ m.id }}" data-id="{{ m.id }}" hidden></div>{% else %}
+<div class="msg {% if mine %}mine{% endif %}" id="gmsg-{{ m.id }}" data-id="{{ m.id }}" data-raw="{{ m.content or '' }}">
+  {% if not mine and m.sender %}<div class="tiny" style="font-weight:700;color:var(--text-2);padding:0 8px"><a href="/profile/{{ m.sender.username }}">{{ m.sender.name or m.sender.username }}</a></div>{% endif %}
+  {% if mine or group.owner_id == user.id %}<div class="msg-tools"><button data-gdel="{{ m.id }}" title="Удалить">{{ icon("trash", "i in") }}</button></div>{% endif %}
+  <div class="bubble{% if m.image and m.is_video_circle %} has-circle{% endif %}{% if m.voice and not m.content %} has-voice{% endif %}">
+    {%- if m.image and m.is_video_circle %}{{ circle_player(m.image) }}{% elif m.image %}<img class="att" src="{{ m.image }}" alt="" data-zoom>{% endif %}
+    {%- if m.voice %}{{ voice_player(m.voice) }}{% endif %}
+    {%- if m.file_url %}<a class="file" href="{{ m.file_url }}" target="_blank" download="{{ m.file_name }}">{{ icon("clip", "i in") }} {{ m.file_name or "Файл" }}</a>{% endif %}
+    {%- if m.content %}<span class="txt">{{ m.content|rich }}</span>{% endif %}
+  </div>
+  <div class="msg-meta">{{ m.created_at|lt("%d.%m %H:%M") }}</div>
+</div>
+{%- endif %}
+{%- endfor %}

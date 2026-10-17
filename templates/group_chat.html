@@ -1,104 +1,71 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import avatar, name, chat_input %}{% from "partials/icons.html" import icon %}
+{% block title %}{{ group.name }} — {{ brand }}{% endblock %}
+{% block layout_class %}wide{% endblock %}
+{% block body_class %}chat-page{% endblock %}
 {% block content %}
-<div style="background:var(--card);border-radius:16px;border:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:10px;position:sticky;top:0;z-index:10;">
-    <a href="/groups" style="color:var(--text-secondary);display:flex;align-items:center;padding:6px;border-radius:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </a>
-    <div class="avatar-circle" style="width:38px;height:38px;border-radius:12px;flex-shrink:0;">
-        {% if group.avatar %}<img src="{{ group.avatar }}" style="border-radius:12px;">{% else %}<span style="font-size:16px;">👥</span>{% endif %}
-    </div>
-    <div style="flex:1;">
-        <div style="font-weight:700;font-size:15px;">{{ group.name }}</div>
-        <div style="color:var(--text-secondary);font-size:12px;">{{ group.members|length }} участников</div>
-    </div>
-    <a href="/groups/{{ group.id }}/info" style="color:var(--text-secondary);padding:6px;border-radius:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    </a>
+<div class="convo">
+  <div class="convo-head">
+    <a href="/messages" class="back-link">{{ icon("back") }}</a>
+    <span class="av" style="width:42px;height:42px;border-radius:13px">{% if group.avatar %}<img src="{{ group.avatar }}" alt="">{% else %}<span>{{ group.name[0]|upper }}</span>{% endif %}</span>
+    <div class="grow" style="min-width:0"><b class="ellipsis">{{ group.name }}</b><div class="tiny muted">{{ plural(members|length, "участник", "участника", "участников") }}</div></div>
+    <button class="icon-btn" data-modal="group-info" title="Информация">{{ icon("users") }}</button>
+  </div>
+  <div class="convo-box" id="box">{% with group=group %}{% include "partials/group_messages.html" %}{% endwith %}{% if not messages %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Напишите первое сообщение группе</div>{% endif %}</div>
+  <form class="convo-input cmp" id="gform" enctype="multipart/form-data" data-voice-max="{{ plus_limit(user, 'voice') }}" data-circle-max="{{ plus_limit(user, 'circle') }}">
+    {% call chat_input() %}
+      <label class="icon-btn cmp-tool" title="Вложение" style="cursor:pointer">{{ icon("clip") }}<input type="file" name="file" class="hidden" id="gfile"></label>
+      {% for _s in pack_slot("group_tools") %}{% include _s %}{% endfor %}
+      <textarea name="content" id="ginp" rows="1" maxlength="4000" placeholder="Сообщение в группу…" data-suggest></textarea>
+    {% endcall %}
+  </form>
 </div>
-
-<div class="card" id="messages-box" style="min-height:420px;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:16px;scroll-behavior:smooth;">
-    {% if messages %}
-    {% for msg in messages %}
-    <div style="display:flex;flex-direction:column;{% if msg.sender_id == user.id %}align-items:flex-end{% else %}align-items:flex-start{% endif %};gap:2px;">
-        {% if msg.is_deleted %}
-        <div style="padding:8px 14px;border-radius:16px;background:var(--input-bg);color:var(--text-muted);font-size:13px;font-style:italic;">Сообщение удалено</div>
-        {% else %}
-        {% if msg.sender_id != user.id %}
-        <div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;">
-            <div class="avatar-circle" style="width:26px;height:26px;flex-shrink:0;">
-                {% if msg.sender.avatar %}<img src="{{ msg.sender.avatar }}">{% else %}<span style="font-size:10px;">{{ msg.sender.username[0].upper() }}</span>{% endif %}
-            </div>
-            <div>
-                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;font-weight:600;">{{ msg.sender.name or msg.sender.username }}</div>
-                {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:240px;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
-                {% if msg.voice %}<div style="background:var(--input-bg);border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;"></audio></div>{% endif %}
-                {% if msg.file_url %}<a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--input-bg);border-radius:12px;padding:10px 14px;color:var(--text);max-width:220px;">📎 {{ msg.file_name }}</a>{% endif %}
-                {% if msg.content %}<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:var(--input-bg);color:var(--text);font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
-            </div>
-        </div>
-        {% else %}
-        <div style="max-width:72%;">
-            {% if msg.image %}<div style="border-radius:14px;overflow:hidden;margin-bottom:3px;"><img src="{{ msg.image }}" style="max-width:240px;max-height:280px;display:block;cursor:pointer;" onclick="window.open(this.src,'_blank')"></div>{% endif %}
-            {% if msg.voice %}<div style="background:var(--accent);border-radius:16px;padding:10px 14px;"><audio src="{{ msg.voice }}" controls style="height:32px;max-width:220px;filter:invert(1);"></audio></div>{% endif %}
-            {% if msg.file_url %}<a href="{{ msg.file_url }}" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--accent);border-radius:12px;padding:10px 14px;color:var(--accent-text);max-width:220px;">📎 {{ msg.file_name }}</a>{% endif %}
-            {% if msg.content %}<div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:var(--accent);color:var(--accent-text);font-size:14px;line-height:1.5;">{{ msg.content }}</div>{% endif %}
-        </div>
-        {% endif %}
-        {% endif %}
-        <div style="font-size:11px;color:var(--text-muted);padding:0 4px;">{{ msg.created_at.strftime("%H:%M") }}</div>
-    </div>
-    {% endfor %}
-    {% else %}
-    <div style="text-align:center;color:var(--text-muted);margin:auto;font-size:14px;padding:40px 0;">Начни общение в группе 👋</div>
-    {% endif %}
-</div>
-
-<div class="card" style="padding:12px 16px;margin-top:8px;">
-    <form method="post" action="/groups/{{ group.id }}/send" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;">
-        <button type="button" onclick="document.getElementById('group-img-input').click()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </button>
-        <input type="file" id="group-img-input" name="image" accept="image/jpeg,image/png,image/webp" style="display:none;">
-        <input type="file" id="group-file-input" name="file" accept=".pdf,.doc,.docx,.txt" style="display:none;">
-        <input type="text" name="content" placeholder="Сообщение группе..." style="margin-bottom:0;flex:1;padding:10px 16px;border-radius:24px;background:var(--input-bg);border:1px solid var(--border);font-size:14px;" autocomplete="off">
-        <button class="btn" style="border-radius:20px;padding:10px 16px;flex-shrink:0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
+<div class="modal-bg" id="group-info"><div class="modal">
+  <div class="modal-head">{{ group.name }} <button class="icon-btn" data-close>{{ icon("x", "i in") }}</button></div>
+  {% if group.description %}<p class="muted small mb">{{ group.description }}</p>{% endif %}
+{% for _s in pack_slot("group_menu") %}{% include _s %}{% endfor %}
+  <div class="card-title">{{ icon("link", "i in") }} Пригласительная ссылка</div>
+  <div class="row mb"><input readonly value="{{ site_url }}/groups/join/{{ group.invite_code }}" style="margin:0" onclick="this.select()"><button class="btn soft sm" data-act="copy" data-url="/groups/join/{{ group.invite_code }}">Копировать</button></div>
+  {% if is_admin %}
+  <details class="mb"><summary class="small" style="cursor:pointer;font-weight:700">{{ icon("settings", "i in") }} Настройки группы</summary>
+    <form method="post" action="/groups/{{ group.id }}/edit" enctype="multipart/form-data" class="mt">
+      <input name="name" value="{{ group.name }}" maxlength="60" class="mb"><textarea name="description" maxlength="300" class="mb">{{ group.description }}</textarea>
+      <input type="file" name="avatar" accept="image/*" class="mb">
+      <label class="check"><input type="checkbox" name="reset_link" value="1"><span>Сбросить пригласительную ссылку</span></label>
+      <button class="btn sm">Сохранить</button>
     </form>
-</div>
-
+  </details>
+  {% if candidates %}<div class="card-title">{{ icon("plus", "i in") }} Добавить участников</div>
+  <div class="mb" style="max-height:180px;overflow:auto">{% for c in candidates %}<form method="post" action="/groups/{{ group.id }}/invite/{{ c.username }}" class="user-row">{{ avatar(c, 32) }}<div class="info"><b>{{ c.name or c.username }}</b></div><button class="btn sm">Добавить</button></form>{% endfor %}</div>{% endif %}
+  {% endif %}
+  <div class="card-title">Участники · {{ members|length }}</div>
+  {% for m in members %}{% if m.user %}
+  <div class="user-row">{{ avatar(m.user, 36, online=true) }}<div class="info"><div>{{ name(m.user) }}</div><div class="bio">{% if m.user_id == group.owner_id %}{{ icon("crown", "i in") }} владелец{% elif m.is_admin %}{{ icon("star", "i in") }} админ{% else %}участник{% endif %}</div></div>
+    {% if group.owner_id == user.id and m.user_id != user.id %}<form method="post" action="/groups/{{ group.id }}/admin/{{ m.user_id }}"><button class="btn ghost sm">{% if m.is_admin %}Снять админа{% else %}Сделать админом{% endif %}</button></form>{% endif %}
+    {% if is_admin and m.user_id != group.owner_id and m.user_id != user.id %}<form method="post" action="/groups/{{ group.id }}/kick/{{ m.user_id }}" onsubmit="return confirm('Исключить?')"><button class="btn danger ghost sm">Исключить</button></form>{% endif %}
+  </div>{% endif %}{% endfor %}
+  <div class="row mt"><button class="btn soft sm" data-act="toggle" data-url="/groups/{{ group.id }}/mute" data-msg="Настройки звука изменены">{{ icon("bell-off", "i in") }} Без звука</button>
+  <form method="post" action="/groups/{{ group.id }}/leave" onsubmit="return confirm('Покинуть группу?')"><button class="btn danger ghost sm">Покинуть группу</button></form></div>
+</div></div>
+{% endblock %}
+{% block right %}{% endblock %}
+{% block scripts %}
+<script src="/static/js/chat.js?v={{ static_v }}"></script>
 <script>
-const box = document.getElementById('messages-box');
-box.scrollTop = box.scrollHeight;
-
-async function pollGroupMessages() {
-    try {
-        const msgs = box.querySelectorAll('[data-id]');
-        const lastId = msgs.length > 0 ? parseInt(msgs[msgs.length-1].dataset.id) || 0 : 0;
-        const res = await fetch(`/api/groups/{{ group.id }}/messages?after=${lastId}`);
-        const data = await res.json();
-        if (data.messages && data.messages.length > 0) {
-            const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-            data.messages.forEach(msg => {
-                const div = document.createElement('div');
-                div.dataset.id = msg.id;
-                div.style.cssText = `display:flex;flex-direction:column;${msg.is_mine ? 'align-items:flex-end' : 'align-items:flex-start'};gap:2px;`;
-                let inner = '';
-                if (msg.is_mine) {
-                    if (msg.content) inner += `<div style="max-width:72%;"><div style="padding:10px 14px;border-radius:16px 4px 16px 16px;background:var(--accent);color:var(--accent-text);font-size:14px;line-height:1.5;">${msg.content}</div></div>`;
-                } else {
-                    inner += `<div style="display:flex;align-items:flex-end;gap:8px;max-width:72%;"><div style="width:26px;height:26px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;flex-shrink:0;">${msg.sender_initial}</div><div><div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;font-weight:600;">${msg.sender_name}</div>`;
-                    if (msg.content) inner += `<div style="padding:10px 14px;border-radius:4px 16px 16px 16px;background:var(--input-bg);color:var(--text);font-size:14px;line-height:1.5;">${msg.content}</div>`;
-                    inner += `</div></div>`;
-                }
-                inner += `<div style="font-size:11px;color:var(--text-muted);padding:0 4px;">${msg.time}</div>`;
-                div.innerHTML = inner;
-                box.appendChild(div);
-            });
-            if (wasAtBottom) box.scrollTop = box.scrollHeight;
-        }
-    } catch(e) {}
-}
-setInterval(pollGroupMessages, 3000);
+(function(){
+const GID={{ group.id }}, box=document.getElementById('box'); let last={{ messages[-1].id if messages else 0 }};
+box.scrollTop=box.scrollHeight;
+async function poll(){ try{ const r=await (await fetch(`/api/groups/${GID}/messages?after=${last}`)).json(); if(r.html){ document.getElementById('empty-chat')?.remove(); const near=box.scrollHeight-box.scrollTop-box.clientHeight<120; const tmp=document.createElement('div'); tmp.innerHTML=r.html; [...tmp.children].forEach(el=>{ if(!el.id||!document.getElementById(el.id)) box.appendChild(el); }); last=Math.max(last,r.last_id); if(near) box.scrollTop=box.scrollHeight; } }catch(e){} }
+setInterval(()=>{ if(!document.hidden) poll(); },3000);
+const f=document.getElementById('gform'), inp=document.getElementById('ginp');
+async function send(){ const fd=new FormData(f); if(!inp.value.trim() && !document.getElementById('gfile').files.length) return; f.reset(); inp.style.height='auto'; inp.dispatchEvent(new Event('input'));
+  try{ await App.api(`/groups/${GID}/send`,fd); await poll(); box.scrollTop=box.scrollHeight; }catch(e){} }
+f.addEventListener('submit',e=>{ e.preventDefault(); send(); });
+document.getElementById('gfile').addEventListener('change',send);
+window.chatComposer({root:f, input:inp, onText:()=>send(), onMedia: async (blob, kind, name)=>{ const fd=new FormData(); fd.append('file',blob,name); if(kind==='video') fd.append('circle','1'); try{ await App.api(`/groups/${GID}/send`,fd); await poll(); box.scrollTop=box.scrollHeight; }catch(e){} }});
+inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&((APP.prefs||{}).enter_to_send===false?(e.ctrlKey||e.metaKey):!e.shiftKey)&&!document.querySelector('.suggest.open')){ e.preventDefault(); send(); } });
+inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,140)+'px'; });
+document.addEventListener('click',async e=>{ const d=e.target.closest('[data-gdel]'); if(!d) return; if(!confirm('Удалить сообщение?')) return; await App.api(`/groups/${GID}/messages/${d.dataset.gdel}/delete`); location.reload(); });
+})();
 </script>
 {% endblock %}

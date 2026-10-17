@@ -1,0 +1,55 @@
+{% from "partials/icons.html" import icon %}{% from "partials/macros.html" import avatar %}
+<form class="card composer" id="composer" enctype="multipart/form-data" autocomplete="off">
+  <a id="compose"></a>
+  <div class="row" style="align-items:flex-start;gap:12px">
+    <a href="/profile/{{ user.username }}">{{ avatar(user, 44) }}</a>
+    <div class="grow">
+      <textarea name="content" maxlength="{{ plus_limit(user, 'post_length') }}" placeholder="Что нового, {{ user.name or user.username }}? Используйте #теги и @упоминания" data-suggest rows="2"></textarea>
+      <div class="tiny faint" style="margin:-2px 0 4px">**жирный** · __курсив__ · ~~зачёркнутый~~ · `код` · ||спойлер|| · «&gt; » в начале строки — цитата</div>
+      <input type="hidden" name="draft_id" value="">
+      <div class="previews hidden" id="composer-previews"></div>
+      <div class="composer-extra hidden" id="panel-poll">
+        <input name="poll_question" maxlength="200" placeholder="Вопрос опроса">
+        <div id="poll-options"><input name="poll_options" maxlength="100" placeholder="Вариант 1"><input name="poll_options" maxlength="100" placeholder="Вариант 2"></div>
+        <div class="row"><button type="button" class="btn soft sm" id="add-poll-option">+ вариант</button>
+          <select name="poll_days" style="width:auto;margin:0"><option value="0">Без срока</option><option value="1">1 день</option><option value="3">3 дня</option><option value="7">7 дней</option></select></div>
+        <div class="row mt" style="gap:8px"><label class="check" style="margin:0"><input type="checkbox" name="quiz" value="1"><span><b>{{ icon("bulb", "i in") }} Викторина</b><small>за правильный ответ +10 очков</small></span></label>
+          <select name="quiz_correct" style="width:auto;margin:0" title="Правильный ответ">{% for i in range(1, 7) %}<option value="{{ i }}">Верный: вариант {{ i }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="composer-extra hidden" id="panel-settings">
+        <div class="form-row">
+          <label class="field"><span>Кто видит</span><select name="visibility"><option value="all">Все</option><option value="followers">Только подписчики</option></select></label>
+          <label class="field"><span>Отложить публикацию <span class="faint">— время: {{ tz_city(user) }}</span></span><input type="datetime-local" name="scheduled_at"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="comments_disabled" value="1"><span><b>Отключить комментарии</b></span></label>
+      </div>
+      <div class="composer-extra hidden" id="panel-more">
+        <div class="form-row">
+          <div class="field"><span>Настроение</span><div class="mood-grid"><label class="mood-chip"><input type="radio" name="mood" value="" checked><span>без настроения</span></label>{% for k, e, t in moods %}<label class="mood-chip"><input type="radio" name="mood" value="{{ k }}"><span>{{ emo(e) }} {{ t }}</span></label>{% endfor %}</div></div>
+          <label class="field"><span>Где вы</span><input name="location" maxlength="60" placeholder="Казань, кофейня «Утро»"></label>
+        </div>
+        <div class="form-row">
+          <label class="field"><span>Фон для короткого текста</span><select name="bg"><option value="">Без фона</option>{% for k, t in post_bgs %}<option value="{{ k }}">{{ t }}</option>{% endfor %}{% if user_is_plus(user) %}<optgroup label="{{ brand_plus }}">{% for k, t in plus_bgs %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</optgroup>{% endif %}</select></label>
+          <label class="field"><span>Исчезающий пост</span><select name="expires">{% for k, t in post_expires %}<option value="{{ k }}">{{ t }}</option>{% endfor %}{% if user_is_plus(user) %}<optgroup label="{{ brand_plus }}">{% for k, t in plus_expires %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</optgroup>{% endif %}</select></label>
+        </div>
+        <label class="field"><span>Предупреждение о содержимом <span class="faint">— пост будет скрыт под плашкой</span></span><input name="content_warning" maxlength="80" placeholder="Спойлеры к сериалу, громкий звук…"></label>
+      </div>
+      <div class="composer-extra hidden" id="panel-emoji"><div class="emoji-panel">{% for e in ['😀','😂','😍','🥰','😎','🤔','😭','😅','🔥','✨','❤️','👍','👏','🙏','🎉','💯','🚀','🌚','🐋','⚡'] %}<button type="button" data-emoji-insert>{{ e }}</button>{% endfor %}</div></div>
+{% for _s in pack_slot("composer_panels") %}{% include _s %}{% endfor %}
+      <div class="composer-tools">
+        <div class="tools">
+          <button type="button" class="tool" title="Фото/видео (до 10)" onclick="document.getElementById('composer-files').click()">{{ icon("image") }}</button>
+          <button type="button" class="tool" title="Опрос" data-panel="panel-poll">{{ icon("poll") }}</button>
+          <button type="button" class="tool" title="Эмодзи" data-panel="panel-emoji">{{ icon("smile") }}</button>
+          <button type="button" class="tool" title="Аудитория и отложенная публикация" data-panel="panel-settings">{{ icon("clock") }}</button>
+          <button type="button" class="tool" title="Настроение, место, фон, исчезающий пост" data-panel="panel-more">{{ icon("sparkle") }}</button>
+          <button type="button" class="tool" title="Сохранить черновик" id="save-draft">{{ icon("draft") }}</button>
+          <button type="button" class="tool" title="Предпросмотр" id="composer-preview">{{ icon("eye") }}</button>
+          {% for _s in pack_slot("composer_tools") %}{% include _s %}{% endfor %}
+          <input type="file" id="composer-files" name="media" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" class="hidden">
+        </div>
+        <div class="row"><span class="counter" id="composer-counter"></span><button class="btn" id="composer-submit" type="submit">Опубликовать</button></div>
+      </div>
+    </div>
+  </div>
+</form>

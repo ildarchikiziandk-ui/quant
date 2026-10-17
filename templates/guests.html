@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar, name %}
+{% block title %}Гости профиля — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">Гости профиля</div>
+<div class="page-sub">Кто заходил к вам за последние 30 дней{% if total %} · {{ plural(total, "визит", "визита", "визитов") }}{% endif %}</div>
+{% if not is_plus %}
+<div class="card center" style="padding:30px 20px">
+  <div class="big">{{ icon("eye", "i big-ico") }}</div>
+  <b>{% if total %}{{ plural(total, "человек заходил", "человека заходили", "человек заходили") }} к вам в профиль{% else %}Здесь появятся гости вашего профиля{% endif %}</b>
+  <p class="small muted mt">Список гостей доступен с {{ brand_plus }}.</p>
+  <a class="btn mt" href="/plus">Подробнее о {{ brand_plus }}</a>
+</div>
+{% else %}
+<div class="card flat">
+{% for u, t in visits %}
+  <a class="row" href="/profile/{{ u.username }}" style="gap:12px;padding:10px 14px;border-bottom:1px solid var(--border)">{{ avatar(u, 44, online=true) }}<div class="grow" style="min-width:0">{{ name(u, link=false) }}<div class="small muted">@{{ u.username }}</div></div><span class="tiny faint">{{ t|ago }}</span></a>
+{% else %}<div class="empty" style="padding:30px">Пока никто не заходил. Люди, которые включили «Не учитывать мои визиты», здесь не отображаются.</div>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

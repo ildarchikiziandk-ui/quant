@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import post_card %}
+{% block title %}Архив — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("archive", "i in") }} Архив</div><div class="page-sub">Посты в архиве видите только вы. Вернуть пост в профиль — в меню «⋯ → Вернуть из архива».</div>
+{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty"><div class="big">{{ icon("archive", "i in") }}</div>Архив пуст</div>{% endfor %}
+{% endblock %}

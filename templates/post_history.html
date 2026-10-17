@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}История правок — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("clock", "i in") }} История правок</div><a class="btn soft sm" href="/post/{{ post.id }}">← К посту</a></div>
+<div class="card"><div class="tiny muted mb">Сейчас{% if post.edited_at %} · изменено {{ post.edited_at|lt }}{% endif %}</div><div>{{ post.content|rich }}</div></div>
+{% for e in edits %}<div class="card"><div class="tiny muted mb">Версия до {{ e.created_at|lt }}</div><div class="muted">{{ e.content|rich }}</div></div>
+{% else %}<div class="card empty">Пост не редактировали</div>{% endfor %}
+{% endblock %}

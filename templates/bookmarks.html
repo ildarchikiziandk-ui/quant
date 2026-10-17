@@ -1,49 +1,19 @@
 {% extends "base.html" %}
-{% from "badges.html" import owner_badge, verify_badge, star_badge %}
+{% from "partials/macros.html" import post_card %}
+{% block title %}Закладки — {{ brand }}{% endblock %}
 {% block content %}
-<h2 style="font-size:20px;font-weight:800;margin-bottom:16px;">🔖 Закладки</h2>
-
-{% if bookmarks %}
-{% for bm in bookmarks %}
+<div class="page-title">{{ icon("bookmark", "i in") }} Закладки{% if current %} · {{ glyph(current.emoji) }} {{ current.name }}{% endif %}</div><div class="page-sub">Видны только вам</div>
 <div class="card">
-    <div style="display:flex;gap:12px;">
-        <a href="/profile/{{ bm.post.author.username }}">
-            <div class="avatar-circle" style="width:40px;height:40px;flex-shrink:0;">
-                {% if bm.post.author.avatar %}<img src="{{ bm.post.author.avatar }}">{% else %}<span style="font-size:15px;">{{ bm.post.author.username[0].upper() }}</span>{% endif %}
-            </div>
-        </a>
-        <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;">
-                <a href="/profile/{{ bm.post.author.username }}" style="font-weight:700;font-size:14px;">{{ bm.post.author.name or bm.post.author.username }}</a>
-                {% if bm.post.author.is_owner %}{{ owner_badge() }}{% endif %}
-                {% if bm.post.author.is_verified_badge %}{{ verify_badge() }}{% endif %}
-                <span style="color:var(--text-secondary);font-size:13px;">@{{ bm.post.author.username }}</span>
-                <span style="color:var(--text-muted);">·</span>
-                <span style="color:var(--text-muted);font-size:12px;">{{ bm.post.created_at.strftime("%d.%m %H:%M") }}</span>
-            </div>
-            <div class="post-content">{{ bm.post.content }}</div>
-            {% if bm.post.image %}
-            <div style="margin-bottom:10px;border-radius:12px;overflow:hidden;">
-                <img src="{{ bm.post.image }}" loading="lazy" style="max-width:100%;max-height:300px;object-fit:cover;cursor:pointer;border-radius:12px;" onclick="window.open(this.src,'_blank')">
-            </div>
-            {% endif %}
-            <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-secondary);">
-                <span>❤️ {{ bm.post.likes|length }}</span>
-                <span>💬 {{ bm.post.comments|length }}</span>
-                <a href="/post/{{ bm.post.id }}" style="margin-left:auto;color:#1d9bf0;font-size:13px;">Открыть →</a>
-                <form method="post" action="/bookmark/{{ bm.post.id }}">
-                    <button type="submit" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--danger);">Убрать</button>
-                </form>
-            </div>
-        </div>
-    </div>
+  <div class="chips" style="margin:0">
+    <a href="/bookmarks" class="chip {% if not current %}active{% endif %}">Все <span class="faint">{{ counts.values()|sum }}</span></a>
+    {% for c in collections %}<a href="/bookmarks?c={{ c.id }}" class="chip {% if current and current.id == c.id %}active{% endif %}">{{ glyph(c.emoji) }} {{ c.name }} <span class="faint">{{ counts.get(c.id, 0) }}</span></a>{% endfor %}
+  </div>
+  <form method="post" action="/collections/create" class="row mt" style="gap:8px"><input name="emoji" value="📁" maxlength="4" style="width:56px;margin:0;text-align:center"><input name="name" placeholder="Новая коллекция: «Рецепты», «Смешное»…" maxlength="40" required style="margin:0"><button class="btn sm">Создать</button></form>
+  {% if current %}<form method="post" action="/collections/{{ current.id }}/delete" class="mt" onsubmit="return confirm('Удалить коллекцию? Посты останутся в закладках.')"><button class="btn ghost sm">Удалить коллекцию</button></form>{% endif %}
 </div>
-{% endfor %}
-{% else %}
-<div class="card" style="text-align:center;padding:48px 24px;color:var(--text-secondary);">
-    <div style="font-size:40px;margin-bottom:12px;">🔖</div>
-    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Нет закладок</div>
-    <div style="font-size:14px;">Сохраняй понравившиеся посты!</div>
-</div>
-{% endif %}
+{% for p in posts %}
+  {{ post_card(p, user, st, originals, repost_counts, can_mod) }}
+  {% if collections %}<form method="post" action="/bookmarks/{{ p.id }}/move" class="row small" style="margin:-6px 6px 14px;gap:6px"><span class="muted">{{ icon("folder", "i in") }} Коллекция:</span>
+    <select name="collection_id" style="width:auto;margin:0;padding:4px 8px" onchange="this.form.submit()"><option value="">— без коллекции —</option>{% for c in collections %}<option value="{{ c.id }}" {% if bm_coll.get(p.id) == c.id %}selected{% endif %}>{{ glyph(c.emoji) }} {{ c.name }}</option>{% endfor %}</select></form>{% endif %}
+{% else %}<div class="card empty"><div class="big">{{ icon("bookmark", "i in") }}</div>{% if current %}В этой коллекции пока пусто{% else %}Сохраняйте интересные посты кнопкой закладки{% endif %}</div>{% endfor %}
 {% endblock %}
