@@ -14,6 +14,7 @@
 <meta property="og:site_name" content="{{ brand }}">
 {% block meta %}<meta property="og:title" content="{{ brand }}"><meta property="og:image" content="{{ site_url }}/static/icon-512.png">{% endblock %}
 <link rel="stylesheet" href="/static/css/app.css?v={{ static_v }}">
+<link rel="stylesheet" href="/static/css/v3.css?v={{ static_v }}">
 {% if user and user.accent_color %}<style>:root,[data-theme="dark"]{--link:{{ user.accent_color }};}</style>{% endif %}
 <script>
   (function(){var t='{{ user.theme if user and user.theme else "light" }}';try{t=localStorage.getItem('theme')||t}catch(e){}
@@ -157,7 +158,7 @@
 <div id="toasts"></div>
 <div class="cookie-bar small" id="cookie-bar" hidden><span class="grow">Мы используем только необходимые cookie — для входа и защиты аккаунта. <a href="/privacy#cookie" style="text-decoration:underline">Подробнее</a></span><button class="btn sm" onclick="try{localStorage.setItem('nv_cookie_ok','1')}catch(e){};this.parentNode.hidden=true">Понятно</button></div>
 <script>try{if(!localStorage.getItem('nv_cookie_ok'))document.getElementById('cookie-bar').hidden=false}catch(e){}</script>
-<script>window.ICON=function(n,c){return '<svg class="'+(c||'i in')+'" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg?v={{ static_v }}#'+n+'"/></svg>'};window.ICON_PLAY=ICON('play');window.ICON_PAUSE=ICON('pause');window.ICON_TICKS=ICON('ticks');</script>
+<script>window.ICON=function(n,c){return '<svg class="'+(c||'i in')+'" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg?v={{ sprite_v() }}#'+n+'"/></svg>'};window.ICON_PLAY=ICON('play');window.ICON_PAUSE=ICON('pause');window.ICON_TICKS=ICON('ticks');</script>
 <script src="/static/js/app.js?v={{ static_v }}"></script>
 {% block scripts %}{% endblock %}
 <script src="/static/js/more.js?v={{ static_v }}"></script>

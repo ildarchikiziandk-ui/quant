@@ -60,38 +60,63 @@ def is_online(user):
     return (datetime.utcnow() - user.last_seen).total_seconds() < ONLINE_SECONDS
 
 
+# --- Связи между людьми. Один запрос на человека за запрос страницы: результат запоминается в сессии БД
+#     (session.info) и сбрасывается при любой записи (flush/commit/rollback), так что устаревшим не бывает.
+def _memo(db, key, fn):
+    cache = db.info.setdefault("social_memo", {})
+    if key not in cache:
+        cache[key] = frozenset(fn())
+    return cache[key]
+
+
+def _reset_memo(session, *_):
+    session.info.pop("social_memo", None)
+
+
+from sqlalchemy import event as _event  # noqa: E402
+from sqlalchemy.orm import Session as _Session  # noqa: E402
+for _name in ("after_flush", "after_commit", "after_rollback", "after_soft_rollback"):
+    _event.listen(_Session, _name, _reset_memo)
+
+
 def following_ids(db, user):
     if not user:
         return set()
-    return {f.following_id for f in db.query(models.Follow.following_id).filter(models.Follow.follower_id == user.id)}
+    return set(_memo(db, ("following", user.id), lambda: (
+        f.following_id for f in db.query(models.Follow.following_id).filter(models.Follow.follower_id == user.id))))
 
 
 def is_following(db, a, b):
     if not a or not b:
         return False
-    return db.query(models.Follow.id).filter_by(follower_id=a.id, following_id=b.id).first() is not None
+    return b.id in _memo(db, ("following", a.id), lambda: (
+        f.following_id for f in db.query(models.Follow.following_id).filter(models.Follow.follower_id == a.id)))
+
+
+def _blocked(db, uid):
+    rows = db.query(models.UserBlock.blocker_id, models.UserBlock.blocked_id).filter(
+        or_(models.UserBlock.blocker_id == uid, models.UserBlock.blocked_id == uid))
+    return (r.blocked_id if r.blocker_id == uid else r.blocker_id for r in rows)
 
 
 def blocked_ids(db, user):
     """Все, кто заблокировал пользователя или кого заблокировал он."""
     if not user:
         return set()
-    rows = db.query(models.UserBlock).filter(or_(models.UserBlock.blocker_id == user.id, models.UserBlock.blocked_id == user.id)).all()
-    return {r.blocked_id if r.blocker_id == user.id else r.blocker_id for r in rows}
+    return set(_memo(db, ("blocked", user.id), lambda: _blocked(db, user.id)))
 
 
 def is_blocked_between(db, a, b):
     if not a or not b:
         return False
-    return db.query(models.UserBlock.id).filter(or_(
-        and_(models.UserBlock.blocker_id == a.id, models.UserBlock.blocked_id == b.id),
-        and_(models.UserBlock.blocker_id == b.id, models.UserBlock.blocked_id == a.id))).first() is not None
+    return b.id in _memo(db, ("blocked", a.id), lambda: _blocked(db, a.id))
 
 
 def muted_ids(db, user):
     if not user:
         return set()
-    return {m.muted_id for m in db.query(models.UserMute.muted_id).filter(models.UserMute.user_id == user.id)}
+    return set(_memo(db, ("muted", user.id), lambda: (
+        m.muted_id for m in db.query(models.UserMute.muted_id).filter(models.UserMute.user_id == user.id))))
 
 
 def can_see_content(db, viewer, owner):
@@ -110,7 +135,8 @@ def can_see_content(db, viewer, owner):
 def visible_posts(db, viewer, hide_muted=True):
     """Базовый запрос постов, которые viewer имеет право видеть."""
     now = datetime.utcnow()
-    q = db.query(models.Post).join(models.User, models.Post.user_id == models.User.id).filter(
+    from sqlalchemy.orm import selectinload
+    q = db.query(models.Post).options(selectinload(models.Post.author)).join(models.User, models.Post.user_id == models.User.id).filter(
         models.Post.is_published == True, models.Post.is_draft == False,
         or_(models.Post.scheduled_at == None, models.Post.scheduled_at <= now),
         or_(models.Post.is_archived == None, models.Post.is_archived == False),

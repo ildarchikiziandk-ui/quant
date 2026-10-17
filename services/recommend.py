@@ -192,8 +192,10 @@ def diversify(ranked, window=4):
 def mark_seen(db, user, posts):
     if not user or not posts:
         return
-    for p in posts:
-        db.add(models.SeenPost(user_id=user.id, post_id=p.id))
+    now = datetime.utcnow()
+    rows = [{"user_id": user.id, "post_id": p.id, "created_at": now} for p in posts]
+    if rows:  # одним запросом, а не по строке на пост
+        db.execute(models.SeenPost.__table__.insert(), rows)
     if zlib.crc32(str(time.time()).encode()) % 50 == 0:  # изредка чистим старое
         db.query(models.SeenPost).filter(models.SeenPost.created_at < datetime.utcnow() - timedelta(days=30)).delete(synchronize_session=False)
     db.commit()

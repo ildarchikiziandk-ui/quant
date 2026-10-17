@@ -173,7 +173,9 @@ def notify_birthdays(db):
 def similar_posts(db, user, post, limit=6):
     tags = list(dict.fromkeys(text.extract_hashtags(post.content or "")))[:5]
     hidden = social.blocked_ids(db, user)
-    base = db.query(models.Post).filter(models.Post.id != post.id, models.Post.is_published != False,
+    from sqlalchemy.orm import selectinload
+    base = db.query(models.Post).options(selectinload(models.Post.author), selectinload(models.Post.likes)).filter(
+        models.Post.id != post.id, models.Post.is_published != False,
                                         models.Post.is_archived != True)
     found = []
     if tags:

@@ -151,9 +151,17 @@ ICONS = {
 }
 
 
+SPRITE_V = ""  # версия спрайта (хэш содержимого) — выставляется в write_sprite
+
+
 def icon(name, cls="i"):
-    body = ICONS.get(name) or ICONS["circle"]
-    return Markup(f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true">{body}</svg>')
+    """Иконка как ссылка на общий спрайт: браузер скачивает все иконки один раз и кэширует,
+    а страница становится в несколько раз легче, чем со встроенными SVG."""
+    if name not in ICONS:
+        name = "circle"
+    if not SPRITE_V:  # спрайт ещё не записан (скрипты, тесты без запуска сервера) — встраиваем как раньше
+        return Markup(f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true">{ICONS[name]}</svg>')
+    return Markup(f'<svg class="{cls}" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg?v={SPRITE_V}#{name}"/></svg>')
 
 
 def glyph(value, cls="i in"):
@@ -182,7 +190,10 @@ def sprite():
 
 def write_sprite(path):
     """Пишет static/icons.svg, если он устарел (вызывается при старте сервера)."""
+    global SPRITE_V
+    import hashlib
     data = sprite()
+    SPRITE_V = hashlib.sha1(data.encode()).hexdigest()[:8]
     try:
         with open(path, encoding="utf-8") as f:
             if f.read() == data:

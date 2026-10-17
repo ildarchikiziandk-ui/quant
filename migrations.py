@@ -122,8 +122,42 @@ def seed(db):
     db.commit()
 
 
+# Индексы для частых запросов (лента, чаты, уведомления, счётчики). CREATE INDEX IF NOT EXISTS понимают и SQLite, и PostgreSQL.
+INDEXES = [
+    ("posts", "user_id, created_at"), ("posts", "created_at"), ("posts", "repost_id"),
+    ("follows", "follower_id"), ("follows", "following_id"),
+    ("likes", "post_id"), ("likes", "user_id, post_id"), ("whales", "post_id"), ("whales", "user_id, post_id"),
+    ("comments", "post_id, created_at"), ("comments", "user_id"), ("comments", "parent_id"),
+    ("messages", "receiver_id, is_read"), ("messages", "sender_id, receiver_id"), ("messages", "group_id"), ("messages", "reply_to_id"),
+    ("group_members", "group_id"), ("group_members", "user_id"), ("group_messages", "group_id, id"),
+    ("notifications", "user_id, is_read"), ("notifications", "user_id, id"),
+    ("stories", "user_id"), ("story_views", "story_id"), ("story_views", "user_id"),
+    ("poll_votes", "poll_id, user_id"), ("bookmarks", "user_id, post_id"), ("user_sessions", "user_id"),
+    ("user_blocks", "blocker_id"), ("user_blocks", "blocked_id"), ("typing_status", "target_id"),
+    ("user_daily_tasks", "user_id"), ("user_achievements", "user_id"), ("reactions", "post_id"), ("comment_likes", "user_id"),
+]
+
+
+def add_indexes():
+    from sqlalchemy import inspect as _inspect
+    names = set(_inspect(engine).get_table_names())
+    made = 0
+    with engine.begin() as conn:
+        for table, cols in INDEXES:
+            if table not in names:
+                continue
+            name = f"ix3_{table}_" + "_".join(c.strip() for c in cols.split(","))
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({cols})"))
+            made += 1
+    return made
+
+
 def run():
     Base.metadata.create_all(bind=engine)
+    try:
+        add_indexes()
+    except Exception as e:  # индексы ускоряют, но не обязательны для работы
+        print(f"[migrations] индексы: {e}")
     try:
         added = add_missing_columns()
         if added:

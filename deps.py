@@ -42,7 +42,7 @@ env.globals.update(
 )
 
 import packs as _packs  # noqa: E402
-env.globals.update(pack_slot=_packs.slot, pack_css=_packs.CSS, pack_js=_packs.JS, pack_menu=_packs.menu_groups)
+env.globals.update(sprite_v=lambda: icons.SPRITE_V or config.INSTANCE_ID, pack_slot=_packs.slot, pack_css=_packs.CSS, pack_js=_packs.JS, pack_menu=_packs.menu_groups)
 env.globals.update(_packs.GLOBALS)  # пустой до загрузки модулей — дополняется в load_globals()
 
 

@@ -70,7 +70,9 @@ def post_page(post_id: int, request: Request, sort: str = "old", db: Session = D
         post.views = (post.views or 0) + 1
         db.commit()
     hidden = social.blocked_ids(db, user)
-    comments = (db.query(models.Comment).filter(models.Comment.post_id == post_id)
+    from sqlalchemy.orm import selectinload
+    comments = (db.query(models.Comment).options(selectinload(models.Comment.author), selectinload(models.Comment.comment_likes))
+                .filter(models.Comment.post_id == post_id)
                 .order_by(models.Comment.is_pinned.desc(), models.Comment.created_at.asc()).all())
     comments = [c for c in comments if c.user_id not in hidden]
     roots = [c for c in comments if not c.parent_id]

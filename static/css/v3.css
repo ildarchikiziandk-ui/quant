@@ -1,0 +1,94 @@
+/* ===== Nuvora 3.0 — обновлённый внешний вид =====
+   Слой поверх app.css: мягче фон, «парящие» карточки, фирменный фиолетовый акцент, вкладки-переключатели,
+   стеклянная нижняя панель. Всё на переменных — тёмная тема и настройки оформления продолжают работать. */
+:root {
+  --accent: #6d5dfc; --accent-2: #8b5cf6; --accent-soft: color-mix(in srgb, #6d5dfc 12%, transparent);
+  --grad: linear-gradient(135deg, #6d5dfc, #8b5cf6 55%, #c056f5);
+  --bg: #f5f5f8; --card: #ffffff; --card-2: #fafafc; --border: #ebebf0; --border-2: #dcdce4;
+  --input: #f1f1f5; --hover: rgba(109, 93, 252, .06);
+  --shadow-1: 0 1px 2px rgba(17, 17, 26, .04), 0 2px 10px rgba(17, 17, 26, .04);
+  --shadow-2: 0 2px 6px rgba(17, 17, 26, .06), 0 12px 32px rgba(17, 17, 26, .08);
+  --shadow: var(--shadow-2);
+  --radius: 22px; --radius-sm: 14px;
+}
+[data-theme="dark"] {
+  --accent: #8f83ff; --accent-2: #a78bfa; --accent-soft: color-mix(in srgb, #8f83ff 16%, transparent);
+  --bg: #0b0b0f; --card: #141418; --card-2: #18181d; --border: #23232b; --border-2: #33333d;
+  --input: #1b1b21; --hover: rgba(143, 131, 255, .08);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4); --shadow-2: 0 12px 34px rgba(0, 0, 0, .5);
+}
+
+/* Заголовки — дисплейный шрифт, чуть крупнее */
+.page-title { font-family: "Inter Display", Inter, sans-serif; font-size: 25px; letter-spacing: -.7px; }
+.card-title { font-size: 15.5px; letter-spacing: -.2px; }
+
+/* Карточки: мягкая тень вместо резкой рамки */
+.card { border-color: transparent; box-shadow: var(--shadow-1); }
+[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
+.card.post { transition: box-shadow .2s, transform .2s; }
+@media (hover: hover) { .card.post:hover { box-shadow: var(--shadow-2); } }
+
+/* Кнопки: основная — плотная, с лёгким свечением; мягкие — в цвет акцента при наведении */
+.btn { border-radius: 14px; font-weight: 700; letter-spacing: -.1px; }
+.btn:not(.ghost):not(.soft):not(.danger) { box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--brand) 70%, transparent); }
+.btn.soft:hover { background: var(--accent-soft); color: var(--accent); }
+.btn.sm { border-radius: 11px; }
+.icon-btn { transition: background .15s, color .15s; }
+.icon-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* Ссылки и акцентные элементы */
+:root { --link: var(--accent); }
+.rt-tag, .rt-mention { color: var(--accent); }
+
+/* Поля ввода: скруглённее, фокус — фиолетовая обводка */
+input, textarea, select { border-radius: 14px; border-color: transparent; background: var(--input); }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); background: var(--card); }
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+
+/* Чипсы и вкладки — переключатели */
+.chip { background: var(--card); border-color: var(--border); }
+.chip.active { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -8px var(--accent); }
+.tabs { background: var(--input); border: none; border-radius: 16px; padding: 4px; gap: 4px; }
+.tabs a { border-bottom: none; border-radius: 12px; padding: 10px 12px; transition: background .15s, color .15s; }
+.tabs a.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-1); }
+[data-theme="dark"] .tabs a.active { background: var(--card-2); }
+
+/* Боковое меню на компьютере: активный пункт в цвет акцента */
+.nav-item.active { background: var(--accent-soft); color: var(--accent); }
+.nav-item.active .ico { color: var(--accent); }
+
+/* Пост: действия — круглые «пилюли» при наведении */
+.post-actions .act { border-radius: 999px; transition: background .15s, color .15s; }
+@media (hover: hover) { .post-actions .act:hover { background: var(--hover); } }
+
+/* Аватар с историей — фирменный градиент кольца */
+.ring { background: var(--grad); }
+
+/* Мобильная шапка — стекло */
+.mobile-top { background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: saturate(1.6) blur(16px); }
+
+/* Нижняя панель — «парящая» стеклянная плашка с индикатором активной вкладки */
+@media (max-width: 640px) {
+  .mobile-nav { left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); padding-bottom: 0; border: 1px solid var(--border);
+    border-radius: 24px; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: saturate(1.6) blur(18px);
+    box-shadow: 0 10px 34px -10px rgba(17, 17, 26, .28); }
+  .mobile-nav-inner { height: 62px; }
+  .mobile-nav a { height: 62px; }
+  .mobile-nav a.active { color: var(--accent); }
+  .mobile-nav a.active svg { color: var(--accent); }
+  .mobile-nav a.active::after { content: ""; position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+  .mobile-nav .fab { width: 50px; height: 50px; border-radius: 18px; background: var(--grad); box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
+  .mobile-nav .fab svg { color: #fff !important; }
+  .main { padding-bottom: 104px; }
+  .to-top { bottom: 92px; }
+}
+
+/* Модальные окна и меню — мягче */
+.modal { border-radius: 26px; }
+.menu { border-radius: 18px; box-shadow: var(--shadow-2); border-color: var(--border); }
+
+/* Тосты */
+#toasts .toast { border-radius: 16px; }
+
+/* Меньше движения — уважаем системную настройку */
+@media (prefers-reduced-motion: reduce) { .card.post { transition: none; } }

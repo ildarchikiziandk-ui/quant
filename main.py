@@ -29,8 +29,43 @@ for _p in packs.PREFS:
         _prefs.BY_KEY[_p["key"]] = _p
 
 app = FastAPI(title=config.BRAND_NAME, docs_url=None, redoc_url=None, openapi_url=None)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
+class CachedStatic(StaticFiles):
+    """Статика с кэшем в браузере: файлы с ?v=… — на год (версия меняется при обновлении), остальное — на день.
+    Загрузки пользователей имеют уникальные имена и тоже кэшируются надолго."""
+    def __init__(self, *a, long=False, **kw):
+        super().__init__(*a, **kw)
+        self.long = long
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        if resp.status_code == 200:
+            versioned = b"v=" in (scope.get("query_string") or b"")
+            if self.long or versioned:
+                resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            elif path.endswith(("sw.js", "manifest.webmanifest")):
+                resp.headers["Cache-Control"] = "no-cache"
+            else:
+                resp.headers["Cache-Control"] = "public, max-age=86400"
+        return resp
+
+
+app.mount("/static", CachedStatic(directory="static"), name="static")
+app.mount("/uploads", CachedStatic(directory=config.UPLOAD_DIR, long=True), name="uploads")
+from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
+
+
+class TextGZip(GZipMiddleware):
+    """Сжимаем HTML, JSON, CSS и JS (в 4–6 раз меньше), но не фото и видео: они уже сжаты, а видео ещё и
+    перематывается по частям (Range) — сжатие это ломает."""
+    async def __call__(self, scope, receive, send):
+        p = scope.get("path", "") if scope.get("type") == "http" else ""
+        if p.startswith(("/uploads/", "/download/", "/static/promo/")) or p.endswith((".mp4", ".webm", ".png", ".jpg", ".webp", ".apk")):
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
+
+
+app.add_middleware(TextGZip, minimum_size=1200, compresslevel=5)
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
