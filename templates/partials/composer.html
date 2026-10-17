@@ -35,6 +35,7 @@
         <label class="field"><span>Предупреждение о содержимом <span class="faint">— пост будет скрыт под плашкой</span></span><input name="content_warning" maxlength="80" placeholder="Спойлеры к сериалу, громкий звук…"></label>
       </div>
       <div class="composer-extra hidden" id="panel-emoji"><div class="emoji-panel">{% for e in ['😀','😂','😍','🥰','😎','🤔','😭','😅','🔥','✨','❤️','👍','👏','🙏','🎉','💯','🚀','🌚','🐋','⚡'] %}<button type="button" data-emoji-insert>{{ e }}</button>{% endfor %}</div></div>
+{% for _s in pack_slot("composer_panels") %}{% include _s %}{% endfor %}
       <div class="composer-tools">
         <div class="tools">
           <button type="button" class="tool" title="Фото/видео (до 10)" onclick="document.getElementById('composer-files').click()">{{ icon("image") }}</button>
@@ -44,6 +45,7 @@
           <button type="button" class="tool" title="Настроение, место, фон, исчезающий пост" data-panel="panel-more">{{ icon("sparkle") }}</button>
           <button type="button" class="tool" title="Сохранить черновик" id="save-draft">{{ icon("draft") }}</button>
           <button type="button" class="tool" title="Предпросмотр" id="composer-preview">{{ icon("eye") }}</button>
+          {% for _s in pack_slot("composer_tools") %}{% include _s %}{% endfor %}
           <input type="file" id="composer-files" name="media" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" class="hidden">
         </div>
         <div class="row"><span class="counter" id="composer-counter"></span><button class="btn" id="composer-submit" type="submit">Опубликовать</button></div>

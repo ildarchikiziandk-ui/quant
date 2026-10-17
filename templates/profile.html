@@ -28,12 +28,14 @@
             <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код профиля</a>
             <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
             <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
+            {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
           </div>
         </div>
       {% elif user %}
         {% if not rel.i_blocked and not rel.blocked_me %}
         <a href="/messages/{{ pu.username }}" class="icon-btn" title="Написать">{{ icon("chat") }}</a>
         <a href="/gifts/{{ pu.username }}" class="icon-btn" title="Подарить подарок">{{ icon("gift") }}</a>
+        {% for _s in pack_slot("profile_actions") %}{% include _s %}{% endfor %}
         <button class="btn sm {% if rel.is_following or rel.requested %}ghost{% endif %}" data-act="follow" data-user="{{ pu.username }}">{% if rel.is_following %}Вы подписаны{% elif rel.requested %}Заявка отправлена{% elif rel.follows_me %}Подписаться в ответ{% else %}Подписаться{% endif %}</button>
         {% endif %}
         <div class="menu-wrap">
@@ -47,6 +49,7 @@
             <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
             {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">{{ icon("star", "i in") }} {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
             {% if rel.follows_me %}<button data-act="toggle" data-url="/follower/{{ pu.username }}/remove" data-msg="Подписчик удалён" data-reload="1">{{ icon("x") }} Удалить из подписчиков</button>{% endif %}
+            {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
             <button data-act="toggle" data-url="/mute/{{ pu.username }}" data-msg="Готово" data-reload="1">{{ icon("mute") }} {% if rel.is_muted %}Показывать посты{% else %}Скрыть посты из ленты{% endif %}</button>
             <button data-act="toggle" data-url="/block/{{ pu.username }}" data-msg="Готово" data-reload="1" class="danger">{{ icon("x") }} {% if rel.i_blocked %}Разблокировать{% else %}Заблокировать{% endif %}</button>
             <a href="/report/{{ pu.username }}" class="danger">{{ icon("flag") }} Пожаловаться</a>
@@ -82,6 +85,7 @@
       <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
       <span><b>{{ stats.likes|compact }}</b> <span class="muted">лайков</span></span>
     </div>
+{% for _s in pack_slot("profile_after_bio") %}{% include _s %}{% endfor %}
     {% if gifts %}<a href="/gifts/{{ pu.username }}" class="row mt gift-row" title="Подарки">{% for g in gifts %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}<span title="{{ gi[2] }}{% if not g.is_anonymous and g.from_user %} от @{{ g.from_user.username }}{% endif %}"><img src="/static/gifts/{{ gi[0] }}.svg" alt="{{ gi[2] }}"></span>{% endif %}{% endfor %}{% if gifts_total > gifts|length %}<span class="small muted" style="align-self:center">+{{ gifts_total - gifts|length }}</span>{% endif %}</a>{% endif %}
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
     {% if me or not (pref(pu, "hide_gamification") and pref(pu, "hide_achievements")) %}
@@ -111,8 +115,11 @@
   <a href="?tab=replies" class="{% if tab == 'replies' %}active{% endif %}">Ответы</a>
   <a href="?tab=media" class="{% if tab == 'media' %}active{% endif %}">Медиа</a>
   {% if me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}" title="Видите только вы">Лайки {{ icon("lock", "i in") }}</a>{% endif %}
+  {% for _s in pack_slot("profile_tabs") %}{% include _s %}{% endfor %}
 </div>
-{% if tab == "media" %}
+{% set pack_tab = namespace(done=false) %}{% for _s in pack_slot("profile_tab_body") %}{% include _s %}{% endfor %}
+{% if pack_tab.done %}
+{% elif tab == "media" %}
   <div class="grid-3">{% for p in posts %}<a href="/post/{{ p.id }}" class="media-tile">{% if p.media_type == 'video' %}<video src="{{ p.image }}" muted preload="metadata"></video><span class="over">{{ icon("play", "i in") }}</span>{% else %}<img src="{{ p.image }}" alt="" loading="lazy">{% endif %}<span class="over" style="left:6px;right:auto">{{ icon("heart", "i in") }} {{ p.likes|length }}</span></a>{% else %}<div class="card empty" style="grid-column:1/-1">Медиа пока нет</div>{% endfor %}</div>
 {% elif tab == "replies" %}
   {% for c in replies %}<a class="card" href="/post/{{ c.post_id }}#comment-{{ c.id }}" style="display:block"><div class="tiny muted mb">в ответ на пост {{ c.post.author.name or c.post.author.username }} · {{ c.created_at|ago }}</div><div>{{ c.content }}</div></a>{% else %}<div class="card empty">Ответов пока нет</div>{% endfor %}

@@ -43,6 +43,7 @@
   <button type="button" class="btn ghost sm" data-copytext="text-{{ tid }}">{{ icon("copy", "i in") }} Текст</button>
   <button type="button" class="btn ghost sm hide-in-app" data-print>{{ icon("download", "i in") }} PDF</button>
 </div>
+{% for _s in pack_slot("post_page") %}{% include _s %}{% endfor %}
 <div class="row small muted" style="padding:0 6px 10px;gap:14px">
   <span>{{ post.created_at|lt("%d.%m.%Y, %H:%M") }}</span>
   <span>{{ icon("eye", "i in") }} {{ post.views or 0 }}</span>

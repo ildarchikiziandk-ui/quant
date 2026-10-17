@@ -8,6 +8,7 @@
 {% if show_archived %}<a href="/messages" class="row small mb" style="gap:6px;color:var(--link);font-weight:700">{{ icon("back", "i in") }} Все чаты</a>
 <div class="page-sub">Архив: чаты вернутся в общий список, когда придёт новое сообщение.</div>
 {% elif archived_count %}<a href="/messages?archived=1" class="card row archive-row" style="gap:12px">{{ icon("archive") }}<b class="grow">Архив</b><span class="faint">{{ archived_count }}</span></a>{% endif %}
+{% for _s in pack_slot("chat_list_top") %}{% include _s %}{% endfor %}
 {% if chats or groups %}<div class="chips chat-tabs" id="chat-tabs">
   <button type="button" class="chip active" data-f="all">Все</button><button type="button" class="chip" data-f="unread">Непрочитанные</button>
   <button type="button" class="chip" data-f="people">Личные</button><button type="button" class="chip" data-f="group">Группы</button><button type="button" class="chip" data-f="online">В сети</button>

@@ -13,10 +13,20 @@ from deps import templates
 from routers import (admin, api, auth_routes, chatx, explore, extras, features, feed, more, groups, messages, misc, notifications,
                      posts, profile, secret, settings, stories, tasks)
 
+import packs  # noqa: E402  модули Nuvora 3.0: таблицы, маршруты, иконки, настройки
+packs.load()
 migrations.run()
 
 from services import icons as _icons  # noqa: E402
+from services import prefs as _prefs  # noqa: E402
+_icons.ICONS.update(packs.ICONS)
+import deps as _deps  # noqa: E402
+_deps.load_pack_globals()
 _icons.write_sprite("static/icons.svg")
+for _p in packs.PREFS:
+    if _p["key"] not in _prefs.BY_KEY:
+        _prefs.PREFS.append(_p)
+        _prefs.BY_KEY[_p["key"]] = _p
 
 app = FastAPI(title=config.BRAND_NAME, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -69,6 +79,13 @@ async def _background_jobs():
             state["n"] += 1
             if state["n"] % 60 == 1:  # примерно раз в 10 минут — уборка старого
                 features.cleanup(db)
+            if state["n"] % 6 == 0:  # фоновые задачи модулей — раз в минуту
+                for job in packs.JOBS:
+                    try:
+                        job(db)
+                    except Exception as e:  # noqa: BLE001
+                        db.rollback()
+                        print(f"[jobs] {getattr(job, '__name__', job)}: {e}")
             now = _dt.utcnow()
             key = now.strftime("%Y-%m-%d")
             if now.hour >= 6 and state["bday"] != key:  # около 9 утра по Москве
@@ -86,6 +103,8 @@ async def _background_jobs():
     asyncio.get_running_loop().create_task(loop())
 
 
+for _r in packs.ROUTERS:  # модули — первыми, чтобы их адреса не перехватывались общими маршрутами
+    app.include_router(_r)
 for r in (auth_routes, feed, posts, profile, settings, chatx, features, messages, groups, stories, explore, notifications,
           tasks, extras, more, secret, admin, api, misc):
     app.include_router(r.router)

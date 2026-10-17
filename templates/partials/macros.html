@@ -88,6 +88,7 @@
 {%- if p.is_long and not full %}<button class="read-more" data-act="expand" data-id="{{ p.id }}">Читать полностью · ~{{ reading_minutes(p.content) }} мин</button>{% endif %}
 {%- endif %}
 {%- if p.poll %}{{ poll_block(p, user, st) }}{% endif %}
+{% for _s in pack_slot("post_after_text") %}{% include _s %}{% endfor %}
 {{ media_block(p) }}
 {%- if p.content_warning %}</div></div>{% endif %}
 {%- if p.expires_at %}<div class="tiny faint" style="margin-top:-4px">{{ icon("hourglass", "i in") }} пост исчезнет {{ p.expires_at|lt("%d.%m в %H:%M") }}</div>{% endif %}
@@ -124,6 +125,7 @@
             <a href="/post/{{ main.id }}/qr">{{ icon("qr", "i in") }} QR-код поста</a>
             {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">{{ icon("inbox", "i in") }} Отправить в чат</button>
             <button data-act="remind" data-id="{{ main.id }}">{{ icon("alarm", "i in") }} Напомнить завтра</button>{% endif %}
+            {% for _s in pack_slot("post_menu") %}{% include _s %}{% endfor %}
             {%- if user and user.id == main.user_id %}
             <button data-act="edit-post" data-id="{{ main.id }}">{{ icon("edit") }} Редактировать</button>
             <button data-act="pin-post" data-id="{{ main.id }}">{{ icon("pin") }} Закрепить в профиле</button>

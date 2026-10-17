@@ -241,6 +241,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 </form>
 {% endif %}
 {% set keys = section_meta|map(attribute=0)|list %}{% set pos = keys.index(section) %}
+{% for _s in pack_slot("settings_bottom") %}{% include _s %}{% endfor %}
 <div class="set-pager">
   {% if pos > 0 %}{% set pv = section_meta[pos - 1] %}<a class="btn soft" href="/settings?section={{ pv[0] }}">{{ icon("back", "i in") }} {{ brand_plus if pv[0] == "plus" else pv[1] }}</a>{% else %}<span></span>{% endif %}
   {% if pos < keys|length - 1 %}{% set nx = section_meta[pos + 1] %}<a class="btn soft" href="/settings?section={{ nx[0] }}">{{ brand_plus if nx[0] == "plus" else nx[1] }} <span style="display:inline-block;transform:rotate(180deg)">{{ icon("back", "i in") }}</span></a>{% endif %}

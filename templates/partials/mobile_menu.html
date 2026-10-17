@@ -17,7 +17,7 @@
   <div class="mmenu-grid">{% for href, ic, label in main %}<a href="{{ href }}">{{ icon(ic) }}<span>{{ label }}</span></a>{% endfor %}</div>
   <div class="mmenu-title">Моё</div>
   <div class="mmenu-rows">{% for href, ic, label in mine %}<a href="{{ href }}">{{ icon(ic) }}<span>{{ label }}</span></a>{% endfor %}</div>
-  {% for title, gic, items in more %}
+  {% for title, gic, items in pack_menu(more) %}
   <details class="mmenu-more"><summary>{{ icon(gic) }}<span>{{ title }}</span>{{ icon("back", "i chev") }}</summary>
     <div class="mmenu-rows">{% for href, ic, label in items %}<a href="{{ href }}">{{ icon(ic) }}<span>{{ label }}</span></a>{% endfor %}</div>
   </details>

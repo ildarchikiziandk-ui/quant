@@ -15,6 +15,7 @@
   <form class="convo-input cmp" id="gform" enctype="multipart/form-data" data-voice-max="{{ plus_limit(user, 'voice') }}" data-circle-max="{{ plus_limit(user, 'circle') }}">
     {% call chat_input() %}
       <label class="icon-btn cmp-tool" title="Вложение" style="cursor:pointer">{{ icon("clip") }}<input type="file" name="file" class="hidden" id="gfile"></label>
+      {% for _s in pack_slot("group_tools") %}{% include _s %}{% endfor %}
       <textarea name="content" id="ginp" rows="1" maxlength="4000" placeholder="Сообщение в группу…" data-suggest></textarea>
     {% endcall %}
   </form>
@@ -22,6 +23,7 @@
 <div class="modal-bg" id="group-info"><div class="modal">
   <div class="modal-head">{{ group.name }} <button class="icon-btn" data-close>{{ icon("x", "i in") }}</button></div>
   {% if group.description %}<p class="muted small mb">{{ group.description }}</p>{% endif %}
+{% for _s in pack_slot("group_menu") %}{% include _s %}{% endfor %}
   <div class="card-title">{{ icon("link", "i in") }} Пригласительная ссылка</div>
   <div class="row mb"><input readonly value="{{ site_url }}/groups/join/{{ group.invite_code }}" style="margin:0" onclick="this.select()"><button class="btn soft sm" data-act="copy" data-url="/groups/join/{{ group.invite_code }}">Копировать</button></div>
   {% if is_admin %}

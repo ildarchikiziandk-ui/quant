@@ -27,6 +27,7 @@
         <button type="button" onclick="jumpToDate()">{{ icon("calendar") }} Перейти к дате</button>
         <button type="button" onclick="selectMode(true)">{{ icon("check-circle") }} Выбрать сообщения</button>
         <button onclick="toggleTtl()">{{ icon("hourglass", "i in") }} Исчезающие сообщения: <b id="ttl-label">выкл</b></button>
+        {% for _s in pack_slot("chat_menu") %}{% include _s %}{% endfor %}
         <button class="danger" onclick="clearChat()">{{ icon("trash") }} Удалить мои сообщения</button>
       </div>
     </div>
@@ -36,6 +37,7 @@
   <div class="convo-box" id="box">
     {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Начните диалог с {{ other.name or other.username }}<div class="tiny faint mt">{{ icon("lock", "i in") }} Сообщения хранятся в зашифрованном виде (AES-256)</div></div>{% endif %}
   </div>
+  {% for _s in pack_slot("chat_after_box") %}{% include _s %}{% endfor %}
   <div class="tiny faint center" style="padding:2px 0" title="Текст сообщений хранится на сервере в зашифрованном виде (AES-256-GCM)">{{ icon("lock", "i in") }} Переписка зашифрована</div>
   <button type="button" class="jump-down hidden" id="jump-down" title="Вниз">{{ icon("back", "i") }}<b id="jump-n" class="hidden">0</b></button>
   <div class="typing hidden" id="typing" style="padding:4px 10px"><span id="typing-who">{{ dname(other) }}</span> <span id="typing-what">печатает</span><span class="typing-dots"><i></i><i></i><i></i></span></div>
@@ -47,6 +49,7 @@
     {% call chat_input() %}
       <button class="icon-btn cmp-tool" title="Фото или файл" onclick="document.getElementById('att').click()">{{ icon("clip") }}</button>
       <button class="icon-btn cmp-tool" title="Эмодзи" onclick="document.getElementById('emoji-panel').classList.toggle('hidden')">{{ icon("smile") }}</button>
+      {% for _s in pack_slot("chat_tools") %}{% include _s %}{% endfor %}
       <textarea id="inp" rows="1" maxlength="4000" placeholder="Сообщение…" data-suggest></textarea>
     {% endcall %}
     <input type="file" id="att" class="hidden" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.xlsx,.pptx">

@@ -3,6 +3,7 @@
 {% block title %}Обзор — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-title">{{ icon("compass", "i in") }} Обзор</div><div class="page-sub">Лучшее в {{ brand }} прямо сейчас</div>
+{% for _s in pack_slot("explore_top") %}{% include _s %}{% endfor %}
 {% if known %}<div class="card"><div class="card-title">{{ icon("handshake", "i in") }} Возможно, вы знакомы</div>{% for u, why in known %}{{ user_row(u, user, following, why) }}{% endfor %}</div>{% endif %}
 {% if my_tags %}<div class="card"><div class="card-title">{{ icon("tag", "i in") }} Ваши темы</div><div class="row wrap">{% for t in my_tags %}<a class="chip" href="/hashtag/{{ t }}">#{{ t }}</a>{% endfor %}</div></div>{% endif %}
 {% if upcoming %}<div class="card"><div class="card-title">{{ icon("calendar", "i in") }} Ближайшие мероприятия <a href="/events">Все →</a></div>{% for e in upcoming %}<a href="/events/{{ e.id }}" class="row small" style="padding:6px 0"><span class="tag-pill">{{ e.starts_at|lt("%d.%m %H:%M") }}</span><span class="grow ellipsis"><b>{{ e.title }}</b>{% if e.place %} · <span class="muted">{{ e.place }}</span>{% endif %}</span></a>{% endfor %}</div>{% endif %}

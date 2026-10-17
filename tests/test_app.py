@@ -1170,3 +1170,34 @@ def test_v2_security_fixes(alice, bob):
     # мат: обычные слова не трогаем
     from services import profanity
     assert not profanity.is_bad("мандарин") and not profanity.is_bad("Себастьян") and profanity.is_bad("blyat")
+
+
+def test_pack_slots_render(alice, bob):
+    """Слоты модулей 3.0 видят нужные переменные (в том числе внутри макросов)."""
+    import packs
+    names = ["post_menu", "post_after_text", "profile_menu", "profile_after_bio", "chat_menu", "message_extra", "home_top",
+             "chat_list_top", "settings_bottom", "explore_top", "notifications_top", "post_page", "composer_tools", "body_end"]
+    for n in names:
+        packs.SLOTS[n].append(f"packs/_selftest/{n}.html")
+    try:
+        alice.post("/post/create", data={"content": "слоты"}, headers=J)
+        alice.post("/messages/send", json={"receiver": "bob", "content": "привет"}, headers=J)
+        s = db()
+        pid = s.query(models.Post).order_by(models.Post.id.desc()).first().id
+        mid = s.query(models.Message).order_by(models.Message.id.desc()).first().id
+        s.close()
+        home = alice.get("/").text
+        assert "SLOT-home_top" in home and "SLOT-body_end" in home
+        page = bob.get(f"/post/{pid}").text
+        assert f"SLOT-post_menu-{pid}" in page and "SLOT-post_after_text" in page
+        prof = bob.get("/profile/alice").text
+        assert "SLOT-profile_menu" in prof and "-alice" in prof and "SLOT-profile_after_bio" in prof
+        chat = bob.get("/messages/alice").text
+        assert "SLOT-chat_menu" in chat and f"SLOT-message_extra-m{mid}" in chat
+        assert "SLOT-chat_list_top" in bob.get("/messages").text
+        assert "SLOT-settings_bottom" in bob.get("/settings?section=feed").text
+        assert "SLOT-explore_top" in bob.get("/explore").text and "SLOT-notifications_top" in bob.get("/notifications").text
+        assert "SLOT-post_page" in bob.get(f"/post/{pid}").text and "SLOT-composer_tools" in alice.get("/create").text
+    finally:
+        for n in names:
+            packs.SLOTS[n].remove(f"packs/_selftest/{n}.html")

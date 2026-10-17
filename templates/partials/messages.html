@@ -22,6 +22,7 @@
       {%- if m.voice %}{{ voice_player(m.voice) }}{% endif %}
       {%- if m.file_url %}<a class="file" href="{{ m.file_url }}" target="_blank" rel="noopener" download="{{ m.file_name }}">{{ icon("clip", "i in") }} <span class="ellipsis" style="max-width:200px">{{ m.file_name or "Файл" }}</span></a>{% endif %}
       {%- if m.content %}<span class="txt">{{ m.content|rich }}</span>{% endif %}
+      {% for _s in pack_slot("message_extra") %}{% include _s %}{% endfor %}
   </div>
   {%- set rx = {} %}{% for r in m.msg_reactions %}{% set _ = rx.update({r.emoji: rx.get(r.emoji, 0) + 1}) %}{% endfor %}
   {%- if rx %}<div class="msg-reacts">{% for e, n in rx.items() %}<span>{{ reaction(e) }}{% if n > 1 %} {{ n }}{% endif %}</span>{% endfor %}</div>{% endif %}

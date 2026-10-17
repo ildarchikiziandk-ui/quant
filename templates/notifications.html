@@ -6,6 +6,7 @@
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("bell", "i in") }} Уведомления</div>
   <div class="row"><a class="btn soft sm" href="/mentions">@ Упоминания</a><form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="btn ghost sm">Очистить</button></form></div></div>
 {% if requests_count %}<a href="/follow-requests" class="card row" style="display:flex">{{ icon("wave", "i in") }} <b class="grow">Заявки на подписку</b><span class="unread-dot">{{ requests_count }}</span></a>{% endif %}
+{% for _s in pack_slot("notifications_top") %}{% include _s %}{% endfor %}
 <div class="chips">{% for k, l in [("all","Все"),("mentions","Упоминания"),("likes","Реакции"),("comments","Комментарии"),("follows","Подписки"),("system","Системные")] %}<a href="/notifications?f={{ k }}" class="chip {% if f == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
 <div class="card flat">
 {% for n in notifications %}

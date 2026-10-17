@@ -41,6 +41,15 @@ env.globals.update(
     min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, dname=chatstyle.name_of, custom_name=chatstyle.custom_name, wallpapers=chatstyle.WALLPAPERS, bubbles=chatstyle.BUBBLES, chat_fonts=chatstyle.FONTS, streak_level=streaks.level, emo=text.emoji_img,
 )
 
+import packs as _packs  # noqa: E402
+env.globals.update(pack_slot=_packs.slot, pack_css=_packs.CSS, pack_js=_packs.JS, pack_menu=_packs.menu_groups)
+env.globals.update(_packs.GLOBALS)  # пустой до загрузки модулей — дополняется в load_globals()
+
+
+def load_pack_globals():
+    env.globals.update(_packs.GLOBALS)
+
+
 REACTIONS = []  # эмодзи-реакции на посты убраны: остались лайк и кит
 env.globals["reactions"] = REACTIONS
 
