@@ -12,4 +12,10 @@
   <div class="wn-list">{% for ic, text in items %}<div class="wn-item">{{ icon(ic, "i in") }}<span>{{ text }}</span></div>{% endfor %}</div>
 </div>
 {% endfor %}
+{% if v2 %}
+<details class="card wn-group"><summary class="card-title" style="cursor:pointer;margin:0">{{ icon("history", "i in") }} Что появилось в 2.0 <span class="faint">{{ v2_total }}</span></summary>
+  {% for title, gic, items in v2 %}<div class="pref-group">{{ title }}</div>
+  <div class="wn-list">{% for ic, text in items %}<div class="wn-item">{{ icon(ic, "i in") }}<span>{{ text }}</span></div>{% endfor %}</div>{% endfor %}
+</details>
+{% endif %}
 {% endblock %}
