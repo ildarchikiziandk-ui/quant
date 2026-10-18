@@ -252,6 +252,7 @@ class Message(Base):
     deliver_at = Column(DateTime, nullable=True, index=True)  # отложенное сообщение
     scheduled_pending = Column(Boolean, default=False)  # ещё не доставлено (нужно отправить push)
     silent = Column(Boolean, default=False)  # без звука: без push-уведомления
+    effect = Column(String(12), default="")  # эффект сообщения 3.0: confetti, hearts, snow, fireworks
     deleted_for = Column(Integer, nullable=True)  # «удалить у меня» — скрыто только у этого пользователя
     disappear_at = Column(DateTime, nullable=True)
     is_pinned = Column(Boolean, default=False)

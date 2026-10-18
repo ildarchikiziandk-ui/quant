@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Капсула времени — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("mail", "i in") }} Капсула времени</div></div>
+<div class="page-sub">Напишите письмо себе в будущее. До срока его нельзя прочитать — даже вам. Когда откроется, придёт уведомление.</div>
+<form class="card" id="v3-capsule-form">
+  <textarea name="text" maxlength="5000" rows="5" required placeholder="Привет, я из прошлого! Сейчас я…"></textarea>
+  <div class="chips mt">{% for k, l in [("1m","Через месяц"),("6m","Через полгода"),("1y","Через год")] %}<label class="mood-chip"><input type="radio" name="period" value="{{ k }}"{% if loop.first %} checked{% endif %}><span>{{ l }}</span></label>{% endfor %}<label class="mood-chip"><input type="radio" name="period" value="date"><span>Своя дата</span></label></div>
+  <input type="date" name="date" class="mt hidden" id="v3-cap-date">
+  <button class="btn mt">{{ icon("lock", "i in") }} Запечатать</button></form>
+{% if sealed %}<div class="card"><div class="card-title">Запечатаны · {{ sealed|length }}</div>{% for c in sealed %}<div class="row v3-sealed"><span class="v3-seal">{{ icon("lock") }}</span><div class="grow"><b>Откроется {{ c.open_at|lt("%d.%m.%Y") }}</b><div class="tiny faint">написано {{ c.created_at|lt("%d.%m.%Y") }}</div></div><span class="v3-cap-left small muted" data-v3-ts="{{ ((c.open_at - now).total_seconds())|int }}"></span></div>{% endfor %}</div>{% endif %}
+{% for c in opened %}<div class="card v3-letter"><div class="tiny faint mb">{{ icon("mail", "i in") }} Письмо от {{ c.created_at|lt("%d.%m.%Y") }} · открыто {{ c.open_at|lt("%d.%m.%Y") }}</div><div style="white-space:pre-wrap">{{ c.text }}</div><button type="button" class="btn ghost sm mt" data-v3-capdel="{{ c.id }}">Удалить</button></div>{% endfor %}
+{% if not sealed and not opened %}<div class="card empty"><div class="big">{{ icon("mail", "i in") }}</div>Здесь появятся ваши письма в будущее</div>{% endif %}
+{% endblock %}

@@ -308,7 +308,7 @@ def whats_new(request: Request, db: Session = Depends(get_db)):
     from services.whatsnew import GROUPS as V2
     from services.whatsnew3 import CORE
     v3 = list(packs.WHATSNEW) + CORE
-    total = sum(len(items) for _, _, items in v3)
+    total = sum(len(items) for _, _, items in packs.WHATSNEW)  # новые функции; дизайн и скорость — отдельным блоком ниже
     return render(request, db, "whats_new.html", groups=v3, total=total, v2=V2, v2_total=sum(len(i) for _, _, i in V2))
 
 

@@ -1109,7 +1109,7 @@ def test_starred_reminders_birthdays_similar(alice, bob):
 def test_v2_server_features(alice, bob):
     # «Что нового» открывается и в нём больше 100 пунктов
     page = alice.get("/whats-new")
-    assert page.status_code == 200 and "новинок" in page.text
+    assert page.status_code == 200 and "новых функций в" in page.text
     from services.whatsnew import GROUPS
     assert sum(len(i) for _, _, i in GROUPS) >= 100
     # плашка «новые посты»

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}{{ item.title }} — Барахолка — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/market" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Объявление</div></div>
+<div class="card">
+  {% if photos %}<div class="v3-mgallery">{% for p in photos %}<img src="{{ p }}" alt="" data-zoom loading="lazy">{% endfor %}</div>{% endif %}
+  {% if item.sold %}<div class="alert info">{{ icon("check", "i in") }} Продано</div>{% endif %}
+  <div class="v3-mbig">{% if item.price %}{{ "{:,}".format(item.price).replace(",", " ") }} ₽{% else %}Отдам даром{% endif %}</div>
+  <h2 style="font-size:21px;margin:4px 0 8px">{{ item.title }}</h2>
+  <div class="row small muted" style="gap:12px;flex-wrap:wrap"><span>{{ icon(cat_by[item.category][1] if item.category in cat_by else "package", "i in") }} {{ cat_by[item.category][0] if item.category in cat_by else "Другое" }}</span><span>{{ conditions.get(item.condition, "") }}</span>{% if item.city %}<span>{{ icon("map", "i in") }} {{ item.city }}</span>{% endif %}<span>{{ icon("eye", "i in") }} {{ item.views }}</span><span>{{ item.created_at|ago }}</span></div>
+  {% if item.description %}<div class="mt" style="white-space:pre-wrap">{{ item.description }}</div>{% endif %}
+  <a class="row mt v3-seller" href="/profile/{{ seller.username }}">{{ avatar(seller, 44) }}<div><b>{{ dname(seller) }}</b><div class="tiny faint">продавец{% if seller.city %} · {{ seller.city }}{% endif %}</div></div></a>
+  <div class="row mt" style="gap:8px;flex-wrap:wrap">
+  {% if user and user.id == item.user_id %}
+    <a class="btn soft sm" href="/market/{{ item.id }}/edit">{{ icon("edit", "i in") }} Изменить</a>
+    <button class="btn soft sm" data-v3-market="{{ item.id }}" data-a="sold">{{ icon("check", "i in") }} {% if item.sold %}Снова в продаже{% else %}Продано{% endif %}</button>
+    <button class="btn soft sm" data-v3-market="{{ item.id }}" data-a="up">{{ icon("back", "i in v3-up") }} Поднять</button>
+    <button class="btn ghost sm danger" data-v3-market="{{ item.id }}" data-a="delete">{{ icon("trash", "i in") }} Удалить</button>
+  {% elif user %}
+    {% if not item.sold %}<button class="btn" data-v3-market="{{ item.id }}" data-a="contact">{{ icon("chat", "i in") }} Написать продавцу</button>{% endif %}
+    <button class="btn soft" data-v3-market="{{ item.id }}" data-a="fav">{{ icon("heart", "i in") }} <span>{% if fav %}В избранном{% else %}В избранное{% endif %}</span></button>
+    {% if can_mod %}<button class="btn ghost sm danger" data-v3-market="{{ item.id }}" data-a="delete">Удалить (модератор)</button>{% endif %}
+  {% else %}<a class="btn" href="/login?next=/market/{{ item.id }}">Войдите, чтобы написать продавцу</a>{% endif %}
+  </div>
+</div>
+{% if more %}<div class="card"><div class="card-title">Ещё у продавца</div><div class="v3-mgrid">{% for it in more %}{% set ph = photos_of(it) %}<a class="v3-mcard" href="/market/{{ it.id }}"><div class="v3-mimg">{% if ph %}<img src="{{ ph[0] }}" alt="" loading="lazy">{% else %}{{ icon("package") }}{% endif %}</div><b class="v3-mprice">{% if it.price %}{{ "{:,}".format(it.price).replace(",", " ") }} ₽{% else %}Даром{% endif %}</b><span class="v3-mtitle">{{ it.title }}</span></a>{% endfor %}</div></div>{% endif %}
+{% endblock %}

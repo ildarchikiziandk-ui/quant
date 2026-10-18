@@ -17,6 +17,15 @@ from services.uploads import save_file
 router = APIRouter()
 
 MSG_REACTIONS = ["❤️", "🐋"]  # только сердце и кит
+EFFECTS = ("confetti", "hearts", "snow", "fireworks")  # эффекты сообщений (Nuvora 3.0)
+# служебные сообщения модулей 3.0: опрос, игра — в списке чатов и уведомлениях показываем понятную подпись
+SPECIAL = {"poll": "Опрос", "ttt": "Крестики-нолики", "market": "Объявление"}
+
+
+def special_kind(content):
+    if content and content.startswith("[[v3:") and content.endswith("]]"):
+        return content[5:-2].split(":", 1)[0]
+    return ""
 
 
 def _get_user(db, username):
@@ -60,6 +69,9 @@ def preview_of(m):
     if m.is_deleted:
         return ""
     if m.content:
+        k = special_kind(m.content)
+        if k:
+            return SPECIAL.get(k, "Сообщение")
         return m.content[:60]
     if m.image:
         return "Видеосообщение" if m.is_video_circle else "Фото"
@@ -254,7 +266,8 @@ async def send_message(request: Request, db: Session = Depends(get_db)):
             reply_id = r.id
     msg = models.Message(sender_id=user.id, receiver_id=other.id, content=content, reply_to_id=reply_id,
                          disappear_at=_ttl(data.get("ttl")), is_delivered=social.is_online(other),
-                         silent=bool(data.get("silent")))
+                         silent=bool(data.get("silent")),
+                         effect=_s(data.get("effect")) if _s(data.get("effect")) in EFFECTS else "")
     when = _schedule(user, _s(data.get("schedule")))
     if when:
         msg.deliver_at, msg.scheduled_pending, msg.created_at = when, True, when

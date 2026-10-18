@@ -118,8 +118,13 @@ def login_2fa(request: Request, code: str = Form(...), next: str = Form("/"), db
     if not ratelimit.hit(f"2fa:{payload['uid']}", 6, 300):
         return render(request, db, "login_2fa.html", sidebar=False, error="Слишком много попыток", next=next)
     user = db.get(models.User, payload["uid"])
-    if not user or not auth.totp_verify(user.two_factor_secret, code):
-        return render(request, db, "login_2fa.html", sidebar=False, error="Неверный код", next=next)
+    if not user:
+        return redirect("/login")
+    if not auth.totp_verify(user.two_factor_secret, code):
+        # резервный код (Nuvora 3.0): одноразовый, на случай если телефон с приложением-аутентификатором потерян
+        from packs.v3.account import use_backup_code
+        if not use_backup_code(db, user, code):
+            return render(request, db, "login_2fa.html", sidebar=False, error="Неверный код", next=next)
     return _finish_login(request, db, user, next)
 
 

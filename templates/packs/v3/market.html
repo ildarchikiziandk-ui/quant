@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Барахолка — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bag", "i in") }} Барахолка</div>{% if user %}<a class="btn sm" href="/market/new">{{ icon("plus", "i in") }} Разместить</a>{% endif %}</div>
+<form class="card v3-mfilter" method="get">
+  <input type="search" name="q" value="{{ f.q }}" placeholder="Что ищете?">
+  <div class="row mt" style="gap:8px;flex-wrap:wrap">
+    <input name="city" value="{{ f.city }}" placeholder="Город" style="flex:1;min-width:120px;margin:0">
+    <input name="max_price" value="{{ f.max_price }}" placeholder="Цена до, ₽" inputmode="numeric" style="flex:1;min-width:110px;margin:0">
+    <select name="sort" style="flex:1;min-width:130px;margin:0"><option value="new"{% if f.sort == "new" %} selected{% endif %}>Сначала новые</option><option value="cheap"{% if f.sort == "cheap" %} selected{% endif %}>Сначала дешёвые</option><option value="dear"{% if f.sort == "dear" %} selected{% endif %}>Сначала дорогие</option></select>
+  </div>
+  <div class="row mt" style="gap:12px;flex-wrap:wrap"><label class="check" style="margin:0"><input type="checkbox" name="photo" value="1"{% if f.photo %} checked{% endif %}><span>Только с фото</span></label>
+  {% if user %}<label class="check" style="margin:0"><input type="checkbox" name="fav" value="1"{% if f.fav %} checked{% endif %}><span>Избранное</span></label><label class="check" style="margin:0"><input type="checkbox" name="mine" value="1"{% if f.mine %} checked{% endif %}><span>Мои</span></label>{% endif %}
+  <input type="hidden" name="cat" value="{{ f.cat }}"><button class="btn sm" style="margin-left:auto">Найти</button></div>
+</form>
+<div class="chips">{% set base = "?q=" ~ (f.q|urlencode) ~ "&city=" ~ (f.city|urlencode) ~ "&max_price=" ~ f.max_price ~ "&sort=" ~ f.sort %}
+  <a class="chip{% if not f.cat %} active{% endif %}" href="{{ base }}">Все</a>{% for k, t, ic in cats %}<a class="chip{% if f.cat == k %} active{% endif %}" href="{{ base }}&cat={{ k }}">{{ icon(ic, "i in") }} {{ t }}</a>{% endfor %}</div>
+<div class="v3-mgrid">
+{% for it in items %}{% set ph = photos(it) %}<a class="v3-mcard{% if it.sold %} sold{% endif %}" href="/market/{{ it.id }}">
+  <div class="v3-mimg">{% if ph %}<img src="{{ ph[0] }}" alt="" loading="lazy">{% else %}{{ icon(cat_by[it.category][1] if it.category in cat_by else "package") }}{% endif %}{% if it.id in favs %}<span class="v3-mfav">{{ icon("heart-fill", "i in") }}</span>{% endif %}{% if it.sold %}<span class="v3-msold">Продано</span>{% endif %}</div>
+  <b class="v3-mprice">{% if it.price %}{{ "{:,}".format(it.price).replace(",", " ") }} ₽{% else %}Даром{% endif %}</b>
+  <span class="v3-mtitle">{{ it.title }}</span><span class="tiny faint">{{ it.city or "Город не указан" }} · {{ it.created_at|ago }}</span></a>
+{% else %}<div class="card empty" style="grid-column:1/-1"><div class="big">{{ icon("bag", "i in") }}</div>Ничего не нашлось.{% if user %}<br><a class="btn mt" href="/market/new">Разместить первое объявление</a>{% endif %}</div>{% endfor %}
+</div>
+{% endblock %}

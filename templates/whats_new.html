@@ -3,8 +3,8 @@
 {% block content %}
 <div class="card center" style="padding:26px 18px">
   <div class="wn-num">{{ total }}</div>
-  <h2 style="font-size:22px;font-weight:800;letter-spacing:-.4px;margin-top:2px">новинок в {{ brand }} {{ app_version }}</h2>
-  <p class="muted small" style="margin-top:6px">Всё ниже уже работает. Многое можно включить или выключить в <a href="/settings" style="color:var(--link)">настройках</a>.</p>
+  <h2 style="font-size:22px;font-weight:800;letter-spacing:-.4px;margin-top:2px">{{ plural(total, "новая функция", "новые функции", "новых функций").split(" ", 1)[1] }} в {{ brand }} {{ app_version }}</h2>
+  <p class="muted small" style="margin-top:6px">Всё ниже уже работает, а ещё — обновлённый дизайн и ускорение. Многое можно включить или выключить в <a href="/settings" style="color:var(--link)">настройках</a>.</p>
 </div>
 {% for title, gic, items in groups %}
 <div class="card wn-group">

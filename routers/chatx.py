@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
-from routers.messages import _alive, _get_user, _visible_for, dialog_filter, preview_of
+from routers.messages import _alive, _get_user, _visible_for, dialog_filter, preview_of, special_kind
 from routers.posts import read_payload
 from services import chatstyle, push, social, streaks
 from services.uploads import save_file
@@ -183,7 +183,7 @@ def chat_export(username: str, request: Request, fmt: str = "txt", db: Session =
         lines = [f"Переписка с {names[other.id]} (@{other.username}) — выгружено {datetime.utcnow():%d.%m.%Y}", ""]
         for m in msgs:
             t = timezones.to_local(m.created_at, user).strftime("%d.%m.%Y %H:%M")
-            lines.append(f"[{t}] {names.get(m.sender_id, '?')}: {m.content or preview_of(m)}")
+            lines.append(f"[{t}] {names.get(m.sender_id, '?')}: {preview_of(m) if special_kind(m.content) else (m.content or preview_of(m))}")
         body, media = "\n".join(lines), "text/plain; charset=utf-8"
     fname = f"chat-{other.username}.{ 'json' if fmt == 'json' else 'txt'}"
     return Response(body, media_type=media, headers={"Content-Disposition": f'attachment; filename="{fname}"'})

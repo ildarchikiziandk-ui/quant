@@ -1,0 +1,4 @@
+{% if user %}{% set ch = v3_chest(user) %}
+{% if ch and not ch.open %}<div class="card v3-chest" id="v3-chest"><div class="v3-chest-ic">{{ icon_svg("gift") }}</div><div class="grow"><b>Ежедневный сундук</b><div class="small muted">День {{ ch.day }} из 7 · сегодня +{{ ch.reward }} очков{% if ch.streak %} · серия {{ ch.streak }}{% endif %}</div></div><button type="button" class="btn sm" data-v3-chest>Открыть</button></div>{% endif %}
+<div class="chips v3-quick"><a class="chip" href="/friends">{{ icon_svg("users", "i in") }} Только друзья</a><a class="chip" href="/games">{{ icon_svg("dice", "i in") }} Игры</a><a class="chip" href="/market">{{ icon_svg("bag", "i in") }} Барахолка</a><a class="chip" href="/habits">{{ icon_svg("target", "i in") }} Привычки</a></div>
+{% endif %}

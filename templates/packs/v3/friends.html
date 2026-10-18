@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import post_card %}
+{% block title %}Только друзья — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("users", "i in") }} Только друзья</div></div>
+<div class="page-sub">Посты {{ plural(friends_n, "друга", "друзей", "друзей") }} — тех, с кем вы подписаны друг на друга. Без рекомендаций.</div>
+{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}
+<div class="card empty"><div class="big">{{ icon("users", "i in") }}</div>{% if friends_n %}Друзья пока ничего не опубликовали{% else %}Здесь будут посты взаимных друзей.<br><span class="small">Подпишитесь на тех, кто подписан на вас.</span>{% endif %}</div>{% endfor %}
+{% if has_more %}<a class="btn soft block" href="/friends?page={{ page + 1 }}">Показать ещё</a>{% endif %}
+{% endblock %}

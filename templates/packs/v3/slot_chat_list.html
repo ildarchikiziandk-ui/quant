@@ -1,0 +1,4 @@
+{% if user %}<div class="chips v3-folders" id="v3-folders" data-chats="{{ (chats|map(attribute='other')|map(attribute='username')|list)|tojson|forceescape }}">
+  <button type="button" class="chip active" data-folder="">Все чаты</button>
+  <button type="button" class="chip v3-add-folder" data-folder-new>{{ icon_svg("plus", "i in") }} Папка</button>
+</div>{% endif %}

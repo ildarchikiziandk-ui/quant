@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Мои ссылки — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("link", "i in") }} Мои ссылки</div><a class="btn soft sm" href="/l/{{ user.username }}">{{ icon("eye", "i in") }} Открыть</a></div>
+<div class="page-sub">Одна страница со всеми вашими ссылками — <b>{{ site_url.replace('https://','').replace('http://','') }}/l/{{ user.username }}</b>. Вставьте её в шапку других соцсетей.</div>
+<form class="card" id="v3-link-form"><div class="card-title">Добавить ссылку</div>
+  <input name="title" maxlength="40" placeholder="Название: «Мой Telegram»" required>
+  <input name="url" maxlength="300" placeholder="https://t.me/…" required class="mt" inputmode="url">
+  <button class="btn mt">{{ icon("plus", "i in") }} Добавить</button></form>
+<div class="card flat">
+{% for l in links %}<div class="row v3-link-row" style="gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)">
+  <div class="grow" style="min-width:0"><b class="ellipsis" style="display:block">{{ l.title }}</b><span class="tiny faint ellipsis" style="display:block">{{ l.url }}</span></div>
+  <span class="tiny muted" title="Переходов">{{ icon("activity", "i in") }} {{ l.clicks }}</span>
+  <button class="icon-btn" data-v3-link="{{ l.id }}" data-a="up" title="Выше">{{ icon("back", "i in v3-up") }}</button>
+  <button class="icon-btn" data-v3-link="{{ l.id }}" data-a="down" title="Ниже">{{ icon("back", "i in v3-down") }}</button>
+  <button class="icon-btn" data-v3-link="{{ l.id }}" data-a="delete" title="Удалить">{{ icon("trash", "i in") }}</button></div>
+{% else %}<div class="empty" style="padding:30px">{{ icon("link", "i in") }}<br>Пока нет ссылок</div>{% endfor %}
+</div>
+{% endblock %}

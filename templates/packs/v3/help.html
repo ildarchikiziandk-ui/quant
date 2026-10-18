@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Центр помощи — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("lifebuoy", "i in") }} Центр помощи</div>
+<div class="page-sub">Ответы на частые вопросы. Не нашли — <a href="/support" style="color:var(--link)">напишите в поддержку</a>.</div>
+<input type="search" id="v3-help-q" placeholder="Поиск: пароль, папки, барахолка…" value="{{ q }}" class="mb">
+{% set ns = namespace(sec="") %}
+<div id="v3-help">{% for sec, ic, qq, a in articles %}{% if sec != ns.sec %}{% set ns.sec = sec %}<div class="pref-group v3-hsec">{{ sec }}</div>{% endif %}
+<details class="card v3-hitem" data-text="{{ (qq ~ ' ' ~ a)|lower }}"><summary>{{ icon(ic, "i in") }} <b>{{ qq }}</b></summary><p class="small mt">{{ a }}</p></details>{% endfor %}</div>
+<div class="card empty hidden" id="v3-help-none">Ничего не нашлось. <a href="/support" style="color:var(--link)">Спросите в поддержке</a></div>
+{% endblock %}

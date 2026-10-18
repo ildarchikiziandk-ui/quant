@@ -1,0 +1,3 @@
+{% if section == "security" and user and user.two_factor_enabled %}<div class="card" id="v3-backup"><div class="card-title"><span class="row" style="gap:6px">{{ icon_svg("key", "i in") }} Резервные коды</span></div>
+<p class="small muted mb">Если потеряете телефон с приложением-аутентификатором, войти можно по одному из 10 одноразовых кодов. Осталось неиспользованных: <b>{{ v3_backup_left(user) }}</b>.</p>
+<button type="button" class="btn soft sm" data-v3-backup>{% if v3_backup_left(user) %}Создать новые коды{% else %}Получить коды{% endif %}</button><pre class="v3-codes hidden" id="v3-codes"></pre></div>{% endif %}
