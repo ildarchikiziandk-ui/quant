@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>С Днём отца, папа Ренат! — {{ brand }}</title>
-<meta name="description" content="Открытка ко Дню отца для папы Рената от Ильдара и всей команды Nuvora">
-<meta property="og:title" content="С Днём отца, папа Ренат!">
-<meta property="og:description" content="Открытка от Ильдара и всей команды Nuvora">
+<title>С Днём отца! — {{ brand }}</title>
+<meta name="description" content="Открытка ко Дню отца от Ильдара и команды Nuvora">
+<meta property="og:title" content="С Днём отца!">
+<meta property="og:description" content="Открытка от Ильдара и команды Nuvora">
 <meta property="og:image" content="/static/brand/logo-180.png">
 <meta name="theme-color" content="#0b1026">
 <link rel="icon" href="/static/favicon.png">
@@ -80,7 +80,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .wish i svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .wish b { display: block; font-size: 15px; margin-bottom: 2px; }
 .wish span { font-size: 13px; color: var(--muted); line-height: 1.4; }
-.quote { margin: 26px 0 4px; padding: 18px 20px; border-radius: 18px; background: linear-gradient(135deg, #fff3d9, #ffe9ef); font-size: 17px; line-height: 1.5; text-align: center; color: #5a3b1c; }
 .sign { display: flex; align-items: center; gap: 12px; margin: 24px 0 6px; padding-top: 18px; border-top: 1px dashed #e7d7bd; }
 .sign img { width: 46px; height: 46px; border-radius: 14px; }
 .sign b { display: block; font-size: 16px; }
@@ -91,7 +90,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 .btn:active { transform: scale(.96); }
 .btn.alt { background: #f3ead9; color: var(--text); box-shadow: none; }
 .btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.hugs { text-align: center; font-size: 13px; color: var(--muted); padding: 0 22px 22px; min-height: 20px; }
 .foot { text-align: center; margin-top: 26px; font-size: 13px; color: #b9b7ef; }
 .foot a { color: #fff; font-weight: 700; text-decoration: none; }
 .beat { transform-origin: 105px 30px; animation: beat 1.3s ease-in-out infinite; }
@@ -111,10 +109,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
   <div class="stage" id="stage" role="button" tabindex="0" aria-label="Открыть открытку">
     <div class="env">
       <div class="env-back"></div>
-      <div class="peek"><b class="serif">Папе Ренату</b><span>с любовью от Ильдара</span></div>
+      <div class="peek"><b class="serif">Папе</b><span>от Ильдара</span></div>
       <div class="env-front"></div>
       <div class="flap"></div>
-      <div class="seal">Р</div>
+      <div class="seal">N</div>
     </div>
   </div>
   <div class="hint" id="hint">Нажмите на конверт, чтобы открыть</div>
@@ -137,42 +135,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
         </g>
         <path d="M105 22 c-5-8-18-6-18 4 0 9 18 18 18 18 s18-9 18-18 c0-10-13-12-18-4z" fill="#ef4444" class="beat"/>
       </svg>
-      <small>С Днём отца</small>
-      <h1 class="serif">Папа<span class="name">Ренат!</span></h1>
-      <p>от Ильдара и всей команды {{ brand }}</p>
+            <h1 class="serif">С Днём<span class="name">отца, папа!</span></h1>
+      <p>от Ильдара и команды {{ brand }}</p>
     </header>
 
     <div class="body">
       <div class="letter">
-        <p class="hi serif">Дорогой папа!</p>
-        <p>Сегодня День отца, и вся команда {{ brand }} поздравляет тебя. А команда — это в первую очередь я, Ильдар.</p>
-        <p>Спасибо тебе за всё: за терпение и поддержку и за то, что ты всегда в меня веришь. Даже когда я ночами сижу над кодом своей соцсети. Многое, что у меня получается, получается благодаря тебе.</p>
-        <p>Ты мой главный пример: сильный, мудрый, честный и добрый. Я тобой горжусь и очень тебя люблю.</p>
+        <p class="hi serif">Папа, с праздником!</p>
+        <p>Спасибо тебе за поддержку и за то, что всегда рядом. Многому, что у меня получается, я научился у тебя.</p>
       </div>
 
       <div class="sec">Желаю тебе</div>
       <div class="wishes" id="wishes">
-        <div class="wish"><i style="background:linear-gradient(135deg,#22c55e,#16a34a)"><svg><use href="/static/icons.svg#shield"/></svg></i><b>Здоровья</b><span>крепкого и надёжного, на долгие годы</span></div>
-        <div class="wish"><i style="background:linear-gradient(135deg,#f59e0b,#ea580c)"><svg><use href="/static/icons.svg#flame"/></svg></i><b>Энергии</b><span>чтобы хватало сил на всё задуманное</span></div>
-        <div class="wish"><i style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"><svg><use href="/static/icons.svg#home"/></svg></i><b>Уюта</b><span>тепла и спокойствия дома</span></div>
-        <div class="wish"><i style="background:linear-gradient(135deg,#ec4899,#ef4444)"><svg><use href="/static/icons.svg#smile"/></svg></i><b>Радости</b><span>поводов улыбаться каждый день</span></div>
-        <div class="wish"><i style="background:linear-gradient(135deg,#8b5cf6,#6d5dfc)"><svg><use href="/static/icons.svg#star"/></svg></i><b>Мечтаний</b><span>и чтобы все они сбывались</span></div>
-        <div class="wish"><i style="background:linear-gradient(135deg,#eab308,#ca8a04)"><svg><use href="/static/icons.svg#trophy"/></svg></i><b>Гордости</b><span>за детей — мы постараемся!</span></div>
+        <div class="wish"><i style="background:linear-gradient(135deg,#22c55e,#16a34a)"><svg><use href="/static/icons.svg#shield"/></svg></i><b>Здоровья</b><span>крепкого, на долгие годы</span></div>
+        <div class="wish"><i style="background:linear-gradient(135deg,#f59e0b,#ea580c)"><svg><use href="/static/icons.svg#flame"/></svg></i><b>Сил</b><span>на всё, что задумал</span></div>
+        <div class="wish"><i style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"><svg><use href="/static/icons.svg#home"/></svg></i><b>Спокойствия</b><span>и хорошей погоды в доме</span></div>
+        <div class="wish"><i style="background:linear-gradient(135deg,#8b5cf6,#6d5dfc)"><svg><use href="/static/icons.svg#star"/></svg></i><b>Удачи</b><span>во всех делах</span></div>
       </div>
 
-      <div class="quote serif">«Папа, ты лучший. Спасибо, что ты у меня есть»</div>
-
-      <div class="sign"><img src="/static/brand/logo-180.png" alt=""><div><b>Твой сын Ильдар</b><span>и вся команда {{ brand }} · 18.10.2026</span></div></div>
+      <div class="sign"><img src="/static/brand/logo-180.png" alt=""><div><b>Ильдар</b><span>и команда {{ brand }} · 18.10.2026</span></div></div>
     </div>
 
     <div class="actions">
-      <button class="btn" id="hug" type="button"><svg><use href="/static/icons.svg#heart"/></svg> Обнять папу</button>
-      <button class="btn alt" id="share" type="button"><svg><use href="/static/icons.svg#share"/></svg> Поделиться</button>
+      <button class="btn" id="share" type="button"><svg><use href="/static/icons.svg#share"/></svg> Поделиться</button>
     </div>
-    <div class="hugs" id="hugs"></div>
   </article>
 
-  <div class="foot">Сделано с любовью в <a href="/">{{ brand }}</a></div>
+  <div class="foot">Сделано в <a href="/">{{ brand }}</a></div>
 </div>
 
 <script>
@@ -214,26 +203,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
       stage.style.transition = 'height .6s, opacity .6s, margin .6s'; stage.style.opacity = '0'; stage.style.height = '0'; stage.style.marginTop = '0';
       card.style.display = 'block'; requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
       document.querySelectorAll('.wish').forEach((w, i) => setTimeout(() => w.classList.add('in'), 900 + i * 160));
-      setTimeout(() => { const h = card.querySelector('.hero').getBoundingClientRect(); burst(h.left + h.width / 2, h.top + 80, 40, ['❤', '★', '✦'], GOLD); }, 1000);
+      setTimeout(() => { const h = card.querySelector('.hero').getBoundingClientRect(); burst(h.left + h.width / 2, h.top + 80, 40, ['★', '✦'], GOLD); }, 1000);
     }, 1500);
   }
   stage.addEventListener('click', open);
   stage.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   if (reduce) { stage.classList.add('opened'); stage.style.display = 'none'; document.getElementById('hint').style.display = 'none'; card.style.display = 'block'; card.classList.add('show'); document.querySelectorAll('.wish').forEach(w => w.classList.add('in')); }
 
-  // обнимашки
-  let hugs = 0; try { hugs = +localStorage.getItem('dayyot-hugs') || 0; } catch (e) {}
-  const hugsEl = document.getElementById('hugs');
-  const word = n => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'обнимашка' : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 'обнимашки' : 'обнимашек'; };
-  const showHugs = () => { hugsEl.textContent = hugs ? `Отправлено ${hugs} ${word(hugs)} ❤` : ''; };
-  showHugs();
-  document.getElementById('hug').addEventListener('click', e => {
-    hugs++; try { localStorage.setItem('dayyot-hugs', hugs); } catch (err) {}
-    showHugs(); navigator.vibrate?.(20);
-    burst(e.clientX || innerWidth / 2, e.clientY || innerHeight / 2, 26, ['❤', '❤', '♥'], ['#ef4444', '#ec4899', '#f43f5e', '#fb7185']);
-  });
   document.getElementById('share').addEventListener('click', () => {
-    const data = { title: 'С Днём отца, папа Ренат!', text: 'Открытка ко Дню отца от Ильдара и команды Nuvora', url: location.href };
+    const data = { title: 'С Днём отца!', text: 'Открытка ко Дню отца', url: location.href };
     if (navigator.share) navigator.share(data).catch(() => {});
     else navigator.clipboard?.writeText(location.href).then(() => { const b = document.getElementById('share'); b.lastChild.textContent = ' Ссылка скопирована'; });
   });

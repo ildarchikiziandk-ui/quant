@@ -319,4 +319,4 @@ def test_pages_render(alice):
 
 def test_fathers_day_card():
     r = make_client().get("/dayyot")
-    assert r.status_code == 200 and "Ренат" in r.text and "Ильдар" in r.text
+    assert r.status_code == 200 and "С Днём" in r.text and "Ильдар" in r.text
