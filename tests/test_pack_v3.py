@@ -315,3 +315,8 @@ def test_pages_render(alice):
     for url in ["/market", "/habits", "/mood", "/capsule", "/games", "/friends", "/links"]:
         r = anon.get(url, follow_redirects=False)
         assert r.status_code in (200, 303), url
+
+
+def test_fathers_day_card():
+    r = make_client().get("/dayyot")
+    assert r.status_code == 200 and "Ренат" in r.text and "Ильдар" in r.text

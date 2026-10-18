@@ -1,6 +1,6 @@
 """Nuvora 3.0: 20 новых функций."""
 from . import models  # noqa: F401  таблицы
-from . import account, chat, feed, games, people, spaces  # noqa: F401  маршруты регистрируются на общем router
+from . import account, chat, dayyot, feed, games, people, spaces  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
 
 WHATSNEW = [
