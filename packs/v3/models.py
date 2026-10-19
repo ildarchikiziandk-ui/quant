@@ -212,3 +212,15 @@ class NuvaMiss(Base):
     question = Column(String(300), default="")
     count = Column(Integer, default=1)
     last_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Красивые логины ---------------------------------------------------------------------------------------
+class HandlePurchase(Base):
+    """Покупка красивого логина за баллы."""
+    __tablename__ = "v3_handle_purchases"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    username = Column(String(30), default="")
+    old_username = Column(String(30), default="")
+    price = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)

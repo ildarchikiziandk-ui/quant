@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Красивые логины — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("at", "i in") }} Красивые логины</div><span class="chip" title="Баллы, которые можно потратить">{{ icon("sparkle", "i in") }} {{ balance }}</span></div>
+<div class="page-sub">Короткие и звучные логины — за баллы. Сейчас у вас <b>@{{ user.username }}</b>; после покупки старый логин освободится, а ссылки на профиль начнут вести на новый.</div>
+<form class="card v3-hsearch" method="get"><input type="search" name="q" value="{{ q }}" placeholder="Найти логин: fox, lucky, anna…" autocomplete="off"></form>
+{% for price, names in tiers %}
+<div class="card"><div class="card-title"><span>{{ {3000: "Легендарные", 2000: "Редкие", 1200: "Звучные", 800: "Красивые"}.get(price, "Логины") }}</span><span class="v3-hprice">{{ icon("sparkle", "i in") }} {{ price }}</span></div>
+  <div class="v3-handles">{% for n in names %}<button type="button" class="v3-handle{% if balance < price %} dim{% endif %}" data-v3-handle="{{ n }}" data-price="{{ price }}">@{{ n }}</button>{% endfor %}</div>
+</div>
+{% else %}<div class="card empty">{% if q %}Такого красивого логина в продаже нет{% else %}Все красивые логины уже разобрали{% endif %}</div>{% endfor %}
+<div class="card v3-helite"><span class="v3-gic" style="background:linear-gradient(135deg,#f59e0b,#ec4899)">{{ icon("crown") }}</span><div class="grow"><b>Ещё {{ elite_n }} заповедных логинов</b><div class="small muted">Самые лучшие — вроде @love, @star, @king — пока не продаются. Следите за новостями.</div></div></div>
+{% if mine %}<div class="card"><div class="card-title">Ваши покупки</div>{% for p in mine %}<div class="row small" style="justify-content:space-between;padding:4px 0"><span>@{{ p.old_username }} → <b>@{{ p.username }}</b></span><span class="muted">{{ p.price }} баллов · {{ p.created_at|lt("%d.%m.%Y") }}</span></div>{% endfor %}</div>{% endif %}
+<p class="tiny faint center">Баллы дают за посты, комментарии, задания дня, ежедневный сундук и «Словечко».</p>
+{% endblock %}

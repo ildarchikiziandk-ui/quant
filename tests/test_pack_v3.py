@@ -423,3 +423,36 @@ def test_ui_declutter(alice):
     assert sett.count("link-extra") >= 1 and "Ещё ссылка" in sett
     notes = alice.get("/notifications").text
     assert "v3-group-chip" in notes and "@ Упоминания" not in notes
+
+
+def test_beautiful_handles(alice, owner):
+    from services import handles
+    c = make_client()
+    form = {"email": "x@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1", "name": "X"}
+    r = c.post("/register", data={**form, "username": "Love"}, follow_redirects=False)
+    assert r.status_code != 303 and "зарезервирован" in r.text
+    r = c.post("/register", data={**form, "username": "fox"}, follow_redirects=False)
+    assert r.status_code != 303 and "баллов" in r.text
+    r = alice.post("/settings/username", data={"username": "lucky", "password": "secret123"})
+    assert "Магазине логинов" in r.text
+    page = alice.get("/handles").text
+    assert 'data-v3-handle="lucky"' in page and 'data-v3-handle="love"' not in page and "заповедных" in page
+    assert alice.post("/handles/buy", json={"username": "lucky", "password": "secret123"}, headers=J).status_code == 400  # нет баллов
+    s = db()
+    u = s.query(models.User).filter_by(username="alice").first()
+    u.total_points = (u.total_points or 0) + 5000
+    s.commit()
+    s.close()
+    assert alice.post("/handles/buy", json={"username": "lucky", "password": "wrong"}, headers=J).status_code == 400
+    assert alice.post("/handles/buy", json={"username": "love", "password": "secret123"}, headers=J).status_code == 400  # заповедный
+    r = alice.post("/handles/buy", json={"username": "Lucky", "password": "secret123"}, headers=J).json()
+    assert r["username"] == "lucky"
+    s = db()
+    u = s.query(models.User).filter_by(username="lucky").first()
+    assert u and u.spent_points == handles.PREMIUM["lucky"]
+    s.close()
+    assert 'data-v3-handle="lucky"' not in alice.get("/handles").text  # проданный исчез из витрины
+    assert alice.get("/profile/lucky").status_code == 200
+    # владелец может занять заповедный логин
+    r = owner.post("/settings/username", data={"username": "star", "password": "secret123"})
+    assert "@star" in r.text

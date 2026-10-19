@@ -486,3 +486,18 @@
   addEventListener('online', () => show(false));
   if (!navigator.onLine) show(true);
 })();
+
+/* Красивые логины: покупка за баллы */
+(function () {
+  const A = window.App;
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-v3-handle]'); if (!b) return;
+    const name = b.dataset.v3Handle, price = +b.dataset.price;
+    const md = A.modal('@' + name, `<p class="small muted mb">Логин сменится на <b>@${A.esc(name)}</b>, старый освободится. Спишется <b>${price}</b> баллов.</p>
+      <input type="password" id="v3-hpass" placeholder="Пароль для подтверждения" autocomplete="current-password"><button class="btn block mt" id="v3-hbuy">Купить за ${price} баллов</button>`);
+    md.querySelector('#v3-hpass').focus();
+    md.querySelector('#v3-hbuy').onclick = async () => {
+      try { const r = await A.api('/handles/buy', { username: name, password: md.querySelector('#v3-hpass').value }); md.classList.remove('open'); A.toast('Теперь вы @' + r.username); setTimeout(() => location.href = '/profile/' + r.username, 700); } catch (err) {}
+    };
+  });
+})();

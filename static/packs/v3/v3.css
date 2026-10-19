@@ -290,3 +290,12 @@ html.in-app .convo.has-wp .msg:not(.mine) .bubble { backdrop-filter: none; backg
 html.in-app .plus-name, html.in-app .av-wrap.plus-glow { animation: none; }
 html.in-app article.post:hover { box-shadow: none; }
 html.in-app::view-transition-old(root), html.in-app::view-transition-new(root) { animation: none; }
+
+/* ---------- красивые логины */
+.v3-hsearch input { margin: 0; }
+.v3-hprice { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 800; color: #f59e0b; }
+.v3-handles { display: flex; flex-wrap: wrap; gap: 8px; }
+.v3-handle { padding: 9px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--input); color: var(--text); font: 700 15px inherit; font-family: inherit; cursor: pointer; transition: transform .12s, border-color .15s, background .15s; }
+.v3-handle:hover { border-color: var(--brand, #6d5dfc); }
+.v3-handle.dim { opacity: .55; }
+.v3-helite { display: flex; align-items: center; gap: 12px; }

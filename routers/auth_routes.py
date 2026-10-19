@@ -19,7 +19,7 @@ router = APIRouter()
 RESERVED = {"admin", "api", "static", "uploads", "login", "logout", "register", "settings", "support", "nuvora", "root", "system"}
 
 
-def validate_username(u):
+def validate_username(u, user=None):
     if len(u) < 3:
         return "Логин: минимум 3 символа"
     if len(u) > 30:
@@ -28,7 +28,8 @@ def validate_username(u):
         return "Логин: только латиница, цифры и _"
     if u.lower() in RESERVED:
         return "Этот логин зарезервирован"
-    return None
+    from services import handles
+    return handles.check(u, user)  # красивые логины: заповедные и продающиеся за баллы
 
 
 def validate_password(p):
@@ -346,6 +347,9 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
         if len(ubase) < 3:
             ubase = f"user_{ubase}"
         un, i = ubase, 1
+        from services import handles
+        if handles.check(un) or un.lower() in RESERVED:  # красивый логин из Яндекса не раздаём бесплатно
+            un = ubase = f"{ubase}_y"
         while db.query(models.User).filter(func.lower(models.User.username) == un.lower()).first():
             un, i = f"{ubase}_{i}", i + 1
         user = models.User(name=(yu.get("real_name") or yu.get("display_name") or un)[:60], username=un,

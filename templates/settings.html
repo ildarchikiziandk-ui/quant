@@ -67,6 +67,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="form-row"><label class="field"><span>Новый логин</span><input name="username" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" required></label>
   <label class="field"><span>Пароль</span><input type="password" name="password" required></label></div>
   <button class="btn">Сменить логин</button>
+  <a class="btn ghost sm" href="/handles">{{ icon("at", "i in") }} Красивые логины за баллы</a>
 </form>
 <form class="card" method="post" action="/settings/email">
   <div class="card-title">Email {% if user.email_verified %}<span class="tag-pill">подтверждён</span>{% else %}<a href="/verify">подтвердить →</a>{% endif %}</div>
