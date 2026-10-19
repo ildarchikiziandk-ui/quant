@@ -390,15 +390,20 @@
   let hist = [];
   try { hist = JSON.parse(localStorage.getItem(KEY) || '[]').slice(-40); } catch (e) { hist = []; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(hist.slice(-40))); } catch (e) {} };
-  const add = (role, text) => { const d = document.createElement('div'); d.className = 'ai-msg ' + (role === 'user' ? 'me' : 'bot'); d.innerHTML = paras(text); log.appendChild(d); log.scrollTop = log.scrollHeight; };
+  const add = (role, text, links) => {
+    const d = document.createElement('div'); d.className = 'ai-msg ' + (role === 'user' ? 'me' : 'bot'); d.innerHTML = paras(text);
+    if (links && links.length) d.innerHTML += '<div class="ai-links">' + links.map(l => `<a class="btn soft sm" href="${A.esc(l.url)}">${A.esc(l.title)}</a>`).join('') + '</div>';
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  };
   const tips = list => { sugg.innerHTML = (list || []).map(t => `<button type="button" class="chip" data-ai-q>${A.esc(t)}</button>`).join(''); sugg.classList.toggle('hidden', !(list || []).length); };
-  hist.forEach(h => add(h.role, h.content));
+  hist.forEach(h => add(h.role, h.content, h.links));
   if (hist.length) sugg.classList.add('hidden');
   async function send(text) {
     text = text.trim(); if (!text) return;
     add('user', text); hist.push({ role: 'user', content: text });
     inp.value = ''; inp.style.height = 'auto';
-    try { const r = await A.api('/ai/chat', { question: text }); add('bot', r.text); hist.push({ role: 'bot', content: r.text }); tips(r.tips); }
+    const prev = [...hist].reverse().find((h, i) => i > 0 && h.role === 'user');
+    try { const r = await A.api('/ai/chat', { question: text, prev: prev ? prev.content : '' }); add('bot', r.text, r.links); hist.push({ role: 'bot', content: r.text, links: r.links }); tips(r.tips); }
     catch (e) { hist.pop(); inp.value = text; }
     save();
   }
@@ -408,4 +413,24 @@
   sugg.addEventListener('click', e => { const b = e.target.closest('[data-ai-q]'); if (b) send(b.textContent); });
   $('#ai-clear').onclick = () => { hist = []; save(); log.querySelectorAll('.ai-msg:not(:first-child)').forEach(x => x.remove()); tips(['Что ты умеешь?', 'Как создать опрос в чате?', 'Подпись к фото с моря', 'Идея для поста']); };
   if (inp.dataset.q) send(inp.dataset.q);
+})();
+
+/* /ai/admin: обучение Нувы */
+(function () {
+  const f = document.getElementById('nuva-form');
+  if (!f) return;
+  const A = window.App;
+  document.addEventListener('click', async e => {
+    const ans = e.target.closest('[data-nuva-answer]'), del = e.target.closest('[data-nuva-del]'), edit = e.target.closest('[data-nuva-edit]');
+    if (ans) { f.reset(); f.id.value = ''; f.miss_id.value = ans.dataset.nuvaAnswer; f.question.value = ans.dataset.q; f.scrollIntoView({ behavior: 'smooth' }); f.answer.focus(); }
+    if (edit) { const d = JSON.parse(edit.dataset.nuvaEdit); Object.keys(d).forEach(k => { if (f[k]) f[k].value = d[k] || ''; }); f.miss_id.value = ''; f.scrollIntoView({ behavior: 'smooth' }); }
+    if (del) {
+      if (!confirm(del.dataset.kind === 'answer' ? 'Удалить ответ?' : 'Убрать вопрос из списка?')) return;
+      try { await A.api(`/ai/admin/${del.dataset.kind}/${del.dataset.nuvaDel}/delete`); del.closest('.nuva-row').remove(); } catch (err) {}
+    }
+  });
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    try { const r = await A.api('/ai/admin/answer', Object.fromEntries(new FormData(f).entries())); A.toast('Ответ сохранён' + (r.solved ? ` · закрыто вопросов: ${r.solved}` : '')); setTimeout(() => location.reload(), 700); } catch (err) {}
+  });
 })();

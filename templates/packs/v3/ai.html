@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Нува — помощник — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bot", "i in") }} Нува</div></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bot", "i in") }} Нува</div>{% if misses is not none %}<a class="btn soft sm" href="/ai/admin">{{ icon("edit", "i in") }} Обучить{% if misses %} · {{ misses }}{% endif %}</a>{% endif %}</div>
 {% if not user %}
 <div class="card empty"><div class="big">{{ icon("bot", "i in") }}</div>Нува — помощник {{ brand }}. Войдите, чтобы задать вопрос.<br><a class="btn mt" href="/login?next=/ai">Войти</a></div>
 {% else %}
@@ -11,7 +11,7 @@
   </div>
   <div class="chips ai-sugg" id="ai-sugg">{% for t in ["Что ты умеешь?", "Как создать опрос в чате?", "Подпись к фото с моря", "Идея для поста"] %}<button type="button" class="chip" data-ai-q>{{ t }}</button>{% endfor %}</div>
   <form class="ai-form" id="ai-form"><textarea id="ai-in" rows="1" maxlength="500" placeholder="Спросите Нуву…" data-q="{{ q }}"></textarea><button class="btn" title="Отправить">{{ icon("send", "i in") }}</button></form>
-  <div class="row tiny faint" style="justify-content:space-between;margin-top:8px"><span>Нува — простой помощник: отвечает по справке и готовым шаблонам.</span><button type="button" class="v3-link tiny" id="ai-clear">Очистить</button></div>
+  <div class="row tiny faint" style="justify-content:space-between;margin-top:8px"><span>Нува отвечает по справке и готовым шаблонам. Понимает опечатки и английскую раскладку.</span><button type="button" class="v3-link tiny" id="ai-clear">Очистить</button></div>
 </div>
 {% endif %}
 {% endblock %}

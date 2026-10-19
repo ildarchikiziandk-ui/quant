@@ -186,3 +186,29 @@ class SeenDevice(Base):
     device = Column(String(120), default="")
     last_session_id = Column(Integer, default=0)
 
+
+
+# --- Помощник Нува ----------------------------------------------------------------------------------------
+class NuvaAnswer(Base):
+    """Ответ, который модератор добавил помощнику из админки."""
+    __tablename__ = "v3_nuva_answers"
+    id = Column(Integer, primary_key=True)
+    question = Column(String(200), default="")
+    keywords = Column(String(300), default="")
+    answer = Column(Text, default="")
+    link_url = Column(String(300), default="")
+    link_title = Column(String(60), default="")
+    hits = Column(Integer, default=0)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class NuvaMiss(Base):
+    """Вопрос, на который Нува не нашла ответа (одинаковые вопросы складываются в счётчик)."""
+    __tablename__ = "v3_nuva_misses"
+    id = Column(Integer, primary_key=True)
+    key = Column(String(200), unique=True, index=True)
+    question = Column(String(300), default="")
+    count = Column(Integer, default=1)
+    last_at = Column(DateTime, default=datetime.utcnow)

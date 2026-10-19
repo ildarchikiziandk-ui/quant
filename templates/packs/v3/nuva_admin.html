@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Обучение Нувы — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/ai" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Обучение Нувы</div></div>
+<div class="page-sub">Сюда попадают вопросы, на которые Нува не нашла ответа. Допишите ответ — и она начнёт отвечать на похожие вопросы. Повторяющиеся вопросы складываются в счётчик.</div>
+<form class="card" id="nuva-form">
+  <div class="card-title">Ответ для Нувы</div>
+  <input type="hidden" name="id"><input type="hidden" name="miss_id">
+  <label class="field"><span>Вопрос</span><input name="question" maxlength="200" required placeholder="Как поменять обложку профиля?"></label>
+  <label class="field"><span>Ключевые слова <span class="faint">— через пробел, другие слова для того же вопроса</span></span><input name="keywords" maxlength="300" placeholder="обложка шапка фон профиля"></label>
+  <label class="field"><span>Ответ</span><textarea name="answer" maxlength="3000" rows="4" required></textarea></label>
+  <div class="form-row">
+    <label class="field"><span>Кнопка: адрес <span class="faint">— необязательно</span></span><input name="link_url" maxlength="300" placeholder="/settings?section=profile"></label>
+    <label class="field"><span>Кнопка: текст</span><input name="link_title" maxlength="60" placeholder="Открыть настройки"></label>
+  </div>
+  <button class="btn mt">Сохранить ответ</button>
+</form>
+<div class="card"><div class="card-title"><span>Вопросы без ответа</span><span class="faint small">{{ misses|length }}</span></div>
+{% for q in misses %}<div class="nuva-row"><span class="nuva-count" title="Сколько раз спрашивали">{{ q.count }}</span><div class="grow"><b>{{ q.question }}</b><div class="tiny faint">{{ q.last_at|ago }}</div></div>
+  <button type="button" class="btn sm" data-nuva-answer="{{ q.id }}" data-q="{{ q.question }}">Ответить</button><button type="button" class="icon-btn" data-nuva-del="{{ q.id }}" data-kind="miss" title="Убрать">{{ icon("x", "i in") }}</button></div>
+{% else %}<div class="empty small">Пока Нува на всё нашла ответ</div>{% endfor %}
+</div>
+<div class="card"><div class="card-title"><span>Добавленные ответы</span><span class="faint small">{{ answers|length }}</span></div>
+{% for a in answers %}<div class="nuva-row"><div class="grow"><b>{{ a.question }}</b><div class="small muted" style="white-space:pre-wrap">{{ a.answer }}</div>{% if a.link_url %}<div class="tiny faint">кнопка: {{ a.link_title or "Перейти" }} → {{ a.link_url }}</div>{% endif %}<div class="tiny faint">ответила {{ plural(a.hits or 0, "раз", "раза", "раз") }}</div></div>
+  <button type="button" class="icon-btn" data-nuva-edit='{{ {"id": a.id, "question": a.question, "keywords": a.keywords, "answer": a.answer, "link_url": a.link_url, "link_title": a.link_title}|tojson|forceescape }}' title="Изменить">{{ icon("edit", "i in") }}</button><button type="button" class="icon-btn" data-nuva-del="{{ a.id }}" data-kind="answer" title="Удалить">{{ icon("trash", "i in") }}</button></div>
+{% else %}<div class="empty small">Своих ответов пока нет</div>{% endfor %}
+</div>
+{% endblock %}

@@ -338,7 +338,8 @@ def test_nuva_answers(alice):
     assert "не знаю" in r["text"] and r["tips"]
     assert alice.post("/ai/chat", json={"question": ""}, headers=J).status_code == 400
     assert make_client().post("/ai/chat", json={"question": "привет"}, headers=J).status_code == 401
-    assert ai.search_help("удалить аккаунт")[0][1] == "Как удалить аккаунт?"
+    assert ask("как удалить акаунт")["text"].startswith("Как удалить аккаунт?")
+    assert ai.enabled()
 
 
 def test_nuva_fix_text_and_tags(alice):
@@ -354,3 +355,47 @@ def test_nuva_fix_text_and_tags(alice):
     r = alice.post("/ai/rewrite", json={"text": "Гуляли в парке с собакой", "mode": "tags"}, headers=J).json()
     assert "#парк" in r["text"] and "#собака" in r["text"]
     assert alice.post("/ai/rewrite", json={"text": "привет", "mode": "hack"}, headers=J).status_code == 400
+
+
+def test_nuva_understands_russian(alice):
+    from packs.v3 import nuva_lang as lang
+    assert lang.stem("паролем") == lang.stem("пароля") == lang.stem("пароль")
+    assert lang.from_layout("rfr cvtybnm gfhjkm") == "как сменить пароль"
+    assert lang.squeeze("приииивет") == "привет"
+    ask = lambda q, prev="": alice.post("/ai/chat", json={"question": q, "prev": prev}, headers=J).json()
+    assert ask("забыл пороль")["text"].startswith("Забыл пароль")              # опечатка
+    r = ask("rfr cvtybnm gfhjkm")                                              # английская раскладка
+    assert "раскладке" in r["text"] and "Как сменить пароль?" in r["text"]
+    assert r["links"] == [{"url": "/settings?section=account", "title": "Сменить пароль"}]
+    assert ask("у меня украли аккаунт")["text"].startswith("Аккаунт взломали")  # синонимы
+    assert ask("а где это найти", prev="что такое резервные коды")["text"].startswith("Что такое резервные коды")  # уточнение
+    assert "Из нового" in ask("что нового?")["text"]
+
+
+def test_nuva_admin_teaching(alice, owner):
+    q = "как запустить прямой эфир"
+    r = alice.post("/ai/chat", json={"question": q}, headers=J).json()
+    assert not r["found"]
+    alice.post("/ai/chat", json={"question": "Как запустить прямой эфир?"}, headers=J)
+    from packs.v3 import models as pm
+    s = db()
+    miss = s.query(pm.NuvaMiss).one()
+    assert miss.count == 2
+    mid = miss.id
+    s.close()
+    assert alice.get("/ai/admin").status_code == 403
+    assert alice.post("/ai/admin/answer", json={"question": "x", "answer": "y"}, headers=J).status_code == 403
+    page = owner.get("/ai/admin").text
+    assert "прямой эфир" in page
+    assert owner.post("/ai/admin/answer", json={"question": "Обложка", "answer": "Ответ", "link_url": "javascript:alert(1)"}, headers=J).status_code == 400
+    r = owner.post("/ai/admin/answer", json={"question": "Как запустить прямой эфир?", "keywords": "стрим трансляция",
+                                             "answer": "Прямых эфиров пока нет — мы над ними работаем.", "link_url": "/whats-new",
+                                             "link_title": "Что нового", "miss_id": str(mid)}, headers=J).json()
+    assert r["ok"]
+    s = db()
+    assert s.query(pm.NuvaMiss).count() == 0
+    s.close()
+    r = alice.post("/ai/chat", json={"question": "можно начать стрим?"}, headers=J).json()
+    assert r["found"] and "мы над ними работаем" in r["text"] and r["links"][0]["url"] == "/whats-new"
+    assert owner.post(f"/ai/admin/answer/{r and 1}/delete", headers=J).json()["ok"]
+    assert "Обучить" in owner.get("/ai").text and "Обучить" not in alice.get("/ai").text
