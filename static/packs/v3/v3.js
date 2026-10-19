@@ -164,7 +164,12 @@
   // ================================================================ сундук
   on('[data-v3-chest]', async b => {
     b.disabled = true;
-    try { const r = await A.api('/v3/chest'); const c = $('#v3-chest'); c.classList.add('opened'); c.querySelector('.grow').innerHTML = `<b>+${r.reward} очков!</b><div class="small muted">Серия: ${plural(r.streak, 'день', 'дня', 'дней')} подряд. Завтра — ещё больше</div>`; b.remove(); play('confetti'); setTimeout(() => c.remove(), 5000); } catch (e) { b.disabled = false; }
+    try {
+      const r = await A.api('/v3/chest');
+      b.classList.add('opened'); b.innerHTML = `${IC('check')}<span>+${r.reward}</span>`;
+      A.toast(`Сундук открыт: +${r.reward} очков · серия ${plural(r.streak, 'день', 'дня', 'дней')}`); play('confetti');
+      setTimeout(() => b.remove(), 2500);
+    } catch (e) { b.disabled = false; }
   });
 
   // ================================================================ мои ссылки
@@ -433,4 +438,53 @@
     e.preventDefault();
     try { const r = await A.api('/ai/admin/answer', Object.fromEntries(new FormData(f).entries())); A.toast('Ответ сохранён' + (r.solved ? ` · закрыто вопросов: ${r.solved}` : '')); setTimeout(() => location.reload(), 700); } catch (err) {}
   });
+})();
+
+/* Движение 3.1 и «как приложение»: волна от касания, прыгающие счётчики, плавная смена темы, баннер «Нет сети» */
+(function () {
+  'use strict';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('p-reduce-motion');
+  const inApp = /NuvoraApp\//.test(navigator.userAgent);
+  // волна от касания на кнопках
+  if (!reduce) document.addEventListener('pointerdown', e => {
+    const el = e.target.closest('.btn, .chip, .icon-btn, .tool, .mobile-nav a, .v3-opt, .today-chest, .v3-kb button, .tabs a');
+    if (!el || el.disabled) return;
+    const r = el.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.2;
+    const w = document.createElement('span'); w.className = 'm-ripple';
+    w.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+    el.classList.add('m-rippled'); el.appendChild(w); setTimeout(() => w.remove(), 600);
+    if (inApp && el.closest('.mobile-nav')) navigator.vibrate?.(6);
+  }, { passive: true });
+  // счётчики лайков, комментариев и уведомлений подпрыгивают при изменении
+  if (!reduce && window.MutationObserver) new MutationObserver(list => list.forEach(m => {
+    const el = m.target.nodeType === 3 ? m.target.parentElement : m.target;
+    if (el && el.matches && el.matches('.act .n, .badge-count, #followers-count, .mbadge')) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  })).observe(document.body, { subtree: true, characterData: true, childList: true });
+  // плавная смена темы
+  const tt = window.toggleTheme;
+  if (typeof tt === 'function') window.toggleTheme = function () { const h = document.documentElement; h.classList.add('m-theme'); const r = tt.apply(this, arguments); setTimeout(() => h.classList.remove('m-theme'), 450); return r; };
+  // картинки: убираем переливающуюся подложку, когда загрузились
+  const mark = img => { if (img.complete) img.dataset.loaded = 1; else img.addEventListener('load', () => { img.dataset.loaded = 1; }, { once: true }); };
+  document.querySelectorAll('.post-media img').forEach(mark);
+  new MutationObserver(l => l.forEach(m => m.addedNodes.forEach(n => n.querySelectorAll && n.querySelectorAll('.post-media img').forEach(mark)))).observe(document.body, { childList: true, subtree: true });
+  // нет сети / сеть вернулась
+  let bar = null, hideT = 0;
+  const show = (off) => {
+    if (!bar) { bar = document.createElement('div'); bar.className = 'm-offline'; document.body.appendChild(bar); }
+    bar.classList.toggle('back', !off); bar.innerHTML = `<i></i>${off ? 'Нет сети — показываю сохранённое' : 'Снова в сети'}`;
+    requestAnimationFrame(() => bar.classList.add('show')); clearTimeout(hideT);
+    if (!off) hideT = setTimeout(() => bar.classList.remove('show'), 2200);
+  };
+  // список сохранённых страниц для офлайн-экрана приложения
+  try {
+    const okPath = /^\/($|messages\/?$|notifications$|explore$|friends$|games(\/2048|\/word)?$|habits$|mood$|help$|ai$|capsule$|links$|market$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
+    if (window.APP && APP.user && okPath.test(location.pathname) && navigator.onLine) {
+      const u = location.pathname + location.search, t = u === '/' ? 'Лента' : (document.title || '').replace(/\s*—\s*Nuvora\s*$/, '') || 'Страница';
+      const list = JSON.parse(localStorage.getItem('nv_saved_pages') || '[]').filter(p => p.u !== u);
+      list.unshift({ u, t }); localStorage.setItem('nv_saved_pages', JSON.stringify(list.slice(0, 12)));
+    }
+  } catch (e) {}
+  addEventListener('offline', () => show(true));
+  addEventListener('online', () => show(false));
+  if (!navigator.onLine) show(true);
 })();

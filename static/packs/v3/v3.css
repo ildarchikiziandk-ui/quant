@@ -185,7 +185,7 @@
 .ai-log { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; min-height: 220px; overflow-y: auto; padding-bottom: 6px; }
 .ai-msg { max-width: 86%; padding: 10px 14px; border-radius: 18px; line-height: 1.45; font-size: 15px; overflow-wrap: anywhere; }
 .ai-msg.bot { align-self: flex-start; background: var(--input); border-bottom-left-radius: 6px; }
-.ai-msg.me { align-self: flex-end; background: var(--brand, #6d5dfc); color: #fff; border-bottom-right-radius: 6px; }
+.ai-msg.me { align-self: flex-end; background: linear-gradient(135deg, #6d5dfc, #8b5cf6); color: #fff; border-bottom-right-radius: 6px; box-shadow: 0 6px 18px rgb(109 93 252 / .25); }
 .ai-sugg { margin: 6px 0 2px; flex-wrap: wrap; }
 .ai-sugg .chip { white-space: normal; text-align: left; }
 .ai-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
@@ -193,8 +193,91 @@
 .ai-form .btn { height: 44px; flex-shrink: 0; }
 .ai-out { line-height: 1.55; }
 .ai-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.ai-links .btn { background: var(--card); }
+.ai-links .btn { background: var(--card); color: var(--text); border: 1px solid var(--border); }
 .nuva-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .nuva-row:last-child { border-bottom: 0; }
 .nuva-row .grow { min-width: 0; overflow-wrap: anywhere; }
 .nuva-count { min-width: 30px; height: 24px; padding: 0 8px; border-radius: 99px; background: var(--input); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+
+/* ---------- «Сегодня»: приветствие, совет, сундук, что нового — одной карточкой */
+.today { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg, color-mix(in srgb, #6d5dfc 10%, var(--card)), var(--card) 70%); }
+.today-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.today-main b { font-size: 16px; }
+.today-new { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--brand, #6d5dfc); }
+.today-chest { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; padding: 8px 0; border: 0; border-radius: 16px; cursor: pointer;
+  background: linear-gradient(135deg, #f59e0b, #ea580c); color: #fff; font: 800 12px/1 inherit; font-family: inherit; box-shadow: 0 6px 16px rgb(234 88 12 / .3); animation: v3wiggle 2.8s ease-in-out infinite; }
+.today-chest svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+.today-chest.opened { background: #22c55e; animation: v3pop .5s; box-shadow: none; }
+@keyframes v3wiggle { 0%, 80%, 100% { transform: none; } 84% { transform: rotate(-8deg) scale(1.05); } 88% { transform: rotate(8deg) scale(1.05); } 92% { transform: rotate(-4deg); } }
+.today.bday { background: linear-gradient(135deg, color-mix(in srgb, #ec4899 16%, var(--card)), var(--card)); }
+
+/* ---------- профиль: компактнее */
+.profile-stats.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+.profile-stats.tiles > * { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border-radius: 14px; background: var(--input); font-size: 12px; text-align: center; transition: transform .15s; }
+.profile-stats.tiles > * b { font-size: 17px; }
+.profile-stats.tiles > a:active { transform: scale(.96); }
+.profile-more { margin-top: 6px; }
+.profile-more summary { list-style: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-2); display: inline-flex; align-items: center; gap: 4px; }
+.profile-more summary::-webkit-details-marker { display: none; }
+.profile-more summary::after { content: "▾"; transition: transform .2s; }
+.profile-more[open] summary::after { transform: rotate(180deg); }
+.profile-more .profile-links { animation: v3fadein .25s ease; }
+@keyframes v3fadein { from { opacity: 0; transform: translateY(-4px); } }
+
+/* ---------- уведомления: переключатель группировки — чипом */
+.v3-group-chip { cursor: pointer; }
+.v3-group-chip:has(input:checked) { background: var(--text); color: var(--card); }
+
+/* ================================================================ Движение 3.1: интерфейс «как приложение» */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html:not(.p-reduce-motion) article.post, html:not(.p-reduce-motion) .main > .card, html:not(.p-reduce-motion) .user-row, html:not(.p-reduce-motion) .chat, html:not(.p-reduce-motion) .v3-mcard, html:not(.p-reduce-motion) .v3-habit, html:not(.p-reduce-motion) [id^="n-"] { animation: m-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 28%; }
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.p-reduce-motion) .btn:active, html:not(.p-reduce-motion) .chip:active, html:not(.p-reduce-motion) .icon-btn:active, html:not(.p-reduce-motion) .act:active, html:not(.p-reduce-motion) .tool:active, html:not(.p-reduce-motion) .v3-opt:active, html:not(.p-reduce-motion) .v3-cell:active:not(:disabled), html:not(.p-reduce-motion) .mobile-nav a:active, html:not(.p-reduce-motion) .story-item:active, html:not(.p-reduce-motion) .today-chest:active, html:not(.p-reduce-motion) .v3-kb button:active { transform: scale(.94); }
+  html:not(.p-reduce-motion) a.card:active { transform: scale(.985); }
+  html:not(.p-reduce-motion) .act.like.on svg, html:not(.p-reduce-motion) .act[data-act="bookmark"].on svg { animation: m-like .45s cubic-bezier(.2,1.6,.4,1); }
+  .act.like { position: relative; }
+  html:not(.p-reduce-motion) .act.like.on::after { content: ""; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+    border: 2px solid var(--like); opacity: 0; animation: m-ring .5s ease-out; pointer-events: none; }
+  html:not(.p-reduce-motion) .bump { animation: m-bump .35s cubic-bezier(.2,1.6,.4,1); display: inline-block; }
+  .mobile-nav a svg { transition: transform .25s cubic-bezier(.2,1.6,.4,1); }
+  html:not(.p-reduce-motion) .mobile-nav a.active svg, html:not(.p-reduce-motion) .mobile-nav a[aria-current] svg { transform: translateY(-2px) scale(1.08); }
+  html:not(.p-reduce-motion) .mobile-nav .fab, html:not(.p-reduce-motion) .mobile-nav .nav-plus { animation: m-glow 3.2s ease-in-out infinite; }
+  html:not(.p-reduce-motion) .story-item .ring, html:not(.p-reduce-motion) .ring { background-size: 200% 200%; animation: m-ring-shift 4s ease-in-out infinite; }
+  html:not(.p-reduce-motion) .menu.open > * { animation: m-item .22s cubic-bezier(.2,.8,.2,1) both; }
+  .menu.open > *:nth-child(2) { animation-delay: .02s; } .menu.open > *:nth-child(3) { animation-delay: .04s; }
+  .menu.open > *:nth-child(4) { animation-delay: .06s; } .menu.open > *:nth-child(5) { animation-delay: .08s; }
+  .menu.open > *:nth-child(n+6) { animation-delay: .1s; }
+  html:not(.p-reduce-motion) .ai-msg { animation: msg-in .28s cubic-bezier(.2,.8,.2,1); }
+  .tabs a { transition: background .25s, color .25s, box-shadow .25s, transform .12s; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  article.post, .v3-mcard, .v3-game { transition: transform .2s, box-shadow .2s; }
+  article.post:hover { box-shadow: 0 10px 30px rgb(0 0 0 / .08); }
+  .v3-mcard:hover { transform: translateY(-3px); }
+}
+@keyframes m-rise { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes m-like { 0% { transform: scale(1); } 35% { transform: scale(1.45) rotate(-8deg); } 70% { transform: scale(.92); } 100% { transform: scale(1); } }
+@keyframes m-ring { 0% { opacity: .7; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.5); } }
+@keyframes m-bump { 40% { transform: translateY(-3px) scale(1.2); } }
+@keyframes m-glow { 0%, 100% { box-shadow: 0 8px 22px rgb(109 93 252 / .35); } 50% { box-shadow: 0 8px 30px rgb(236 72 153 / .45); } }
+@keyframes m-ring-shift { 50% { background-position: 100% 100%; } }
+@keyframes m-item { from { opacity: 0; transform: translateY(-4px); } }
+/* «волна» от касания (как в Android) */
+.m-ripple { position: absolute; border-radius: 50%; pointer-events: none; background: currentColor; opacity: .18; transform: scale(0); animation: m-ripple .55s ease-out forwards; }
+@keyframes m-ripple { to { transform: scale(1); opacity: 0; } }
+.m-rippled { position: relative; overflow: hidden; }
+/* плавная смена темы */
+html.m-theme, html.m-theme * { transition: background-color .35s ease, color .35s ease, border-color .35s ease !important; }
+/* картинки грузятся на переливающейся подложке */
+.post-media { background: linear-gradient(90deg, var(--input) 25%, color-mix(in srgb, var(--input) 60%, var(--card)) 50%, var(--input) 75%); background-size: 200% 100%; animation: sk 1.4s linear infinite; }
+.post-media:has(img[data-loaded]) { animation: none; background: none; }
+/* баннер «Нет сети» */
+.m-offline { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 10px); transform: translate(-50%, -150%); z-index: 600; display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 999px; background: #18181b; color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap; box-shadow: 0 10px 30px rgb(0 0 0 / .3); transition: transform .35s cubic-bezier(.2,1.2,.3,1); }
+.m-offline.show { transform: translate(-50%, 0); }
+.m-offline.back { background: #16a34a; }
+.m-offline i { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; }
+.m-offline.back i { background: #fff; }

@@ -475,6 +475,14 @@
       'Напишите /roll в чате — и бросьте кубик.', 'Забыли переключить раскладку? Nuvora предложит исправить «ghbdtn» на «привет».', 'Потяните ленту вниз, чтобы обновить её.',
       'Кнопка «Прослушать» на странице поста прочитает его вслух.', 'Посмотрите, у кого скоро день рождения: Меню → Дни рождения.', 'Включите «Экономию трафика» в настройках ленты для мобильного интернета.'];
     const tip = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
+    const tcard = $('#today-card');
+    if (tcard) {  // одна карточка «Сегодня»: приветствие, совет, сундук и «Что нового»
+      $('#today-hi', tcard).textContent = bday ? 'С днём рождения, ' + (APP.name || APP.user) + '!' : part + ', ' + (APP.name || APP.user) + '!';
+      $('#today-tip', tcard).innerHTML = bday ? 'Вся команда Nuvora желает вам счастья. Сегодня ваш день!' : IC('bulb') + ' ' + esc(tip);
+      if (bday) tcard.classList.add('bday');
+      if (bday && ls.get('nv_confetti', '') !== localDate().slice(5)) { ls.set('nv_confetti', localDate().slice(5)); confetti(); }
+      return;
+    }
     const k = 'nv_greet_' + localDate(); if (ls.get(k, '') === 'x') return;
     const card = document.createElement('div'); card.className = 'card greet' + (bday ? ' bday' : '');
     card.innerHTML = `<button type="button" class="icon-btn greet-x" title="Скрыть на сегодня">${IC('x')}</button><b>${bday ? 'С днём рождения, ' + esc(APP.name || APP.user) + '!' : part + ', ' + esc(APP.name || APP.user) + '!'}</b><div class="small muted">${bday ? 'Вся команда Nuvora желает вам счастья. Сегодня ваш день!' : IC('bulb') + ' ' + esc(tip)}</div>`;
@@ -541,7 +549,8 @@
     e.preventDefault(); f.dataset.clean = 1;
     const done = () => f.submit();
     const tasks = [];
-    try { if (window.caches) tasks.push(caches.delete('media-v1')); } catch (er) { /* нет кэша */ }
+    try { if (window.caches) tasks.push(caches.delete('media-v1'), caches.delete('pages-v1')); } catch (er) { /* нет кэша */ }
+    ls.del('nv_saved_pages');
     try { sessionStorage.removeItem('nv_unlock'); } catch (er) { /* без сессии */ }
     ls.del('nv_push_ep');
     if (navigator.serviceWorker && window.PushManager) tasks.push(navigator.serviceWorker.getRegistration().then(reg => reg && reg.pushManager.getSubscription()).then(sub => {
@@ -581,9 +590,15 @@
     if (ls.get('nv_seen_version', '') === APP.version) return;
     if (!ls.get('nv_seen_version', '') && !$('article.post')) { ls.set('nv_seen_version', APP.version); return; }
     if (path !== '/') return;
+    const today = $('#today-card .today-main');
+    if (today) {
+      const a = document.createElement('a'); a.href = '/whats-new'; a.className = 'today-new';
+      a.innerHTML = `${IC('sparkle')} Что нового в Nuvora ${esc(APP.version)}`; a.onclick = () => ls.set('nv_seen_version', APP.version);
+      today.appendChild(a); return;
+    }
     const anchor = $('.tabs'); if (!anchor) return;
     const card = document.createElement('a'); card.href = '/whats-new'; card.className = 'card whatsnew-card';
-    card.innerHTML = `${IC('sparkle')}<div class="grow"><b>Nuvora ${esc(APP.version)}: больше 100 новых функций</b><div class="small muted">Код-пароль, избранные сообщения, напоминания, команды в чатах и многое другое</div></div>${IC('back')}`;
+    card.innerHTML = `${IC('sparkle')}<div class="grow"><b>Что нового в Nuvora ${esc(APP.version)}</b><div class="small muted">Посмотрите, что появилось в обновлении</div></div>${IC('back')}`;
     card.onclick = () => ls.set('nv_seen_version', APP.version);
     anchor.before(card);
   });

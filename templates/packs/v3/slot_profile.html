@@ -1,1 +1,1 @@
-{% if v3_links_count(profile_user) %}<a class="btn soft sm mt" href="/l/{{ profile_user.username }}">{{ icon_svg("link", "i in") }} Мои ссылки · {{ v3_links_count(profile_user) }}</a>{% endif %}
+{% if v3_links_count(profile_user) %}<a href="/l/{{ profile_user.username }}">{{ icon_svg("link", "i in") }} Все ссылки · {{ v3_links_count(profile_user) }}</a>{% endif %}

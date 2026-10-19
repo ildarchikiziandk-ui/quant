@@ -1,8 +1,12 @@
-const CACHE_NAME = 'app-__VERSION__-smooth2';
+const CACHE_NAME = 'app-__VERSION__';
 const MEDIA_CACHE = 'media-v1';  // фото и видео из ленты: имена файлов уникальные, их можно хранить
 const MEDIA_MAX = 400;
+const PAGES_CACHE = 'pages-v1';  // последние открытые страницы — их видно без интернета
+const PAGES_MAX = 40;
+// какие страницы сохраняем для офлайна (личные, но только на этом устройстве; стираются при выходе из аккаунта)
+const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|friends$|games(\/2048|\/word)?$|habits$|mood$|help$|ai$|capsule$|links$|market$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
 const BRAND = '__BRAND__';
-const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/static/css/app.css', '/static/js/app.js', '/offline'];
+const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/offline'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE)).catch(() => {}));
@@ -10,7 +14,7 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== MEDIA_CACHE).map(k => caches.delete(k)))));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== MEDIA_CACHE && k !== PAGES_CACHE).map(k => caches.delete(k)))));
   if (self.registration.navigationPreload) e.waitUntil(self.registration.navigationPreload.enable().catch(() => {}));
   self.clients.claim();
 });
@@ -37,7 +41,19 @@ self.addEventListener('fetch', e => {
   }
   if (req.mode === 'navigate') {
     e.respondWith((async () => {
-      try { return (await e.preloadResponse) || await fetch(req); } catch (err) { return caches.match('/offline'); }
+      try {
+        const res = (await e.preloadResponse) || await fetch(req);
+        if (res.ok && !res.redirected && res.type === 'basic' && PAGE_OK.test(url.pathname)) {
+          const copy = res.clone();
+          caches.open(PAGES_CACHE).then(c => c.put(url.pathname + url.search, copy).then(() => c.keys()).then(k => {
+            if (k.length > PAGES_MAX) k.slice(0, k.length - PAGES_MAX).forEach(x => c.delete(x));
+          })).catch(() => {});
+        }
+        return res;
+      } catch (err) {
+        const c = await caches.open(PAGES_CACHE);
+        return (await c.match(url.pathname + url.search)) || (await c.match(url.pathname)) || (await caches.match('/offline')) || Response.error();
+      }
     })());
   }
 });

@@ -37,12 +37,12 @@ env.globals.update(
     android_apk_url=config.ANDROID_APK_URL, pref=prefs.get, pref_classes=prefs.html_classes, tz_city=timezones.city, reading_minutes=extras.reading_minutes, moods=extras.MOODS, mood_by=extras.MOOD_BY, post_bgs=extras.BGS,
     post_expires=extras.EXPIRES, zodiac=extras.zodiac, frame_by=extras.FRAME_BY, status_active=extras.status_active, pref_client=prefs.client_values,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
-    push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.INSTANCE_ID, app_version=config.APP_VERSION, utcnow=datetime.utcnow,
+    push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.STATIC_V, app_version=config.APP_VERSION, utcnow=datetime.utcnow,
     min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, dname=chatstyle.name_of, custom_name=chatstyle.custom_name, wallpapers=chatstyle.WALLPAPERS, bubbles=chatstyle.BUBBLES, chat_fonts=chatstyle.FONTS, streak_level=streaks.level, emo=text.emoji_img,
 )
 
 import packs as _packs  # noqa: E402
-env.globals.update(sprite_v=lambda: icons.SPRITE_V or config.INSTANCE_ID, pack_slot=_packs.slot, pack_css=_packs.CSS, pack_js=_packs.JS, pack_menu=_packs.menu_groups)
+env.globals.update(sprite_v=lambda: icons.SPRITE_V or config.STATIC_V, pack_slot=_packs.slot, pack_css=_packs.CSS, pack_js=_packs.JS, pack_menu=_packs.menu_groups)
 env.globals.update(_packs.GLOBALS)  # пустой до загрузки модулей — дополняется в load_globals()
 
 

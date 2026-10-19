@@ -11,6 +11,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.PowerManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.content.ContentValues
 import android.provider.MediaStore
 import android.util.Base64
@@ -26,6 +29,10 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.ServiceWorkerClient
+import android.webkit.ServiceWorkerController
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -43,6 +50,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var root: FrameLayout
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingPermission: PermissionRequest? = null
+    private var showingOffline = false
+    private val bundle by lazy { BundledAssets(this) }
 
     private val fileChooser = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = fileCallback
@@ -108,7 +117,13 @@ class MainActivity : AppCompatActivity() {
             useWideViewPort = true
             setSupportZoom(false)
             userAgentString = "$userAgentString NuvoraApp/${BuildConfig.VERSION_NAME}"
+            cacheMode = if (isOnline()) WebSettings.LOAD_DEFAULT else WebSettings.LOAD_CACHE_ELSE_NETWORK
         }
+        // стили, скрипты, иконки и эмодзи — из самого приложения: мгновенно и без сети
+        ServiceWorkerController.getInstance().setServiceWorkerClient(object : ServiceWorkerClient() {
+            override fun shouldInterceptRequest(request: WebResourceRequest): WebResourceResponse? = bundled(request)
+        })
+        watchNetwork()
 
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -116,6 +131,12 @@ class MainActivity : AppCompatActivity() {
                 if (isOwn(uri) || isAuthHost(uri)) return false  // вход через Яндекс идёт внутри приложения, чтобы cookie остались здесь
                 openExternal(uri)
                 return true
+            }
+
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? = bundled(request)
+
+            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                if (!url.endsWith("/offline")) showingOffline = false
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -127,7 +148,8 @@ class MainActivity : AppCompatActivity() {
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) {
-                    view.loadDataWithBaseURL(BuildConfig.SITE_URL, offlineHtml(), "text/html", "utf-8", null)
+                    showingOffline = true
+                    view.loadDataWithBaseURL(BuildConfig.SITE_URL + "/offline", bundle.offlinePage() ?: offlineHtml(), "text/html", "utf-8", null)
                 }
             }
         }
@@ -266,6 +288,41 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         NotifyService.appVisible = true
         web.onResume()
+    }
+
+    private fun bundled(request: WebResourceRequest): WebResourceResponse? {
+        if (request.method != "GET" || !isOwn(request.url)) return null
+        return bundle.response(request.url)
+    }
+
+    private fun isOnline(): Boolean {
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    /** Сеть пропала — берём страницы из кэша; вернулась — сами открываем сайт заново, если был офлайн-экран. */
+    private fun watchNetwork() {
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        try {
+            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    runOnUiThread {
+                        web.settings.cacheMode = WebSettings.LOAD_DEFAULT
+                        if (showingOffline) {
+                            showingOffline = false
+                            web.loadUrl(BuildConfig.SITE_URL)
+                        }
+                    }
+                }
+
+                override fun onLost(network: Network) {
+                    runOnUiThread { if (!isOnline()) web.settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK }
+                }
+            })
+        } catch (e: Exception) {
+            // без доступа к состоянию сети приложение просто работает как раньше
+        }
     }
 
     private fun startUrl(intent: Intent?): String {

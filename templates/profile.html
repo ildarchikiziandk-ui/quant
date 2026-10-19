@@ -72,20 +72,23 @@
       {% if pu.city %}<span>{{ icon("map") }} {{ pu.city }}</span>{% endif %}
       {% if pu.work %}<span>{{ icon("bag") }} {{ pu.work }}</span>{% endif %}
       {% if pu.website %}<span>{{ icon("link") }} <a href="{{ pu.website }}" target="_blank" rel="noopener nofollow">{{ pu.website.replace('https://','').replace('http://','')[:40] }}</a></span>{% endif %}
-      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}{% if bday_in is not none %}{% if bday_in == 0 %} · <b style="color:var(--accent,#db2777)">сегодня день рождения!</b>{% elif bday_in <= 30 %} · через {{ plural(bday_in, "день", "дня", "дней") }}{% endif %}{% endif %}</span>{% endif %}
+      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) and bday_in is not none and bday_in <= 30 %}<span>{{ icon("cake") }} {% if bday_in == 0 %}<b style="color:var(--accent,#db2777)">сегодня день рождения!</b>{% else %}день рождения через {{ plural(bday_in, "день", "дня", "дней") }}{% endif %}</span>{% endif %}
+    </div>
+    <details class="profile-more"><summary>Подробнее</summary><div class="profile-links">
+      {% if pu.birthday and (me or not pref(pu, "hide_birthday")) %}<span>{{ icon("cake") }} {{ pu.birthday[8:10] }}.{{ pu.birthday[5:7] }}</span>{% endif %}
       <span>{{ icon("calendar") }} С нами с {{ pu.created_at.strftime("%m.%Y") if pu.created_at else "давно" }}{% if pu.created_at %} · {{ plural(((utcnow() - pu.created_at).days) + 1, "день", "дня", "дней") }}{% endif %}</span>
       {% for l in profile_links %}<a href="{{ l.url }}" target="_blank" rel="noopener nofollow">{{ icon("link", "i in") }} {{ l.title }}</a>{% endfor %}
       {% if pu.telegram_link %}<a href="https://t.me/{{ pu.telegram_link.lstrip('@').replace('https://t.me/','') }}" target="_blank" rel="noopener">Telegram</a>{% endif %}
       {% if pu.youtube_link %}<a href="{{ pu.youtube_link if pu.youtube_link.startswith('http') else 'https://youtube.com/@' ~ pu.youtube_link.lstrip('@') }}" target="_blank" rel="noopener">YouTube</a>{% endif %}
       {% if pu.tiktok_link %}<a href="{{ pu.tiktok_link if pu.tiktok_link.startswith('http') else 'https://tiktok.com/@' ~ pu.tiktok_link.lstrip('@') }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
-    </div>
-    <div class="profile-stats">
+      {% for _s in pack_slot("profile_after_bio") %}{% include _s %}{% endfor %}
+    </div></details>
+    <div class="profile-stats tiles">
       <span><b>{{ stats.posts }}</b> <span class="muted">постов</span></span>
       <a href="/profile/{{ pu.username }}/followers"{% if not me and pref(pu, "hide_followers_list") %} onclick="return false" style="cursor:default"{% endif %}><b id="followers-count">{{ stats.followers }}</b> <span class="muted">подписчиков</span></a>
       <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
       <span><b>{{ stats.likes|compact }}</b> <span class="muted">лайков</span></span>
     </div>
-{% for _s in pack_slot("profile_after_bio") %}{% include _s %}{% endfor %}
     {% if gifts %}<a href="/gifts/{{ pu.username }}" class="row mt gift-row" title="Подарки">{% for g in gifts %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}<span title="{{ gi[2] }}{% if not g.is_anonymous and g.from_user %} от @{{ g.from_user.username }}{% endif %}"><img src="/static/gifts/{{ gi[0] }}.svg" alt="{{ gi[2] }}"></span>{% endif %}{% endfor %}{% if gifts_total > gifts|length %}<span class="small muted" style="align-self:center">+{{ gifts_total - gifts|length }}</span>{% endif %}</a>{% endif %}
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
     {% if me or not (pref(pu, "hide_gamification") and pref(pu, "hide_achievements")) %}

@@ -4,10 +4,9 @@
 {% set ICONS = {"like":"heart","whale":"whale","comment":"comment","reply":"reply","follow":"user-plus","follow_request":"user-plus","follow_accept":"user-check","mention":"at","repost":"repost","reaction":"heart","comment_like":"heart","achievement":"trophy","level":"medal","raffle":"party","support":"lifebuoy","support_reply":"lifebuoy","system":"sparkle","group_invite":"users","story_reaction":"camera","moderation":"shield","question":"help","answer":"bulb","gift":"gift","event":"calendar","invite":"handshake","secret":"secret","streak":"flame","reminder":"alarm","birthday":"cake","security":"shield","capsule":"mail"} %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("bell", "i in") }} Уведомления</div>
-  <div class="row"><a class="btn soft sm" href="/mentions">@ Упоминания</a><form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="btn ghost sm">Очистить</button></form></div></div>
+  <form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="icon-btn" title="Очистить все">{{ icon("trash") }}</button></form></div>
 {% if requests_count %}<a href="/follow-requests" class="card row" style="display:flex">{{ icon("wave", "i in") }} <b class="grow">Заявки на подписку</b><span class="unread-dot">{{ requests_count }}</span></a>{% endif %}
-{% for _s in pack_slot("notifications_top") %}{% include _s %}{% endfor %}
-<div class="chips">{% for k, l in [("all","Все"),("mentions","Упоминания"),("likes","Реакции"),("comments","Комментарии"),("follows","Подписки"),("system","Системные")] %}<a href="/notifications?f={{ k }}" class="chip {% if f == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
+<div class="chips">{% for k, l in [("all","Все"),("mentions","Упоминания"),("likes","Реакции"),("comments","Комментарии"),("follows","Подписки"),("system","Системные")] %}<a href="/notifications?f={{ k }}" class="chip {% if f == k %}active{% endif %}">{{ l }}</a>{% endfor %}{% for _s in pack_slot("notifications_top") %}{% include _s %}{% endfor %}</div>
 <div class="card flat">
 {% for n in notifications %}
   {% set link = ("/messages/" ~ n.from_user.username) if n.from_user and n.type in ("reminder","birthday") else ("/post/" ~ n.post_id) if n.post_id else (("/profile/" ~ n.from_user.username) if n.from_user and n.type in ("follow","follow_accept") else ("/follow-requests" if n.type == "follow_request" else ("/achievements" if n.type in ("achievement","level") else ""))) %}

@@ -137,7 +137,7 @@ def manifest():
 @router.get("/sw.js")
 def service_worker():
     with open("static/sw.js", encoding="utf-8") as f:
-        body = f.read().replace("__BRAND__", config.BRAND_NAME).replace("__VERSION__", config.INSTANCE_ID)
+        body = f.read().replace("__BRAND__", config.BRAND_NAME).replace("__VERSION__", config.STATIC_V)
     return PlainTextResponse(body, media_type="application/javascript", headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"})
 
 

@@ -138,17 +138,17 @@ def test_links_page(alice, bob):
     assert page.index("YouTube") < page.index("Telegram")
     r = bob.get(f"/l/go/{first}", follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "https://t.me/alice"
-    assert "Мои ссылки · 2" in bob.get("/profile/alice").text
+    assert "Все ссылки · 2" in bob.get("/profile/alice").text
     assert bob.post(f"/links/{first}/delete", headers=J).status_code == 404
     assert bob.get("/l/nobody").status_code == 404
 
 
 def test_daily_chest(alice):
-    assert 'id="v3-chest"' in alice.get("/").text
+    assert "data-v3-chest" in alice.get("/").text
     r = alice.post("/v3/chest", headers=J).json()
     assert r["reward"] == 5 and r["streak"] == 1
     assert alice.post("/v3/chest", headers=J).status_code == 400
-    assert 'id="v3-chest"' not in alice.get("/").text
+    assert "data-v3-chest" not in alice.get("/").text
     s = db()
     row = s.query(m.DailyChest).one()
     row.last_day = (datetime.strptime(row.last_day, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -399,3 +399,27 @@ def test_nuva_admin_teaching(alice, owner):
     assert r["found"] and "мы над ними работаем" in r["text"] and r["links"][0]["url"] == "/whats-new"
     assert owner.post(f"/ai/admin/answer/{r and 1}/delete", headers=J).json()["ok"]
     assert "Обучить" in owner.get("/ai").text and "Обучить" not in alice.get("/ai").text
+
+
+def test_app_offline_and_static_version(alice):
+    import os
+    import config
+    from services import assets
+    v = assets.static_version(os.path.join(config.BASE_DIR, "static"))
+    assert v == config.STATIC_V == assets.static_version(os.path.join(config.BASE_DIR, "static"))  # не меняется при перезапуске
+    assert f"/static/css/app.css?v={v}" in alice.get("/").text
+    page = make_client().get("/offline").text
+    assert "Нет подключения" in page and "2048" in page
+    sw = make_client().get("/sw.js").text
+    assert "pages-v1" in sw and f"app-{v}" in sw
+
+
+def test_ui_declutter(alice):
+    home = alice.get("/").text
+    assert 'id="today-card"' in home and "v3-quick" not in home
+    prof = alice.get("/profile/alice").text
+    assert "profile-more" in prof and "profile-stats tiles" in prof
+    sett = alice.get("/settings?section=profile").text
+    assert sett.count("link-extra") >= 1 and "Ещё ссылка" in sett
+    notes = alice.get("/notifications").text
+    assert "v3-group-chip" in notes and "@ Упоминания" not in notes

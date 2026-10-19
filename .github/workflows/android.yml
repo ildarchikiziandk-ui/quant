@@ -6,6 +6,8 @@ on:
     paths:
       - "android/**"
       - ".github/workflows/android.yml"
+      - "tools/bundle_app.py"
+      - "templates/offline.html"
   workflow_dispatch:
 
 permissions:
@@ -33,6 +35,12 @@ jobs:
           KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         if: ${{ env.KS != '' }}
         run: echo "$KS" | base64 -d > android/nuvora.keystore
+
+      # Файлы сайта внутри APK: стили, скрипты, иконки, эмодзи и офлайн-экран (работают без сети)
+      - name: Bundle site files
+        run: |
+          python3 -m pip install --quiet markupsafe
+          python3 tools/bundle_app.py
 
       - name: Build APK
         working-directory: android

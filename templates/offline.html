@@ -1,3 +1,81 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Нет сети — {{ brand }}</title>
-<link rel="stylesheet" href="/static/css/app.css"></head>
-<body><div class="auth-wrap"><div class="auth-card center"><img src="/static/brand/logo-180.png" alt="" style="width:64px;height:64px;border-radius:18px"><h2 class="mt">Нет подключения</h2><p class="muted small mt">Проверьте интернет — {{ brand }} откроется, как только сеть вернётся.</p><button class="btn mt" onclick="location.reload()">Повторить</button></div></div></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nuvora — нет сети</title>
+<style>
+:root { --bg: #fafafa; --card: #fff; --text: #18181b; --muted: #71717a; --input: #f1f1f4; --border: #e4e4e7; --brand: #6d5dfc; }
+@media (prefers-color-scheme: dark) { :root { --bg: #09090b; --card: #18181b; --text: #fafafa; --muted: #a1a1aa; --input: #27272a; --border: #27272a; } }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px 16px 40px; max-width: 520px; margin: 0 auto; }
+.head { display: flex; align-items: center; gap: 12px; margin: 8px 0 18px; }
+.head img { width: 44px; height: 44px; border-radius: 14px; }
+.head b { font-size: 22px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 16px; margin-bottom: 12px; animation: up .4s cubic-bezier(.2,.8,.2,1) both; }
+.card:nth-child(3) { animation-delay: .06s; } .card:nth-child(4) { animation-delay: .12s; }
+@keyframes up { from { opacity: 0; transform: translateY(14px); } }
+h2 { font-size: 18px; margin-bottom: 4px; } p { color: var(--muted); font-size: 14px; line-height: 1.45; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; padding: 12px 18px; font: 700 15px inherit; font-family: inherit;
+  background: var(--text); color: var(--bg); cursor: pointer; margin-top: 12px; transition: transform .12s; }
+.btn:active { transform: scale(.95); } .btn.soft { background: var(--input); color: var(--text); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; display: inline-block; margin-right: 6px; animation: blink 1.4s infinite; }
+@keyframes blink { 50% { opacity: .3; } }
+.pages a { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 15px; }
+.pages a:last-child { border: 0; } .pages a span { color: var(--muted); font-size: 13px; }
+.score { display: flex; gap: 8px; margin: 10px 0; } .score div { flex: 1; background: var(--input); border-radius: 12px; padding: 6px 10px; font-size: 12px; color: var(--muted); }
+.score b { display: block; font-size: 20px; color: var(--text); }
+#g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 7px; border-radius: 16px; background: #bbada0; touch-action: none; user-select: none; }
+#g div { aspect-ratio: 1; border-radius: 9px; background: rgb(238 228 218 / .35); display: grid; place-items: center; font-weight: 800; font-size: 24px; color: #776e65; }
+#g .v2 { background: #eee4da; } #g .v4 { background: #ede0c8; } #g .v8 { background: #f2b179; color: #fff; } #g .v16 { background: #f59563; color: #fff; }
+#g .v32 { background: #f67c5f; color: #fff; } #g .v64 { background: #f65e3b; color: #fff; } #g .big { background: #edcf72; color: #fff; font-size: 19px; }
+#g .born { animation: pop .2s; } @keyframes pop { 50% { transform: scale(1.12); } }
+</style>
+</head>
+<body>
+<div class="head"><img src="/static/brand/logo-180.png" alt=""><b>Nuvora</b></div>
+<div class="card"><h2><span class="dot"></span>Нет подключения</h2><p>Как только интернет появится, Nuvora откроется сама. Пока можно посмотреть сохранённое или сыграть.</p>
+  <button class="btn" onclick="location.href='/'">Повторить</button></div>
+<div class="card" id="saved" hidden><h2>Сохранено на телефоне</h2><p>Страницы, которые вы недавно открывали.</p><div class="pages" id="pages"></div></div>
+<div class="card"><h2>2048 без интернета</h2><div class="score"><div>Счёт<b id="s">0</b></div><div>Рекорд<b id="best">0</b></div></div><div id="g"></div>
+  <button class="btn soft" id="new">Заново</button></div>
+<script>
+(function () {
+  try {  // страницы, которые приложение сохранило (их список ведёт сайт)
+    const list = JSON.parse(localStorage.getItem('nv_saved_pages') || '[]');
+    if (list.length) {
+      document.getElementById('saved').hidden = false;
+      document.getElementById('pages').innerHTML = list.slice(0, 8).map(p => `<a href="${p.u.replace(/"/g, '')}">${p.t.replace(/</g, '&lt;')}<span>›</span></a>`).join('');
+    }
+  } catch (e) {}
+  const g = document.getElementById('g'); let grid, score, best = +(localStorage.getItem('off2048') || 0);
+  const empty = () => { const r = []; grid.forEach((row, y) => row.forEach((v, x) => { if (!v) r.push([y, x]); })); return r; };
+  const spawn = () => { const e = empty(); if (!e.length) return null; const [y, x] = e[Math.floor(Math.random() * e.length)]; grid[y][x] = Math.random() < .9 ? 2 : 4; return [y, x]; };
+  const fresh = () => { grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; score = 0; spawn(); spawn(); draw(); };
+  const draw = (b) => {
+    g.innerHTML = grid.map((row, y) => row.map((v, x) => `<div class="${v ? (v > 64 ? 'big' : 'v' + v) : ''}${b && b[0] === y && b[1] === x ? ' born' : ''}">${v || ''}</div>`).join('')).join('');
+    document.getElementById('s').textContent = score; best = Math.max(best, score); document.getElementById('best').textContent = best;
+    try { localStorage.setItem('off2048', best); } catch (e) {}
+  };
+  const slide = r => { const a = r.filter(Boolean); for (let i = 0; i < a.length - 1; i++) if (a[i] === a[i + 1]) { a[i] *= 2; score += a[i]; a.splice(i + 1, 1); } while (a.length < 4) a.push(0); return a; };
+  const move = d => {
+    const before = JSON.stringify(grid);
+    for (let i = 0; i < 4; i++) {
+      let l = d === 'L' || d === 'R' ? grid[i].slice() : grid.map(r => r[i]);
+      if (d === 'R' || d === 'D') l.reverse(); l = slide(l); if (d === 'R' || d === 'D') l.reverse();
+      if (d === 'L' || d === 'R') grid[i] = l; else l.forEach((v, y) => { grid[y][i] = v; });
+    }
+    if (JSON.stringify(grid) !== before) draw(spawn());
+  };
+  let sx, sy;
+  g.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  g.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  g.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) > 24) move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U')); });
+  document.addEventListener('keydown', e => { const d = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D' }[e.key]; if (d) { e.preventDefault(); move(d); } });
+  document.getElementById('new').onclick = fresh;
+  fresh();
+  addEventListener('online', () => { location.href = '/'; });
+})();
+</script>
+</body>
+</html>

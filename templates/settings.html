@@ -54,8 +54,9 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 <form class="card" method="post" action="/settings/links">
   <div class="card-title">{{ icon("link", "i in") }} Ссылки в профиле <span class="faint small">до {{ plus_limit(user, 'links') }}</span></div>
   {% set ls = profile_links %}
-  {% for i in range(plus_limit(user, 'links')) %}<div class="form-row"><label class="field" style="max-width:200px"><span>Название</span><input name="link_title_{{ i }}" maxlength="40" value="{{ ls[i].title if ls|length > i else '' }}" placeholder="Портфолио"></label>
+  {% for i in range(plus_limit(user, 'links')) %}<div class="form-row{% if i > ls|length %} hidden link-extra{% endif %}"><label class="field" style="max-width:200px"><span>Название</span><input name="link_title_{{ i }}" maxlength="40" value="{{ ls[i].title if ls|length > i else '' }}" placeholder="Портфолио"></label>
   <label class="field"><span>Адрес</span><input name="link_url_{{ i }}" maxlength="200" value="{{ ls[i].url if ls|length > i else '' }}" placeholder="example.com"></label></div>{% endfor %}
+  {% if plus_limit(user, 'links') > ls|length + 1 %}<button type="button" class="btn ghost sm mb" onclick="var r=this.form.querySelector('.link-extra.hidden');if(r){r.classList.remove('hidden');r.querySelector('input').focus();}if(!this.form.querySelector('.link-extra.hidden'))this.remove()">{{ icon("plus", "i in") }} Ещё ссылка</button><br>{% endif %}
   <button class="btn">Сохранить ссылки</button>
 </form>
 
