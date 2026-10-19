@@ -1,4 +1,2 @@
 {% if user and main %}{% if user.id == main.user_id %}<button type="button" data-v3-countdown="{{ main.id }}">{{ icon_svg("clock", "i in") }} Обратный отсчёт</button>
 {% elif main.author %}<button type="button" data-v3-hide="{{ main.author.username }}">{{ icon_svg("eye-off", "i in") }} Не показывать 30 дней</button>{% endif %}{% endif %}
-{% if user and main and v3_ai_on() %}{% if main.content %}<button type="button" data-ai-translate="{{ main.id }}">{{ icon_svg("globe", "i in") }} Перевести</button>{% endif %}
-<button type="button" data-ai-summary="{{ main.id }}">{{ icon_svg("bot", "i in") }} Кратко об обсуждении</button>{% endif %}

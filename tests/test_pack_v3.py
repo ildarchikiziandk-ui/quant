@@ -322,75 +322,35 @@ def test_fathers_day_card():
     assert r.status_code == 200 and "С Днём" in r.text and "Ильдар" in r.text
 
 
-def _fake_ai(monkeypatch, reply="Готово"):
+
+def test_nuva_answers(alice):
     from packs.v3 import ai
-    calls = []
+    assert "Нува" in alice.get("/ai").text
+    ask = lambda q: alice.post("/ai/chat", json={"question": q}, headers=J).json()
+    assert "Привет" in ask("привет")["text"]
+    r = ask("как поставить двухфакторку?")
+    assert "двухфакторную" in r["text"].lower()
+    assert "Забыл пароль" in ask("я забыл пароль, что делать")["text"]
+    assert "опрос" in ask("как сделать голосование в переписке")["text"].lower()
+    assert "подписи" in ask("придумай подпись к фото с моря")["text"]
+    assert "рожд" in ask("поздравление с днём рождения")["text"]
+    r = ask("какая столица Монголии")
+    assert "не знаю" in r["text"] and r["tips"]
+    assert alice.post("/ai/chat", json={"question": ""}, headers=J).status_code == 400
+    assert make_client().post("/ai/chat", json={"question": "привет"}, headers=J).status_code == 401
+    assert ai.search_help("удалить аккаунт")[0][1] == "Как удалить аккаунт?"
 
-    def fake(system, messages, max_tokens):
-        calls.append((system, messages, max_tokens))
-        return reply, 120, 30, "end_turn"
-    monkeypatch.setattr(ai, "KEY", "test-key")
-    monkeypatch.setattr(ai, "_call", fake)
-    ai._cache.clear()
-    return calls
 
-
-def test_ai_disabled_without_key(alice):
+def test_nuva_fix_text_and_tags(alice):
     from packs.v3 import ai
-    assert not ai.enabled()
-    assert "скоро появится" in alice.get("/ai").text
-    assert alice.post("/ai/chat", json={"messages": [{"role": "user", "content": "привет"}]}, headers=J).status_code == 400
-    assert "data-ai-rewrite" not in alice.get("/create").text
-
-
-def test_ai_chat_and_limits(alice, monkeypatch):
-    from packs.v3 import ai
-    calls = _fake_ai(monkeypatch, "**Привет!** Чем помочь?")
-    assert "Спросите Нуву" in alice.get("/ai").text
-    r = alice.post("/ai/chat", json={"messages": [{"role": "assistant", "content": "x"}, {"role": "user", "content": "Как создать опрос?"}]}, headers=J).json()
-    assert r["text"] == "Привет! Чем помочь?" and r["left"] == ai.DAILY - 1
-    assert calls[0][1] == [{"role": "user", "content": "Как создать опрос?"}]  # история начинается с вопроса
-    assert "Справка Nuvora" in calls[0][0]
-    assert alice.post("/ai/chat", json={"messages": [{"role": "system", "content": "x"}]}, headers=J).status_code == 400
-    monkeypatch.setattr(ai, "DAILY", 1)
-    r = alice.post("/ai/chat", json={"messages": [{"role": "user", "content": "ещё"}]}, headers=J)
-    assert r.status_code == 429 and "закончились" in r.json()["error"]
-    assert len(calls) == 1
-    monkeypatch.setattr(ai, "DAILY", 30)
-    monkeypatch.setattr(ai, "BUDGET", 100)
-    assert "запас" in alice.post("/ai/chat", json={"messages": [{"role": "user", "content": "ещё"}]}, headers=J).json()["error"]
-    assert make_client().post("/ai/chat", json={"messages": []}, headers=J).status_code == 401
-
-
-def test_ai_rewrite(alice, monkeypatch):
-    calls = _fake_ai(monkeypatch, "Привет, мир!")
+    assert ai.fix_text("севодня атличный день но я незнаю куда пойти") == "Сегодня отличный день, но я не знаю куда пойти."
+    assert ai.fix_text("привет ,как дела?кто то идёт гулять") == "Привет, как дела? Кто-то идёт гулять."
+    assert ai.fix_text("Всё хорошо.") == "Всё хорошо."
+    tags = ai.hashtags("Вечер на море, красивый закат #фото")
+    assert "море" in tags and "закат" in tags and "фото" not in tags
     assert "data-ai-rewrite" in alice.get("/create").text
-    r = alice.post("/ai/rewrite", json={"text": "превет мир", "mode": "fix"}, headers=J).json()
-    assert r["text"] == "Привет, мир!" and "<text>\nпревет мир\n</text>" in calls[0][1][0]["content"]
-    assert alice.post("/ai/rewrite", json={"text": "превет", "mode": "hack"}, headers=J).status_code == 400
-    assert alice.post("/ai/rewrite", json={"text": "x" * 5000, "mode": "fix"}, headers=J).status_code == 400
-
-
-def test_ai_summary_and_translate(alice, bob, monkeypatch):
-    calls = _fake_ai(monkeypatch, "— Обсуждают погоду")
-    pid = create_post(alice, "Какая сегодня погода?")
-    assert bob.post(f"/ai/post/{pid}/summary", headers=J).status_code == 400  # мало комментариев
-    for t in ["Солнце", "Дождь", "Снег"]:
-        bob.post(f"/post/{pid}/comment", data={"content": t}, headers=J)
-    r = bob.post(f"/ai/post/{pid}/summary", headers=J)
-    if r.status_code == 400:  # комментарии создаются другим маршрутом — добавим напрямую
-        s = db()
-        u = s.query(models.User).filter_by(username="bob").first()
-        for t in ["Солнце", "Дождь", "Снег"]:
-            s.add(models.Comment(post_id=pid, user_id=u.id, content=t))
-        s.commit()
-        s.close()
-        r = bob.post(f"/ai/post/{pid}/summary", headers=J)
-    assert r.json()["text"] == "— Обсуждают погоду"
-    n = len(calls)
-    bob.post(f"/ai/post/{pid}/summary", headers=J)
-    assert len(calls) == n  # второй раз — из кэша
-    r = bob.post(f"/ai/post/{pid}/translate", headers=J).json()
-    assert r["lang"] == "английский"
-    assert "Кратко об обсуждении" in bob.get(f"/post/{pid}").text
-    assert bob.post("/ai/post/999999/translate", headers=J).status_code == 404
+    r = alice.post("/ai/rewrite", json={"text": "превет мир как дела", "mode": "fix"}, headers=J).json()
+    assert r["text"] == "Привет мир как дела."
+    r = alice.post("/ai/rewrite", json={"text": "Гуляли в парке с собакой", "mode": "tags"}, headers=J).json()
+    assert "#парк" in r["text"] and "#собака" in r["text"]
+    assert alice.post("/ai/rewrite", json={"text": "привет", "mode": "hack"}, headers=J).status_code == 400
