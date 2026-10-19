@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Нува — ИИ-помощник — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bot", "i in") }} Нува</div>{% if ai %}<span class="small muted" id="ai-left">осталось сегодня: {{ ai.left }}</span>{% endif %}</div>
+{% if not on %}
+<div class="card empty"><div class="big">{{ icon("bot", "i in") }}</div>ИИ-помощник скоро появится.</div>
+{% elif not user %}
+<div class="card empty"><div class="big">{{ icon("bot", "i in") }}</div>Нува — ИИ-помощник {{ brand }}. Войдите, чтобы задать вопрос.<br><a class="btn mt" href="/login?next=/ai">Войти</a></div>
+{% else %}
+<div class="card ai-box">
+  <div class="ai-log" id="ai-log">
+    <div class="ai-msg bot">Привет! Я Нува, ИИ-помощник {{ brand }}. Могу подсказать, как всё устроено, помочь придумать пост, подпись или поздравление. Спрашивайте!</div>
+  </div>
+  <div class="chips ai-sugg" id="ai-sugg">{% for t in ["Как создать опрос в чате?", "Придумай подпись к фото с моря", "Как включить двухфакторную защиту?", "Идеи для первого поста"] %}<button type="button" class="chip" data-ai-q>{{ t }}</button>{% endfor %}</div>
+  <form class="ai-form" id="ai-form"><textarea id="ai-in" rows="1" maxlength="2000" placeholder="Спросите Нуву…" data-q="{{ q }}"></textarea><button class="btn" title="Отправить">{{ icon("send", "i in") }}</button></form>
+  <div class="row tiny faint" style="justify-content:space-between;margin-top:8px"><span>Ответы пишет ИИ и может ошибаться. Не присылайте пароли и личные данные.</span><button type="button" class="v3-link tiny" id="ai-clear">Очистить</button></div>
+</div>
+{% if spent is not none %}<div class="card"><div class="card-title"><span class="row" style="gap:6px">{{ icon("activity", "i in") }} Расход ИИ</span><span class="faint small">{{ model }}</span></div>
+  <div class="small">Потрачено <b>{{ "{:,}".format(spent).replace(",", " ") }}</b> из {{ "{:,}".format(budget).replace(",", " ") }} токенов</div>
+  <div class="ai-bar"><i style="width:{{ [100, (spent * 100 / budget)|round(1)]|min if budget else 0 }}%"></i></div>
+  {% for r in report %}<div class="row tiny muted" style="justify-content:space-between;padding:3px 0"><span>{{ r.day[8:10] }}.{{ r.day[5:7] }}</span><span>{{ r.requests }} запросов · {{ "{:,}".format(r.tokens).replace(",", " ") }} токенов</span></div>{% endfor %}
+</div>{% endif %}
+{% endif %}
+{% endblock %}

@@ -356,6 +356,72 @@
       $$('.v3-hsec').forEach(s => { let n = s.nextElementSibling, any = false; while (n && !n.classList.contains('v3-hsec')) { if (!n.classList.contains('hidden')) any = true; n = n.nextElementSibling; } s.classList.toggle('hidden', !any); });
       $('#v3-help-none').classList.toggle('hidden', shown > 0);
     };
-    hq.addEventListener('input', filter); filter();
+    hq.addEventListener('input', () => { filter(); const ai = $('#v3-help-ai'); if (ai) ai.href = '/ai' + (hq.value.trim() ? '?q=' + encodeURIComponent(hq.value.trim()) : ''); }); filter();
   }
+})();
+
+/* ИИ: помощник «Нува», «Улучшить текст», пересказ обсуждения, перевод поста */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), A = window.App;
+  const IC = n => (window.ICON ? ICON(n, 'i in') : '');
+  const paras = t => A.esc(t).replace(/\n/g, '<br>');
+  const wait = '<div class="ai-wait"><i></i><i></i><i></i></div>';
+  document.addEventListener('click', async e => {
+    const tr = e.target.closest('[data-ai-translate]'), sm = e.target.closest('[data-ai-summary]'), rw = e.target.closest('[data-ai-rewrite]');
+    if (tr || sm) {
+      const id = (tr || sm).dataset[tr ? 'aiTranslate' : 'aiSummary'];
+      const md = A.modal(tr ? 'Перевод' : 'Кратко об обсуждении', wait);
+      try {
+        const r = await A.api(`/ai/post/${id}/${tr ? 'translate' : 'summary'}`);
+        $('.b', md).innerHTML = `<div class="ai-out">${paras(r.text)}</div><div class="tiny faint mt">${tr ? 'Перевод на ' + A.esc(r.lang) + ' · ' : 'По ' + r.count + ' комментариям · '}сделано ИИ, возможны неточности</div>`;
+      } catch (err) { md.classList.remove('open'); }
+    }
+    if (rw) {
+      const ta = rw.closest('form')?.querySelector('textarea[name=content]');
+      if (!ta || ta.value.trim().length < 3) { A.toast('Сначала напишите текст поста'); ta?.focus(); return; }
+      const modes = [['fix', 'check', 'Исправить ошибки'], ['short', 'type', 'Сделать короче'], ['friendly', 'smile', 'Теплее и дружелюбнее'], ['formal', 'edit', 'Деловой стиль'], ['tags', 'hash', 'Подобрать хэштеги']];
+      const md = A.modal('Улучшить текст с ИИ', modes.map(([k, ic, t]) => `<button type="button" class="btn soft block mb" data-m="${k}">${IC(ic)} ${t}</button>`).join('') + '<div class="tiny faint">Текст поста отправится ИИ-сервису для обработки.</div>');
+      md.querySelectorAll('[data-m]').forEach(b => b.onclick = async () => {
+        $('.b', md).innerHTML = wait;
+        try {
+          const r = await A.api('/ai/rewrite', { text: ta.value, mode: b.dataset.m });
+          $('.b', md).innerHTML = `<div class="ai-out" style="white-space:pre-wrap">${A.esc(r.text)}</div><div class="row mt" style="gap:8px"><button class="btn grow" id="ai-use">Заменить текст</button><button class="btn soft" id="ai-no">Отмена</button></div>`;
+          $('#ai-use', md).onclick = () => { ta.value = r.text; ta.dispatchEvent(new Event('input', { bubbles: true })); md.classList.remove('open'); ta.focus(); };
+          $('#ai-no', md).onclick = () => md.classList.remove('open');
+        } catch (err) { md.classList.remove('open'); }
+      });
+    }
+  });
+
+  // страница /ai
+  const form = $('#ai-form');
+  if (!form) return;
+  const log = $('#ai-log'), inp = $('#ai-in'), KEY = 'ai-history';
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(KEY) || '[]').slice(-30); } catch (e) { hist = []; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(hist.slice(-30))); } catch (e) {} };
+  const add = (role, text) => { const d = document.createElement('div'); d.className = 'ai-msg ' + (role === 'user' ? 'me' : 'bot'); d.innerHTML = paras(text); log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
+  hist.forEach(h => add(h.role, h.content));
+  if (hist.length) $('#ai-sugg').classList.add('hidden');
+  let busy = false;
+  async function send(text) {
+    text = text.trim(); if (!text || busy) return;
+    busy = true; $('#ai-sugg').classList.add('hidden');
+    add('user', text); hist.push({ role: 'user', content: text }); save();
+    inp.value = ''; inp.style.height = 'auto';
+    const w = document.createElement('div'); w.className = 'ai-msg bot'; w.innerHTML = wait; log.appendChild(w); log.scrollTop = log.scrollHeight;
+    try {
+      const r = await A.api('/ai/chat', { messages: hist.slice(-12) });
+      w.remove(); add('assistant', r.text); hist.push({ role: 'assistant', content: r.text }); save();
+      const left = $('#ai-left'); if (left) left.textContent = 'осталось сегодня: ' + r.left;
+    } catch (e) { w.remove(); hist.pop(); save(); inp.value = text; }
+    busy = false;
+  }
+  form.addEventListener('submit', e => { e.preventDefault(); send(inp.value); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(inp.value); } });
+  inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.height = Math.min(inp.scrollHeight, 140) + 'px'; });
+  document.querySelectorAll('[data-ai-q]').forEach(b => b.onclick = () => send(b.textContent));
+  $('#ai-clear').onclick = () => { hist = []; save(); log.querySelectorAll('.ai-msg:not(:first-child)').forEach(x => x.remove()); $('#ai-sugg').classList.remove('hidden'); };
+  if (inp.dataset.q) send(inp.dataset.q);
 })();

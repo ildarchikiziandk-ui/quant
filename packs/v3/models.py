@@ -185,3 +185,16 @@ class SeenDevice(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     device = Column(String(120), default="")
     last_session_id = Column(Integer, default=0)
+
+
+# --- ИИ ---------------------------------------------------------------------------------------------------
+class AiUsage(Base):
+    """Каждый запрос к ИИ: для дневного лимита на человека и общего бюджета токенов."""
+    __tablename__ = "v3_ai_usage"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    day = Column(String(10), index=True)
+    kind = Column(String(16), default="")
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
