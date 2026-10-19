@@ -116,6 +116,7 @@ class MainActivity : AppCompatActivity() {
             loadWithOverviewMode = true
             useWideViewPort = true
             setSupportZoom(false)
+            offscreenPreRaster = true  // заранее рисует соседние участки страницы — прокрутка без рывков
             userAgentString = "$userAgentString NuvoraApp/${BuildConfig.VERSION_NAME}"
             cacheMode = if (isOnline()) WebSettings.LOAD_DEFAULT else WebSettings.LOAD_CACHE_ELSE_NETWORK
         }

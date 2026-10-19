@@ -455,18 +455,16 @@
     el.classList.add('m-rippled'); el.appendChild(w); setTimeout(() => w.remove(), 600);
     if (inApp && el.closest('.mobile-nav')) navigator.vibrate?.(6);
   }, { passive: true });
-  // счётчики лайков, комментариев и уведомлений подпрыгивают при изменении
-  if (!reduce && window.MutationObserver) new MutationObserver(list => list.forEach(m => {
-    const el = m.target.nodeType === 3 ? m.target.parentElement : m.target;
-    if (el && el.matches && el.matches('.act .n, .badge-count, #followers-count, .mbadge')) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
-  })).observe(document.body, { subtree: true, characterData: true, childList: true });
+  // счётчик лайка подпрыгивает после нажатия (без слежки за всей страницей — так легче для телефона)
+  if (!reduce) document.addEventListener('click', e => {
+    const a = e.target.closest('.act'); if (!a) return;
+    setTimeout(() => { const n = a.querySelector('.n'); if (n) { n.classList.remove('bump'); void n.offsetWidth; n.classList.add('bump'); } }, 120);
+  });
+  // в приложении — без переходов-«снимков» между страницами: WebView делает их медленно
+  if (inApp) addEventListener('pagereveal', e => { try { e.viewTransition && e.viewTransition.skipTransition(); } catch (er) {} });
   // плавная смена темы
   const tt = window.toggleTheme;
   if (typeof tt === 'function') window.toggleTheme = function () { const h = document.documentElement; h.classList.add('m-theme'); const r = tt.apply(this, arguments); setTimeout(() => h.classList.remove('m-theme'), 450); return r; };
-  // картинки: убираем переливающуюся подложку, когда загрузились
-  const mark = img => { if (img.complete) img.dataset.loaded = 1; else img.addEventListener('load', () => { img.dataset.loaded = 1; }, { once: true }); };
-  document.querySelectorAll('.post-media img').forEach(mark);
-  new MutationObserver(l => l.forEach(m => m.addedNodes.forEach(n => n.querySelectorAll && n.querySelectorAll('.post-media img').forEach(mark)))).observe(document.body, { childList: true, subtree: true });
   // нет сети / сеть вернулась
   let bar = null, hideT = 0;
   const show = (off) => {

@@ -21,6 +21,7 @@
   if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';{% if user and pref(user, "auto_night") %}var h=new Date().getHours();if(h>=21||h<7)t='dark';{% endif %}document.documentElement.setAttribute('data-theme',t);})();
   window.APP={user:{{ (user.username if user else None)|tojson }},theme:{{ (user.theme if user else 'light')|tojson }},reactions:{{ reactions|tojson }},unread:{{ unread or 0 }},push:{{ push_enabled|tojson }},prefs:{{ (pref_client(user) if user else {})|tojson }},version:{{ app_version|tojson }},name:{{ (user.name or user.username if user else "")|tojson }},bday:{{ (user.birthday[5:10] if user and user.birthday else "")|tojson }}};
   window.APP.sound=window.APP.prefs.sound!==false;
+  if(/NuvoraApp\//.test(navigator.userAgent))document.documentElement.classList.add('in-app');
 </script>
 <meta name="view-transition" content="same-origin">
 {% if not (user and pref(user, "data_saver")) %}<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/logout*"}},{"not":{"href_matches":"/auth/*"}},{"not":{"href_matches":"/export-data*"}},{"not":{"href_matches":"/random*"}},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/uploads/*"}},{"not":{"href_matches":"/static/*"}}]},"eagerness":"conservative"}]}</script>{% endif %}
