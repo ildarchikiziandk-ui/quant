@@ -8,7 +8,7 @@ PREMIUM — очень красивые: продаются за баллы в �
 ELITE = set("""
 love star king queen angel legend alpha omega dream life sun moon sky boss art music money gold diamond world cosmos space
 fire ice wolf lion tiger dragon phoenix zeus apollo aurora nova luna sol vip top best god russia moscow piter kazan
-nuvora whale hello yes one zero infinity universe galaxy heaven paradise genius prince princess
+nuvora whale rubl ildar mint hello yes one zero infinity universe galaxy heaven paradise genius prince princess
 """.split())
 
 _TIERS = {
@@ -34,6 +34,22 @@ for _price, _names in _TIERS.items():
         _n = _n.lower()
         if _n not in ELITE and _n not in PREMIUM:
             PREMIUM[_n] = _price
+
+
+MAX_ALIASES = 2  # дополнительные логины: всего у человека до трёх
+
+
+def owner_of(db, name):
+    """Кто владеет логином: основным или дополнительным. None — логин свободен."""
+    import models
+    from sqlalchemy import func
+    from packs.v3 import models as pm
+    low = (name or "").lower().lstrip("@")
+    u = db.query(models.User).filter(func.lower(models.User.username) == low).first()
+    if u:
+        return u
+    a = db.query(pm.UserAlias).filter_by(handle=low).first()
+    return db.get(models.User, a.user_id) if a else None
 
 
 def is_staff(user):

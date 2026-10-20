@@ -69,6 +69,12 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <button class="btn">Сменить логин</button>
   <a class="btn ghost sm" href="/handles">{{ icon("at", "i in") }} Красивые логины за баллы</a>
 </form>
+{% set al = v3_aliases(user) %}
+<div class="card" id="v3-aliases"><div class="card-title"><span>Дополнительные логины</span><span class="faint small">{{ al|length }} из 2</span></div>
+  <p class="small muted mb">Всего у вас может быть до трёх логинов. По дополнительным вас тоже найдут, с ними можно войти, а ссылки на них ведут в ваш профиль.</p>
+  {% for h in al %}<div class="row v3-alias" style="gap:8px;padding:6px 0"><b class="grow">@{{ h }}</b><button type="button" class="btn soft sm" data-v3-alias="{{ h }}" data-a="primary">Сделать основным</button><button type="button" class="icon-btn" data-v3-alias="{{ h }}" data-a="delete" title="Отказаться">{{ icon("trash", "i in") }}</button></div>{% endfor %}
+  {% if al|length < 2 %}<form class="form-row mt" id="v3-alias-form"><label class="field"><span>Ещё логин</span><input name="handle" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" required></label><label class="field"><span>Пароль</span><input type="password" name="password" required></label><button class="btn" style="align-self:flex-end">Добавить</button></form>{% endif %}
+</div>
 <form class="card" method="post" action="/settings/email">
   <div class="card-title">Email {% if user.email_verified %}<span class="tag-pill">подтверждён</span>{% else %}<a href="/verify">подтвердить →</a>{% endif %}</div>
   <div class="form-row"><label class="field"><span>Новый email</span><input type="email" name="email" value="{{ user.email }}" required></label>
@@ -186,7 +192,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="card-title">Возможности {{ brand_plus }}</div>
   {% for group, items in pref_groups %}{% if group %}<div class="pref-group">{{ group }}</div>{% endif %}
   {% for p in items %}<label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>{% endfor %}{% endfor %}
-  <div class="row mt" style="gap:8px"><button class="btn">Сохранить</button><a class="btn soft" href="/guests">{{ icon("eye", "i in") }} Гости профиля</a></div>
+  <div class="row mt" style="gap:8px"><button class="btn">Сохранить</button></div>
 </form>
 {% endif %}
 <form class="card" method="post" action="/settings/promocode">

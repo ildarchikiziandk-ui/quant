@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import models
 from database import SessionLocal
-from packs.v3 import account, games, models as m, spaces
+from packs.v3 import account, capsule, games, models as m
 from tests.conftest import make_client, png_bytes, register
 from tests.test_app import J, create_post
 
@@ -91,19 +91,9 @@ def test_chat_folders(alice, bob):
     assert 'id="v3-folders"' in alice.get("/messages").text
 
 
-def test_post_countdown_and_hide(alice, bob):
-    pid = create_post(alice, "Скоро праздник")
-    at = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
-    assert bob.post(f"/v3/post/{pid}/countdown", json={"title": "x", "at": at}, headers=J).status_code in (403, 404)
-    assert alice.post(f"/v3/post/{pid}/countdown", json={"title": "Новый год", "at": at}, headers=J).json()["ok"]
+def test_hide_author_30_days(alice, bob):
     from packs.v3 import feed
-    feed._CD.clear() if hasattr(feed, "_CD") else None
-    page = alice.get(f"/post/{pid}").text
-    assert "v3-countdown" in page and "Новый год" in page and "Обратный отсчёт" in page
-    past = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
-    assert alice.post(f"/v3/post/{pid}/countdown", json={"title": "x", "at": past}, headers=J).status_code == 400
-    assert alice.post(f"/v3/post/{pid}/countdown", json={"remove": "1"}, headers=J).json()["removed"]
-    # скрыть автора на 30 дней
+    pid = create_post(alice, "Пост")
     assert "Не показывать 30 дней" in bob.get(f"/post/{pid}").text
     assert bob.post("/v3/hide/alice", headers=J).json()["ok"]
     s = db()
@@ -116,31 +106,6 @@ def test_post_countdown_and_hide(alice, bob):
     s.close()
     assert bob.post("/v3/hide/bob", headers=J).status_code >= 400
 
-
-def test_friends_feed(alice, bob):
-    pid = create_post(alice, "Для друзей")
-    assert "Для друзей" not in bob.get("/friends").text
-    friends(alice, bob)
-    assert "Для друзей" in bob.get("/friends").text
-    assert pid
-
-
-def test_links_page(alice, bob):
-    assert alice.post("/links", json={"title": "Telegram", "url": "t.me/alice"}, headers=J).json()["ok"]
-    assert alice.post("/links", json={"title": "Плохая", "url": "javascript:alert(1)"}, headers=J).status_code == 400
-    alice.post("/links", json={"title": "YouTube", "url": "https://youtube.com/@alice"}, headers=J)
-    s = db()
-    links = s.query(m.ProfileLink).order_by(m.ProfileLink.pos).all()
-    first, second = links[0].id, links[1].id
-    s.close()
-    assert alice.post(f"/links/{second}/up", headers=J).json()["ok"]
-    page = bob.get("/l/alice").text
-    assert page.index("YouTube") < page.index("Telegram")
-    r = bob.get(f"/l/go/{first}", follow_redirects=False)
-    assert r.status_code == 303 and r.headers["location"] == "https://t.me/alice"
-    assert "Все ссылки · 2" in bob.get("/profile/alice").text
-    assert bob.post(f"/links/{first}/delete", headers=J).status_code == 404
-    assert bob.get("/l/nobody").status_code == 404
 
 
 def test_daily_chest(alice):
@@ -157,64 +122,6 @@ def test_daily_chest(alice):
     assert alice.post("/v3/chest", headers=J).json() == {"ok": True, "reward": 10, "streak": 2}
 
 
-def test_similar_people(alice, bob):
-    alice.post("/settings/profile", data={"name": "Алиса", "interests": "музыка, кино"})
-    bob.post("/settings/profile", data={"name": "Боб", "interests": "кино, спорт"})
-    s = db()
-    if not s.query(models.User).filter_by(username="bob").first().interests:
-        s.close()
-        return  # интересы задаются в другом разделе — проверка ниже через сервис
-    s.close()
-    assert "Похожие на вас" in alice.get("/explore").text
-
-
-def test_market(alice, bob):
-    r = alice.post("/market/save", data={"title": "Велосипед", "price": "5 000", "city": "Казань", "category": "sport", "condition": "used",
-                                         "description": "Почти новый"}, files=[("photos", ("a.png", png_bytes(), "image/png"))], headers=J)
-    iid = r.json()["id"]
-    page = bob.get("/market?q=велосипед").text
-    assert "Велосипед" in page and "5 000 ₽" in page
-    assert "Велосипед" not in bob.get("/market?max_price=100").text
-    assert "Почти новый" in bob.get(f"/market/{iid}").text
-    assert bob.post(f"/market/{iid}/fav", headers=J).json()["fav"]
-    assert "Велосипед" in bob.get("/market?fav=1").text
-    url = bob.post(f"/market/{iid}/contact", headers=J).json()["url"]
-    assert url == "/messages/alice"
-    assert "Велосипед" in last_msg("bob").content
-    assert bob.post(f"/market/{iid}/sold", headers=J).status_code in (403, 404)
-    assert bob.get(f"/market/{iid}/edit", follow_redirects=False).status_code == 303
-    assert alice.post(f"/market/{iid}/up", headers=J).status_code == 400  # только что создано
-    assert alice.post(f"/market/{iid}/sold", headers=J).json()["ok"]
-    assert alice.post("/market/save", data={"id": str(iid), "title": "Велосипед горный", "price": "4500", "category": "sport"}, headers=J).json()["ok"]
-    assert bob.post("/market/save", data={"id": str(iid), "title": "чужое", "price": "1"}, headers=J).status_code in (403, 404)
-    assert alice.post(f"/market/{iid}/delete", headers=J).json()["ok"]
-    assert bob.get(f"/market/{iid}").status_code == 404
-
-
-def test_habits(alice, bob):
-    assert alice.post("/habits", json={"name": "Зарядка", "color": "#ec4899"}, headers=J).json()["ok"]
-    s = db()
-    hid = s.query(m.Habit).one().id
-    s.close()
-    assert alice.post(f"/habits/{hid}/check", headers=J).json() == {"ok": True, "done": True, "streak": 1}
-    assert "Зарядка" in alice.get("/habits").text
-    assert alice.post(f"/habits/{hid}/check", headers=J).json()["done"] is False
-    assert bob.post(f"/habits/{hid}/check", headers=J).status_code == 404
-    assert spaces._streak({"2026-01-01", "2026-01-02", "2026-01-03"}, "2026-01-04") == 3
-    assert spaces._streak({"2026-01-01", "2026-01-03"}, "2026-01-03") == 1
-    assert alice.post(f"/habits/{hid}/delete", headers=J).json()["ok"]
-
-
-def test_mood(alice):
-    assert alice.post("/mood", json={"level": "4", "note": "Сдал экзамен"}, headers=J).json()["ok"]
-    assert alice.post("/mood", json={"level": "5"}, headers=J).json()["ok"]  # перезапись за день
-    assert alice.post("/mood", json={"level": "9"}, headers=J).status_code == 400
-    s = db()
-    assert s.query(m.MoodEntry).count() == 1 and s.query(m.MoodEntry).one().level == 5
-    s.close()
-    assert "Отлично" in alice.get("/mood").text
-
-
 def test_capsule(alice, bob):
     assert alice.post("/capsule", json={"text": "Привет из прошлого", "period": "1m"}, headers=J).json()["ok"]
     assert alice.post("/capsule", json={"text": "Привет", "period": "date", "date": "2000-01-01"}, headers=J).status_code == 400
@@ -224,9 +131,9 @@ def test_capsule(alice, bob):
     c = s.query(m.Capsule).one()
     c.open_at = datetime.utcnow() - timedelta(minutes=1)
     s.commit()
-    spaces.capsules_due(s)
+    capsule.capsules_due(s)
     assert s.query(models.Notification).filter_by(type="capsule").count() == 1
-    spaces.capsules_due(s)
+    capsule.capsules_due(s)
     assert s.query(models.Notification).filter_by(type="capsule").count() == 1
     cid = c.id
     s.close()
@@ -304,15 +211,15 @@ def test_new_device_alert(alice):
 
 
 def test_pages_render(alice):
-    for url in ["/market", "/market/new", "/habits", "/mood", "/capsule", "/games", "/games/word", "/games/2048", "/help", "/help?q=пароль",
-                "/links", "/friends", "/whats-new", "/notifications"]:
+    for url in ["/capsule", "/games", "/games/word", "/games/2048", "/help", "/help?q=пароль", "/handles", "/ai",
+                "/whats-new", "/notifications"]:
         r = alice.get(url)
         assert r.status_code == 200, url
         assert "Traceback" not in r.text
     assert "Центр помощи" in alice.get("/help").text
     assert "v3.js" in alice.get("/").text
     anon = make_client()
-    for url in ["/market", "/habits", "/mood", "/capsule", "/games", "/friends", "/links"]:
+    for url in ["/capsule", "/games", "/handles"]:
         r = anon.get(url, follow_redirects=False)
         assert r.status_code in (200, 303), url
 
@@ -416,9 +323,9 @@ def test_app_offline_and_static_version(alice):
 
 def test_ui_declutter(alice):
     home = alice.get("/").text
-    assert 'id="today-card"' in home and "v3-quick" not in home
+    assert 'id="today-card"' in home and "v3-quick" not in home and 'href="/market"' not in home
     prof = alice.get("/profile/alice").text
-    assert "profile-more" in prof and "profile-stats tiles" in prof
+    assert "profile-more" in prof and "profile-stats tiles" in prof and "/ask/" not in prof
     sett = alice.get("/settings?section=profile").text
     assert sett.count("link-extra") >= 1 and "Ещё ссылка" in sett
     notes = alice.get("/notifications").text
@@ -456,3 +363,57 @@ def test_beautiful_handles(alice, owner):
     # владелец может занять заповедный логин
     r = owner.post("/settings/username", data={"username": "star", "password": "secret123"})
     assert "@star" in r.text
+
+
+
+def test_removed_sections(alice):
+    for url in ["/market", "/habits", "/mood", "/links", "/friends", "/random", "/guests", "/notes", "/memories", "/wheel", "/questions"]:
+        r = alice.get(url, follow_redirects=False)
+        assert r.status_code in (303, 404), url
+    assert alice.post("/wheel/spin", headers=J).status_code == 404
+    menu = alice.get("/").text
+    for word in ["Барахолка", "Привычки", "Дневник настроения", "Колесо фортуны", "Гости профиля", "Заметки"]:
+        assert word not in menu, word
+    assert "Капсула времени" in menu  # капсулу оставили
+
+
+def test_up_to_three_logins(alice, bob, owner):
+    from packs.v3 import handles_shop
+    r = alice.post("/settings/aliases/add", json={"handle": "alice_two", "password": "secret123"}, headers=J).json()
+    assert r["handle"] == "alice_two"
+    assert alice.post("/settings/aliases/add", json={"handle": "bob", "password": "secret123"}, headers=J).status_code == 400  # занят
+    assert alice.post("/settings/aliases/add", json={"handle": "lucky", "password": "secret123"}, headers=J).status_code == 400  # за баллы
+    assert alice.post("/settings/aliases/add", json={"handle": "x3_alice", "password": "nope"}, headers=J).status_code == 400
+    assert alice.post("/settings/aliases/add", json={"handle": "x3_alice", "password": "secret123"}, headers=J).json()["ok"]
+    r = alice.post("/settings/aliases/add", json={"handle": "x4_alice", "password": "secret123"}, headers=J)
+    assert r.status_code == 400 and "не больше 3" in r.json()["error"]
+    # занятый дополнительный логин нельзя взять при регистрации и смене логина
+    assert "уже занят" in bob.post("/settings/username", data={"username": "alice_two", "password": "secret123"}).text
+    # профиль и переписка по дополнительному логину ведут к основному
+    assert bob.get("/profile/alice_two", follow_redirects=False).headers["location"] == "/profile/alice"
+    assert "@alice_two" in bob.get("/profile/alice").text
+    # вход по дополнительному логину
+    c = make_client()
+    assert c.post("/login", data={"username": "alice_two", "password": "secret123"}, follow_redirects=False).status_code == 303
+    # сделать основным
+    assert alice.post("/settings/aliases/alice_two/primary", headers=J).json()["username"] == "alice_two"
+    assert bob.get("/profile/alice", follow_redirects=False).headers["location"] == "/profile/alice_two"
+    assert alice.post("/settings/aliases/alice/delete", headers=J).json()["ok"]
+    assert bob.get("/profile/alice").status_code == 404
+    # покупка красивого логина дополнительным
+    s = db()
+    u = s.query(models.User).filter_by(username="alice_two").first()
+    u.total_points = 10000
+    s.commit()
+    s.close()
+    r = alice.post("/handles/buy", json={"username": "lucky", "password": "secret123", "mode": "alias"}, headers=J).json()
+    assert r["alias"] and r["username"] == "alice_two"
+    assert "data-v3-handle=\"lucky\"" not in alice.get("/handles").text
+    # владелец получает свои логины автоматически
+    handles_shop._seeded.clear()
+    s = db()
+    handles_shop.seed_owner_aliases(s)
+    own = s.query(models.User).filter_by(username="owner").first()
+    assert sorted(a.handle for a in s.query(m.UserAlias).filter_by(user_id=own.id)) == ["ildar", "mint"]
+    s.close()
+    assert "зарезервирован" in bob.post("/settings/username", data={"username": "rubl", "password": "secret123"}).text

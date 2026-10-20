@@ -1,4 +1,4 @@
-/* Nuvora 3.0: опросы и игры в чатах, эффекты, папки, отсчёты, сундук, ссылки, барахолка, привычки,
+/* Nuvora 3.x: опросы и игры в чатах, эффекты, папки, сундук, капсула,
    настроение, капсула, «Словечко», 2048, резервные коды, группировка уведомлений, поиск по помощи. */
 (function () {
   'use strict';
@@ -133,28 +133,8 @@
     load();
   }
 
-  // ================================================================ обратный отсчёт в посте
-  function tick() {
-    const now = Date.now() / 1000;
-    $$('.v3-countdown[data-v3-ts]').forEach(el => {
-      let d = Math.round(+el.dataset.v3Ts - now), v = el.querySelector('.v3-cd-v');
-      if (!v) return;
-      if (d <= 0) { v.textContent = 'Наступило!'; el.classList.add('done'); return; }
-      const dd = Math.floor(d / 86400), hh = Math.floor(d % 86400 / 3600), mm = Math.floor(d % 3600 / 60), ss = d % 60, p = n => String(n).padStart(2, '0');
-      v.textContent = (dd ? plural(dd, 'день', 'дня', 'дней') + ' ' : '') + `${p(hh)}:${p(mm)}:${p(ss)}`;
-    });
-    $$('.v3-cap-left[data-v3-ts]').forEach(el => { const left = +el.dataset.v3Ts; el.textContent = left > 86400 ? 'через ' + plural(Math.ceil(left / 86400), 'день', 'дня', 'дней') : 'скоро'; });
-  }
-  tick(); setInterval(tick, 1000);
-  on('[data-v3-countdown]', b => {
-    const id = b.dataset.v3Countdown, d = new Date(Date.now() + 7 * 864e5), p = n => String(n).padStart(2, '0');
-    const md = A.modal('Обратный отсчёт', `<p class="small muted mb">Под постом появится таймер до события.</p><input id="v3-ct" maxlength="60" placeholder="Событие: «Мой день рождения»"><input type="datetime-local" id="v3-ca" class="mt" value="${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T12:00">
-      <button class="btn block mt" id="v3-cgo">Добавить</button><button class="btn ghost block mt" id="v3-cdel">Убрать отсчёт</button>`);
-    $('#v3-ct', md).focus();
-    const send = async data => { try { await A.api(`/v3/post/${id}/countdown`, data); md.classList.remove('open'); location.reload(); } catch (e) {} };
-    $('#v3-cgo', md).onclick = () => send({ title: $('#v3-ct', md).value, at: $('#v3-ca', md).value });
-    $('#v3-cdel', md).onclick = () => send({ remove: '1' });
-  });
+  // ================================================================ капсула: сколько осталось до вскрытия
+  $$('.v3-cap-left[data-v3-ts]').forEach(el => { const left = +el.dataset.v3Ts; el.textContent = left > 86400 ? 'через ' + plural(Math.ceil(left / 86400), 'день', 'дня', 'дней') : 'скоро'; });
   on('[data-v3-hide]', async b => {
     const u = b.dataset.v3Hide;
     if (!confirm(`Не показывать посты @${u} 30 дней? Подписка останется.`)) return;
@@ -172,48 +152,7 @@
     } catch (e) { b.disabled = false; }
   });
 
-  // ================================================================ мои ссылки
-  const lf = $('#v3-link-form');
-  if (lf) lf.addEventListener('submit', async e => { e.preventDefault(); try { await A.api('/links', formData(lf)); location.reload(); } catch (err) {} });
-  on('[data-v3-link]', async b => {
-    if (b.dataset.a === 'delete' && !confirm('Удалить ссылку?')) return;
-    try { await A.api(`/links/${b.dataset.v3Link}/${b.dataset.a}`); location.reload(); } catch (e) {}
-  });
-
-  // ================================================================ барахолка
-  const mf = $('#v3-market-form');
-  if (mf) mf.addEventListener('submit', async e => {
-    e.preventDefault(); const btn = $('button.btn', mf); btn.disabled = true;
-    try { const r = await A.api('/market/save', new FormData(mf)); location.href = r.url; } catch (err) { btn.disabled = false; }
-  });
-  on('[data-v3-market]', async b => {
-    const a = b.dataset.a, id = b.dataset.v3Market;
-    if (a === 'delete' && !confirm('Удалить объявление?')) return;
-    try {
-      const r = await A.api(`/market/${id}/${a}`);
-      if (a === 'contact') location.href = r.url;
-      else if (a === 'delete') location.href = '/market';
-      else if (a === 'fav') { b.querySelector('span').textContent = r.fav ? 'В избранном' : 'В избранное'; b.classList.toggle('on', r.fav); }
-      else if (a === 'up') A.toast('Объявление поднято наверх');
-      else location.reload();
-    } catch (e) {}
-  });
-
-  // ================================================================ привычки, настроение, капсула
-  const hf = $('#v3-habit-form');
-  if (hf) hf.addEventListener('submit', async e => { e.preventDefault(); try { await A.api('/habits', formData(hf)); location.reload(); } catch (err) {} });
-  on('[data-v3-habit]', async b => {
-    try {
-      const r = await A.api(`/habits/${b.dataset.v3Habit}/check`);
-      b.classList.toggle('on', r.done); const card = b.closest('.v3-habit');
-      card.querySelector('.v3-hstreak').innerHTML = IC('flame') + ' ' + plural(r.streak, 'день', 'дня', 'дней') + ' подряд';
-      card.querySelector('.v3-heat .today')?.classList.toggle('on', r.done);
-      if (r.done) navigator.vibrate?.(12);
-    } catch (e) {}
-  });
-  on('[data-v3-habit-del]', async b => { if (!confirm('Удалить привычку вместе с историей?')) return; try { await A.api(`/habits/${b.dataset.v3HabitDel}/delete`); b.closest('.v3-habit').remove(); } catch (e) {} });
-  const moodF = $('#v3-mood-form');
-  if (moodF) moodF.addEventListener('submit', async e => { e.preventDefault(); try { await A.api('/mood', formData(moodF)); location.reload(); } catch (err) {} });
+  // ================================================================ капсула времени
   const capF = $('#v3-capsule-form');
   if (capF) {
     const dt = $('#v3-cap-date');
@@ -475,7 +414,7 @@
   };
   // список сохранённых страниц для офлайн-экрана приложения
   try {
-    const okPath = /^\/($|messages\/?$|notifications$|explore$|friends$|games(\/2048|\/word)?$|habits$|mood$|help$|ai$|capsule$|links$|market$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
+    const okPath = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word)?$|help$|ai$|capsule$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
     if (window.APP && APP.user && okPath.test(location.pathname) && navigator.onLine) {
       const u = location.pathname + location.search, t = u === '/' ? 'Лента' : (document.title || '').replace(/\s*—\s*Nuvora\s*$/, '') || 'Страница';
       const list = JSON.parse(localStorage.getItem('nv_saved_pages') || '[]').filter(p => p.u !== u);
@@ -493,11 +432,28 @@
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-v3-handle]'); if (!b) return;
     const name = b.dataset.v3Handle, price = +b.dataset.price;
-    const md = A.modal('@' + name, `<p class="small muted mb">Логин сменится на <b>@${A.esc(name)}</b>, старый освободится. Спишется <b>${price}</b> баллов.</p>
-      <input type="password" id="v3-hpass" placeholder="Пароль для подтверждения" autocomplete="current-password"><button class="btn block mt" id="v3-hbuy">Купить за ${price} баллов</button>`);
+    const md = A.modal('@' + name, `<p class="small muted mb">Можно сделать @${A.esc(name)} основным логином (старый освободится) или добавить дополнительным — у одного человека до трёх логинов.</p>
+      <input type="password" id="v3-hpass" placeholder="Пароль для подтверждения" autocomplete="current-password">
+      <button class="btn block mt" data-mode="main">Сделать основным · ${price} баллов</button><button class="btn soft block mt" data-mode="alias">Добавить дополнительным · ${price} баллов</button>`);
     md.querySelector('#v3-hpass').focus();
-    md.querySelector('#v3-hbuy').onclick = async () => {
-      try { const r = await A.api('/handles/buy', { username: name, password: md.querySelector('#v3-hpass').value }); md.classList.remove('open'); A.toast('Теперь вы @' + r.username); setTimeout(() => location.href = '/profile/' + r.username, 700); } catch (err) {}
-    };
+    md.querySelectorAll('[data-mode]').forEach(btn => btn.onclick = async () => {
+      try {
+        const r = await A.api('/handles/buy', { username: name, password: md.querySelector('#v3-hpass').value, mode: btn.dataset.mode });
+        md.classList.remove('open'); A.toast(r.alias ? '@' + name + ' — ваш дополнительный логин' : 'Теперь вы @' + r.username);
+        setTimeout(() => location.href = '/profile/' + r.username, 700);
+      } catch (err) {}
+    });
+  });
+})();
+
+/* Дополнительные логины в настройках */
+(function () {
+  const A = window.App, f = document.getElementById('v3-alias-form');
+  if (f) f.addEventListener('submit', async e => { e.preventDefault(); try { await A.api('/settings/aliases/add', Object.fromEntries(new FormData(f).entries())); location.reload(); } catch (err) {} });
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-v3-alias]'); if (!b) return;
+    const h = b.dataset.v3Alias, a = b.dataset.a;
+    if (!confirm(a === 'delete' ? `Отказаться от @${h}? Его сможет занять кто-то другой.` : `Сделать @${h} основным логином? Нынешний станет дополнительным.`)) return;
+    try { await A.api(`/settings/aliases/${encodeURIComponent(h)}/${a}`); location.reload(); } catch (err) {}
   });
 })();

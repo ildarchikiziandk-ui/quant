@@ -34,6 +34,10 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
     user = current_user(request, db)
     pu = _get_user(db, username)
     if not pu:
+        from services import handles
+        alias_owner = handles.owner_of(db, username)  # дополнительный логин ведёт в основной профиль
+        if alias_owner:
+            return redirect(f"/profile/{alias_owner.username}", 301)
         return render(request, db, "error.html", status_code=404, code=404, title="Пользователь не найден",
                       text=f"Аккаунта @{username} не существует.")
     if pu.username != username:

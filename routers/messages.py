@@ -185,6 +185,11 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
     if not user:
         return login_redirect(request)
     other = _get_user(db, username)
+    if not other:
+        from services import handles
+        alias_owner = handles.owner_of(db, username)
+        if alias_owner and alias_owner.id != user.id:
+            return redirect(f"/messages/{alias_owner.username}")
     if not other or other.id == user.id:
         return redirect("/messages")
     msgs = _load_dialog(db, user, other)

@@ -1,3 +1,0 @@
-{% from "partials/macros.html" import avatar %}
-{% if user %}{% set sim = v3_similar(user) %}{% if sim %}<div class="card"><div class="card-title"><span class="row" style="gap:6px">{{ icon_svg("sparkle", "i in") }} Похожие на вас</span></div>
-{% for it in sim %}<a class="user-row" href="/profile/{{ it.user.username }}">{{ avatar(it.user, 40) }}<div class="info"><b>{{ dname(it.user) }}</b><div class="bio">общее: {{ it.common|join(", ") }}</div></div></a>{% endfor %}</div>{% endif %}{% endif %}

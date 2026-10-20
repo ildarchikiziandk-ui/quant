@@ -4,7 +4,7 @@ const MEDIA_MAX = 400;
 const PAGES_CACHE = 'pages-v1';  // последние открытые страницы — их видно без интернета
 const PAGES_MAX = 40;
 // какие страницы сохраняем для офлайна (личные, но только на этом устройстве; стираются при выходе из аккаунта)
-const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|friends$|games(\/2048|\/word)?$|habits$|mood$|help$|ai$|capsule$|links$|market$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
+const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word)?$|help$|ai$|capsule$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
 const BRAND = '__BRAND__';
 const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/offline'];
 

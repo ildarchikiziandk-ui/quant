@@ -6,7 +6,7 @@
   <h1 style="font-size:32px;font-weight:800;letter-spacing:-1px;margin-top:10px">{{ brand_plus }}</h1>
   <p style="opacity:.9">{{ plus_features|map(attribute=1)|map("length")|sum }} возможностей для тех, кто живёт в {{ brand }}</p>
   {% if is_plus %}<div class="mt" style="font-weight:700">У вас активен {{ brand_plus }}{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}</div>
-  <div class="row mt" style="justify-content:center;gap:8px"><a class="btn sm" style="background:#fff;color:#111" href="/settings?section=plus">Настроить</a><a class="btn sm" style="background:rgba(255,255,255,.2);color:#fff" href="/guests">Гости профиля</a></div>{% endif %}
+  <div class="row mt" style="justify-content:center;gap:8px"><a class="btn sm" style="background:#fff;color:#111" href="/settings?section=plus">Настроить</a></div>{% endif %}
 </div>
 {% for group, items in plus_features %}
 <div class="mmenu-title">{{ group }}</div>

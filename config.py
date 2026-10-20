@@ -35,7 +35,9 @@ def env_bool(name, default=False):
 # --- Бренд ---------------------------------------------------------------
 # Ребрендинг делается здесь: имя проекта подставляется во все шаблоны, письма и пуши.
 BRAND_NAME = env("BRAND_NAME", "Nuvora")
-APP_VERSION = "3.1"  # номер версии сайта — показывается в «Что нового»
+APP_VERSION = "3.1"
+# Убранные разделы: адреса ведут на главную. Вернуть раздел — убрать его из списка (и ссылку в меню).
+DISABLED_FEATURES = [p for p in env("DISABLED_FEATURES", "/random,/guests,/notes,/memories,/wheel,/questions,/ask").split(",") if p.strip()]  # номер версии сайта — показывается в «Что нового»
 BRAND_TAGLINE = env("BRAND_TAGLINE", "Соцсеть, где светятся идеи")
 BRAND_PLUS = env("BRAND_PLUS", f"{BRAND_NAME}+")
 BRAND_EMAIL = env("BRAND_EMAIL", "support@example.com")

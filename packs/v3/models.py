@@ -52,12 +52,6 @@ class ChatFolder(Base):
 
 
 # --- Лента ------------------------------------------------------------------------------------------------
-class PostCountdown(Base):
-    __tablename__ = "v3_post_countdowns"
-    id = Column(Integer, primary_key=True)
-    post_id = Column(Integer, ForeignKey("posts.id"), unique=True)
-    title = Column(String(60), default="")
-    at = Column(DateTime)
 
 
 class TempMute(Base):
@@ -70,14 +64,6 @@ class TempMute(Base):
 
 
 # --- Люди -------------------------------------------------------------------------------------------------
-class ProfileLink(Base):
-    __tablename__ = "v3_profile_links"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    title = Column(String(40), default="")
-    url = Column(String(300), default="")
-    clicks = Column(Integer, default=0)
-    pos = Column(Integer, default=0)
 
 
 class DailyChest(Base):
@@ -88,59 +74,7 @@ class DailyChest(Base):
     total = Column(Integer, default=0)
 
 
-# --- Барахолка --------------------------------------------------------------------------------------------
-class MarketItem(Base):
-    __tablename__ = "v3_market_items"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    title = Column(String(80), default="")
-    description = Column(Text, default="")
-    price = Column(Integer, default=0)  # рубли; 0 — «Отдам даром»
-    category = Column(String(20), default="other", index=True)
-    city = Column(String(60), default="")
-    condition = Column(String(10), default="used")
-    photos = Column(Text, default="[]")
-    sold = Column(Boolean, default=False)
-    views = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-
-
-class MarketFav(Base):
-    __tablename__ = "v3_market_favs"
-    __table_args__ = (UniqueConstraint("user_id", "item_id"),)
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    item_id = Column(Integer, ForeignKey("v3_market_items.id"))
-
-
-# --- Личное: привычки, настроение, капсула ----------------------------------------------------------------
-class Habit(Base):
-    __tablename__ = "v3_habits"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    name = Column(String(50), default="")
-    color = Column(String(7), default="#6d5dfc")
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-class HabitCheck(Base):
-    __tablename__ = "v3_habit_checks"
-    __table_args__ = (UniqueConstraint("habit_id", "day"),)
-    id = Column(Integer, primary_key=True)
-    habit_id = Column(Integer, ForeignKey("v3_habits.id"), index=True)
-    day = Column(String(10))
-
-
-class MoodEntry(Base):
-    __tablename__ = "v3_moods"
-    __table_args__ = (UniqueConstraint("user_id", "day"),)
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    day = Column(String(10))
-    level = Column(Integer, default=3)
-    note = Column(String(300), default="")
-
-
+# --- Капсула времени ---------------------------------------------------------------------------------------
 class Capsule(Base):
     __tablename__ = "v3_capsules"
     id = Column(Integer, primary_key=True)
@@ -223,4 +157,13 @@ class HandlePurchase(Base):
     username = Column(String(30), default="")
     old_username = Column(String(30), default="")
     price = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UserAlias(Base):
+    """Дополнительный логин: у человека до трёх логинов — основной (users.username) и два дополнительных."""
+    __tablename__ = "v3_user_aliases"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    handle = Column(String(30), unique=True, index=True)  # в нижнем регистре
     created_at = Column(DateTime, default=datetime.utcnow)

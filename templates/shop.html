@@ -16,5 +16,4 @@
 <div class="card row" style="gap:14px"><span style="font-size:40px">{{ icon("snowflake", "i in") }}</span><div class="grow"><b>Заморозка стрика</b><div class="small muted">Если пропустите день, стрик не сгорит. Срабатывает автоматически. У вас: <b>{{ user.streak_freezes or 0 }}</b> из 5.</div></div>
   <form method="post" action="/shop/freeze"><button class="btn sm" {% if balance < freeze_price or (user.streak_freezes or 0) >= 5 %}disabled{% endif %}>{{ icon("sparkle", "i in") }} {{ freeze_price }}</button></form></div>
 <div class="card row" style="gap:14px"><span style="font-size:40px">{{ icon("gift", "i in") }}</span><div class="grow"><b>Подарки друзьям</b><div class="small muted">Откройте профиль друга и нажмите «{{ icon("gift", "i in") }} Подарить»</div></div><a class="btn soft sm" href="/explore">К людям</a></div>
-<div class="card row" style="gap:14px"><span style="font-size:40px">{{ icon("wheel", "i in") }}</span><div class="grow"><b>Колесо фортуны</b><div class="small muted">Раз в день — бесплатно до 50 очков</div></div><a class="btn soft sm" href="/wheel">Крутить</a></div>
 {% endblock %}

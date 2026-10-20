@@ -555,24 +555,10 @@ def test_timezones(alice, bob):
     s.close()
 
 
-def test_questions_flow(alice, bob):
-    r = bob.post("/ask/alice", data={"text": "Какая твоя любимая книга?", "anonymous": "1"}, headers=J)
-    assert r.json()["ok"]
-    assert bob.post("/ask/alice", data={"text": "ты тупой дебил"}, headers=J).status_code == 400  # модель модерации
-    inbox = alice.get("/questions").text
-    assert "любимая книга" in inbox and "Аноним" in inbox  # анонимно
-    s = db()
-    q = s.query(models.Question).first()
-    s.close()
-    alice.post(f"/questions/{q.id}/answer", data={"answer": "Мастер и Маргарита", "to_feed": "1"}, headers=J)
-    page = bob.get("/ask/alice").text
-    assert "Мастер и Маргарита" in page and "Аноним" in page
-    s = db()
-    assert s.query(models.Post).filter(models.Post.content.like("%Мастер и Маргарита%")).count() == 1
-    s.close()
-    alice.post("/settings/prefs/privacy", data={"who_can_ask": "nobody", "who_can_comment": "all", "who_can_mention": "all",
-                                                "allow_reposts": "on", "read_receipts": "on", "typing_status": "on"})
-    assert bob.post("/ask/alice", data={"text": "ещё вопрос"}, headers=J).status_code == 403
+def test_questions_removed(alice, bob):
+    # анонимные вопросы убраны из Nuvora 3.1: адреса ведут на главную
+    assert bob.post("/ask/alice", data={"text": "Какая твоя любимая книга?"}, headers=J).status_code == 404
+    assert alice.get("/questions", follow_redirects=False).status_code == 303
 
 
 def test_hashtag_follow_feed(alice, bob):
@@ -673,8 +659,7 @@ def test_people_you_may_know_search_filters_memories(alice, bob):
     p.created_at = datetime.utcnow().replace(year=datetime.utcnow().year - 1)
     s.commit()
     s.close()
-    assert "Год назад я был тут" in alice.get("/memories").text
-    assert "В этот день" in alice.get("/").text
+    assert alice.get("/memories", follow_redirects=False).status_code == 303  # раздел «В этот день» убран
     long_id = create_post(alice, "слово " * 600)
     assert "мин" in alice.get(f"/profile/alice").text
 
@@ -766,9 +751,7 @@ def test_shop_wheel_freeze_leaderboard(alice, bob):
     s.close()
     assert "frame-gold" in bob.get("/profile/alice").text
     alice.post("/shop/freeze")
-    r = alice.post("/wheel/spin", headers=J).json()
-    assert r["ok"] and r["prize"] in (5, 10, 15, 20, 25, 30, 50)
-    assert alice.post("/wheel/spin", headers=J).status_code == 400  # раз в день
+    assert alice.post("/wheel/spin", headers=J).status_code == 404  # колесо фортуны убрано (есть ежедневный сундук)
     # заморозка спасает стрик
     from datetime import date, timedelta
     from services import gamification
@@ -786,12 +769,11 @@ def test_discovery_and_utilities(alice, bob):
     pid = create_post(bob, "популярный пост")
     alice.post(f"/like/{pid}", headers=J)
     assert "популярный пост" in alice.get("/top?period=week").text
-    assert alice.get("/random", follow_redirects=False).headers["location"].startswith("/post/")
+    assert alice.get("/random", follow_redirects=False).headers["location"] == "/"  # раздел убран
     alice.post("/settings/profile", data={"name": "Alice", "city": "Казань"})
     bob.post("/settings/profile", data={"name": "Bob", "city": "казань"})
     assert "@bob" in alice.get("/people/city").text
-    alice.post("/notes/save", data={"title": "Идеи", "content": "написать про котиков"})
-    assert "написать про котиков" in alice.get("/notes").text and "написать про котиков" not in bob.get("/notes").text
+    assert alice.post("/notes/save", data={"title": "Идеи", "content": "x"}, headers=J).status_code == 404  # заметки убраны
     st = bob.get("/stats").text
     assert "Активность за полгода" in st and "Лучшее время" in st
     alice.post("/follow/bob", headers=J)
@@ -943,10 +925,8 @@ def test_signup_timezone_and_finish(anon):
 def test_plus_features(alice, bob, owner):
     from datetime import datetime
     from services import plus
-    # без Plus: гости скрыты, эксклюзивный подарок недоступен, лимит поста 5000
-    bob.get("/profile/alice")
-    page = alice.get("/guests").text
-    assert "Список гостей доступен" in page and "1 человек заходил" in page
+    # без Plus: эксклюзивный подарок недоступен, лимит поста 5000 («Гости профиля» убраны)
+    assert alice.get("/guests", follow_redirects=False).status_code == 303
     s = db()
     a = s.query(models.User).filter_by(username="alice").one()
     a.total_points = 1000
@@ -960,7 +940,6 @@ def test_plus_features(alice, bob, owner):
     assert plus.active(a) and plus.limit(a, "post_length") == 15000 and plus.limit(a, "voice") == 900
     before = a.spent_points or 0
     s.close()
-    assert "bob" in alice.get("/guests").text
     r = alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).json()  # 500 со скидкой 30% = 350
     assert r["ok"]
     s = db()
@@ -975,15 +954,11 @@ def test_plus_features(alice, bob, owner):
     gamification.add_points(a, s, 10)
     assert a.total_points - pts == 15
     s.close()
-    # два вращения колеса
-    assert alice.post("/wheel/spin", headers=J).json()["ok"]
-    assert alice.post("/wheel/spin", headers=J).json()["ok"]
-    assert alice.post("/wheel/spin", headers=J).status_code == 400
     # цвет значка из палитры и имя с градиентом
     alice.post("/settings/plus-color", data={"preset": "aurora"})
     prof = bob.get("/profile/alice").text
     assert "plus-name" in prof and "#22d3ee" in prof
-    assert "Гости профиля" in alice.get("/plus").text
+    assert "Длинные посты" in alice.get("/plus").text
     # длинный пост
     pid = create_post(alice, "а" * 9000)
     s = db()

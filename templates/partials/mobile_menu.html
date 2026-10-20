@@ -1,10 +1,10 @@
 {# Мобильное меню: главное — крупно, остальное — компактными списками, редкое — в раскрывающихся группах.
    Лента, чаты, уведомления и профиль уже есть внизу и вверху экрана, поэтому здесь их нет. #}
 {% set main = [("/groups","users","Группы"),("/bookmarks","bookmark","Закладки"),("/tasks","target","Задания"),("/events","calendar","События")] %}
-{% set mine = [("/messages/starred","star","Избранное"),("/birthdays","cake","Дни рождения"),("/notes","note","Заметки"),("/drafts","draft","Черновики"),("/stats","chart","Статистика"),("/guests","eye","Гости профиля"),("/questions","help","Вопросы"),("/gifts/" ~ user.username,"gift","Подарки"),("/archive","archive","Архив"),("/memories","history","В этот день")] %}
+{% set mine = [("/messages/starred","star","Избранное"),("/birthdays","cake","Дни рождения"),("/drafts","draft","Черновики"),("/stats","chart","Статистика"),("/gifts/" ~ user.username,"gift","Подарки"),("/archive","archive","Архив")] %}
 {% set more = [
-  ("Обзор", "compass", [("/explore","compass","Обзор"),("/top","trophy","Топ постов"),("/random","shuffle","Случайный пост"),("/people/city","map","Люди рядом"),("/leaderboard","chart","Рейтинг")]),
-  ("Награды", "medal", [("/achievements","medal","Достижения"),("/wheel","wheel","Колесо фортуны"),("/shop","bag","Магазин"),("/invite","handshake","Пригласить друзей")]),
+  ("Обзор", "compass", [("/explore","compass","Обзор"),("/top","trophy","Топ постов"),("/people/city","map","Люди рядом"),("/leaderboard","chart","Рейтинг")]),
+  ("Награды", "medal", [("/achievements","medal","Достижения"),("/shop","bag","Магазин"),("/invite","handshake","Пригласить друзей")]),
   ("Люди", "user-plus", [("/close-friends","star","Близкие друзья"),("/follow-requests","user-plus","Заявки в друзья")]),
   ("Помощь", "lifebuoy", [("/whats-new","sparkle","Что нового"),("/support","lifebuoy","Поддержка"),("/about","info","О проекте"),("/terms","scroll","Правила"),("/privacy","shield","Конфиденциальность")]),
 ] %}

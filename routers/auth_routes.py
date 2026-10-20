@@ -32,6 +32,12 @@ def validate_username(u, user=None):
     return handles.check(u, user)  # красивые логины: заповедные и продающиеся за баллы
 
 
+def handles_owner(db, name):
+    """Занят ли логин — основным или дополнительным логином кого-то."""
+    from services import handles
+    return handles.owner_of(db, name)
+
+
 def validate_password(p):
     if len(p) < 8:
         return "Пароль: минимум 8 символов"
@@ -73,8 +79,12 @@ def login_page(request: Request, next: str = "/", db: Session = Depends(get_db))
 
 def _find_user(db, ident):
     ident = ident.strip().lstrip("@").strip()
-    return db.query(models.User).filter(or_(func.lower(models.User.username) == ident.lower(),
-                                            func.lower(models.User.email) == ident.lower())).first()
+    u = db.query(models.User).filter(or_(func.lower(models.User.username) == ident.lower(),
+                                         func.lower(models.User.email) == ident.lower())).first()
+    if u:
+        return u
+    from services import handles
+    return handles.owner_of(db, ident)  # войти можно и по дополнительному логину
 
 
 @router.post("/login")
@@ -163,7 +173,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         return fail("Нужно дать согласие на обработку персональных данных")
     if not adult:
         return fail(f"Регистрация доступна с {config.MIN_AGE} лет")
-    if db.query(models.User).filter(func.lower(models.User.username) == username.lower()).first():
+    if handles_owner(db, username):
         return fail(f"Логин @{username} уже занят")
     if db.query(models.User).filter(func.lower(models.User.email) == email).first():
         return fail("Email уже зарегистрирован")
@@ -350,7 +360,7 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
         from services import handles
         if handles.check(un) or un.lower() in RESERVED:  # красивый логин из Яндекса не раздаём бесплатно
             un = ubase = f"{ubase}_y"
-        while db.query(models.User).filter(func.lower(models.User.username) == un.lower()).first():
+        while handles_owner(db, un):
             un, i = f"{ubase}_{i}", i + 1
         user = models.User(name=(yu.get("real_name") or yu.get("display_name") or un)[:60], username=un,
                            email=email or f"yandex_{yid}@users.nvra.local", yandex_id=yid,
@@ -416,7 +426,7 @@ def signup_finish(request: Request, username: str = Form(""), tz_key: str = Form
         err = validate_username(username)
         if err:
             return fail(err)
-        if db.query(models.User).filter(func.lower(models.User.username) == username.lower()).first():
+        if handles_owner(db, username):
             return fail(f"Логин @{username} уже занят")
         user.username = username
     if not consent:

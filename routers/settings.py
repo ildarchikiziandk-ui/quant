@@ -144,7 +144,8 @@ async def settings_username(request: Request, db: Session = Depends(get_db)):
     form = await request.form()
     new = _clean(form, "username", 30).lstrip("@")
     err = validate_username(new, user) if new.lower() != user.username.lower() else None
-    if not err and new.lower() != user.username.lower() and db.query(models.User).filter(func.lower(models.User.username) == new.lower()).first():
+    from routers.auth_routes import handles_owner
+    if not err and new.lower() != user.username.lower() and handles_owner(db, new):
         err = "Этот логин уже занят"
     if not err and not auth.verify_password(form.get("password") or "", user.password):
         err = "Неверный пароль"

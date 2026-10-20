@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -79,6 +79,11 @@ def _norm_host(h: str) -> str:
 async def security_middleware(request: Request, call_next):
     if not config.SECRET_CHATS_ENABLED and request.url.path in ("/static/js/gost.js", "/static/js/secret.js"):
         return PlainTextResponse("Not found", status_code=404)
+    path = request.url.path
+    if any(path == p or path.startswith(p + "/") for p in config.DISABLED_FEATURES):  # убранные разделы
+        if request.method == "GET" and not request.headers.get("x-requested-with"):
+            return RedirectResponse("/", status_code=303)
+        return JSONResponse({"ok": False, "error": "Этот раздел убран"}, status_code=404)
     # Защита от CSRF: небезопасные запросы с чужого Origin/Referer отклоняются.
     if request.method not in SAFE_METHODS:
         origin = request.headers.get("origin") or request.headers.get("referer")
