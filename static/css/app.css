@@ -678,9 +678,9 @@ html.in-app .hide-in-app{display:none!important}
 .fire.risk{color:var(--text-3)}.fire.risk svg.i{fill:var(--input);stroke:var(--text-3)}
 
 /* Nuvora+ */
-.plus-name{background:var(--pg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;background-size:200% 100%;animation:pn-shift 6s ease-in-out infinite}
+.plus-name{background:var(--pg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;background-size:200% 100%}
 @keyframes pn-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.av-wrap.plus-glow{position:relative;border-radius:50%;padding:2px;background:var(--pg);background-size:220% 220%;animation:pn-shift 5s ease-in-out infinite}
+.av-wrap.plus-glow{position:relative;border-radius:50%;padding:2px;background:var(--pg);background-size:220% 220%}
 .av-wrap.plus-glow>.av{box-shadow:0 0 0 2px var(--card)}
 .gift{position:relative}.gift-plus{position:absolute;top:6px;right:6px;font-size:8.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#a78bfa,#6d28d9);padding:1px 5px;border-radius:999px}
 .gift.excl{background:linear-gradient(180deg,color-mix(in srgb,#a855f7 10%,var(--card)),var(--card))}

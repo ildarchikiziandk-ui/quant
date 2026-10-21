@@ -17,6 +17,8 @@
       const r = await A.get('/messages/fragment/' + msg.dataset.id);
       const t = document.createElement('div'); t.innerHTML = r.html;
       const fresh = t.firstElementChild;
+      const was = msg.querySelector('.v3-card'), now = fresh && fresh.querySelector('.v3-card');
+      if (was && now && was.innerHTML === now.innerHTML) return;  // ничего не изменилось — не перерисовываем
       if (fresh) { delete msg.dataset.v3fx; msg.replaceWith(fresh); fresh.dataset.v3fx = '1'; }
     } catch (e) {}
   }

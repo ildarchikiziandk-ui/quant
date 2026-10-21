@@ -35,7 +35,10 @@
   --shadow-2: 0 12px 34px -12px rgba(0, 0, 0, .6);
 }
 
-body { font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-feature-settings: "ss01"; }
+body { font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* Посты за пределами экрана не рисуются, пока до них не докрутили — лента с сотней постов не тормозит */
+article.post { content-visibility: auto; contain-intrinsic-size: auto 520px; }
 
 /* Заголовки: широкий Unbounded — узнаваемо и без «нейросетевого» Inter */
 .page-title, .logo-text, .profile-name, .wn-num, .auth-card h1, .auth-card h2, .v3-mbig, .hero h1 {
@@ -85,19 +88,20 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 /* Кольцо истории — сплошной синий кита */
 .ring { background: var(--whale); }
 
-/* Мобильная шапка и нижняя панель: сплошные, с тонкой линией — без стекла и «парения» */
+/* Мобильная шапка — сплошная; нижняя панель — «парящая» плашка (без размытия: оно тормозит на телефонах) */
 .mobile-top { background: var(--bg); backdrop-filter: none; border-bottom: 1px solid var(--border); }
 @media (max-width: 640px) {
-  .mobile-nav { left: 0; right: 0; bottom: 0; padding-bottom: env(safe-area-inset-bottom); border: 0; border-top: 1px solid var(--border);
-    border-radius: 0; background: var(--bg); backdrop-filter: none; box-shadow: none; }
+  .mobile-nav { left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); padding-bottom: 0; border: 1px solid var(--border);
+    border-radius: 22px; background: var(--card); backdrop-filter: none; box-shadow: 0 10px 28px -12px rgba(40, 30, 15, .35); }
+  [data-theme="dark"] .mobile-nav { box-shadow: 0 10px 28px -10px rgba(0, 0, 0, .7); }
   .mobile-nav-inner { height: 60px; background: none; }
   .mobile-nav a { height: 60px; }
   .mobile-nav a.active, .mobile-nav a.active svg { color: var(--text); }
-  .mobile-nav a.active::after { content: ""; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--ink); }
-  .mobile-nav .fab { width: 48px; height: 40px; border-radius: 14px; background: var(--ink); box-shadow: none; }
+  .mobile-nav a.active::after { content: ""; position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--whale); }
+  .mobile-nav .fab { width: 48px; height: 44px; border-radius: 15px; background: var(--ink); box-shadow: none; }
   .mobile-nav .fab svg { color: var(--on-brand) !important; }
-  .main { padding-bottom: 84px; }
-  .to-top { bottom: 80px; }
+  .main { padding-bottom: 100px; }
+  .to-top { bottom: 90px; }
 }
 
 /* Окна и меню */

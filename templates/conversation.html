@@ -105,9 +105,9 @@ async function poll(){
       const tmp=document.createElement('div'); tmp.innerHTML=r.html;
       tmp.querySelectorAll('.msg').forEach(m=>{ const ex=document.getElementById(m.id); if(ex) ex.replaceWith(m); else { m.classList.add('appear'); box.appendChild(m); } });
       lastId = Math.max(lastId, r.last_id); addDaySeps(); if(near) toBottom(); else { unseen+=tmp.querySelectorAll('.msg:not(.mine)').length; if(unseen){ jn.textContent=unseen; jn.classList.remove('hidden'); } } }
-    document.querySelectorAll('[data-tick]').forEach(t=>{ if(+t.dataset.tick<=r.read_upto){ t.innerHTML=window.ICON_TICKS; t.classList.add('read'); } });
-    document.getElementById('typing').classList.toggle('hidden', !r.typing); document.getElementById('typing-what').textContent = r.typing_kind==='voice' ? 'записывает голосовое' : r.typing_kind==='circle' ? 'записывает кружок' : 'печатает';
-    const st=document.getElementById('chat-status'); if(r.online) st.innerHTML='<span style="color:var(--online)">в сети</span>';
+    document.querySelectorAll('[data-tick]:not(.read)').forEach(t=>{ if(+t.dataset.tick<=r.read_upto){ t.innerHTML=window.ICON_TICKS; t.classList.add('read'); } });
+    document.getElementById('typing').classList.toggle('hidden', !r.typing); const tw=document.getElementById('typing-what'), tt=r.typing_kind==='voice' ? 'записывает голосовое' : r.typing_kind==='circle' ? 'записывает кружок' : 'печатает'; if(tw.textContent!==tt) tw.textContent=tt;
+    const st=document.getElementById('chat-status'); if(r.online && !st.dataset.on){ st.dataset.on=1; st.innerHTML='<span style="color:var(--online)">в сети</span>'; }
   }catch(e){}
 }
 setInterval(()=>{ if(!document.hidden) poll(); }, 2500);

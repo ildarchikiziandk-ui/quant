@@ -26,6 +26,7 @@
 <meta name="view-transition" content="same-origin">
 {% if not (user and pref(user, "data_saver")) %}<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/logout*"}},{"not":{"href_matches":"/auth/*"}},{"not":{"href_matches":"/export-data*"}},{"not":{"href_matches":"/random*"}},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/uploads/*"}},{"not":{"href_matches":"/static/*"}}]},"eagerness":"conservative"}]}</script>{% endif %}
 {% block head %}{% endblock %}
+<link rel="preload" href="/static/fonts/onest-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/static/fonts/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 {% for c in pack_css %}<link rel="stylesheet" href="/static/{{ c }}?v={{ static_v }}">{% endfor %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
