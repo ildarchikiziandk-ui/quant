@@ -58,7 +58,7 @@
   function play(kind) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const layer = document.createElement('div'); layer.className = 'v3-fx v3-fx-' + kind; document.body.appendChild(layer);
-    const sym = { confetti: null, hearts: '❤', snow: '❄', fireworks: null }[kind], colors = ['#6d5dfc', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#ef4444'];
+    const sym = { confetti: null, hearts: '❤', snow: '❄', fireworks: null }[kind], colors = ['#2f6487', '#c2552f', '#c98a1b', '#3c9a5f', '#f7ead7', '#1f1d1a'];
     const n = kind === 'fireworks' ? 5 : 46;
     for (let i = 0; i < n; i++) {
       const p = document.createElement('i');

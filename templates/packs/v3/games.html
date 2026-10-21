@@ -3,6 +3,6 @@
 {% block content %}
 <div class="page-title">{{ icon("dice", "i in") }} Игры</div>
 <div class="page-sub">Короткие игры на пару минут. За «Словечко» дают очки.</div>
-<a class="card v3-game" href="/games/word"><span class="v3-gic" style="background:linear-gradient(135deg,#22c55e,#16a34a)">{{ icon("type") }}</span><div class="grow"><b>Словечко</b><div class="small muted">Угадайте слово дня из 5 букв за 6 попыток</div></div><span class="chip">{% if word_done %}Сыграно сегодня{% else %}Играть{% endif %}</span></a>
-<a class="card v3-game" href="/games/2048"><span class="v3-gic" style="background:linear-gradient(135deg,#f59e0b,#ea580c)">{{ icon("grid") }}</span><div class="grow"><b>2048</b><div class="small muted">Соединяйте плитки и дойдите до 2048</div></div><span class="chip">Рекорд {{ best2048 }}</span></a>
+<a class="card v3-game" href="/games/word"><span class="v3-gic">{{ icon("type") }}</span><div class="grow"><b>Словечко</b><div class="small muted">Угадайте слово дня из 5 букв за 6 попыток</div></div><span class="chip">{% if word_done %}Сыграно сегодня{% else %}Играть{% endif %}</span></a>
+<a class="card v3-game" href="/games/2048"><span class="v3-gic">{{ icon("grid") }}</span><div class="grow"><b>2048</b><div class="small muted">Соединяйте плитки и дойдите до 2048</div></div><span class="chip">Рекорд {{ best2048 }}</span></a>
 {% endblock %}

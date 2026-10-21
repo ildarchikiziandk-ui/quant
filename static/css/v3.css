@@ -1,94 +1,128 @@
-/* ===== Nuvora 3.0 — обновлённый внешний вид =====
-   Слой поверх app.css: мягче фон, «парящие» карточки, фирменный фиолетовый акцент, вкладки-переключатели,
-   стеклянная нижняя панель. Всё на переменных — тёмная тема и настройки оформления продолжают работать. */
+/* ===== Nuvora — фирменный стиль «Чернила и бумага» =====
+   Цвета взяты из логотипа: графит (чернила), сливочный (бумага) и глубокий синий кита.
+   Без градиентов и «парящих» плашек: тёплый фон, тонкие рамки, плотная типографика.
+   Заголовки — Unbounded, текст — Onest (оба со своего сервера и из APK, работают без сети). */
+@font-face { font-family: "Onest"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("/static/fonts/onest-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Onest"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("/static/fonts/onest-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Unbounded"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url("/static/fonts/unbounded-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Unbounded"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url("/static/fonts/unbounded-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
 :root {
-  --accent: #6d5dfc; --accent-2: #8b5cf6; --accent-soft: color-mix(in srgb, #6d5dfc 12%, transparent);
-  --grad: linear-gradient(135deg, #6d5dfc, #8b5cf6 55%, #c056f5);
-  --bg: #f5f5f8; --card: #ffffff; --card-2: #fafafc; --border: #ebebf0; --border-2: #dcdce4;
-  --input: #f1f1f5; --hover: rgba(109, 93, 252, .06);
-  --shadow-1: 0 1px 2px rgba(17, 17, 26, .04), 0 2px 10px rgba(17, 17, 26, .04);
-  --shadow-2: 0 2px 6px rgba(17, 17, 26, .06), 0 12px 32px rgba(17, 17, 26, .08);
-  --shadow: var(--shadow-2);
-  --radius: 22px; --radius-sm: 14px;
+  --ink: #1f1d1a; --paper: #f6f1e8; --whale: #2f6487; --whale-2: #244f6b; --cream: #f7ead7;
+  --accent: var(--whale); --accent-2: var(--whale-2); --accent-soft: color-mix(in srgb, var(--whale) 11%, transparent);
+  --grad: var(--whale);
+  --brand: var(--ink); --on-brand: #fbf7f0; --brand-2: #5d564c; --link: var(--whale);
+  --bg: var(--paper); --card: #fffdf9; --card-2: #fbf7f0; --border: #e7ddcd; --border-2: #d8cbb6;
+  --text: var(--ink); --text-2: #6b6357; --text-3: #a0968a;
+  --input: #f1eadf; --hover: rgba(31, 29, 26, .05);
+  --like: #d63c3c; --bookmark: #c98a1b; --online: #3c9a5f; --plus: var(--whale);
+  --shadow-1: none; --shadow-2: 0 10px 30px -12px rgba(40, 30, 15, .22); --shadow: var(--shadow-2);
+  --radius: 16px; --radius-sm: 11px;
+  --font-display: "Unbounded", "Onest", sans-serif;
 }
 [data-theme="dark"] {
-  --accent: #8f83ff; --accent-2: #a78bfa; --accent-soft: color-mix(in srgb, #8f83ff 16%, transparent);
-  --bg: #0b0b0f; --card: #141418; --card-2: #18181d; --border: #23232b; --border-2: #33333d;
-  --input: #1b1b21; --hover: rgba(143, 131, 255, .08);
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4); --shadow-2: 0 12px 34px rgba(0, 0, 0, .5);
+  --ink: #f3ece1; --whale: #7fb0d3; --whale-2: #a6c9e2;
+  --accent-soft: color-mix(in srgb, var(--whale) 15%, transparent);
+  --brand: #f3ece1; --on-brand: #1a1917; --brand-2: #b3a99b;
+  --bg: #141311; --card: #1c1b18; --card-2: #22201d; --border: #2e2b27; --border-2: #3d3934;
+  --text: #f3ece1; --text-2: #a69d90; --text-3: #6f685e;
+  --input: #252320; --hover: rgba(243, 236, 225, .05);
+  --like: #f06a6a; --online: #5cc27f;
+  --shadow-2: 0 12px 34px -12px rgba(0, 0, 0, .6);
 }
 
-/* Заголовки — дисплейный шрифт, чуть крупнее */
-.page-title { font-family: "Inter Display", Inter, sans-serif; font-size: 25px; letter-spacing: -.7px; }
-.card-title { font-size: 15.5px; letter-spacing: -.2px; }
+body { font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-feature-settings: "ss01"; }
 
-/* Карточки: мягкая тень вместо резкой рамки */
-.card { border-color: transparent; box-shadow: var(--shadow-1); }
-[data-theme="dark"] .card { border-color: var(--border); box-shadow: none; }
-.card.post { transition: box-shadow .2s, transform .2s; }
-@media (hover: hover) { .card.post:hover { box-shadow: var(--shadow-2); } }
+/* Заголовки: широкий Unbounded — узнаваемо и без «нейросетевого» Inter */
+.page-title, .logo-text, .profile-name, .wn-num, .auth-card h1, .auth-card h2, .v3-mbig, .hero h1 {
+  font-family: var(--font-display); letter-spacing: -.02em; }
+.page-title { font-size: 22px; font-weight: 600; }
+.logo-text { font-weight: 600; letter-spacing: -.03em; }
+.profile-name { font-weight: 600; }
+.card-title { font-size: 15px; letter-spacing: -.1px; }
+.profile-stats.tiles > * b, .v3-gscore b { font-family: var(--font-display); font-weight: 600; }
 
-/* Кнопки: основная — плотная, с лёгким свечением; мягкие — в цвет акцента при наведении */
-.btn { border-radius: 14px; font-weight: 700; letter-spacing: -.1px; }
-.btn:not(.ghost):not(.soft):not(.danger) { box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--brand) 70%, transparent); }
+/* Карточки: бумага с тонкой рамкой, без теней */
+.card { border: 1px solid var(--border); box-shadow: none; }
+.card.post { transition: border-color .2s; }
+@media (hover: hover) { .card.post:hover { border-color: var(--border-2); } }
+
+/* Кнопки: основная — «чернильная», мягкие — бумажные; без свечения */
+.btn { border-radius: 12px; font-weight: 650; letter-spacing: 0; box-shadow: none; }
+.btn.soft { background: var(--input); color: var(--text); }
 .btn.soft:hover { background: var(--accent-soft); color: var(--accent); }
-.btn.sm { border-radius: 11px; }
+.btn.sm { border-radius: 10px; }
 .icon-btn { transition: background .15s, color .15s; }
-.icon-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
 
-/* Ссылки и акцентные элементы */
-:root { --link: var(--accent); }
+/* Ссылки, теги и упоминания — синий кита */
 .rt-tag, .rt-mention { color: var(--accent); }
 
-/* Поля ввода: скруглённее, фокус — фиолетовая обводка */
-input, textarea, select { border-radius: 14px; border-color: transparent; background: var(--input); }
-input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); background: var(--card); }
+/* Поля ввода */
+input, textarea, select { border-radius: 12px; border: 1px solid var(--border); background: var(--input); }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--card); }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 
-/* Чипсы и вкладки — переключатели */
-.chip { background: var(--card); border-color: var(--border); }
-.chip.active { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -8px var(--accent); }
-.tabs { background: var(--input); border: none; border-radius: 16px; padding: 4px; gap: 4px; }
-.tabs a { border-bottom: none; border-radius: 12px; padding: 10px 12px; transition: background .15s, color .15s; }
-.tabs a.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-1); }
-[data-theme="dark"] .tabs a.active { background: var(--card-2); }
+/* Чипсы и вкладки */
+.chip { background: var(--card); border: 1px solid var(--border); }
+.chip.active { background: var(--ink); color: var(--on-brand); border-color: var(--ink); box-shadow: none; }
+.tabs { background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0; gap: 4px; }
+.tabs a { border-radius: 0; padding: 11px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+.tabs a.active { background: none; color: var(--text); border-bottom-color: var(--ink); box-shadow: none; }
 
-/* Боковое меню на компьютере: активный пункт в цвет акцента */
-.nav-item.active { background: var(--accent-soft); color: var(--accent); }
+/* Боковое меню на компьютере */
+.nav-item.active { background: var(--input); color: var(--text); }
 .nav-item.active .ico { color: var(--accent); }
 
-/* Пост: действия — круглые «пилюли» при наведении */
+/* Пост */
 .post-actions .act { border-radius: 999px; transition: background .15s, color .15s; }
 @media (hover: hover) { .post-actions .act:hover { background: var(--hover); } }
 
-/* Аватар с историей — фирменный градиент кольца */
-.ring { background: var(--grad); }
+/* Кольцо истории — сплошной синий кита */
+.ring { background: var(--whale); }
 
-/* Мобильная шапка — стекло */
-.mobile-top { background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: saturate(1.6) blur(16px); }
-
-/* Нижняя панель — «парящая» стеклянная плашка с индикатором активной вкладки */
+/* Мобильная шапка и нижняя панель: сплошные, с тонкой линией — без стекла и «парения» */
+.mobile-top { background: var(--bg); backdrop-filter: none; border-bottom: 1px solid var(--border); }
 @media (max-width: 640px) {
-  .mobile-nav { left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); padding-bottom: 0; border: 1px solid var(--border);
-    border-radius: 24px; background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: saturate(1.6) blur(18px);
-    box-shadow: 0 10px 34px -10px rgba(17, 17, 26, .28); }
-  .mobile-nav-inner { height: 62px; }
-  .mobile-nav a { height: 62px; }
-  .mobile-nav a.active { color: var(--accent); }
-  .mobile-nav a.active svg { color: var(--accent); }
-  .mobile-nav a.active::after { content: ""; position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
-  .mobile-nav .fab { width: 50px; height: 50px; border-radius: 18px; background: var(--grad); box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
-  .mobile-nav .fab svg { color: #fff !important; }
-  .main { padding-bottom: 104px; }
-  .to-top { bottom: 92px; }
+  .mobile-nav { left: 0; right: 0; bottom: 0; padding-bottom: env(safe-area-inset-bottom); border: 0; border-top: 1px solid var(--border);
+    border-radius: 0; background: var(--bg); backdrop-filter: none; box-shadow: none; }
+  .mobile-nav-inner { height: 60px; background: none; }
+  .mobile-nav a { height: 60px; }
+  .mobile-nav a.active, .mobile-nav a.active svg { color: var(--text); }
+  .mobile-nav a.active::after { content: ""; position: absolute; top: 0; width: 22px; height: 2px; border-radius: 2px; background: var(--ink); }
+  .mobile-nav .fab { width: 48px; height: 40px; border-radius: 14px; background: var(--ink); box-shadow: none; }
+  .mobile-nav .fab svg { color: var(--on-brand) !important; }
+  .main { padding-bottom: 84px; }
+  .to-top { bottom: 80px; }
 }
 
-/* Модальные окна и меню — мягче */
-.modal { border-radius: 26px; }
-.menu { border-radius: 18px; box-shadow: var(--shadow-2); border-color: var(--border); }
+/* Окна и меню */
+.modal { border-radius: 20px; border: 1px solid var(--border); }
+.menu { border-radius: 14px; box-shadow: var(--shadow-2); border-color: var(--border); }
+#toasts .toast { border-radius: 12px; }
 
-/* Тосты */
-#toasts .toast { border-radius: 16px; }
+/* Фирменные мелочи без градиентов */
+.read-progress { background: var(--whale); }
+.whatsnew-card { background: var(--card); border-color: var(--border); }
+.wn-num { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--whale); font-weight: 700; }
+.tw-bars i { background: var(--whale); }
+.greet.bday, [data-theme="dark"] .greet.bday { background: color-mix(in srgb, var(--cream) 55%, var(--card)); }
+[data-theme="dark"] .greet.bday { background: var(--card-2); }
+.plus-hero { background: var(--whale); }
+.plus-feat .pi, .gift-plus { background: var(--whale); }
+.gift.excl { background: color-mix(in srgb, var(--whale) 7%, var(--card)); }
+.owner-pill { background: color-mix(in srgb, #c98a1b 16%, var(--card)); color: #7a4f0a; }
+[data-theme="dark"] .owner-pill { background: color-mix(in srgb, #c98a1b 22%, var(--card)); color: #f0c97a; }
+.t-follow, .t-follow_accept, .t-follow_request { color: var(--whale); }
 
-/* Меньше движения — уважаем системную настройку */
 @media (prefers-reduced-motion: reduce) { .card.post { transition: none; } }
+
+/* Значок Nuvora+ — синий кита, без глянца */
+.plus-tag { background: var(--whale) !important; text-shadow: none; box-shadow: none; }
+.plus-tag::after { display: none; }
+[data-theme="dark"] .plus-tag { color: #10202c; }
+[data-theme="dark"] .plus-tag svg { fill: #10202c; }

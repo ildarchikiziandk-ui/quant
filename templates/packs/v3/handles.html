@@ -9,7 +9,7 @@
   <div class="v3-handles">{% for n in names %}<button type="button" class="v3-handle{% if balance < price %} dim{% endif %}" data-v3-handle="{{ n }}" data-price="{{ price }}">@{{ n }}</button>{% endfor %}</div>
 </div>
 {% else %}<div class="card empty">{% if q %}Такого красивого логина в продаже нет{% else %}Все красивые логины уже разобрали{% endif %}</div>{% endfor %}
-<div class="card v3-helite"><span class="v3-gic" style="background:linear-gradient(135deg,#f59e0b,#ec4899)">{{ icon("crown") }}</span><div class="grow"><b>Ещё {{ elite_n }} заповедных логинов</b><div class="small muted">Самые лучшие — вроде @love, @star, @king — пока не продаются. Следите за новостями.</div></div></div>
+<div class="card v3-helite"><span class="v3-gic">{{ icon("crown") }}</span><div class="grow"><b>Ещё {{ elite_n }} заповедных логинов</b><div class="small muted">Самые лучшие — вроде @love, @star, @king — пока не продаются. Следите за новостями.</div></div></div>
 {% if mine %}<div class="card"><div class="card-title">Ваши покупки</div>{% for p in mine %}<div class="row small" style="justify-content:space-between;padding:4px 0"><span>@{{ p.old_username }} → <b>@{{ p.username }}</b></span><span class="muted">{{ p.price }} баллов · {{ p.created_at|lt("%d.%m.%Y") }}</span></div>{% endfor %}</div>{% endif %}
 <p class="tiny faint center">Баллы дают за посты, комментарии, задания дня, ежедневный сундук и «Словечко».</p>
 {% endblock %}

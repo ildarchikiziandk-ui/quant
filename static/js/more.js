@@ -344,7 +344,7 @@
     const b = e.target.closest('[data-quote-img]'); if (!b) return;
     const text = (document.getElementById(b.dataset.quoteImg) || {}).innerText || ''; if (!text.trim()) return toast('В посте нет текста', true);
     const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
-    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#7c3aed'); g.addColorStop(1, '#2563eb'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#244f6b'); g.addColorStop(1, '#2f6487'); x.fillStyle = g; x.fillRect(0, 0, W, H);
     x.fillStyle = 'rgba(255,255,255,.12)'; x.beginPath(); x.arc(W - 120, 140, 260, 0, 7); x.fill();
     x.fillStyle = '#fff'; let size = 64; x.font = `700 ${size}px system-ui, sans-serif`;
     let lines = wrap(x, text.trim().slice(0, 600), W - 180);
@@ -492,7 +492,7 @@
   function confetti() {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c); const x = c.getContext('2d');
-    const cols = ['#7c3aed', '#2563eb', '#db2777', '#f59e0b', '#10b981']; const ps = Array.from({ length: 140 }, () => ({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * 0.5, r: 4 + Math.random() * 5, vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2, a: Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)] }));
+    const cols = ['#2f6487', '#c2552f', '#c98a1b', '#3c9a5f', '#1f1d1a']; const ps = Array.from({ length: 140 }, () => ({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * 0.5, r: 4 + Math.random() * 5, vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2, a: Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)] }));
     let t = 0; (function f() { x.clearRect(0, 0, c.width, c.height); ps.forEach(p => { p.y += p.vy; p.x += p.vx; p.a += 0.1; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); x.restore(); }); if (++t < 260) requestAnimationFrame(f); else c.remove(); })();
   }
   window.NV.confetti = confetti;

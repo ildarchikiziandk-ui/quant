@@ -8,5 +8,5 @@
 <div id="v3-help">{% for sec, ic, qq, a in articles %}{% if sec != ns.sec %}{% set ns.sec = sec %}<div class="pref-group v3-hsec">{{ sec }}</div>{% endif %}
 <details class="card v3-hitem" data-text="{{ (qq ~ ' ' ~ a)|lower }}"><summary>{{ icon(ic, "i in") }} <b>{{ qq }}</b></summary><p class="small mt">{{ a }}</p></details>{% endfor %}</div>
 <div class="card empty hidden" id="v3-help-none">Ничего не нашлось. <a href="/support" style="color:var(--link)">Спросите в поддержке</a></div>
-{% if v3_ai_on() %}<a class="card row v3-game" href="/ai" id="v3-help-ai" style="gap:12px"><span class="v3-gic" style="background:var(--grad,linear-gradient(135deg,#6d5dfc,#ec4899))">{{ icon("bot") }}</span><div class="grow"><b>Спросить Нуву</b><div class="small muted">Помощник подскажет, где что найти в {{ brand }}</div></div></a>{% endif %}
+{% if v3_ai_on() %}<a class="card row v3-game" href="/ai" id="v3-help-ai" style="gap:12px"><span class="v3-gic">{{ icon("bot") }}</span><div class="grow"><b>Спросить Нуву</b><div class="small muted">Помощник подскажет, где что найти в {{ brand }}</div></div></a>{% endif %}
 {% endblock %}

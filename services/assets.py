@@ -8,7 +8,7 @@ import hashlib
 import os
 
 VERSIONED = ("css", "js", "packs")          # файлы с ?v=версия — встраиваются, пока версия совпадает
-STABLE = ("emoji", "gifts", "wallpapers", "brand")  # картинки без версии — меняются редко, встраиваются всегда
+STABLE = ("emoji", "gifts", "wallpapers", "brand", "fonts")  # картинки без версии — меняются редко, встраиваются всегда
 STABLE_FILES = ("favicon.png", "icon-192.png", "icon-512.png", "logo.svg")
 
 
