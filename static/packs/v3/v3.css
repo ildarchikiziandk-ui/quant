@@ -321,3 +321,20 @@ html.in-pwa .hide-in-pwa { display: none !important; }
 .v3-ios-ico { display: inline-flex; vertical-align: -3px; padding: 2px 4px; border-radius: 6px; background: var(--input); color: var(--accent); }
 /* в установленном на iPhone приложении шапка не залезает под вырез экрана */
 html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
+/* компактное поле ввода в чатах */
+.cmp-row > .cmp-tool { display: none !important; }
+.cmp-row { align-items: flex-end; gap: 6px; }
+.cmp-field { position: relative; flex: 1; min-width: 0; display: flex; }
+.cmp-field textarea { flex: 1; width: 100%; margin: 0; min-height: 42px; padding-right: 44px; }
+.cmp-field .cmp-emoji { display: grid !important; position: absolute; right: 3px; bottom: 3px; width: 36px; height: 36px; }
+.cmp.recording .cmp-field, .cmp.recording .cmp-plus { display: none; }
+.cmp-plus { width: 42px; height: 42px; border-radius: 50%; transition: transform .2s, background .15s; }
+.cmp-plus.on { transform: rotate(45deg); background: var(--input); }
+.cmp-menu { position: absolute; left: 6px; bottom: calc(100% + 8px); z-index: 60; min-width: 230px; padding: 6px; border-radius: 16px; background: var(--card);
+  border: 1px solid var(--border); box-shadow: var(--shadow-2); display: grid; gap: 2px;
+  opacity: 0; transform: translateY(6px) scale(.98); transform-origin: bottom left; pointer-events: none; transition: opacity .15s, transform .15s; }
+.cmp-menu.show { opacity: 1; transform: none; pointer-events: auto; }
+.cmp-menu button { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 0; background: none; border-radius: 11px; color: var(--text);
+  font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; text-align: left; }
+.cmp-menu button:hover, .cmp-menu button:active { background: var(--hover); }
+.cmp-menu button .i { width: 21px; height: 21px; color: var(--accent); }

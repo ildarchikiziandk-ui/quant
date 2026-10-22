@@ -100,6 +100,24 @@ STICKERS = [
     ("zhdu", "Жду", "⏳", whale(eyes="meh", mouth="flat",
         extra_back=f'<g transform="translate(440 150) rotate(12)"><path d="M-30 -60 h60 M-30 60 h60" stroke="{INK}" stroke-width="10" stroke-linecap="round"/><path d="M-22 -56 q0 40 22 56 q-22 16 -22 56 h44 q0 -40 -22 -56 q22 -16 22 -56 z" fill="#fff" stroke="{INK}" stroke-width="7"/><path d="M-12 40 q12 -14 24 0 v12 h-24 z" fill="#f2c14e"/></g>') + label("Жду")),
     ("poka", "Пока!", "👋", whale(eyes="wink", mouth="tongue", fin="wave", tilt=6, extra_back=spout("#a6c9e2")) + label("Пока!", rot=3)),
+    ("pshikalka", "Пшикалка", "💦", '<g transform="translate(-46 0)">' + whale(eyes="wink", mouth="tongue", fin="none", tilt=-4,
+        extra_front=(
+            # плавник держит пшикалку
+            f'<g transform="translate(466 412) scale(.92)">'
+            f'<path d="M-30 -112 h60 v98 q0 14 -14 14 h-32 q-14 0 -14 -14 z" fill="#9fd8cf" stroke="{INK}" stroke-width="8" stroke-linejoin="round"/>'
+            f'<path d="M-30 -70 h60 v28 h-60 z" fill="#fff" stroke="{INK}" stroke-width="6"/>'
+            f'<path d="M-18 -64 l8 0 M-4 -64 l20 0 M-18 -52 l30 0" stroke="{BODY_D}" stroke-width="5" stroke-linecap="round"/>'
+            f'<path d="M-14 -112 v-16 h28 v16" fill="#f3ece1" stroke="{INK}" stroke-width="7" stroke-linejoin="round"/>'
+            f'<path d="M-22 -128 q-2 -34 22 -38 h44 q8 0 8 9 v10 q0 8 -8 8 h-22 q-6 0 -8 6 l-4 5 z" fill="#e2474f" stroke="{INK}" stroke-width="7" stroke-linejoin="round"/>'
+            f'<path d="M6 -134 q14 6 12 30" fill="none" stroke="{INK}" stroke-width="7" stroke-linecap="round"/>'
+            f'<rect x="52" y="-164" width="10" height="12" rx="3" fill="{INK}"/>'
+            f'</g>'
+            f'<path d="M420 344 q34 14 52 -12 q-24 -26 -56 -8 z" fill="{BODY_D}" stroke="{INK}" stroke-width="9" stroke-linejoin="round"/>'
+            # облачко брызг
+            + "".join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#bfe6fb" stroke="{INK}" stroke-width="4"/>' for x, y, r in
+                      [(536, 272, 12), (550, 252, 9), (552, 288, 8), (530, 244, 6)])
+            + "".join(f'<path d="M{x} {y} l10 -6" stroke="#5aa0d8" stroke-width="5" stroke-linecap="round"/>' for x, y in [(520, 296), (540, 232)])
+        )) + "</g>" + label("Пшикалка", size=52)),
 ]
 
 def page():

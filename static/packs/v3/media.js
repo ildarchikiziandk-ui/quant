@@ -90,3 +90,51 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 })();
+
+/* Компактное поле ввода: все инструменты (вложение, стикеры, опрос, эффект) — в меню за одной кнопкой «+»,
+   эмодзи — внутри поля. В строке остаются только «+», поле и микрофон/отправка. */
+(function () {
+  'use strict';
+  const NAMES = { 'Фото или файл': ['clip', 'Фото, видео или файл'], 'Вложение': ['clip', 'Фото, видео или файл'], 'Стикеры': ['whale', 'Стикеры'],
+    'Опрос или игра': ['poll', 'Опрос или игра'], 'Сообщение с эффектом': ['sparkle', 'Сообщение с эффектом'] };
+  const sprite = () => { const u = document.querySelector('use[href*="icons.svg"]'); return u ? u.getAttribute('href').split('#')[0] : '/static/icons.svg'; };
+  const ico = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><use href="${sprite()}#${n}"/></svg>`;
+  let open = null;
+  const close = () => { if (open) { open.classList.remove('show'); open = null; } document.querySelectorAll('.cmp-plus.on').forEach(b => b.classList.remove('on')); };
+
+  function compact(row) {
+    if (row.dataset.compact) return;
+    row.dataset.compact = '1';
+    const tools = [...row.querySelectorAll(':scope > .cmp-tool')];
+    const ta = row.querySelector(':scope > textarea');
+    if (!ta || !tools.length) return;
+    const emoji = tools.find(t => t.title === 'Эмодзи');
+    const menuTools = tools.filter(t => t !== emoji);
+    // эмодзи — внутри поля
+    const field = document.createElement('div');
+    field.className = 'cmp-field';
+    ta.parentNode.insertBefore(field, ta); field.appendChild(ta);
+    if (emoji) { emoji.classList.add('cmp-emoji'); field.appendChild(emoji); }
+    if (!menuTools.length) return;
+    // «+» и меню
+    const plus = document.createElement('button');
+    plus.type = 'button'; plus.className = 'icon-btn cmp-plus'; plus.title = 'Прикрепить'; plus.setAttribute('aria-label', 'Прикрепить');
+    plus.innerHTML = ico('plus');
+    const menu = document.createElement('div');
+    menu.className = 'cmp-menu';
+    menuTools.forEach(t => {
+      const [ic, label] = NAMES[t.title] || ['plus', t.title || 'Ещё'];
+      const it = document.createElement('button');
+      it.type = 'button'; it.innerHTML = ico(ic) + `<span>${label}</span>`;
+      it.addEventListener('click', e => { e.stopPropagation(); close(); t.click(); });
+      menu.appendChild(it);
+    });
+    row.insertBefore(plus, field);
+    row.closest('.cmp, form, .convo-input')?.appendChild(menu);
+    plus.addEventListener('click', e => { e.stopPropagation(); if (open === menu) return close(); close(); menu.classList.add('show'); open = menu; plus.classList.add('on'); });
+  }
+  document.addEventListener('click', e => { if (open && !e.target.closest('.cmp-menu')) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  const run = () => document.querySelectorAll('.cmp-row').forEach(compact);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();

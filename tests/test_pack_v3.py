@@ -564,7 +564,7 @@ def test_moderation_posts_only(alice, bob):
 
 def test_stickers(alice, bob):
     friends(alice, bob)
-    assert len(alice.get("/v3/stickers").json()["stickers"]) == 16
+    assert len(alice.get("/v3/stickers").json()["stickers"]) == 17
     assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:st:privet]]"}, headers=J).json()["ok"]
     html = bob.get("/messages/alice").text
     assert "/static/stickers/nuvi/privet.webp" in html and 'title="Стикеры"' in html
