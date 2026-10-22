@@ -18,7 +18,7 @@ from database import get_db
 from deps import current_user, json_error, log_mod, login_redirect, redirect, render
 from routers.posts import _get_post, purge_post, read_payload, wants_json
 from services import extras, feed, gamification, social, text
-from services.text import censor
+from services.text import BANNED_MSG, banned
 
 router = APIRouter()
 
@@ -93,7 +93,7 @@ async def post_send(post_id: int, request: Request, db: Session = Depends(get_db
     allowed, reason = social.can_message(db, user, other)
     if not allowed:
         return json_error(reason or "Нельзя написать этому пользователю", 403)
-    note = censor(str(data.get("note") or "").strip()[:300], social.stop_words(db))
+    note = str(data.get("note") or "").strip()[:300]
     preview = (post.content or "медиа")[:80]
     msg = models.Message(sender_id=user.id, receiver_id=other.id,
                          content=(note + "\n" if note else "") + f"Пост @{post.author.username}: «{preview}» {config.SITE_URL}/post/{post.id}")
@@ -142,9 +142,11 @@ async def comment_edit(comment_id: int, request: Request, db: Session = Depends(
     if not user or not c or c.user_id != user.id:
         return json_error("not found", 404)
     data = await read_payload(request)
-    content = censor(str(data.get("content") or "").strip()[:2000], social.stop_words(db))
+    content = str(data.get("content") or "").strip()[:2000]
     if not content:
         return json_error("Пустой комментарий")
+    if banned(content, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     c.content, c.edited_at = content, datetime.utcnow()
     from services import moderation
     moderation.review(db, "comment", c, user, content)

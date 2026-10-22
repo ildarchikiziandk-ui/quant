@@ -43,7 +43,10 @@ BRAND_PLUS = env("BRAND_PLUS", f"{BRAND_NAME}+")
 BRAND_EMAIL = env("BRAND_EMAIL", "support@example.com")
 BRAND_COLOR = env("BRAND_COLOR", "#18181b")
 SITE_URL = env("SITE_URL", "http://localhost:8000").rstrip("/")
-ANDROID_APK_URL = env("ANDROID_APK_URL", "https://github.com/ildarchikiziandk-ui/quant/releases/latest/download/Nuvora.apk")
+ANDROID_REPO = env("ANDROID_REPO", "ildarchikiziandk-ui/quant")  # где CI публикует сборки APK (GitHub Releases)
+# Ссылка «Скачать приложение»: сайт сам раздаёт последний APK (берёт его с GitHub и хранит копию у себя)
+ANDROID_APK_URL = env("ANDROID_APK_URL", "/download/android.apk")
+APP_CACHE_DIR = env("APP_CACHE_DIR", os.path.join(BASE_DIR, "data", "app"))
 
 # --- База и файлы --------------------------------------------------------
 DATABASE_URL = env("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'quant.db')}")

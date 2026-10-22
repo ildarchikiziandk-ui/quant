@@ -262,6 +262,7 @@ class Message(Base):
     forwarded_from_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_deleted = Column(Boolean, default=False)
     is_muted = Column(Boolean, default=False)
+    media_expired = Column(String(12), default="")  # вложение стёрто с сервера через 7 дней: photo, video, file, voice, circle
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
     forwarded_from = relationship("User", foreign_keys=[forwarded_from_id])
@@ -307,6 +308,7 @@ class GroupMessage(Base):
     reply_to_id = Column(Integer, ForeignKey("group_messages.id"), nullable=True)
     is_deleted = Column(Boolean, default=False)
     is_video_circle = Column(Boolean, default=False)
+    media_expired = Column(String(12), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     group = relationship("GroupChat", back_populates="messages")
     sender = relationship("User", foreign_keys=[sender_id])

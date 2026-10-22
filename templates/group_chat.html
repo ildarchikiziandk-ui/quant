@@ -58,7 +58,7 @@ box.scrollTop=box.scrollHeight;
 async function poll(){ try{ const r=await (await fetch(`/api/groups/${GID}/messages?after=${last}`)).json(); if(r.html){ document.getElementById('empty-chat')?.remove(); const near=box.scrollHeight-box.scrollTop-box.clientHeight<120; const tmp=document.createElement('div'); tmp.innerHTML=r.html; [...tmp.children].forEach(el=>{ if(!el.id||!document.getElementById(el.id)) box.appendChild(el); }); last=Math.max(last,r.last_id); if(near) box.scrollTop=box.scrollHeight; } }catch(e){} }
 setInterval(()=>{ if(!document.hidden) poll(); },3000);
 const f=document.getElementById('gform'), inp=document.getElementById('ginp');
-async function send(){ const fd=new FormData(f); if(!inp.value.trim() && !document.getElementById('gfile').files.length) return; f.reset(); inp.style.height='auto'; inp.dispatchEvent(new Event('input'));
+async function send(){ const fd=new FormData(f); const gf=document.getElementById('gfile').files[0]; if(!inp.value.trim() && !gf) return; f.reset(); if(gf && window.nvShrinkVideo){ const sm=await nvShrinkVideo(gf); if(sm!==gf) fd.set('file',sm); } inp.style.height='auto'; inp.dispatchEvent(new Event('input'));
   try{ await App.api(`/groups/${GID}/send`,fd); await poll(); box.scrollTop=box.scrollHeight; }catch(e){} }
 f.addEventListener('submit',e=>{ e.preventDefault(); send(); });
 document.getElementById('gfile').addEventListener('change',send);

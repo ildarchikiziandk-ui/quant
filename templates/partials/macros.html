@@ -209,3 +209,6 @@
   <button type="button" class="cmp-send hidden" title="Отправить" aria-label="Отправить">{{ icon("send") }}</button>
 </div>
 {%- endmacro %}
+
+{% macro chat_video(url) -%}<video class="att att-video" src="{{ url }}" controls playsinline preload="metadata"></video>{%- endmacro %}
+{% macro media_gone(kind) -%}<div class="media-gone">{{ icon("clock", "i in") }} {{ {"photo": "Фото удалено", "video": "Видео удалено", "file": "Файл удалён", "voice": "Голосовое удалено", "circle": "Кружок удалён"}.get(kind, "Вложение удалено") }} с сервера: вложения в чатах хранятся 7 дней</div>{%- endmacro %}

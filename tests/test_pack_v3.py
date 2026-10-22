@@ -547,3 +547,67 @@ def test_turn_credentials(alice, monkeypatch):
     assert turn["urls"][0] == "turn:turn.example:3478?transport=udp"
     exp = base64.b64encode(hmac.new(b"s3cret", turn["username"].encode(), hashlib.sha1).digest()).decode()
     assert turn["credential"] == exp and int(turn["username"].split(":")[0]) > datetime.utcnow().timestamp()
+
+
+def test_moderation_posts_only(alice, bob):
+    # пост и комментарий с матом не публикуются
+    r = alice.post("/post/create", data={"content": "ну ты и xyйня"}, headers=J)
+    assert r.status_code == 400 and "Не опубликовано" in r.json()["error"]
+    pid = create_post(alice, "Нормальный пост")
+    r = bob.post(f"/post/{pid}/comment", json={"content": "блять"}, headers=J)
+    assert r.status_code == 400
+    # в личной переписке текст не меняется
+    friends(alice, bob)
+    assert alice.post("/messages/send", json={"receiver": "bob", "content": "блять, опоздал"}, headers=J).json()["ok"]
+    assert last_msg("alice").content == "блять, опоздал"
+
+
+def test_stickers(alice, bob):
+    friends(alice, bob)
+    assert len(alice.get("/v3/stickers").json()["stickers"]) == 16
+    assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:st:privet]]"}, headers=J).json()["ok"]
+    html = bob.get("/messages/alice").text
+    assert "/static/stickers/nuvi/privet.webp" in html and 'title="Стикеры"' in html
+    # подделать служебную карточку (чужой опрос, звонок) нельзя
+    assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:poll:1]]"}, headers=J).status_code == 400
+    assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:st:nope]]"}, headers=J).status_code == 400
+
+
+def test_chat_media_expire(alice, bob, tmp_path):
+    import os
+    import config
+    from packs.v3 import media
+    friends(alice, bob)
+    r = alice.post("/messages/send-media", data={"receiver": "bob"}, files={"file": ("clip.mp4", b"\x00\x00\x00\x18ftypmp42" + b"0" * 2000, "video/mp4")}, headers=J)
+    assert r.json()["ok"]
+    msg = last_msg("alice")
+    assert msg.image.endswith(".mp4") and not msg.file_url  # видео — плеером, не файлом
+    assert "att-video" in bob.get("/messages/alice").text
+    path = os.path.join(config.UPLOAD_DIR, os.path.basename(msg.image))
+    assert os.path.exists(path)
+    s = db()
+    row = s.get(models.Message, msg.id)
+    row.created_at = datetime.utcnow() - timedelta(days=8)
+    s.commit()
+    assert media.expire_chat_media(s) >= 1
+    row = s.get(models.Message, msg.id)
+    assert row.image == "" and row.media_expired == "video" and not os.path.exists(path)
+    s.close()
+    assert "Видео удалено" in bob.get("/messages/alice").text
+
+
+def test_app_update(alice, monkeypatch, tmp_path):
+    import config
+    from packs.v3 import appupdate
+    monkeypatch.setattr(config, "APP_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(appupdate, "latest", lambda: {"version_code": 42, "version": "1.0.42", "apk": "https://example.com/Nuvora.apk", "size": 3})
+    monkeypatch.setattr(appupdate, "_mirror", lambda info: None)
+    j = alice.get("/api/app/latest").json()
+    assert j["version_code"] == 42 and j["url"].endswith("/download/android.apk?v=42")
+    r = alice.get("/download/android.apk", follow_redirects=False)  # копии ещё нет — пока отдаём с GitHub
+    assert r.status_code == 302 and r.headers["location"] == "https://example.com/Nuvora.apk"
+    (tmp_path / "Nuvora-42.apk").write_bytes(b"apk")
+    r = alice.get("/download/android.apk", follow_redirects=False)
+    assert r.status_code == 200 and r.content == b"apk"
+    page = alice.get("/app").text
+    assert "На экран «Домой»" in page and "/download/android.apk" in page

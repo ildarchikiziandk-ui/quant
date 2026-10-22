@@ -13,7 +13,6 @@ from deps import current_user, json_error, templates
 from routers.messages import _deliver, _get_user, _precheck
 from routers.posts import read_payload
 from services import social
-from services.text import censor
 
 from . import models as m
 from .common import router, s
@@ -41,11 +40,10 @@ async def create_poll(username: str, request: Request, db: Session = Depends(get
     if not other or other.id == user.id:
         return json_error("Чат не найден", 404)
     data = await read_payload(request)
-    stop = social.stop_words(db)
-    question = censor(s(data.get("question")).strip()[:200], stop)
+    question = s(data.get("question")).strip()[:200]  # опрос в личной переписке не цензурируется
     raw = data.get("options")
     raw = raw if isinstance(raw, list) else s(raw).split("\n")
-    options = [censor(s(o).strip()[:80], stop) for o in raw if s(o).strip()][:10]
+    options = [s(o).strip()[:80] for o in raw if s(o).strip()][:10]
     if not question or len(options) < 2:
         return json_error("Нужен вопрос и хотя бы 2 варианта")
     err = _precheck(db, user, other)
@@ -181,6 +179,10 @@ def ttt_rematch(game_id: int, request: Request, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------- карточки в переписке (слот message_extra)
 def card(msg, user):
     """HTML карточки опроса или игры внутри пузыря сообщения."""
+    from .stickers import NAMES, from_marker, url
+    st = from_marker(msg.content)
+    if st:
+        return Markup(f'<img class="v3-sticker" src="{url(st)}" alt="{NAMES[st]}" title="{NAMES[st]}" width="160" height="160" loading="lazy">')
     try:
         kind, oid = msg.content[5:-2].split(":", 1)
         oid = int(oid)

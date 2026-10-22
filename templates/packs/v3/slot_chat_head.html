@@ -1,2 +1,5 @@
-{% if other is defined and other and can_send and v3_calls_on() %}<button type="button" class="icon-btn" title="Аудиозвонок" data-call="{{ other.username }}" data-name="{{ dname(other) }}" data-avatar="{{ other.avatar or '' }}">{{ icon_svg("phone") }}</button>
-<button type="button" class="icon-btn" title="Видеозвонок" data-call="{{ other.username }}" data-video="1" data-name="{{ dname(other) }}" data-avatar="{{ other.avatar or '' }}">{{ icon_svg("video") }}</button>{% endif %}
+{% if other is defined and other and can_send and v3_calls_on() %}{% set _cd %}data-call="{{ other.username }}" data-name="{{ dname(other) }}" data-avatar="{{ other.avatar or '' }}"{% endset %}
+<button type="button" class="icon-btn call-direct" title="Аудиозвонок" {{ _cd }}>{{ icon_svg("phone") }}</button>
+<button type="button" class="icon-btn call-direct" title="Видеозвонок" {{ _cd }} data-video="1">{{ icon_svg("video") }}</button>
+<div class="menu-wrap call-pick"><button type="button" class="icon-btn" data-menu title="Позвонить">{{ icon_svg("phone") }}</button>
+  <div class="menu"><button type="button" {{ _cd }}>{{ icon_svg("phone") }} Аудиозвонок</button><button type="button" {{ _cd }} data-video="1">{{ icon_svg("video") }} Видеозвонок</button></div></div>{% endif %}

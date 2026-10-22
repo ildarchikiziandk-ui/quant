@@ -10,7 +10,6 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render, templates
 from routers.posts import read_payload, wants_json
 from services import gamification, push, ratelimit, social
-from services.text import censor
 from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
@@ -127,7 +126,10 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
     if not ratelimit.hit(f"gmsg:{user.id}", 40, 60):
         return json_error("Слишком часто", 429)
     form = await request.form()
-    content = censor((form.get("content") or "").strip()[:4000], social.stop_words(db))
+    content = (form.get("content") or "").strip()[:4000]  # переписка не цензурируется
+    from packs.v3.stickers import allowed_text
+    if not allowed_text(content):
+        return json_error("Такое сообщение отправить нельзя")
     img_url = file_url = voice_url = file_name = ""
     circle = False
     upload = form.get("image") or form.get("file") or form.get("voice")
@@ -139,8 +141,8 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
             img_url = url
         elif mt == "audio":
             voice_url = url
-        elif mt == "video" and form.get("circle"):
-            img_url, circle = url, True
+        elif mt == "video":
+            img_url, circle = url, bool(form.get("circle"))
         else:
             file_url, file_name = url, (upload.filename or "file")[:120]
     if not content and not (img_url or file_url or voice_url):

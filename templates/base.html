@@ -7,9 +7,11 @@
 <meta name="description" content="{{ brand }} — {{ brand_tagline }}">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/static/favicon.png">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/brand/logo-180.png">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="{{ brand }}">
 <meta property="og:site_name" content="{{ brand }}">
 {% block meta %}<meta property="og:title" content="{{ brand }}"><meta property="og:image" content="{{ site_url }}/static/icon-512.png">{% endblock %}
@@ -76,6 +78,8 @@
   <main class="main">
     <div class="card row hidden" id="app-banner" style="gap:12px"><img src="/static/brand/logo-180.png" alt="" style="width:42px;height:42px;border-radius:12px"><div class="grow"><b>{{ brand }} для Android</b><div class="small muted">Быстрее, с уведомлениями о сообщениях</div></div><a class="btn sm" href="{{ android_apk_url }}">Скачать</a><button class="icon-btn" onclick="document.getElementById('app-banner').classList.add('hidden');try{localStorage.setItem('hide-app-banner','1')}catch(e){}">{{ icon("x", "i in") }}</button></div>
     <script>(function(){var u=navigator.userAgent;var h=false;try{h=localStorage.getItem('hide-app-banner')}catch(e){}if(/Android/i.test(u)&&!/NuvoraApp/.test(u)&&!h)document.getElementById('app-banner').classList.remove('hidden');if(/NuvoraApp/.test(u))document.documentElement.classList.add('in-app');})();</script>
+    <div class="card row hidden" id="ios-banner" style="gap:12px"><img src="/static/brand/logo-180.png" alt="" style="width:42px;height:42px;border-radius:12px"><div class="grow"><b>{{ brand }} на iPhone</b><div class="small muted">«Поделиться» → «На экран Домой» — и это приложение</div></div><a class="btn sm" href="/app#ios">Как</a><button class="icon-btn" onclick="document.getElementById('ios-banner').classList.add('hidden');try{localStorage.setItem('hide-ios-banner','1')}catch(e){}">{{ icon("x", "i in") }}</button></div>
+    <script>(function(){var u=navigator.userAgent;var s=navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);if(s)document.documentElement.classList.add('in-pwa');var h=false;try{h=localStorage.getItem('hide-ios-banner')}catch(e){}if(/iPhone|iPad|iPod/.test(u)&&!s&&!h&&location.pathname!=='/app')document.getElementById('ios-banner').classList.remove('hidden');})();</script>
     {% if announcement %}<div class="announce {{ announcement.level }}">{{ icon("megaphone", "i in") }} <span>{{ announcement.text }}</span></div>{% endif %}
     {% if needs_email %}<div class="alert info">{{ icon("mail", "i in") }} Подтвердите email <b>{{ user.email }}</b>, чтобы публиковать посты и писать сообщения. <a href="/verify" style="color:var(--link);font-weight:600">Ввести код →</a></div>{% endif %}
     {% if user and user.is_blocked and user.blocked_until and user.blocked_until > now %}<div class="alert error">Ваш аккаунт ограничен до {{ user.blocked_until|lt }}. <a href="/special-request" style="text-decoration:underline">Подать апелляцию</a></div>{% endif %}

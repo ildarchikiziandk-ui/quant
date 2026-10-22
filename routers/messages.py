@@ -11,7 +11,6 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render, templates
 from routers.posts import read_payload
 from services import chatstyle, gamification, prefs, push, ratelimit, social, streaks
-from services.text import censor
 from services.uploads import save_file
 
 router = APIRouter()
@@ -19,7 +18,7 @@ router = APIRouter()
 MSG_REACTIONS = ["❤️", "🐋"]  # только сердце и кит
 EFFECTS = ("confetti", "hearts", "snow", "fireworks")  # эффекты сообщений (Nuvora 3.0)
 # служебные сообщения модулей 3.0: опрос, игра — в списке чатов и уведомлениях показываем понятную подпись
-SPECIAL = {"poll": "Опрос", "ttt": "Крестики-нолики", "market": "Объявление", "call": "Звонок"}
+SPECIAL = {"poll": "Опрос", "ttt": "Крестики-нолики", "market": "Объявление", "call": "Звонок", "st": "Стикер"}
 
 
 def special_kind(content):
@@ -260,9 +259,12 @@ async def send_message(request: Request, db: Session = Depends(get_db)):
     err = _precheck(db, user, other)
     if err:
         return err
-    content = censor((_s(data.get("sticker_emoji")) or _s(data.get("content"))).strip()[:4000], social.stop_words(db))
+    content = (_s(data.get("sticker_emoji")) or _s(data.get("content"))).strip()[:4000]  # личная переписка не цензурируется
     if not content:
         return json_error("Пустое сообщение")
+    from packs.v3.stickers import allowed_text
+    if not allowed_text(content):
+        return json_error("Такое сообщение отправить нельзя")
     reply_to = data.get("reply_to_id")
     reply_id = None
     if reply_to and str(reply_to).isdigit():
@@ -315,15 +317,13 @@ async def send_media(request: Request, db: Session = Depends(get_db)):
     url, mt = save_file(upload)
     if not url:
         return json_error(mt)
-    msg = models.Message(sender_id=user.id, receiver_id=other.id, content=censor((form.get("caption") or "").strip()[:1000], social.stop_words(db)),
+    msg = models.Message(sender_id=user.id, receiver_id=other.id, content=(form.get("caption") or "").strip()[:1000],
                          disappear_at=_ttl(form.get("ttl")))
     if mt == "image":
         msg.image = url
     elif mt == "video":
         msg.image = url
-        msg.is_video_circle = bool(form.get("circle"))
-        if not msg.is_video_circle:
-            msg.file_url, msg.file_name, msg.image = url, upload.filename or "video", ""
+        msg.is_video_circle = bool(form.get("circle"))  # обычное видео — тоже в image: показывается плеером
     elif mt == "audio":
         msg.voice = url
     else:
@@ -435,9 +435,11 @@ async def edit_msg(msg_id: int, request: Request, db: Session = Depends(get_db))
     if (datetime.utcnow() - m.created_at) > timedelta(hours=48):
         return json_error("Сообщение можно редактировать только 48 часов")
     data = await read_payload(request)
-    content = censor(_s(data.get("content")).strip()[:4000], social.stop_words(db))
+    content = _s(data.get("content")).strip()[:4000]
     if not content:
         return json_error("Пустое сообщение")
+    if content.startswith("[[v3:") or (m.content or "").startswith("[[v3:"):
+        return json_error("Это сообщение нельзя изменить")
     m.content, m.is_edited, m.edited_at = content, True, datetime.utcnow()
     db.commit()
     return JSONResponse({"ok": True})

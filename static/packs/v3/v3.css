@@ -277,3 +277,47 @@ html.in-call, html.in-call body { overflow: hidden; }
 @keyframes call-shake { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-14deg); } 80% { transform: rotate(12deg); } 90% { transform: rotate(-8deg); } }
 .call-ui.peer-mic-off .call-st::after { content: " · микрофон выключен"; }
 @media (prefers-reduced-motion: reduce) { .call-ui.incoming .call-av, .call-btn.green .i { animation: none; } }
+/* шапка переписки: имя и значки важнее кнопок; на телефоне одна кнопка звонка с выбором */
+.convo-head .convo-name { flex-wrap: nowrap; min-width: 0; }
+.convo-head .convo-name .name-line { min-width: 0; max-width: 100%; }
+.convo-head .convo-name .name-line > * { flex: none; }
+.convo-head .convo-name .name-line > .ellipsis { flex: 0 1 auto; min-width: 3.5em; }
+.convo-head .convo-sub { flex-wrap: nowrap; min-width: 0; }
+.convo-head .convo-sub .fire { flex: none; font-size: 12px; }
+.convo-head .convo-sub .fire .i { width: 13px; height: 13px; }
+.call-pick { display: none; margin-left: 0; }
+@media (max-width: 640px) {
+  .convo-head { gap: 6px; }
+  .convo-head .call-direct { display: none; }
+  .convo-head .call-pick { display: block; }
+}
+/* видео в чате — плеером; вложение, стёртое через 7 дней */
+.bubble video.att-video { display: block; width: 280px; max-width: 100%; max-height: 360px; border-radius: 12px; margin: -3px -7px 4px; background: #000; }
+.media-gone { display: flex; align-items: center; gap: 6px; font-size: 13px; opacity: .7; font-style: italic; }
+.nv-shrink { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9000; width: min(340px, calc(100% - 32px));
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-2); display: grid; gap: 10px; }
+.nv-shrink-t { font-size: 14px; font-weight: 600; }
+.nv-shrink-bar { height: 6px; border-radius: 4px; background: var(--input); overflow: hidden; }
+.nv-shrink-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+/* стикеры */
+.bubble:has(> .v3-sticker) { background: none !important; box-shadow: none; padding: 0; border: 0; }
+img.v3-sticker { display: block; width: 160px; height: 160px; object-fit: contain; animation: st-pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes st-pop { from { transform: scale(.6); opacity: 0; } }
+.nv-stickers { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); z-index: 50; background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+  box-shadow: var(--shadow-2); padding: 10px; max-height: 320px; overflow-y: auto; animation: call-in .2s ease-out; }
+.nv-stickers-h { font-size: 12px; font-weight: 700; color: var(--text-2); padding: 0 4px 6px; }
+.nv-stickers-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; }
+.nv-stickers-g button { background: none; border: 0; padding: 4px; border-radius: 12px; cursor: pointer; }
+.nv-stickers-g button:hover, .nv-stickers-g button:active { background: var(--hover); }
+.nv-stickers-g img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; }
+@media (prefers-reduced-motion: reduce) { img.v3-sticker { animation: none; } }
+.app-only { display: none; }
+html.in-app .app-only { display: block; }
+/* установка приложения */
+html.in-pwa .hide-in-pwa { display: none !important; }
+.v3-app-hero { display: flex; align-items: center; gap: 14px; }
+.v3-app-hero img { border-radius: 18px; flex: none; }
+.v3-steps { margin: 4px 0 14px 20px; display: grid; gap: 8px; font-size: 15px; line-height: 1.45; }
+.v3-ios-ico { display: inline-flex; vertical-align: -3px; padding: 2px 4px; border-radius: 6px; background: var(--input); color: var(--accent); }
+/* в установленном на iPhone приложении шапка не залезает под вырез экрана */
+html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }

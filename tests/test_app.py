@@ -288,8 +288,8 @@ def test_promocode_and_admin(owner, alice):
     owner.post("/admin/unblock/alice")
     alice.post("/login", data={"username": "alice", "password": "secret123"})
     owner.post("/admin/stopwords", data={"word": "плохо"})
-    pid = create_post(alice, "это плохо")
-    assert "плохо" not in alice.get(f"/post/{pid}").text.split("<article")[1]
+    r = alice.post("/post/create", data={"content": "это плохо"}, headers=J)  # стоп-слово: пост не публикуется
+    assert r.status_code == 400 and "Не опубликовано" in r.json()["error"]
     owner.post("/admin/announce", data={"text": "Обновление!", "level": "info"})
     assert "Обновление!" in alice.get("/").text
     owner.post("/admin/challenge", data={"title": "Пиши", "task_type": "post", "target_count": "1", "points": "50"})
@@ -430,7 +430,7 @@ def test_moderation_model_unit():
 
 def test_moderation_flow(owner, alice, bob):
     clean = create_post(alice, "Сегодня отличная погода")
-    r = alice.post("/post/create", data={"content": "Все вокруг тупые уроды и дебилы, идите нахуй"}, headers=J).json()
+    r = alice.post("/post/create", data={"content": "Все вокруг тупые уроды и дебилы, ненавижу вас, идиоты"}, headers=J).json()
     assert r["held"] and "проверку" in r["message"]
     bad = r["post_id"]
     assert bob.get(f"/post/{bad}").status_code == 404
@@ -975,12 +975,14 @@ def test_secret_chats_disabled_by_default(alice, bob):
     assert 'href="/secret' not in alice.get("/messages").text
 
 
-def test_latin_profanity_masked_in_chats(alice, bob):
+def test_latin_profanity_posts_not_chats(alice, bob):
     from services import profanity
     assert profanity.has_bad("ty cyka blyat") and not profanity.has_bad("небо и хлеб, колебание, hello")
+    # личная переписка не цензурируется
     alice.post("/messages/send", json={"receiver": "bob", "content": "ну ты и cyka blyat, xyi"}, headers=J)
-    page = bob.get("/messages/alice").text
-    assert "cyka" not in page and "blyat" not in page and "c***" in page
+    assert "cyka blyat" in bob.get("/messages/alice").text
+    # а пост с матом латиницей не публикуется
+    assert alice.post("/post/create", data={"content": "ну ты и cyka blyat"}, headers=J).status_code == 400
 
 
 def test_chat_features(alice, bob):

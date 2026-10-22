@@ -12,7 +12,7 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.posts import _parse_dt, read_payload, wants_json
 from services import extras, feed, gamification, moderation, prefs, ratelimit, recommend, social, timezones
-from services.text import censor
+from services.text import BANNED_MSG, banned
 
 router = APIRouter()
 
@@ -56,7 +56,9 @@ async def ask_send(username: str, request: Request, db: Session = Depends(get_db
     if not ratelimit.hit(f"ask:{user.id}", 10, 3600):
         return json_error("Слишком много вопросов, попробуйте позже", 429)
     data = await read_payload(request)
-    text = censor(str(data.get("text") or "").strip()[:500], social.stop_words(db))
+    text = str(data.get("text") or "").strip()[:500]
+    if banned(text, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     if len(text) < 2:
         return json_error("Вопрос пустой")
     if not _moderate_text(text):
@@ -91,7 +93,9 @@ async def question_answer(qid: int, request: Request, db: Session = Depends(get_
     if not user or not q or q.to_user_id != user.id:
         return json_error("not found", 404)
     data = await read_payload(request)
-    answer = censor(str(data.get("answer") or "").strip()[:2000], social.stop_words(db))
+    answer = str(data.get("answer") or "").strip()[:2000]
+    if banned(answer, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     if not answer:
         return json_error("Ответ пустой")
     q.answer, q.answered_at = answer, datetime.utcnow()
@@ -173,14 +177,17 @@ async def event_create(request: Request, db: Session = Depends(get_db)):
     if social.needs_email(user) or social.is_active_block(user):
         return render(request, db, "event_new.html", error="Создавать мероприятия могут только подтверждённые аккаунты")
     form = await request.form()
-    title = censor((form.get("title") or "").strip()[:120], social.stop_words(db))
+    title = (form.get("title") or "").strip()[:120]
+    description = (form.get("description") or "").strip()[:3000]
+    if banned(title, social.stop_words(db)) or banned(description, social.stop_words(db)):
+        return render(request, db, "event_new.html", error=BANNED_MSG, form=form)
     starts = timezones.from_local(_parse_dt(form.get("starts_at")), user)
     if not title or not starts:
         return render(request, db, "event_new.html", error="Укажите название и дату", form=form)
     if not ratelimit.hit(f"event:{user.id}", 10, 86400):
         return render(request, db, "event_new.html", error="Слишком много мероприятий за сутки", form=form)
     ev = models.Event(user_id=user.id, title=title, starts_at=starts,
-                      description=censor((form.get("description") or "").strip()[:3000], social.stop_words(db)),
+                      description=description,
                       place=(form.get("place") or "").strip()[:200])
     db.add(ev)
     db.flush()
@@ -266,7 +273,9 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
     price = plus.gift_price(user, g[3])
     if extras.balance(user) < price:
         return json_error(f"Не хватает очков: нужно {price}, у вас {extras.balance(user)}")
-    msg = censor(str(data.get("message") or "").strip()[:140], social.stop_words(db))
+    msg = str(data.get("message") or "").strip()[:140]
+    if banned(msg, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     if msg and not _moderate_text(msg):
         return json_error("Подпись похожа на оскорбление — измените её")
     anon = bool(data.get("anonymous"))

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Приложение — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">Nuvora на телефоне</div>
+<div class="card v3-app-hero"><img src="/static/brand/logo-180.png" alt="" width="72" height="72"><div><b>Быстрее, с уведомлениями и звонками</b><div class="small muted">Бесплатно. Новые версии ставятся сами.</div></div></div>
+
+<div class="card" id="android"><div class="card-title"><span class="row" style="gap:6px">{{ icon_svg("smartphone", "i in") }} Android</span></div>
+  <ol class="v3-steps"><li>Нажмите «Скачать» — файл весит несколько мегабайт.</li><li>Откройте скачанный <b>Nuvora.apk</b> и разрешите установку из этого источника.</li><li>Готово. Дальше приложение обновляется само — просто нажмите «Обновить», когда предложит.</li></ol>
+  <a class="btn" href="{{ android_apk_url }}">{{ icon_svg("download", "i in") }} Скачать для Android</a></div>
+
+<div class="card" id="ios"><div class="card-title"><span class="row" style="gap:6px">{{ icon_svg("smartphone", "i in") }} iPhone и iPad</span></div>
+  <p class="small muted mb">В App Store Nuvora пока нет — на iPhone она ставится прямо из Safari и работает как обычное приложение: своя иконка, без адресной строки, с уведомлениями (iOS 16.4 и новее).</p>
+  <ol class="v3-steps"><li>Откройте <b>nvra.ru</b> в <b>Safari</b>.</li>
+    <li>Нажмите «Поделиться» <span class="v3-ios-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span> внизу экрана.</li>
+    <li>Выберите «<b>На экран «Домой»</b>» <span class="v3-ios-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span> и нажмите «Добавить».</li>
+    <li>Запускайте Nuvora с иконки на экране — и включите уведомления в Настройках сайта.</li></ol></div>
+{% endblock %}

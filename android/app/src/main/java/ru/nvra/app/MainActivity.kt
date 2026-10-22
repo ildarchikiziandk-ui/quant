@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingPermission: PermissionRequest? = null
     private var showingOffline = false
     private val bundle by lazy { BundledAssets(this) }
+    private val updater by lazy { Updater(this) }
 
     private val fileChooser = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = fileCallback
@@ -293,6 +294,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         NotifyService.appVisible = true
         web.onResume()
+        updater.resume()
+        updater.check()
     }
 
     private fun bundled(request: WebResourceRequest): WebResourceResponse? {
@@ -375,6 +378,11 @@ class MainActivity : AppCompatActivity() {
 
     /** Мост для сайта: тема (цвет полос под системными панелями) и сохранение картинок, созданных на странице. */
     inner class ThemeBridge {
+        @JavascriptInterface
+        fun checkUpdate() {
+            runOnUiThread { updater.check(manual = true) }
+        }
+
         @JavascriptInterface
         fun keepAwake(on: Boolean) {
             runOnUiThread {

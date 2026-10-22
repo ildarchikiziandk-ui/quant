@@ -9,8 +9,8 @@
     <a href="/messages" class="back-link">{{ icon("back") }}</a>
     <a href="/profile/{{ other.username }}" class="row grow" style="min-width:0">
       {{ avatar(other, 42, online=true) }}
-      <div style="min-width:0"><div class="row" style="gap:4px">{{ name(other, link=false) }}{{ streak_badge(streak) }}</div>
-        <div class="tiny muted" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}{{ icon("moon", "i in") }} не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
+      <div style="min-width:0"><div class="row convo-name" style="gap:4px">{{ name(other, link=false) }}</div>
+        <div class="row convo-sub" style="gap:6px">{{ streak_badge(streak) }}<div class="tiny muted ellipsis" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}{{ icon("moon", "i in") }} не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div></div>
     </a>
     {% for _s in pack_slot("chat_head") %}{% include _s %}{% endfor %}
     <div class="menu-wrap" style="margin-left:0">
@@ -201,7 +201,7 @@ document.addEventListener('click', async e=>{
   }catch(err){}
 });
 // вложения: можно выбрать несколько файлов сразу или перетащить их в чат
-async function sendFiles(list){ for(const f of [...list].slice(0,10)){ const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); try{ await App.api('/messages/send-media',fd); }catch(er){ break; } } await poll(); toBottom(); }
+async function sendFiles(list){ for(let f of [...list].slice(0,10)){ if(window.nvShrinkVideo) f=await nvShrinkVideo(f); const fd=new FormData(); fd.append('receiver',OTHER); fd.append('file',f); fd.append('ttl',ttl); try{ await App.api('/messages/send-media',fd); }catch(er){ break; } } await poll(); toBottom(); }
 document.getElementById('att')?.addEventListener('change', async e=>{ if(e.target.files.length) await sendFiles(e.target.files); e.target.value=''; });
 if(inp){ box.addEventListener('dragover',e=>{ e.preventDefault(); box.classList.add('drag'); }); box.addEventListener('dragleave',()=>box.classList.remove('drag'));
   box.addEventListener('drop',e=>{ e.preventDefault(); box.classList.remove('drag'); if(e.dataTransfer.files.length) sendFiles(e.dataTransfer.files); }); }

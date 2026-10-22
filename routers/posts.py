@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render
 from services import feed, gamification, moderation, plus, prefs, ratelimit, social, timezones
-from services.text import censor, extract_hashtags
+from services.text import BANNED_MSG, banned, extract_hashtags
 from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
@@ -144,9 +144,11 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
             saved.append((url, mt))
         else:
             errors.append(mt)
+    stop = social.stop_words(db)
+    if banned(content, stop) or banned(form.get("content_warning") or "", stop) or banned(poll_q, stop) or any(banned(o, stop) for o in poll_opts):
+        return json_error(BANNED_MSG)
     if files and not saved:
         return json_error(errors[0] if errors else "Не удалось загрузить файл")
-    content = censor(content, social.stop_words(db))
     scheduled = timezones.from_local(_parse_dt(form.get("scheduled_at")), user)
     if scheduled and scheduled <= datetime.utcnow():
         scheduled = None
@@ -162,7 +164,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
                        mood=form.get("mood") if form.get("mood") in extras.MOOD_BY else "",
                        location=(form.get("location") or "").strip()[:60],
                        bg=form.get("bg") if form.get("bg") in allowed_bg and len(content) <= 220 and not saved else "",
-                       content_warning=censor((form.get("content_warning") or "").strip()[:80], social.stop_words(db)),
+                       content_warning=(form.get("content_warning") or "").strip()[:80],
                        expires_at=(scheduled or datetime.utcnow()) + timedelta(hours=int(exp)) if exp in allowed_exp else None)
     db.add(post)
     db.flush()
@@ -223,8 +225,10 @@ async def edit_post(post_id: int, request: Request, db: Session = Depends(get_db
     content = str(data.get("content") or "").strip()[:plus.limit(user, "post_length")]
     if not content and not post.image and not post.poll:
         return json_error("Пост не может быть пустым")
+    if banned(content, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     update_trends(db, post.content or "", -1)
-    new_content = censor(content, social.stop_words(db))
+    new_content = content
     if new_content != (post.content or ""):
         db.add(models.PostEdit(post_id=post.id, content=post.content or ""))  # история правок
     post.content = new_content
@@ -408,9 +412,11 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
     if not ratelimit.hit(f"comment:{user.id}", 30, 300):
         return json_error("Слишком часто", 429)
     data = await read_payload(request)
-    content = censor(str(data.get("content") or "").strip()[:2000], social.stop_words(db))
+    content = str(data.get("content") or "").strip()[:2000]
     if not content:
         return json_error("Пустой комментарий")
+    if banned(content, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     parent = None
     pid = data.get("parent_id")
     if pid and str(pid).isdigit() and len(str(pid)) < 10:
@@ -562,7 +568,9 @@ async def repost(post_id: int, request: Request, db: Session = Depends(get_db)):
     if orig.user_id != user.id and not prefs.get(orig.author, "allow_reposts"):
         return json_error("Автор запретил репосты своих постов", 403)
     data = await read_payload(request)
-    comment = censor(str(data.get("comment") or "").strip()[:1000], social.stop_words(db))
+    comment = str(data.get("comment") or "").strip()[:1000]
+    if banned(comment, social.stop_words(db)):
+        return json_error(BANNED_MSG)
     existing = db.query(models.Post).filter_by(user_id=user.id, is_repost=True, repost_id=orig.id).first()
     if existing and not comment:
         purge_post(db, existing)

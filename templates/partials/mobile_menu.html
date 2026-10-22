@@ -27,7 +27,7 @@
     <a href="/plus">{{ icon("sparkle") }}<span>{{ brand_plus }}</span></a>
     {% if can_mod %}<a href="/admin">{{ icon("shield") }}<span>Админ-панель</span></a>{% endif %}
     <button type="button" onclick="toggleTheme()">{{ icon("contrast") }}<span>Сменить тему</span></button>
-    <a href="{{ android_apk_url }}" class="hide-in-app">{{ icon("smartphone") }}<span>Приложение для Android</span></a>
+    <a href="/app" class="hide-in-app hide-in-pwa">{{ icon("smartphone") }}<span>Приложение для телефона</span></a>
     <form method="post" action="/logout" onsubmit="return confirm('Выйти из аккаунта?')"><button class="danger">{{ icon("logout") }}<span>Выйти из аккаунта</span></button></form>
   </div>
 </div>

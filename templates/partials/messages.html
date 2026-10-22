@@ -1,4 +1,4 @@
-{% from "partials/macros.html" import voice_player, circle_player %}{%- for m in messages %}
+{% from "partials/macros.html" import voice_player, circle_player, chat_video, media_gone %}{%- for m in messages %}
 {%- set mine = m.sender_id == user.id %}
 {%- if m.is_deleted %}<div class="msg gone" id="msg-{{ m.id }}" data-id="{{ m.id }}" hidden></div>{% else %}
 <div class="msg {% if mine %}mine{% endif %}{% if m.scheduled_pending %} scheduled{% endif %}" id="msg-{{ m.id }}" data-id="{{ m.id }}"{% if m.effect %} data-effect="{{ m.effect }}"{% endif %} data-ts="{{ m.created_at.timestamp()|int if m.created_at else 0 }}" data-text="{{ (m.content or '')|lower }}" data-raw="{{ m.content or '' }}" data-time="{{ m.created_at|lt('%Y-%m-%d') }}">
@@ -18,7 +18,9 @@
   {%- if m.reply_to %}<div class="msg-reply" data-jump="{{ m.reply_to.id }}"><b>{{ m.reply_to.sender.name or m.reply_to.sender.username if m.reply_to.sender else "" }}</b><br>{{ (m.reply_to.content or "вложение")[:70] }}</div>{% endif %}
   <div class="bubble{% if m.image and m.is_video_circle %} has-circle{% endif %}{% if m.voice and not m.content %} has-voice{% endif %}">
     {%- if m.image and m.is_video_circle %}{{ circle_player(m.image) }}
+      {%- elif m.image and m.image.lower().endswith((".mp4", ".mov", ".webm")) %}{{ chat_video(m.image) }}
       {%- elif m.image %}<img class="att" src="{{ m.image }}" alt="" data-zoom loading="lazy">{% endif %}
+      {%- if m.media_expired %}{{ media_gone(m.media_expired) }}{% endif %}
       {%- if m.voice %}{{ voice_player(m.voice) }}{% endif %}
       {%- if m.file_url %}<a class="file" href="{{ m.file_url }}" target="_blank" rel="noopener" download="{{ m.file_name }}">{{ icon("clip", "i in") }} <span class="ellipsis" style="max-width:200px">{{ m.file_name or "Файл" }}</span></a>{% endif %}
       {%- if m.content and not m.content.startswith("[[v3:") %}<span class="txt">{{ m.content|rich }}</span>{% endif %}

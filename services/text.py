@@ -172,6 +172,21 @@ def filesize(n):
     return f"{n:.1f} ТБ"
 
 
+BANNED_MSG = "Не опубликовано: в тексте есть нецензурные или запрещённые слова. Уберите их и попробуйте снова."
+
+
+def banned(text, stop_words=()):
+    """Есть ли в тексте мат или стоп-слова (в любом написании). Публичное с такими словами не публикуется."""
+    if not text:
+        return False
+    from services import profanity
+    stop_words = [w for w in (stop_words or ()) if w]
+    if profanity.has_bad(text, [w for w in stop_words if " " not in w]):
+        return True
+    low = text.lower()
+    return any(w.lower() in low for w in stop_words if " " in w)
+
+
 def censor(text, stop_words):
     """Заменяет мат и стоп-слова звёздочками — в любом написании (латиница, цифры, похожие буквы)."""
     if not text:
