@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import config
+from html import escape as html_escape
 import migrations
 from database import SessionLocal
 from deps import templates
@@ -80,7 +81,23 @@ async def security_middleware(request: Request, call_next):
     if not config.SECRET_CHATS_ENABLED and request.url.path in ("/static/js/gost.js", "/static/js/secret.js"):
         return PlainTextResponse("Not found", status_code=404)
     path = request.url.path
-    if any(path == p or path.startswith(p + "/") for p in config.DISABLED_FEATURES):  # убранные разделы
+    from packs.v3 import site
+    if site.get("maintenance") and not path.startswith(("/static/", "/login", "/logout", "/sw.js", "/healthz", "/admin", "/offline")):
+        from deps import current_user
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            u = current_user(request, db)
+            from services import social as _social
+            staff = bool(u and (u.is_owner or _social.can_mod(u)))
+        finally:
+            db.close()
+        if not staff:  # технические работы: сайт видят только владелец и модераторы
+            return HTMLResponse("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+                                "<body style='font-family:sans-serif;background:#f6f1e8;color:#1f1d1a;display:grid;place-items:center;min-height:90vh;"
+                                "text-align:center;padding:20px'><div><img src='/static/brand/logo-180.png' width=64 height=64 style='border-radius:18px'>"
+                                f"<h2>Nuvora</h2><p>{html_escape(site.get('maintenance_text'))}</p></div>", status_code=503)
+    if site.is_disabled(path):  # выключенные разделы
         if request.method == "GET" and not request.headers.get("x-requested-with"):
             return RedirectResponse("/", status_code=303)
         return JSONResponse({"ok": False, "error": "Этот раздел убран"}, status_code=404)

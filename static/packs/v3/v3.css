@@ -230,3 +230,6 @@ html.in-app::view-transition-old(root), html.in-app::view-transition-new(root) {
 .v3-handle:hover { border-color: var(--whale); color: var(--whale); }
 .v3-handle.dim { opacity: .55; }
 .v3-helite { display: flex; align-items: center; gap: 12px; }
+
+/* ---------- админ-панель */
+.v3-sitegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 12px; }

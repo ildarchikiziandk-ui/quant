@@ -167,3 +167,10 @@ class UserAlias(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     handle = Column(String(30), unique=True, index=True)  # в нижнем регистре
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Настройки сайта (меняются из админ-панели без перезапуска) ---------------------------------------------
+class SiteSetting(Base):
+    __tablename__ = "v3_site_settings"
+    key = Column(String(40), primary_key=True)
+    value = Column(Text, default="")

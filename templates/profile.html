@@ -50,6 +50,7 @@
             {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
             <button data-act="toggle" data-url="/mute/{{ pu.username }}" data-msg="Готово" data-reload="1">{{ icon("mute") }} {% if rel.is_muted %}Показывать посты{% else %}Скрыть посты из ленты{% endif %}</button>
             <button data-act="toggle" data-url="/block/{{ pu.username }}" data-msg="Готово" data-reload="1" class="danger">{{ icon("x") }} {% if rel.i_blocked %}Разблокировать{% else %}Заблокировать{% endif %}</button>
+            {% if user and (user.is_owner or user.is_moderator) %}<a href="/admin/u/{{ pu.username }}">{{ icon("wrench") }} Управление</a>{% endif %}
             <a href="/report/{{ pu.username }}" class="danger">{{ icon("flag") }} Пожаловаться</a>
           </div>
         </div>

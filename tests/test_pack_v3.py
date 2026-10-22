@@ -417,3 +417,53 @@ def test_up_to_three_logins(alice, bob, owner):
     assert sorted(a.handle for a in s.query(m.UserAlias).filter_by(user_id=own.id)) == ["ildar", "mint"]
     s.close()
     assert "зарезервирован" in bob.post("/settings/username", data={"username": "rubl", "password": "secret123"}).text
+
+
+def test_owner_admin_powers(owner, alice, bob):
+    assert alice.get("/admin/u/bob", follow_redirects=False).status_code == 303  # не админ
+    page = owner.get("/admin/u/alice").text
+    assert "Переписку администратор не видит" in page and "alice@example.com" in page
+    alice.post("/messages/send", json={"receiver": "bob", "content": "секретный текст"}, headers=J)
+    assert "секретный текст" not in owner.get("/admin/u/alice").text  # переписка не видна
+    r = owner.post("/admin/u/alice/save", data={"name": "Алиса", "username": "love", "email": "a2@example.com", "bio": "", "city": "Казань"}, follow_redirects=False)
+    assert "/admin/u/love" in r.headers["location"]
+    s = db()
+    u = s.query(models.User).filter_by(username="love").one()
+    assert u.email == "a2@example.com" and u.city == "Казань"
+    s.close()
+    owner.post("/admin/u/love/alias-add", data={"handle": "star"})
+    assert bob.get("/profile/star", follow_redirects=False).headers["location"] == "/profile/love"
+    owner.post("/admin/u/love/balance", data={"balance": "777"})
+    s = db()
+    from services import extras
+    assert extras.balance(s.query(models.User).filter_by(username="love").one()) == 777
+    s.close()
+    owner.post("/admin/u/love/notify", data={"text": "Привет от администрации"})
+    assert "Привет от администрации" in alice.get("/notifications").text
+    owner.post("/admin/u/love/logout-all")
+    assert alice.get("/settings", follow_redirects=False).status_code in (302, 303)  # разлогинен
+    owner.post("/admin/u/love/block", data={"days": "3", "reason": "спам"})
+    s = db()
+    assert s.query(models.User).filter_by(username="love").one().is_blocked
+    s.close()
+    owner.post("/admin/u/love/unblock")
+    # сайт: выключить раздел, закрыть регистрацию, тех. работы
+    assert owner.post("/admin/site/save", data={"on": ["/games", "/capsule"], "registration": "", "maintenance": "", "maintenance_text": "x"},
+                      follow_redirects=False).status_code == 303
+    from packs.v3 import site
+    site._cache["t"] = 0
+    assert bob.get("/handles", follow_redirects=False).status_code == 303 and bob.get("/games").status_code == 200
+    c = make_client()
+    r = c.post("/register", data={"username": "newbie", "email": "n@example.com", "password": "secret123", "confirm_password": "secret123",
+                                  "agree": "1", "consent": "1", "adult": "1", "name": "N"}, follow_redirects=False)
+    assert r.status_code != 303 and "закрыта" in r.text
+    owner.post("/admin/site/save", data={"on": [p for p, _ in site.SECTIONS], "registration": "1", "maintenance": "1", "maintenance_text": "Чиним"})
+    site._cache["t"] = 0
+    r = bob.get("/")
+    assert r.status_code == 503 and "Чиним" in r.text
+    assert owner.get("/").status_code == 200  # владелец видит сайт
+    owner.post("/admin/site/save", data={"on": [p for p, _ in site.SECTIONS], "registration": "1", "maintenance": "", "maintenance_text": "x"})
+    site._cache["t"] = 0
+    # рассылка всем
+    owner.post("/admin/site/notify-all", data={"text": "Вышло обновление"})
+    assert "Вышло обновление" in bob.get("/notifications").text

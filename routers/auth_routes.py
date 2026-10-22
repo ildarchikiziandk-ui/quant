@@ -156,6 +156,9 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     def fail(msg):
         return render(request, db, "register.html", sidebar=False, error=msg, **form)
 
+    from packs.v3 import site
+    if not site.get("registration"):
+        return fail("Регистрация временно закрыта")
     if not ratelimit.hit(f"register:{_client_ip(request)}", 5, 3600):
         return fail("Слишком много регистраций с вашего адреса. Попробуйте позже.")
     if config.BETA_CODE and beta_code.strip().upper() != config.BETA_CODE.upper():
@@ -353,6 +356,10 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
             current.yandex_id = yid
             db.commit()
             return redirect("/settings/security")
+        from packs.v3 import site
+        if not site.get("registration"):
+            return render(request, db, "error.html", sidebar=False, code=403, title="Регистрация закрыта",
+                          text="Новые аккаунты сейчас не создаются. Если у вас уже есть аккаунт — войдите по логину и паролю.")
         ubase = re.sub(r"[^A-Za-z0-9_]", "_", yu.get("login") or f"y_{yid}")[:26] or f"y_{yid}"
         if len(ubase) < 3:
             ubase = f"user_{ubase}"
