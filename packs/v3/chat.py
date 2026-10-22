@@ -206,6 +206,13 @@ def card(msg, user):
             a, b = db.get(models.User, g.a_id), db.get(models.User, g.b_id)
             html = templates.get_template("packs/v3/card_ttt.html").render(g=g, msg=msg, a=a, b=b, user=user,
                                                                             line=[int(x) for x in g.line.split(",")] if g.line else [])
+        elif kind == "call":
+            from .calls import card_data
+            c = db.get(m.Call, oid)
+            if not c:
+                return ""
+            peer = db.get(models.User, c.callee_id if user and user.id == c.caller_id else c.caller_id)
+            html = templates.get_template("packs/v3/card_call.html").render(c=c, d=card_data(db, c, user), peer=peer, msg=msg, user=user)
         else:
             return ""
         return Markup(html)

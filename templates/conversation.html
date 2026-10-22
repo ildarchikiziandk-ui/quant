@@ -12,6 +12,7 @@
       <div style="min-width:0"><div class="row" style="gap:4px">{{ name(other, link=false) }}{{ streak_badge(streak) }}</div>
         <div class="tiny muted" id="chat-status">{% if other.dnd_until and other.dnd_until > now %}{{ icon("moon", "i in") }} не беспокоить · {% endif %}{% if is_online(other) %}<span style="color:var(--online)">в сети</span>{% elif other.last_seen and other.show_online is not sameas false %}был(а) {{ other.last_seen|ago }}{% else %}@{{ other.username }}{% endif %}</div></div>
     </a>
+    {% for _s in pack_slot("chat_head") %}{% include _s %}{% endfor %}
     <div class="menu-wrap" style="margin-left:0">
       <button class="icon-btn" data-menu>{{ icon("more") }}</button>
       <div class="menu">

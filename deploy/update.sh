@@ -9,5 +9,9 @@ git -C "$APP_DIR" fetch -q origin "$BRANCH"
 git -C "$APP_DIR" reset -q --hard "origin/$BRANCH"
 "$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
 chown -R nuvora:nuvora "$APP_DIR"
+# ретранслятор для звонков: ставится один раз, при следующих обновлениях пропускается
+if ! grep -q '^TURN_SECRET=.' "$APP_DIR/.env" 2>/dev/null; then
+  bash "$APP_DIR/deploy/set-calls.sh" || echo "Ретранслятор звонков не установился — звонки будут работать напрямую. Повторить: bash $APP_DIR/deploy/set-calls.sh"
+fi
 systemctl restart nuvora
 echo "Обновлено до $(git -C "$APP_DIR" log --oneline -1)"

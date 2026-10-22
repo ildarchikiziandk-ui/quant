@@ -467,3 +467,83 @@ def test_owner_admin_powers(owner, alice, bob):
     # рассылка всем
     owner.post("/admin/site/notify-all", data={"text": "Вышло обновление"})
     assert "Вышло обновление" in bob.get("/notifications").text
+
+
+def test_calls(alice, bob):
+    from packs.v3 import calls
+    sdp = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\n"
+    # кнопки звонка в шапке переписки
+    html = alice.get("/messages/bob").text
+    assert 'data-call="bob"' in html and 'data-video="1"' in html
+    # первый долгий запрос bob: только курсор и адреса STUN
+    first = bob.get("/v3/call/poll?since=-1").json()
+    assert first["ok"] and first["events"] == [] and first["ice"]
+    # плохой запрос и звонок самому себе
+    assert alice.post("/v3/call/bob/start", json={"video": 1}, headers=J).status_code == 400
+    assert alice.post("/v3/call/alice/start", json={"video": 1, "offer": {"type": "offer", "sdp": sdp}}, headers=J).status_code == 404
+    r = alice.post("/v3/call/bob/start", json={"video": 1, "offer": {"type": "offer", "sdp": sdp}}, headers=J).json()
+    assert r["ok"] and r["peer"]["username"] == "bob"
+    cid = r["call"]
+    # второй звонок, пока идёт первый, — нельзя
+    assert not alice.post("/v3/call/bob/start", json={"video": 0, "offer": {"type": "offer", "sdp": sdp}}, headers=J).json()["ok"]
+    ev = bob.get(f"/v3/call/poll?since={first['last']}&wait=1").json()["events"]
+    ring = [e for e in ev if e["kind"] == "ring"][0]
+    assert ring["call"] == cid and ring["video"] and ring["offer"]["sdp"] == sdp and ring["from"]["username"] == "alice"
+    # открытая заново страница тоже видит идущий звонок
+    assert any(e["kind"] == "ring" for e in bob.get("/v3/call/poll?since=-1").json()["events"])
+    s = db()
+    n = s.query(models.Notification).filter_by(type="call").first()
+    assert n and "видеозвонок" in n.text
+    s.close()
+    # постороннему звонок не виден
+    carol = make_client()
+    register(carol, "carol")
+    assert carol.post(f"/v3/call/{cid}/signal", json={"kind": "hangup"}, headers=J).status_code == 404
+    # адреса, ответ, сигналы доходят до собеседника
+    alice.post(f"/v3/call/{cid}/signal", json={"kind": "ice", "candidates": [{"candidate": "candidate:1 1 udp 1 1.2.3.4 5 typ host", "sdpMid": "0"}]}, headers=J)
+    assert not alice.post(f"/v3/call/{cid}/signal", json={"kind": "answer", "answer": {"type": "answer", "sdp": sdp}}, headers=J).json()["ok"]
+    assert bob.post(f"/v3/call/{cid}/signal", json={"kind": "answer", "answer": {"type": "answer", "sdp": sdp}, "tab": "t1"}, headers=J).json()["ok"]
+    ev = alice.get("/v3/call/poll?since=0&wait=1").json()["events"]
+    assert [e["kind"] for e in ev] == ["answer"]
+    bev = bob.get(f"/v3/call/poll?since={ring['id']}&wait=1").json()["events"]
+    assert {"ice", "taken"} <= {e["kind"] for e in bev}
+    s = db()
+    assert s.get(m.Call, cid).status == "active" and not s.query(models.Notification).filter_by(type="call").first()
+    s.close()
+    # завершение: «конец» обоим и запись в переписке
+    assert bob.post(f"/v3/call/{cid}/signal", json={"kind": "hangup"}, headers=J).json()["ok"]
+    assert any(e["kind"] == "end" and e["status"] == "ended" for e in alice.get("/v3/call/poll?since=0&wait=1").json()["events"])
+    msg = last_msg("alice")
+    assert msg.content == f"[[v3:call:{cid}]]"
+    page = bob.get("/messages/alice").text
+    assert "Входящий видеозвонок" in page and "Перезвонить" in page and "[[v3:call" not in re.sub(r'data-[a-z]+="[^"]*"', "", page)
+    assert "Исходящий видеозвонок" in alice.get("/messages/bob").text
+    # без ответа: звонок становится пропущенным, уведомление остаётся
+    r2 = alice.post("/v3/call/bob/start", json={"video": 0, "offer": {"type": "offer", "sdp": sdp}}, headers=J).json()
+    s = db()
+    c2 = s.get(m.Call, r2["call"])
+    c2.created_at = datetime.utcnow() - timedelta(minutes=5)
+    s.commit()
+    calls.expire_job(s)
+    assert s.get(m.Call, r2["call"]).status == "missed"
+    assert s.query(models.Notification).filter_by(type="call").first().text == "пропущенный звонок"
+    s.close()
+    assert "Пропущенный" in bob.get("/messages/alice").text
+    # отклонение
+    r3 = alice.post("/v3/call/bob/start", json={"video": 1, "offer": {"type": "offer", "sdp": sdp}}, headers=J).json()
+    assert bob.post(f"/v3/call/{r3['call']}/signal", json={"kind": "decline"}, headers=J).json()["ok"]
+    s = db()
+    assert s.get(m.Call, r3["call"]).status == "declined"
+    s.close()
+
+
+def test_turn_credentials(alice, monkeypatch):
+    import base64, hashlib, hmac
+    import config
+    monkeypatch.setattr(config, "TURN_SECRET", "s3cret")
+    monkeypatch.setattr(config, "TURN_HOST", "turn.example")
+    ice = alice.get("/v3/call/ice").json()["ice"]
+    turn = [x for x in ice if "username" in x][0]
+    assert turn["urls"][0] == "turn:turn.example:3478?transport=udp"
+    exp = base64.b64encode(hmac.new(b"s3cret", turn["username"].encode(), hashlib.sha1).digest()).decode()
+    assert turn["credential"] == exp and int(turn["username"].split(":")[0]) > datetime.utcnow().timestamp()

@@ -1,9 +1,14 @@
 """Nuvora 3.x: модули чатов, игр, помощника Нувы, красивых логинов и безопасности."""
 from . import models  # noqa: F401  таблицы
-from . import account, admin_plus, ai, capsule, chat, dayyot, feed, games, handles_shop, people  # noqa: F401  маршруты регистрируются на общем router
+from . import account, admin_plus, ai, calls, capsule, chat, dayyot, feed, games, handles_shop, people  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
 
 WHATSNEW = [
+    ("Звонки", "phone", [
+        ("video", "Видеозвонки и аудиозвонки 1 на 1 прямо в переписке — кнопки в шапке чата"),
+        ("refresh", "Переключение на заднюю камеру, выключение микрофона и камеры во время разговора"),
+        ("history", "История звонков в переписке и уведомление о пропущенном звонке"),
+    ]),
     ("Новое в 3.1", "sparkle", [
         ("smartphone", "Приложение стало настоящим приложением: стили, иконки и эмодзи встроены и открываются мгновенно"),
         ("download", "Без интернета: последние открытые страницы, офлайн-экран и 2048 работают без сети"),
@@ -52,6 +57,7 @@ MENU = [
 SLOTS = {
     "message_extra": "packs/v3/slot_message.html",
     "chat_tools": "packs/v3/slot_chat_tools.html",
+    "chat_head": "packs/v3/slot_chat_head.html",
     "chat_list_top": "packs/v3/slot_chat_list.html",
     "post_menu": "packs/v3/slot_post_menu.html",
     "composer_tools": "packs/v3/slot_composer_tools.html",
@@ -61,9 +67,9 @@ SLOTS = {
 }
 
 CSS = ["packs/v3/v3.css"]
-JS = ["packs/v3/v3.js"]
-JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases]
+JS = ["packs/v3/v3.js", "packs/v3/calls.js"]
+JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job]
 GLOBALS = {
     "v3_card": chat.card, "v3_chest": people.chest_state, "v3_backup_left": account.backup_left,
-    "v3_ai_on": ai.enabled, "v3_aliases": handles_shop.aliases_of,
+    "v3_ai_on": ai.enabled, "v3_calls_on": lambda: calls.config.CALLS_ENABLED, "v3_aliases": handles_shop.aliases_of,
 }

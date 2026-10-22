@@ -233,3 +233,47 @@ html.in-app::view-transition-old(root), html.in-app::view-transition-new(root) {
 
 /* ---------- админ-панель */
 .v3-sitegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 12px; }
+
+/* ===== Звонки ===== */
+.v3-callcard .v3-callrow { display: flex; align-items: center; gap: 10px; }
+.v3-callcard .v3-callico { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--whale, #2f6487) 16%, transparent); color: var(--whale, #2f6487); flex: none; }
+.v3-callcard.bad .v3-callico { background: color-mix(in srgb, var(--like) 14%, transparent); color: var(--like); }
+.v3-callcard .tiny { opacity: .75; }
+html.in-call, html.in-call body { overflow: hidden; }
+.call-ui { position: fixed; inset: 0; z-index: 10000; background: #141311; color: #f3ece1; display: flex; flex-direction: column; align-items: center;
+  padding: calc(env(safe-area-inset-top) + 40px) 20px calc(env(safe-area-inset-bottom) + 28px); animation: call-in .25s ease-out; font-family: inherit; }
+.call-ui.closing { opacity: 0; transition: opacity .25s; }
+@keyframes call-in { from { opacity: 0; transform: scale(1.03); } }
+.call-remote { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #141311; opacity: 0; transition: opacity .3s; }
+.call-ui.is-video.has-remote:not(.peer-cam-off) .call-remote { opacity: 1; }
+.call-ui.is-audio .call-remote { width: 1px; height: 1px; }
+.call-peer { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; margin-top: 8vh; transition: margin .3s, transform .3s; }
+.call-peer b { font: 600 24px/1.2 var(--font-display, sans-serif); letter-spacing: -.02em; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.call-st { font-size: 15px; color: #c9bfb1; min-height: 1.3em; font-variant-numeric: tabular-nums; }
+.call-av { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; background: #2f6487; display: grid; place-items: center; font: 600 44px var(--font-display, sans-serif); color: #fbf7f0; }
+.call-av img { width: 100%; height: 100%; object-fit: cover; }
+.call-ui.incoming .call-av { animation: call-pulse 1.6s ease-out infinite; }
+@keyframes call-pulse { 0% { box-shadow: 0 0 0 0 rgba(127, 176, 211, .55); } 100% { box-shadow: 0 0 0 34px rgba(127, 176, 211, 0); } }
+.call-ui.is-video.has-remote:not(.peer-cam-off) .call-peer { margin-top: 0; }
+.call-ui.is-video.has-remote:not(.peer-cam-off) .call-av { display: none; }
+.call-ui.is-video.has-remote:not(.peer-cam-off) .call-peer b, .call-ui.is-video.has-remote:not(.peer-cam-off) .call-st { text-shadow: 0 1px 8px rgba(0, 0, 0, .7); }
+.call-ui.is-video.has-remote:not(.peer-cam-off) .call-peer b { font-size: 18px; }
+.call-local { position: absolute; z-index: 2; right: 16px; top: calc(env(safe-area-inset-top) + 16px); width: 104px; height: 150px; border-radius: 16px; object-fit: cover;
+  background: #22201d; border: 1px solid rgba(255, 255, 255, .15); transform: scaleX(-1); }
+.call-ui.back-cam .call-local { transform: none; }
+.call-ui.is-audio .call-local, .call-ui.cam-off .call-local, .call-ui.incoming .call-local { display: none; }
+.call-ctl { position: relative; z-index: 2; margin-top: auto; display: none; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.call-ui.incoming .call-ctl-in, .call-ui.live .call-ctl-on { display: flex; }
+.call-ui.incoming .call-ctl-in { gap: 64px; }
+.call-btn { display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: 0; color: #f3ece1; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.call-btn .i { width: 62px; height: 62px; padding: 19px; border-radius: 50%; background: rgba(243, 236, 225, .14); stroke-width: 2; transition: background .15s, transform .1s; }
+.call-btn:active .i { transform: scale(.92); }
+.call-btn small { font-size: 12px; color: #c9bfb1; }
+.call-btn.off .i { background: #f3ece1; color: #141311; }
+.call-btn.red .i { background: #d63c3c; color: #fff; }
+.call-btn.red .i { transform: rotate(135deg); }
+.call-btn.red:active .i { transform: rotate(135deg) scale(.92); }
+.call-btn.green .i { background: #3c9a5f; color: #fff; animation: call-shake 1.4s ease-in-out infinite; }
+@keyframes call-shake { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-14deg); } 80% { transform: rotate(12deg); } 90% { transform: rotate(-8deg); } }
+.call-ui.peer-mic-off .call-st::after { content: " · микрофон выключен"; }
+@media (prefers-reduced-motion: reduce) { .call-ui.incoming .call-av, .call-btn.green .i { animation: none; } }

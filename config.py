@@ -75,6 +75,12 @@ MOD_HOLD_THRESHOLD = float(env("MOD_HOLD_THRESHOLD", "0.93"))  # с этой —
 # Выключены по умолчанию: распространение шифровальных средств может требовать лицензии ФСБ (ПП РФ № 313).
 # Включить (после консультации юриста): SECRET_CHATS_ENABLED=1 в .env
 SECRET_CHATS_ENABLED = env_bool("SECRET_CHATS_ENABLED", False)
+
+# --- Звонки (WebRTC). Видео идёт напрямую; если не получилось — через свой ретранслятор coturn (deploy/set-calls.sh)
+CALLS_ENABLED = env_bool("CALLS_ENABLED", True)
+STUN_URLS = [u.strip() for u in env("STUN_URLS", "stun:stun.l.google.com:19302,stun:stun.cloudflare.com:3478").split(",") if u.strip()]
+TURN_HOST = env("TURN_HOST", "")  # по умолчанию — домен сайта
+TURN_SECRET = env("TURN_SECRET", "")  # общий секрет с coturn (use-auth-secret); пусто — только STUN
 # Сколько дней сервер хранит шифротекст после срабатывания таймера/удаления (0 — удалять сразу).
 # Если сервис внесён в реестр ОРИ (149-ФЗ ст. 10.1), закон требует хранить сообщения 6 месяцев — поставьте 180.
 SECRET_RETAIN_DAYS = int(env("SECRET_RETAIN_DAYS", "0"))

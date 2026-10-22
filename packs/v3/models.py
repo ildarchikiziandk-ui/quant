@@ -174,3 +174,29 @@ class SiteSetting(Base):
     __tablename__ = "v3_site_settings"
     key = Column(String(40), primary_key=True)
     value = Column(Text, default="")
+
+
+# --- Звонки 1 на 1 (видео идёт напрямую между собеседниками, сервер только передаёт сигналы) ----------------
+class Call(Base):
+    __tablename__ = "v3_calls"
+    id = Column(Integer, primary_key=True)
+    caller_id = Column(Integer, ForeignKey("users.id"), index=True)
+    callee_id = Column(Integer, ForeignKey("users.id"), index=True)
+    video = Column(Boolean, default=True)
+    status = Column(String(12), default="ringing", index=True)  # ringing, active, ended, missed, declined, busy
+    notif_id = Column(Integer, nullable=True)  # уведомление «звонит вам» у собеседника
+    created_at = Column(DateTime, default=datetime.utcnow)
+    answered_at = Column(DateTime, nullable=True)
+    ended_at = Column(DateTime, nullable=True)
+    alive_at = Column(DateTime, default=datetime.utcnow)  # последний сигнал «я ещё на связи»
+
+
+class CallSignal(Base):
+    """Сигнал звонка для одного получателя: звонок, ответ, сетевые адреса, завершение."""
+    __tablename__ = "v3_call_signals"
+    id = Column(Integer, primary_key=True)
+    call_id = Column(Integer, index=True)
+    to_id = Column(Integer, index=True)
+    kind = Column(String(12), default="")
+    data = Column(Text, default="{}")
+    created_at = Column(DateTime, default=datetime.utcnow)

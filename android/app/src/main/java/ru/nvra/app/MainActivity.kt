@@ -224,10 +224,14 @@ class MainActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (web.canGoBack()) {
-                    web.goBack()
-                } else {
-                    moveTaskToBack(true)
+                // во время звонка «назад» не уходит со страницы (иначе разговор оборвётся)
+                web.evaluateJavascript("(window.nuvoraBack && window.nuvoraBack()) === true") { handled ->
+                    if (handled == "true") return@evaluateJavascript
+                    if (web.canGoBack()) {
+                        web.goBack()
+                    } else {
+                        moveTaskToBack(true)
+                    }
                 }
             }
         })
@@ -371,6 +375,14 @@ class MainActivity : AppCompatActivity() {
 
     /** Мост для сайта: тема (цвет полос под системными панелями) и сохранение картинок, созданных на странице. */
     inner class ThemeBridge {
+        @JavascriptInterface
+        fun keepAwake(on: Boolean) {
+            runOnUiThread {
+                if (on) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+
         @JavascriptInterface
         fun setTheme(dark: Boolean, color: String?) {
             runOnUiThread { applyTheme(dark, color) }

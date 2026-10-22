@@ -33,6 +33,7 @@ SLOT_NAMES = {
     "profile_after_bio": "под описанием профиля (profile_user)",
     "profile_tabs": "дополнительные вкладки профиля — ссылки ?tab=… (profile_user, tab)",
     "profile_tab_body": "содержимое своей вкладки профиля: если tab ваш — выведите блок и сделайте {% set pack_tab.done = true %}",
+    "chat_head": "кнопки в шапке переписки, перед «⋯» (other)",
     "chat_menu": "меню «⋯» в переписке (other)",
     "chat_tools": "кнопки слева от поля ввода сообщения (other)",
     "chat_after_box": "под лентой сообщений (other)",
