@@ -2,9 +2,9 @@ import sys, wave, numpy as np
 ad=int(sys.argv[1]); out=sys.argv[2]
 SR=44100; T=14.0; N=int(SR*T); t=np.arange(N)/SR
 rng=np.random.default_rng(ad)
-bpm=[0,112,118,104,120,110,116,108,122,106,126][ad]; beat=60/bpm
+bpm=[0,112,118,104,120,110,116,108,122,106,126,114,100][ad % 13]; beat=60/bpm
 H=1.9 if ad==10 else 2.6; E=10.9
-keys=[0,0,3,5,-2,7,2,-4,5,0,-2]; k=keys[ad]
+keys=[0,0,3,5,-2,7,2,-4,5,0,-2,4,-3]; k=keys[ad % 13]
 progs=[[0,-3,-7,-5],[0,-5,-3,-7],[0,-4,-7,-2]]; prog=progs[ad%3]
 f=lambda semi: 110*2**((semi+k)/12)
 mix=np.zeros(N); st=np.zeros((N,2))

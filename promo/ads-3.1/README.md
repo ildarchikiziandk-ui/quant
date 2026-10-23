@@ -1,9 +1,9 @@
-# Рекламные ролики Nuvora 3.1 (11–20)
+# Рекламные ролики Nuvora 3.1 (11–22)
 
-Готовые видео: `static/promo/nuvora-ad-11…20-*.mp4` (1080×1920, 14 с, со звуком).
+Готовые видео: `static/promo/nuvora-ad-11…22-*.mp4` (1080×1920, 14 с, со звуком).
 Сцены каждого ролика описаны в `ads.html` (объект `ADS[n]`: крючок, заголовок, демонстрация).
 
-Пересборка одного ролика (n = 1…10):
+Пересборка одного ролика (n = 1…12; для 11 нужны картинки стикеров: cp static/stickers/*/*.webp promo/ads-3.1/st/):
 ```
 cp static/fonts/*.woff2 static/brand/logo-180.png static/icons.svg promo/ads-3.1/
 cd promo/ads-3.1 && python3 -m http.server 8811 &
