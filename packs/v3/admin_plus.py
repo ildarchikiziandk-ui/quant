@@ -194,7 +194,7 @@ def _posts_lock(db, me, t, f):
     from .accounts import posts_locked, set_locked
     on = not posts_locked(t)
     set_locked(db, t, on)
-    site.put(db, "locks_seeded", True)  # дальше режим управляется только отсюда
+    site.put(db, "locks_applied", sorted(set(site.get("locks_applied") or ()) | {t.id}))  # дальше — только отсюда
     return ("Включён режим «только чаты и профиль»: посты не публикует и чужие не видит" if on else "Режим «только чаты» выключен"), False
 
 

@@ -3,7 +3,8 @@
 1. Все подписаны на владельца по умолчанию: новый аккаунт сразу подписывается, а существующие
    подписываются один раз (фоновая задача). Отписаться потом можно, как от любого человека.
 2. Аккаунты «только чаты и профиль»: человек не публикует посты и не видит чужие посты
-   (лента, поиск, хэштеги, чужие профили) — остаются переписка, свой профиль, игры, Нува и остальное.
+   (лента, поиск, хэштеги, чужие профили), не публикует и не смотрит истории — остаются переписка,
+   свой профиль, игры, Нува и остальное.
    Включается в админ-панели в карточке пользователя; для @svetlana — сразу.
 """
 from . import site
@@ -27,7 +28,8 @@ def posts_locked(user):
         return False
     if user.id in set(site.get("posts_locked") or ()):
         return True
-    return not site.get("locks_seeded") and (user.username or "").lower() in PRESET_LOCKED
+    # пока фоновая задача не дошла до аккаунта — узнаём по основному логину
+    return (user.username or "").lower() in PRESET_LOCKED and user.id not in set(site.get("locks_applied") or ())
 
 
 def set_locked(db, user, on):
@@ -47,11 +49,17 @@ def seed_job(db):
             db.bulk_save_objects([models.Follow(follower_id=u, following_id=owner.id) for u in new])
             site.put(db, "owner_follow_seeded", True)
             db.commit()
-    if not site.get("locks_seeded"):
-        from sqlalchemy import func
-        found = db.query(models.User).filter(func.lower(models.User.username).in_(PRESET_LOCKED)).all()
-        for u in found:
+    # заданные логины (основные или дополнительные) — режим включается один раз на каждый аккаунт,
+    # дальше им управляет только админка (выключили — снова не включится)
+    from services import handles
+    applied = set(site.get("locks_applied") or ())
+    changed = False
+    for name in PRESET_LOCKED:
+        u = handles.owner_of(db, name)
+        if u and u.id not in applied:
             set_locked(db, u, True)
-        if len(found) == len(PRESET_LOCKED):  # все нашлись — дальше управляется только из админки
-            site.put(db, "locks_seeded", True)
+            applied.add(u.id)
+            changed = True
+    if changed:
+        site.put(db, "locks_applied", sorted(applied))
         db.commit()

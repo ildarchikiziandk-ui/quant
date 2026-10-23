@@ -674,8 +674,29 @@ def test_follow_owner_and_chat_only(owner, alice):
     assert "Пост Алисы для всех" not in sv.get("/search?q=Алисы").text
     assert sv.get("/messages").status_code == 200 and sv.get("/profile/svetlana").status_code == 200
     assert sv.post("/messages/send", json={"receiver": "alice", "content": "Привет!"}, headers=J).json()["ok"]
+    # истории: чужие не видны, свои публиковать нельзя
+    alice.post("/stories/create", data={"text_overlay": "История Алисы", "bg": "violet"})
+    assert "История Алисы" not in sv.get("/stories/alice").text
+    assert sv.get("/stories/create").status_code == 403
+    assert sv.post("/stories/create", data={"text_overlay": "Моя"}, headers=J).status_code == 403
     s = db(); accounts.seed_job(s); s.close()
     # владелец может выключить режим в карточке
     owner.post("/admin/u/svetlana/posts-lock")
     assert sv.post("/post/create", data={"content": "Теперь можно"}, headers=J).json()["ok"]
     assert sv.get(f"/post/{pid}").status_code == 200
+
+
+
+def test_chat_only_alias(owner):
+    from packs.v3 import accounts, site
+    c = make_client()
+    register(c, "lana_x")
+    assert c.get("/", follow_redirects=False).status_code == 200
+    owner.post("/admin/u/lana_x/alias-add", data={"handle": "svetlana"})  # @svetlana — дополнительный логин
+    s = db(); accounts.seed_job(s); s.close()
+    site._cache["t"] = 0
+    assert c.get("/", follow_redirects=False).headers["location"] == "/messages"
+    owner.post("/admin/u/lana_x/posts-lock")  # выключили вручную — задача не включает снова
+    s = db(); accounts.seed_job(s); s.close()
+    site._cache["t"] = 0
+    assert c.get("/", follow_redirects=False).status_code == 200

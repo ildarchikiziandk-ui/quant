@@ -61,7 +61,7 @@
     <a href="/settings" class="nav-item"><span class="ico">{{ icon("settings") }}</span><span class="nav-label">Настройки</span></a>
     <a href="/plus" class="nav-item"><span class="ico">{{ icon("sparkle") }}</span><span class="nav-label">{{ brand_plus }}</span></a>
     <form method="post" action="/logout" onsubmit="return confirm('Выйти из аккаунта?')"><button class="nav-item" style="width:100%;border:none;background:none;cursor:pointer;font-size:inherit;color:var(--danger)"><span class="ico">{{ icon("logout") }}</span><span class="nav-label">Выйти</span></button></form>
-    <div class="nav-cta"><a href="/create" class="btn block">{{ icon("plus") }}<span class="lbl">Новый пост</span></a></div>
+    <div class="nav-cta"{% if user and v3_posts_locked(user) %} hidden{% endif %}><a href="/create" class="btn block">{{ icon("plus") }}<span class="lbl">Новый пост</span></a></div>
     {% else %}
     <a href="/" class="nav-item"><span class="ico">{{ icon("home") }}</span><span class="nav-label">Лента</span></a>
     <a href="/explore" class="nav-item"><span class="ico">{{ icon("compass") }}</span><span class="nav-label">Обзор</span></a>

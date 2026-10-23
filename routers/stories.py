@@ -24,6 +24,9 @@ def can_see_story(db, viewer, story, close_cache=None):
         return False
     if viewer and viewer.id == owner.id:
         return True
+    from packs.v3.accounts import posts_locked
+    if posts_locked(viewer):  # «только чаты и профиль»: чужие истории не видны
+        return False
     if not social.can_see_content(db, viewer, owner) or owner.is_paused:
         return False
     if not viewer and prefs.get(owner, "guests_hidden"):
@@ -48,6 +51,8 @@ def story_groups(db, user):
         seen = {v.story_id for v in db.query(models.StoryView.story_id).filter(
             models.StoryView.user_id == user.id, models.StoryView.story_id.in_([s.id for s in stories]))}
     # права проверяем один раз на автора, а не на каждую историю (главная открывается часто)
+    from packs.v3.accounts import posts_locked
+    locked = posts_locked(user)
     fids = social.following_ids(db, user)
     close_of = {c.user_id for c in db.query(models.CloseFriend.user_id).filter(models.CloseFriend.friend_id == user.id)} if user else set()
     memo = {}
@@ -58,6 +63,8 @@ def story_groups(db, user):
             return False
         if user and owner.id == user.id:
             return True
+        if locked:
+            return False
         if owner.id not in memo:
             base = not owner.is_paused and not (not user and prefs.get(owner, "guests_hidden"))
             if base and owner.is_private and not (user and social.can_mod(user)):
@@ -91,6 +98,10 @@ def stories_create_page(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
+    from packs.v3.accounts import posts_locked
+    if posts_locked(user):
+        return render(request, db, "error.html", status_code=403, code=403, title="Истории недоступны",
+                      text="Для вашего аккаунта публикация историй отключена. Переписка и профиль работают как обычно.")
     return render(request, db, "stories_create.html", bg_colors=STORY_BG)
 
 
@@ -101,6 +112,9 @@ async def create_story(request: Request, db: Session = Depends(get_db)):
         return login_redirect(request)
     if social.is_active_block(user) or social.needs_email(user):
         return redirect("/verify" if social.needs_email(user) else "/")
+    from packs.v3.accounts import posts_locked
+    if posts_locked(user):
+        return json_error("Для вашего аккаунта публикация историй отключена", 403) if wants_json(request) else redirect("/stories/create")
     form = await request.form()
     text = (form.get("text_overlay") or "").strip()[:300]
     bg = form.get("bg_color") if re.match(r"^#[0-9a-fA-F]{6}$", form.get("bg_color") or "") else ""
