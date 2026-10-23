@@ -25,7 +25,7 @@
   <tr><td class="muted">Nuvora+</td><td>{% if t.is_plus and (not t.plus_until or t.plus_until > utcnow()) %}до {{ t.plus_until|lt("%d.%m.%Y") if t.plus_until else "бессрочно" }}{% else %}нет{% endif %}</td></tr>
   <tr><td class="muted">Баллы</td><td>заработано {{ t.total_points or 0 }} · потрачено {{ t.spent_points or 0 }} · <b>баланс {{ balance }}</b> · уровень {{ t.level or 1 }} · огонёк {{ t.streak_days or 0 }}</td></tr>
   <tr><td class="muted">Профиль</td><td>{{ "закрытый" if t.is_private else "открытый" }} · просмотров {{ t.profile_views or 0 }}</td></tr>
-  {% set pc = phone_check %}<tr><td class="muted">Телефон</td><td>{% if not pc %}не проверялся{% elif pc.status == "verified" %}<span style="color:var(--online)">подтверждён</span> · {{ pc.phone[:5] }}•••{{ pc.phone[-2:] }} · через Telegram-бота{% elif pc.status == "skipped" %}пропустил(а) проверку («Нет Телеграма»){% else %}<b>ждём подтверждения</b>{% endif %}{% if pc and pc.reason %} <span class="faint tiny">({{ pc.reason }})</span>{% endif %}</td></tr>
+  {% set pc = phone_check %}<tr><td class="muted">Телефон</td><td>{% if not pc %}не проверялся{% elif pc.status == "verified" %}<span style="color:var(--online)">подтверждён</span> · {{ pc.phone[:5] }}•••{{ pc.phone[-2:] }} · через бот MAX{% elif pc.status == "skipped" %}пропустил(а) проверку («Нет MAX»){% else %}<b>ждём подтверждения</b>{% endif %}{% if pc and pc.reason %} <span class="faint tiny">({{ pc.reason }})</span>{% endif %}</td></tr>
   {% if v3_posts_locked(t) %}<tr><td class="muted">Режим</td><td><b>только чаты и профиль</b> — посты не публикует, чужие не видит</td></tr>{% endif %}
 </table></div></div>
 

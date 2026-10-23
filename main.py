@@ -166,7 +166,7 @@ async def _background_jobs():
             db.close()
 
     from packs.v3 import phone as _phone
-    _phone.start_bot()  # Telegram-бот проверки номера (если задан TELEGRAM_BOT_TOKEN)
+    _phone.start_bot()  # бот MAX для проверки номера (если задан MAX_BOT_TOKEN)
 
     async def loop():
         while True:

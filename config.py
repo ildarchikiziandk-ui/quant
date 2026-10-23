@@ -85,9 +85,10 @@ STUN_URLS = [u.strip() for u in env("STUN_URLS", "stun:stun.l.google.com:19302,s
 TURN_HOST = env("TURN_HOST", "")  # по умолчанию — домен сайта
 TURN_SECRET = env("TURN_SECRET", "")  # общий секрет с coturn (use-auth-secret); пусто — только STUN
 
-# --- Проверка номера телефона через свой Telegram-бот (создаётся у @BotFather; deploy/set-telegram.sh)
-TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "").lstrip("@")
+# --- Проверка номера телефона через свой бот в мессенджере MAX (создаётся у @MasterBot; deploy/set-max.sh)
+MAX_BOT_TOKEN = env("MAX_BOT_TOKEN", "")
+MAX_BOT_USERNAME = env("MAX_BOT_USERNAME", "").lstrip("@")
+MAX_API_URL = env("MAX_API_URL", "https://platform-api2.max.ru").rstrip("/")
 # Сколько дней сервер хранит шифротекст после срабатывания таймера/удаления (0 — удалять сразу).
 # Если сервис внесён в реестр ОРИ (149-ФЗ ст. 10.1), закон требует хранить сообщения 6 месяцев — поставьте 180.
 SECRET_RETAIN_DAYS = int(env("SECRET_RETAIN_DAYS", "0"))

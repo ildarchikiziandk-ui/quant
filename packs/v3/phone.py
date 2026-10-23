@@ -1,12 +1,12 @@
-"""Проверка номера телефона через свой Telegram-бот — не у всех, а выборочно (примерно каждая 20-я
-регистрация) и при подозрении: несколько новых аккаунтов с одного адреса, одноразовая почта,
+"""Проверка номера телефона через свой бот в мессенджере MAX — не у всех, а выборочно (примерно каждая
+20-я регистрация) и при подозрении: несколько новых аккаунтов с одного адреса, одноразовая почта,
 массовые сообщения незнакомым, просьба админа.
 
-Как это выглядит: на сайте кнопка «Подтвердить в Telegram» открывает бота по одноразовой ссылке,
-бот просит нажать «Поделиться номером» — Telegram сам присылает номер, привязанный к аккаунту
-(подделать его нельзя). Сайт ждёт подтверждения и пускает дальше. Кнопка «Нет Телеграма» пропускает
-проверку. Пока проверка не пройдена, сайт открывает страницу проверки, а сообщения не отправляются.
-Бот получает сообщения долгим запросом getUpdates (вебхук и настройка nginx не нужны).
+Как это выглядит: на сайте кнопка «Подтвердить в MAX» открывает бота по одноразовой ссылке
+(max.ru/<бот>/start/<код>), бот просит нажать «Поделиться номером» — MAX сам присылает контакт
+пользователя с номером (чужой контакт не принимаем). Сайт ждёт подтверждения и пускает дальше.
+Кнопка «Нет MAX» пропускает проверку. Пока проверка не пройдена, сайт открывает страницу проверки,
+а сообщения не отправляются. Бот получает события долгим запросом /updates (вебхук не нужен).
 """
 import hashlib
 import hmac
@@ -16,6 +16,7 @@ import re
 import secrets
 import threading
 import time
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
 
@@ -35,14 +36,14 @@ from .common import router
 COOKIE = "pv"
 REPEAT_DAYS = 30  # после проверки или пропуска не спрашиваем снова месяц (кроме просьбы админа)
 LINK_MINUTES = 30  # одноразовая ссылка на бота действует полчаса
-PER_TG_ACCOUNT = 3  # один аккаунт Telegram подтверждает не больше трёх аккаунтов Nuvora
+PER_ACCOUNT = 3  # один аккаунт MAX подтверждает не больше трёх аккаунтов Nuvora
 DISPOSABLE = {"mailinator.com", "yopmail.com", "guerrillamail.com", "10minutemail.com", "temp-mail.org", "tempmail.com", "trashmail.com",
               "sharklasers.com", "getnada.com", "dispostable.com", "maildrop.cc", "fakeinbox.com", "mohmal.com", "emailondeck.com",
               "tempmail.plus", "mail.tm", "mintemail.com", "throwawaymail.com", "minuteinbox.com", "dropmail.me", "1secmail.com"}
 
 
 def available():
-    return bool(site.get("phone_check") and config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_BOT_USERNAME)
+    return bool(site.get("phone_check") and config.MAX_BOT_TOKEN and config.MAX_BOT_USERNAME)
 
 
 def _hash(token):
@@ -117,24 +118,24 @@ def page(request: Request, next: str = "/", db: Session = Depends(get_db)):
     row = db.query(m.PhoneCheck).filter_by(user_id=user.id, status="pending").first()
     if not row:
         return _clear(redirect(nxt))
-    return render(request, db, "packs/v3/phone_verify.html", sidebar=False, next=nxt, bot=config.TELEGRAM_BOT_USERNAME)
+    return render(request, db, "packs/v3/phone_verify.html", sidebar=False, next=nxt, bot=config.MAX_BOT_USERNAME)
 
 
 @router.post("/verify-phone/link")
 def link(request: Request, db: Session = Depends(get_db)):
-    """Одноразовая ссылка на бота: t.me/<бот>?start=<токен>."""
+    """Одноразовая ссылка на бота: max.ru/<бот>/start/<код>."""
     user = current_user(request, db)
     row = db.query(m.PhoneCheck).filter_by(user_id=user.id, status="pending").first() if user else None
     if not row:
         return _clear(JSONResponse({"ok": True, "done": True}))
-    if not config.TELEGRAM_BOT_USERNAME:  # бот не настроен — не задерживаем человека
+    if not config.MAX_BOT_USERNAME:  # бот не настроен — не задерживаем человека
         row.status, row.done_at = "skipped", datetime.utcnow()
         db.commit()
         return _clear(JSONResponse({"ok": True, "done": True}))
     token = secrets.token_urlsafe(18)
     row.code_hash, row.code_sent_at = _hash(token), datetime.utcnow()
     db.commit()
-    return JSONResponse({"ok": True, "url": f"https://t.me/{config.TELEGRAM_BOT_USERNAME}?start={token}"})
+    return JSONResponse({"ok": True, "url": f"https://max.ru/{config.MAX_BOT_USERNAME}/start/{token}"})
 
 
 @router.get("/verify-phone/status")
@@ -148,7 +149,7 @@ def status(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/verify-phone/skip")
 def skip(request: Request, db: Session = Depends(get_db)):
-    """«Нет Телеграма»: пропускаем проверку."""
+    """«Нет MAX»: пропускаем проверку."""
     user = current_user(request, db)
     row = db.query(m.PhoneCheck).filter_by(user_id=user.id, status="pending").first() if user else None
     if row:
@@ -157,95 +158,108 @@ def skip(request: Request, db: Session = Depends(get_db)):
     return _clear(JSONResponse({"ok": True, "done": True}))
 
 
-# ---------------------------------------------------------------- бот
-def _api(method, **params):
-    req = urllib.request.Request(f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/{method}", data=json.dumps(params).encode(),
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=params.get("timeout", 0) + 15) as r:
+# ---------------------------------------------------------------- бот MAX
+def _api(method, path, query=None, body=None, timeout=15):
+    url = config.MAX_API_URL + path + ("?" + urllib.parse.urlencode(query) if query else "")
+    req = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Authorization": config.MAX_BOT_TOKEN, "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
 
-def _say(chat, text, keyboard=None):
+def _say(user_id, text, contact_button=False):
+    body = {"text": text}
+    if contact_button:
+        body["attachments"] = [{"type": "inline_keyboard", "payload": {"buttons": [[{"type": "request_contact", "text": "📱 Поделиться номером"}]]}}]
     try:
-        _api("sendMessage", chat_id=chat, text=text, reply_markup=keyboard or {"remove_keyboard": True})
+        _api("POST", "/messages", {"user_id": user_id}, body)
     except Exception as e:  # noqa: BLE001
-        print(f"[tg-bot] send: {e}")
+        print(f"[max-bot] send: {e}")
+
+
+def _phone_from_vcf(vcf):
+    m = re.search(r"TEL[^:\n]*:([+\d][\d\s()+-]{5,})", vcf or "")
+    d = re.sub(r"\D", "", m.group(1)) if m else ""
+    return "+" + d if len(d) >= 10 else ""
 
 
 def handle_update(db, upd, say=_say):
-    """Одно сообщение боту. Возвращает, что произошло (для тестов)."""
-    msg = upd.get("message") or {}
-    chat = (msg.get("chat") or {}).get("id")
-    sender = str((msg.get("from") or {}).get("id") or "")
-    if not chat or not sender or (msg.get("chat") or {}).get("type") != "private":
-        return "skip"
-    text = (msg.get("text") or "").strip()
-    if text.startswith("/start"):
-        token = text[6:].strip()
+    """Одно событие от MAX. Возвращает, что произошло (для тестов)."""
+    kind = upd.get("update_type")
+    if kind == "bot_started":
+        user_id = str((upd.get("user") or {}).get("user_id") or "")
+        token = (upd.get("payload") or "").strip()
+        if not user_id:
+            return "skip"
         row = db.query(m.PhoneCheck).filter_by(code_hash=_hash(token), status="pending").first() if token else None
         if not row or not row.code_sent_at or row.code_sent_at < datetime.utcnow() - timedelta(minutes=LINK_MINUTES):
-            say(chat, "Это бот проверки аккаунтов Nuvora. Чтобы подтвердить номер, откройте ссылку со страницы проверки на сайте nvra.ru.")
+            say(user_id, "Это бот проверки аккаунтов Nuvora. Чтобы подтвердить номер, откройте ссылку со страницы проверки на сайте nvra.ru.")
             return "no-token"
-        row.tg_user = sender
+        row.tg_user = user_id
         db.commit()
         u = db.get(models.User, row.user_id)
-        say(chat, f"Подтвердим аккаунт @{u.username if u else '?'} в Nuvora. Нажмите кнопку ниже — Telegram передаст номер, привязанный к вашему аккаунту. "
-                  "Номер никому не показывается.",
-            {"keyboard": [[{"text": "📱 Поделиться номером", "request_contact": True}]], "resize_keyboard": True, "one_time_keyboard": True})
+        say(user_id, f"Подтвердим аккаунт @{u.username if u else '?'} в Nuvora. Нажмите кнопку ниже — MAX передаст номер, "
+                     "привязанный к вашему аккаунту. Номер никому не показывается.", contact_button=True)
         return "asked"
-    contact = msg.get("contact")
-    if contact:
-        if str(contact.get("user_id") or "") != sender:
-            say(chat, "Нужен ваш собственный номер — нажмите кнопку «Поделиться номером» под полем ввода.")
-            return "foreign"
-        row = (db.query(m.PhoneCheck).filter_by(tg_user=sender, status="pending").order_by(m.PhoneCheck.code_sent_at.desc()).first())
-        if not row:
-            say(chat, "Не нашли проверку для этого аккаунта. Откройте ссылку со страницы проверки на сайте ещё раз.")
-            return "no-check"
-        if db.query(m.PhoneCheck).filter(m.PhoneCheck.tg_user == sender, m.PhoneCheck.status == "verified").count() >= PER_TG_ACCOUNT:
-            say(chat, "Этим Telegram уже подтверждено несколько аккаунтов Nuvora. На сайте нажмите «Нет Телеграма» или используйте другой Telegram.")
-            return "limit"
-        digits = re.sub(r"\D", "", contact.get("phone_number") or "")
-        row.phone, row.method, row.status, row.done_at, row.code_hash = "+" + digits, "tg", "verified", datetime.utcnow(), ""
-        db.commit()
-        say(chat, "Готово! Номер подтверждён — возвращайтесь в Nuvora, страница откроется сама.")
-        return "verified"
-    say(chat, "Чтобы подтвердить номер, нажмите кнопку «Поделиться номером». Если кнопки нет — откройте ссылку со страницы проверки на сайте.")
-    return "hint"
+    if kind != "message_created":
+        return "skip"
+    msg = upd.get("message") or {}
+    sender = str((msg.get("sender") or {}).get("user_id") or "")
+    if not sender or (msg.get("sender") or {}).get("is_bot"):
+        return "skip"
+    contact = next((a.get("payload") or {} for a in ((msg.get("body") or {}).get("attachments") or []) if a.get("type") == "contact"), None)
+    if contact is None:
+        say(sender, "Чтобы подтвердить номер, нажмите кнопку «📱 Поделиться номером». Если кнопки нет — откройте ссылку со страницы проверки на сайте.",
+            contact_button=bool(db.query(m.PhoneCheck.id).filter_by(tg_user=sender, status="pending").first()))
+        return "hint"
+    owner = str((contact.get("max_info") or {}).get("user_id") or "")
+    if owner != sender:
+        say(sender, "Нужен ваш собственный номер — нажмите кнопку «📱 Поделиться номером».", contact_button=True)
+        return "foreign"
+    row = db.query(m.PhoneCheck).filter_by(tg_user=sender, status="pending").order_by(m.PhoneCheck.code_sent_at.desc()).first()
+    if not row:
+        say(sender, "Не нашли проверку для этого аккаунта. Откройте ссылку со страницы проверки на сайте ещё раз.")
+        return "no-check"
+    if db.query(m.PhoneCheck).filter(m.PhoneCheck.tg_user == sender, m.PhoneCheck.status == "verified").count() >= PER_ACCOUNT:
+        say(sender, "Этим аккаунтом MAX уже подтверждено несколько аккаунтов Nuvora. На сайте нажмите «Нет MAX».")
+        return "limit"
+    row.phone, row.method, row.status, row.done_at, row.code_hash = _phone_from_vcf(contact.get("vcf_info")), "max", "verified", datetime.utcnow(), ""
+    db.commit()
+    say(sender, "Готово! Номер подтверждён — возвращайтесь в Nuvora, страница откроется сама.")
+    return "verified"
 
 
 _bot = {"started": False}
 
 
 def start_bot():
-    """Долгий опрос Telegram в фоновом потоке (один на процесс)."""
-    if _bot["started"] or not config.TELEGRAM_BOT_TOKEN:
+    """Долгий опрос MAX в фоновом потоке (один на процесс)."""
+    if _bot["started"] or not config.MAX_BOT_TOKEN:
         return
     _bot["started"] = True
 
     def loop():
-        offset, delay = 0, 2
-        try:
-            _api("deleteWebhook")
-        except Exception:  # noqa: BLE001
-            pass
+        marker, delay = None, 2
         while True:
             try:
-                res = _api("getUpdates", offset=offset, timeout=25, allowed_updates=["message"])
-                for upd in res.get("result", []):
-                    offset = upd["update_id"] + 1
+                q = {"timeout": 25, "limit": 50, "types": "bot_started,message_created"}
+                if marker is not None:
+                    q["marker"] = marker
+                res = _api("GET", "/updates", q, timeout=40)
+                marker = res.get("marker", marker)
+                for upd in res.get("updates") or []:
                     db = SessionLocal()
                     try:
                         handle_update(db, upd)
                     except Exception as e:  # noqa: BLE001
                         db.rollback()
-                        print(f"[tg-bot] {e}")
+                        print(f"[max-bot] {e}")
                     finally:
                         db.close()
                 delay = 2
-            except Exception as e:  # noqa: BLE001 — нет связи с Telegram: пробуем реже
-                print(f"[tg-bot] poll: {e}")
+            except Exception as e:  # noqa: BLE001 — нет связи с MAX: пробуем реже
+                print(f"[max-bot] poll: {e}")
                 time.sleep(delay)
                 delay = min(delay * 2, 120)
 
-    threading.Thread(target=loop, name="nuvora-tg-bot", daemon=True).start()
+    threading.Thread(target=loop, name="nuvora-max-bot", daemon=True).start()

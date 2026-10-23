@@ -195,7 +195,7 @@ def _verify_email(db, me, t, f):
 def _phone_ask(db, me, t, f):
     from . import phone
     phone.require(db, t, "просьба администрации", force=True)
-    return "При следующем заходе попросим подтвердить номер в Telegram-боте (можно пропустить кнопкой «Нет Телеграма»)", False
+    return "При следующем заходе попросим подтвердить номер в боте MAX (можно пропустить кнопкой «Нет MAX»)", False
 
 
 @action("posts-lock")
@@ -284,7 +284,7 @@ def site_page(request: Request, ok: str = "", db: Session = Depends(get_db)):
     return render(request, db, "packs/v3/admin_site.html", sidebar=False, ok=ok, sections=site.SECTIONS, disabled=set(site.disabled()),
                   registration=site.get("registration"), maintenance=site.get("maintenance"), maintenance_text=site.get("maintenance_text"),
                   calls=site.get("calls"), phone_check=site.get("phone_check"), phone_every=site.get("phone_every"),
-                  bot_ready=bool(config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_BOT_USERNAME), bot=config.TELEGRAM_BOT_USERNAME, packs=stickers.PACKS, packs_off=set(site.get("sticker_packs_off") or []),
+                  bot_ready=bool(config.MAX_BOT_TOKEN and config.MAX_BOT_USERNAME), bot=config.MAX_BOT_USERNAME, packs=stickers.PACKS, packs_off=set(site.get("sticker_packs_off") or []),
                   banned_ips="\n".join(site.get("banned_ips") or []), reserved="\n".join(site.get("reserved_handles") or []),
                   my_ip=request.client.host if request.client else "",
                   groups=groups, owners=owners, users_n=db.query(models.User).filter(models.User.is_blocked != True).count())

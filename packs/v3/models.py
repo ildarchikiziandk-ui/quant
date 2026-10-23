@@ -210,9 +210,9 @@ class PhoneCheck(Base):
     status = Column(String(10), default="pending")  # pending, verified, skipped
     reason = Column(String(80), default="")
     phone = Column(String(16), default="", index=True)
-    method = Column(String(6), default="")  # tg — номер подтверждён в Telegram-боте
+    method = Column(String(6), default="")  # max — номер подтверждён в боте MAX
     code_hash = Column(String(64), default="")  # хэш одноразовой ссылки на бота
-    tg_user = Column(String(24), default="", index=True)  # id в Telegram того, кто поделился номером
+    tg_user = Column(String(24), default="", index=True)  # id в мессенджере того, кто поделился номером
     code_sent_at = Column(DateTime, nullable=True)
     attempts = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
