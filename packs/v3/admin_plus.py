@@ -189,6 +189,15 @@ def _verify_email(db, me, t, f):
     return "Email отмечен подтверждённым", False
 
 
+@action("posts-lock")
+def _posts_lock(db, me, t, f):
+    from .accounts import posts_locked, set_locked
+    on = not posts_locked(t)
+    set_locked(db, t, on)
+    site.put(db, "locks_seeded", True)  # дальше режим управляется только отсюда
+    return ("Включён режим «только чаты и профиль»: посты не публикует и чужие не видит" if on else "Режим «только чаты» выключен"), False
+
+
 @action("private")
 def _private(db, me, t, f):
     t.is_private = not t.is_private

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import current_user, login_redirect, render, templates
+from deps import current_user, login_redirect, redirect, render, templates
 from services import feed, prefs, recommend, social
 
 router = APIRouter()
@@ -19,6 +19,9 @@ def _stories_strip(db, user):
 @router.get("/")
 def home(request: Request, tab: str = "", db: Session = Depends(get_db)):
     user = current_user(request, db)
+    from packs.v3.accounts import posts_locked
+    if posts_locked(user):  # аккаунт «только чаты и профиль» — ленты нет, сразу в переписку
+        return redirect("/messages")
     if not tab and user:
         tab = prefs.get(user, "feed_default_tab")
     tab = tab if tab in TABS else "foryou"
@@ -38,6 +41,10 @@ def create_page(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
+    from packs.v3.accounts import posts_locked
+    if posts_locked(user):
+        return render(request, db, "error.html", status_code=403, code=403, title="Публикация недоступна",
+                      text="Для вашего аккаунта публикация постов отключена. Переписка, профиль и остальные функции работают как обычно.")
     drafts = db.query(models.Draft).filter_by(user_id=user.id).order_by(models.Draft.updated_at.desc()).limit(8).all()
     return render(request, db, "create.html", drafts=drafts)
 

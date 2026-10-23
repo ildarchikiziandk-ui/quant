@@ -189,6 +189,8 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         user.prefs = json.dumps({"timezone": tz_key}, ensure_ascii=False)
     db.add(user)
     db.commit()
+    from packs.v3.accounts import follow_owner
+    follow_owner(db, user)  # все подписаны на владельца по умолчанию
     if config.EMAIL_ENABLED:
         _send_code(db, email, "register")
     db.add(models.Notification(user_id=user.id, type="system",
@@ -375,6 +377,8 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
                            avatar=await _yandex_avatar(yu))
         db.add(user)
         db.commit()
+        from packs.v3.accounts import follow_owner
+        follow_owner(db, user)
         new = True
     if user.two_factor_enabled and user.two_factor_secret:
         pending = auth.create_token({"uid": user.id, "purpose": "2fa", "exp": datetime.utcnow() + timedelta(minutes=5)})

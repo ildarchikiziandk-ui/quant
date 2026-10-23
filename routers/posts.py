@@ -140,6 +140,9 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         return json_error("Аккаунт заблокирован", 403) if wants_json(request) else blocked_page(request, db, user)
     if social.needs_email(user):
         return json_error(social.VERIFY_MSG, 403)
+    from packs.v3.accounts import posts_locked
+    if posts_locked(user):
+        return json_error("Для вашего аккаунта публикация постов отключена", 403)
     if not ratelimit.hit(f"post:{user.id}", 20, 600):
         return json_error("Слишком часто. Подождите немного.", 429)
     form = await request.form()

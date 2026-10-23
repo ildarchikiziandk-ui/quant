@@ -132,6 +132,14 @@ def can_see_content(db, viewer, owner):
     return True
 
 
+def _locked(user):
+    try:
+        from packs.v3.accounts import posts_locked
+        return posts_locked(user)
+    except ImportError:
+        return False
+
+
 def visible_posts(db, viewer, hide_muted=True):
     """Базовый запрос постов, которые viewer имеет право видеть."""
     now = datetime.utcnow()
@@ -141,6 +149,8 @@ def visible_posts(db, viewer, hide_muted=True):
         or_(models.Post.scheduled_at == None, models.Post.scheduled_at <= now),
         or_(models.Post.is_archived == None, models.Post.is_archived == False),
         or_(models.Post.expires_at == None, models.Post.expires_at > now))
+    if _locked(viewer):  # аккаунт «только чаты и профиль»: видны только свои посты
+        return q.filter(models.Post.user_id == viewer.id)
     if not (viewer and can_mod(viewer)):  # приостановленные аккаунты скрыты (кроме своих постов)
         q = q.filter(or_(models.User.is_paused == None, models.User.is_paused == False, models.User.id == (viewer.id if viewer else -1)))
     if viewer and can_mod(viewer):
@@ -163,7 +173,11 @@ def visible_posts(db, viewer, hide_muted=True):
 def can_view_post(db, viewer, post):
     if not post:
         return False
-    if viewer and (viewer.id == post.user_id or can_mod(viewer)):
+    if viewer and viewer.id == post.user_id:
+        return True
+    if _locked(viewer):  # «только чаты и профиль»: чужие посты не видны
+        return False
+    if viewer and can_mod(viewer):
         return True
     if post.is_draft or not post.is_published or post.is_archived:
         return False

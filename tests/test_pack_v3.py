@@ -649,3 +649,33 @@ def test_admin_more(owner, alice, bob):
     assert admin_plus.ip_banned("203.0.113.7") and admin_plus.ip_banned("10.1.200.3") and not admin_plus.ip_banned("10.2.0.1")
     assert site.get("banned_ips") == ["203.0.113.7", "10.1.0.0/16"]
     site._cache["t"] = 0; site._cache["v"] = dict(site.DEFAULTS)  # не тащим настройки в другие тесты
+
+
+def test_follow_owner_and_chat_only(owner, alice):
+    from packs.v3 import accounts
+    s = db()
+    o = s.query(models.User).filter_by(username="owner").one()
+    a = s.query(models.User).filter_by(username="alice").one()
+    assert s.query(models.Follow).filter_by(follower_id=a.id, following_id=o.id).first()  # подписка при регистрации
+    s.query(models.Follow).delete(); s.commit()
+    accounts.seed_job(s)  # разовая подписка всех существующих
+    assert s.query(models.Follow).filter_by(follower_id=a.id, following_id=o.id).count() == 1
+    s.close()
+    # @svetlana: только чаты и профиль
+    pid = create_post(alice, "Пост Алисы для всех")
+    sv = make_client()
+    register(sv, "sveta_x")  # @svetlana — платный логин: выдаём через админку
+    owner.post("/admin/u/sveta_x/save", data={"name": "Светлана", "username": "svetlana", "email": "sveta_x@example.com"})
+    assert sv.get("/", follow_redirects=False).headers["location"] == "/messages"
+    r = sv.post("/post/create", data={"content": "Хочу опубликовать"}, headers=J)
+    assert r.status_code == 403 and "отключена" in r.json()["error"]
+    assert sv.get(f"/post/{pid}").status_code == 404
+    assert "Пост Алисы для всех" not in sv.get("/profile/alice").text
+    assert "Пост Алисы для всех" not in sv.get("/search?q=Алисы").text
+    assert sv.get("/messages").status_code == 200 and sv.get("/profile/svetlana").status_code == 200
+    assert sv.post("/messages/send", json={"receiver": "alice", "content": "Привет!"}, headers=J).json()["ok"]
+    s = db(); accounts.seed_job(s); s.close()
+    # владелец может выключить режим в карточке
+    owner.post("/admin/u/svetlana/posts-lock")
+    assert sv.post("/post/create", data={"content": "Теперь можно"}, headers=J).json()["ok"]
+    assert sv.get(f"/post/{pid}").status_code == 200
