@@ -1166,7 +1166,8 @@ def test_pack_slots_render(alice, bob):
         home = alice.get("/").text
         assert "SLOT-home_top" in home and "SLOT-body_end" in home
         page = bob.get(f"/post/{pid}").text
-        assert f"SLOT-post_menu-{pid}" in page and "SLOT-post_after_text" in page
+        assert "SLOT-post_after_text" in page and f'data-menu-src="/post/{pid}/menu"' in page
+        assert f"SLOT-post_menu-{pid}" in bob.get(f"/post/{pid}/menu").text  # меню «⋯» подгружается по нажатию
         prof = bob.get("/profile/alice").text
         assert "SLOT-profile_menu" in prof and "-alice" in prof and "SLOT-profile_after_bio" in prof
         chat = bob.get("/messages/alice").text

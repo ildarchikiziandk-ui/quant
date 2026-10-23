@@ -35,6 +35,18 @@
   </div>
   <div id="chat-search" class="hidden" style="margin-bottom:8px"><input type="search" id="chat-search-q" placeholder="Поиск по сообщениям в этом чате…"></div>
   {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">{{ icon("pin", "i in") }} <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content or "вложение" }}</span></div>{% endif %}
+  <template id="msg-tools-tpl"><div class="msg-tools">
+    {% for e in msg_reactions %}<button data-mact="react" data-emoji="{{ e }}" title="{{ "Сердце" if e == "❤️" else "Кит" }}">{{ reaction(e) }}</button>{% endfor %}
+    <button data-mact="reply" title="Ответить">{{ icon("reply", "i in") }}</button>
+    <button data-mact="forward" title="Переслать">{{ icon("forward", "i in") }}</button>
+    <button data-mact="pin" title="Закрепить">{{ icon("pin", "i in") }}</button>
+    <button data-mact="star" title="В избранное">{{ icon("star", "i in") }}</button>
+    <button data-mact="remind" title="Напомнить позже">{{ icon("alarm", "i in") }}</button>
+    <button data-mact="copy" title="Копировать">{{ icon("copy", "i in") }}</button>
+    <button data-mact="edit" title="Изменить">{{ icon("edit", "i in") }}</button>
+    <button data-mact="hide" title="Удалить у меня">{{ icon("eye-off", "i in") }}</button>
+    <button data-mact="delete" title="Удалить у всех">{{ icon("trash", "i in") }}</button>
+  </div></template>
   <div class="convo-box" id="box">
     {% if messages %}{% include "partials/messages.html" %}{% else %}<div class="empty" id="empty-chat"><div class="big">{{ icon("wave", "i in") }}</div>Начните диалог с {{ other.name or other.username }}<div class="tiny faint mt">{{ icon("lock", "i in") }} Сообщения хранятся в зашифрованном виде (AES-256)</div></div>{% endif %}
   </div>
@@ -160,6 +172,13 @@ window.chatStats = async ()=>{ const r=await App.get(`/messages/${OTHER}/stats`)
   f.querySelectorAll('[name=wallpaper]').forEach(r=>r.addEventListener('change',()=>{ const sp=r.nextElementSibling; cv.style.setProperty('--wp', sp.style.background||'none'); cv.classList.toggle('has-wp', !!r.value); }));
   f.querySelectorAll('[name=bubble]').forEach(r=>r.addEventListener('change',()=>{ if(r.value) cv.style.setProperty('--mine', r.nextElementSibling.style.background); else cv.style.removeProperty('--mine'); }));
 })();
+// панель действий сообщения создаётся из одного шаблона при наведении или касании (а не рисуется у каждого сообщения)
+function ensureTools(m){ if(!m || m.classList.contains('gone') || m.querySelector(':scope>.msg-tools')) return;
+  const t=document.getElementById('msg-tools-tpl').content.firstElementChild.cloneNode(true), mine=m.classList.contains('mine'), raw=m.dataset.raw;
+  if(!raw) t.querySelector('[data-mact=copy]').remove(); if(!(mine&&raw)) t.querySelector('[data-mact=edit]').remove(); if(!mine) t.querySelector('[data-mact=delete]').remove();
+  if(m.dataset.starred) t.querySelector('[data-mact=star]').classList.add('on'); m.prepend(t); }
+box.addEventListener('mouseover',e=>ensureTools(e.target.closest('.msg')));
+box.addEventListener('touchstart',e=>ensureTools(e.target.closest('.msg')),{passive:true});
 // свайп вправо по сообщению — ответить
 (function(){ let sx=0, sy=0, el=null;
   box.addEventListener('touchstart',e=>{ el=e.target.closest('.msg'); if(!el) return; sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
@@ -179,7 +198,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(editId) cancel
   if((e.ctrlKey||e.metaKey) && (e.key==='f'||e.key==='а') && document.getElementById('chat-search')){ e.preventDefault(); toggleSearch(); } });
 window.toggleSearch = ()=>{ const s=document.getElementById('chat-search'); s.classList.toggle('hidden'); document.getElementById('chat-search-q').focus(); };
 document.getElementById('chat-search-q').addEventListener('input',e=>{ const q=e.target.value.toLowerCase(); let first=null;
-  box.querySelectorAll('.msg').forEach(m=>{ const hit=q && m.dataset.text.includes(q); m.classList.toggle('highlight',hit); m.style.opacity=(!q||hit)?1:.35; if(hit&&!first) first=m; }); first?.scrollIntoView({block:'center'}); });
+  box.querySelectorAll('.msg').forEach(m=>{ const hit=q && (m.dataset.raw||'').toLowerCase().includes(q); m.classList.toggle('highlight',hit); m.style.opacity=(!q||hit)?1:.35; if(hit&&!first) first=m; }); first?.scrollIntoView({block:'center'}); });
 window.clearChat = async ()=>{ if(!confirm('Удалить все ваши сообщения в этом чате у обоих собеседников?')) return; await App.api(`/chats/clear/${OTHER}`); location.reload(); };
 document.addEventListener('click', async e=>{
   const j=e.target.closest('[data-jump]'); if(j){ const t=document.getElementById('msg-'+j.dataset.jump); if(t){ t.scrollIntoView({block:'center'}); t.classList.add('highlight'); setTimeout(()=>t.classList.remove('highlight'),1500);} return; }

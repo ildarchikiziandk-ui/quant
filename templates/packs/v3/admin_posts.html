@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Посты — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Посты</div></div>
+{% if ok %}<div class="alert success mb">{{ ok }}</div>{% endif %}
+<form class="card" method="get" action="/admin/posts">
+  <div class="row" style="gap:8px"><input name="q" value="{{ q }}" placeholder="Текст поста или @логин автора" class="grow"><input type="hidden" name="f" value="{{ f }}"><button class="btn">Найти</button></div>
+  <div class="row wrap mt" style="gap:6px">{% for k, l in [("all", "Все"), ("held", "Скрытые и на проверке"), ("reported", "С жалобами"), ("media", "С фото и видео")] %}<a class="chip {% if f == k %}active{% endif %}" href="/admin/posts?f={{ k }}{% if q %}&q={{ q|urlencode }}{% endif %}">{{ l }}</a>{% endfor %}</div>
+</form>
+{% for p in posts %}<div class="card v3-apost">
+  <div class="row" style="gap:10px">{% if p.author %}<a href="/admin/u/{{ p.author.username }}">{{ avatar(p.author, 36) }}</a>{% endif %}
+    <div class="grow" style="min-width:0"><b>{{ p.author.name if p.author else "—" }}</b> <span class="faint small">@{{ p.author.username if p.author else "?" }} · {{ p.created_at|ago }}</span>
+      <div class="tiny muted">{{ icon("heart", "i in") }} {{ likes.get(p.id, 0) }} · {{ icon("comment", "i in") }} {{ comments.get(p.id, 0) }} · {{ icon("eye", "i in") }} {{ p.views or 0 }}{% if reports.get(p.id) %} · <span style="color:var(--like)">{{ icon("flag", "i in") }} жалоб: {{ reports[p.id] }}</span>{% endif %}{% if not p.is_published %} · <b style="color:var(--like)">скрыт</b>{% endif %}</div></div>
+    <a class="btn soft sm" href="/post/{{ p.id }}">Открыть</a></div>
+  {% if p.content %}<div class="small mt v3-apost-text">{{ p.content[:400] }}{% if p.content|length > 400 %}…{% endif %}</div>{% endif %}
+  {% if p.image %}<div class="tiny faint mt">{{ icon("image", "i in") }} есть медиа</div>{% endif %}
+  <div class="row wrap mt" style="gap:6px">
+    {% if p.is_published %}<form method="post" action="/admin/posts/{{ p.id }}/hide"><button class="btn soft sm">Скрыть из ленты</button></form>
+    {% else %}<form method="post" action="/admin/posts/{{ p.id }}/publish"><button class="btn soft sm">Опубликовать</button></form>{% endif %}
+    <form method="post" action="/admin/posts/{{ p.id }}/delete" onsubmit="return confirm('Удалить пост навсегда?')"><button class="btn ghost sm danger">Удалить</button></form>
+  </div></div>
+{% else %}<div class="card empty">Ничего не найдено</div>{% endfor %}
+{% endblock %}

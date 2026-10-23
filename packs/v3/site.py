@@ -9,7 +9,8 @@ from database import SessionLocal
 from . import models as m
 
 DEFAULTS = {"disabled": list(config.DISABLED_FEATURES), "registration": True, "maintenance": False,
-            "maintenance_text": "Идут технические работы. Скоро вернёмся!"}
+            "maintenance_text": "Идут технические работы. Скоро вернёмся!",
+            "calls": True, "sticker_packs_off": [], "banned_ips": [], "reserved_handles": []}
 # разделы, которые можно включать и выключать
 SECTIONS = [("/random", "Случайный пост"), ("/guests", "Гости профиля"), ("/notes", "Заметки"), ("/memories", "В этот день"),
             ("/wheel", "Колесо фортуны"), ("/questions", "Анонимные вопросы"), ("/ask", "Задать вопрос (страница вопросов)"),

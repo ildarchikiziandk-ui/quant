@@ -56,12 +56,21 @@ def is_staff(user):
     return bool(user and (getattr(user, "is_owner", False) or getattr(user, "is_admin", False)))
 
 
+def _reserved_extra():
+    """Логины, которые владелец зарезервировал в админ-панели (Сайт → Логины)."""
+    try:
+        from packs.v3 import site
+        return set(site.get("reserved_handles") or ())
+    except Exception:  # noqa: BLE001 — модуль 3.x не загружен (скрипты)
+        return set()
+
+
 def check(name, user=None):
     """Можно ли занять логин обычным способом (регистрация, смена в настройках)."""
     low = (name or "").lower()
     if is_staff(user):
         return None
-    if low in ELITE:
+    if low in ELITE or low in _reserved_extra():
         return "Этот логин зарезервирован Nuvora"
     if low in PREMIUM:
         return f"@{low} — красивый логин, его можно купить за {PREMIUM[low]} баллов в «Магазине логинов» (Меню → Красивые логины)"

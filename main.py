@@ -97,6 +97,13 @@ async def security_middleware(request: Request, call_next):
                                 "<body style='font-family:sans-serif;background:#f6f1e8;color:#1f1d1a;display:grid;place-items:center;min-height:90vh;"
                                 "text-align:center;padding:20px'><div><img src='/static/brand/logo-180.png' width=64 height=64 style='border-radius:18px'>"
                                 f"<h2>Nuvora</h2><p>{html_escape(site.get('maintenance_text'))}</p></div>", status_code=503)
+    if not path.startswith("/static/") and request.client:  # блокировка по IP из админ-панели
+        from packs.v3.admin_plus import ip_banned
+        if ip_banned(request.client.host):
+            return HTMLResponse("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+                                "<body style='font-family:sans-serif;background:#f6f1e8;color:#1f1d1a;display:grid;place-items:center;min-height:90vh;"
+                                "text-align:center;padding:20px'><div><h2>Доступ ограничен</h2><p>С вашего адреса вход на сайт закрыт администрацией.</p></div>",
+                                status_code=403)
     if site.is_disabled(path):  # выключенные разделы
         if request.method == "GET" and not request.headers.get("x-requested-with"):
             return RedirectResponse("/", status_code=303)

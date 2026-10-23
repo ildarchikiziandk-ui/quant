@@ -53,19 +53,23 @@ def admin_page(request: Request, tab: str = "dashboard", q: str = "", db: Sessio
                                                                                            or_(models.User.plus_until == None, models.User.plus_until > now)).count(),
         "banned": db.query(models.User).filter(models.User.is_blocked == True).count(),
     }
+    # график за 14 дней: два сгруппированных запроса вместо 28 отдельных
+    start = (now - timedelta(days=13)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    def per_day(col):
+        return {str(d)[:10]: n for d, n in db.query(func.date(col), func.count()).filter(col >= start).group_by(func.date(col))}
+    u_day, p_day = per_day(models.User.created_at), per_day(models.Post.created_at)
     chart = []
-    for i in range(13, -1, -1):
-        d0 = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        d1 = d0 + timedelta(days=1)
-        chart.append({"label": d0.strftime("%d.%m"),
-                      "users": db.query(models.User).filter(models.User.created_at >= d0, models.User.created_at < d1).count(),
-                      "posts": db.query(models.Post).filter(models.Post.created_at >= d0, models.Post.created_at < d1).count()})
+    for i in range(14):
+        d0 = start + timedelta(days=i)
+        key = d0.strftime("%Y-%m-%d")
+        chart.append({"label": d0.strftime("%d.%m"), "users": u_day.get(key, 0), "posts": p_day.get(key, 0)})
     users_q = db.query(models.User)
     if q:
         term = f"%{q.strip().lstrip('@')}%"
         users_q = users_q.filter(or_(models.User.username.ilike(term), models.User.name.ilike(term), models.User.email.ilike(term)))
     ctx = dict(tab=tab, q=q, stats=stats, chart=chart, chart_max=max([1] + [max(c["users"], c["posts"]) for c in chart]),
-               all_users=users_q.order_by(models.User.created_at.desc()).limit(200).all(),
+               all_users=users_q.order_by(models.User.created_at.desc()).limit(200).all() if tab == "users" else [],
                post_reports=db.query(models.PostReport).filter_by(status="new").order_by(models.PostReport.created_at.desc()).all(),
                user_reports=db.query(models.Report).filter_by(status="new").order_by(models.Report.created_at.desc()).all(),
                special_requests=db.query(models.SpecialRequest).filter_by(status="new").order_by(models.SpecialRequest.created_at.desc()).all(),

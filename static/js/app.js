@@ -219,12 +219,23 @@
   document.addEventListener('click', (e) => {
     const toggle = e.target.closest('[data-menu]');
     $$('.menu.open').forEach(m => { if (!toggle || m !== toggle.nextElementSibling) m.classList.remove('open'); });
-    if (toggle) { e.preventDefault(); toggle.nextElementSibling?.classList.toggle('open'); }
+    setTimeout(menuCards); // карточка с открытым меню не обрезает его (у постов content-visibility)
+    if (toggle) {
+      e.preventDefault();
+      const m = toggle.nextElementSibling;
+      if (m && m.dataset.menuSrc && !m.dataset.loaded) { // пункты меню поста подгружаются по первому нажатию
+        m.dataset.loaded = '1';
+        fetch(m.dataset.menuSrc, { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
+          .then(r => r.ok ? r.text() : Promise.reject()).then(h => { m.innerHTML = h; m.classList.add('open'); menuCards(); })
+          .catch(() => { m.dataset.loaded = ''; toast('Нет связи — меню не загрузилось', true); });
+      } else m?.classList.toggle('open');
+    }
     const close = e.target.closest('[data-close]');
     if (close || e.target.classList.contains('modal-bg')) (close?.closest('.modal-bg') || e.target).classList.remove('open');
     const openM = e.target.closest('[data-modal]');
     if (openM) { e.preventDefault(); $('#' + openM.dataset.modal)?.classList.add('open'); }
   });
+  function menuCards() { $$('article.post').forEach(a => a.classList.toggle('menu-on', !!a.querySelector('.menu.open'))); }
   function modal(title, html) {
     let bg = $('#app-modal');
     if (!bg) {

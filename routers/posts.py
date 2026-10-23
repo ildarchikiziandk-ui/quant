@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 import config
 import models
 from database import get_db
-from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render
+from deps import REACTIONS, blocked_page, current_user, json_error, login_redirect, redirect, render, templates
 from services import feed, gamification, moderation, plus, prefs, ratelimit, social, timezones
 from services.text import BANNED_MSG, banned, extract_hashtags
 from services.uploads import delete_file, is_upload, save_file
@@ -59,6 +59,22 @@ def _parse_dt(value):
 
 
 # --- Просмотр поста ----------------------------------------------------------
+@router.get("/post/{post_id}/menu")
+def post_menu(post_id: int, request: Request, rp: int = 0, db: Session = Depends(get_db)):
+    """Пункты меню «⋯» поста — подгружаются по нажатию, чтобы лента не тащила их для каждого поста."""
+    from fastapi.responses import HTMLResponse
+    user = current_user(request, db)
+    main = _get_post(db, post_id)
+    if not social.can_view_post(db, user, main):
+        return HTMLResponse("", status_code=404)
+    p = db.get(models.Post, rp) if rp else main
+    if not p or (p.id != main.id and (not p.is_repost or p.repost_id != main.id)):
+        p = main
+    html = templates.get_template("partials/post_menu.html").render(request=request, p=p, main=main, user=user,
+                                                                       can_mod=bool(user and social.can_mod(user)))
+    return HTMLResponse(html, headers={"Cache-Control": "private, no-store"})
+
+
 @router.get("/post/{post_id}")
 def post_page(post_id: int, request: Request, sort: str = "old", db: Session = Depends(get_db)):
     user = current_user(request, db)

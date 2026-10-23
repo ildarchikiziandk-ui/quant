@@ -130,3 +130,5 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 .plus-tag::after { display: none; }
 [data-theme="dark"] .plus-tag { color: #10202c; }
 [data-theme="dark"] .plus-tag svg { fill: #10202c; }
+/* открытое меню «⋯» не обрезается краем карточки и лежит поверх соседних постов */
+article.post.menu-on { content-visibility: visible; position: relative; z-index: 5; }

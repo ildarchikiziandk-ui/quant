@@ -12,6 +12,16 @@
   <label class="check"><input type="checkbox" name="registration" value="1"{% if registration %} checked{% endif %}><span><b>Регистрация открыта</b><small>Выключите, чтобы новые аккаунты временно не создавались</small></span></label>
   <label class="check"><input type="checkbox" name="maintenance" value="1"{% if maintenance %} checked{% endif %}><span><b>Технические работы</b><small>Сайт видят только владелец и модераторы, остальным — заглушка</small></span></label>
   <label class="field mt"><span>Текст заглушки</span><input name="maintenance_text" maxlength="300" value="{{ maintenance_text }}"></label>
+  <div class="pref-group">Общение</div>
+  <label class="check"><input type="checkbox" name="calls" value="1"{% if calls %} checked{% endif %}><span><b>Звонки</b><small>Голосовые звонки 1 на 1 в переписке. Выключите — кнопка с трубкой пропадёт у всех</small></span></label>
+  <div class="small muted mt">Наборы стикеров</div>
+  <div class="v3-sitegrid">{% for pid, title, items in packs %}<label class="check"><input type="checkbox" name="pack" value="{{ pid }}"{% if pid not in packs_off %} checked{% endif %}><span>{{ title }} <span class="faint tiny">{{ items|length }} шт.</span></span></label>{% endfor %}</div>
+  <div class="pref-group">Логины</div>
+  <label class="field"><span>Зарезервировать ещё логины <small class="faint">— через пробел или с новой строки; занять их смогут только владелец и модераторы</small></span>
+    <textarea name="reserved" rows="2" placeholder="nuvora_help official support">{{ reserved }}</textarea></label>
+  <div class="pref-group">Блокировка по IP</div>
+  <label class="field"><span>Адреса и подсети <small class="faint">— по одному в строке: 1.2.3.4 или 10.0.0.0/24. С них сайт не откроется вовсе. Ваш адрес сейчас: {{ my_ip }}</small></span>
+    <textarea name="banned_ips" rows="3" placeholder="203.0.113.7">{{ banned_ips }}</textarea></label>
   <button class="btn mt">Сохранить</button>
 </form>
 <form class="card" method="post" action="/admin/site/notify-all" onsubmit="return confirm('Отправить уведомление всем ({{ users_n }})?')">

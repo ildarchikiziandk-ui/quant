@@ -94,7 +94,7 @@ def test_chat_folders(alice, bob):
 def test_hide_author_30_days(alice, bob):
     from packs.v3 import feed
     pid = create_post(alice, "Пост")
-    assert "Не показывать 30 дней" in bob.get(f"/post/{pid}").text
+    assert "Не показывать 30 дней" in bob.get(f"/post/{pid}/menu").text
     assert bob.post("/v3/hide/alice", headers=J).json()["ok"]
     s = db()
     tm = s.query(m.TempMute).one()
@@ -474,7 +474,7 @@ def test_calls(alice, bob):
     sdp = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\n"
     # кнопки звонка в шапке переписки
     html = alice.get("/messages/bob").text
-    assert 'data-call="bob"' in html and 'data-video="1"' in html
+    assert 'data-call="bob"' in html and 'data-video' not in html  # только голосовые звонки
     # первый долгий запрос bob: только курсор и адреса STUN
     first = bob.get("/v3/call/poll?since=-1").json()
     assert first["ok"] and first["events"] == [] and first["ice"]
@@ -488,12 +488,12 @@ def test_calls(alice, bob):
     assert not alice.post("/v3/call/bob/start", json={"video": 0, "offer": {"type": "offer", "sdp": sdp}}, headers=J).json()["ok"]
     ev = bob.get(f"/v3/call/poll?since={first['last']}&wait=1").json()["events"]
     ring = [e for e in ev if e["kind"] == "ring"][0]
-    assert ring["call"] == cid and ring["video"] and ring["offer"]["sdp"] == sdp and ring["from"]["username"] == "alice"
+    assert ring["call"] == cid and not ring["video"] and ring["offer"]["sdp"] == sdp and ring["from"]["username"] == "alice"
     # открытая заново страница тоже видит идущий звонок
     assert any(e["kind"] == "ring" for e in bob.get("/v3/call/poll?since=-1").json()["events"])
     s = db()
     n = s.query(models.Notification).filter_by(type="call").first()
-    assert n and "видеозвонок" in n.text
+    assert n and "звонит вам" in n.text
     s.close()
     # постороннему звонок не виден
     carol = make_client()
@@ -516,8 +516,8 @@ def test_calls(alice, bob):
     msg = last_msg("alice")
     assert msg.content == f"[[v3:call:{cid}]]"
     page = bob.get("/messages/alice").text
-    assert "Входящий видеозвонок" in page and "Перезвонить" in page and "[[v3:call" not in re.sub(r'data-[a-z]+="[^"]*"', "", page)
-    assert "Исходящий видеозвонок" in alice.get("/messages/bob").text
+    assert "Входящий звонок" in page and "Перезвонить" in page and "[[v3:call" not in re.sub(r'data-[a-z]+="[^"]*"', "", page)
+    assert "Исходящий звонок" in alice.get("/messages/bob").text
     # без ответа: звонок становится пропущенным, уведомление остаётся
     r2 = alice.post("/v3/call/bob/start", json={"video": 0, "offer": {"type": "offer", "sdp": sdp}}, headers=J).json()
     s = db()
@@ -564,7 +564,8 @@ def test_moderation_posts_only(alice, bob):
 
 def test_stickers(alice, bob):
     friends(alice, bob)
-    assert len(alice.get("/v3/stickers").json()["stickers"]) == 17
+    packs = alice.get("/v3/stickers").json()["packs"]
+    assert [p["id"] for p in packs] == ["nuvi", "mur", "kapi"] and sum(len(p["stickers"]) for p in packs) == 41
     assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:st:privet]]"}, headers=J).json()["ok"]
     html = bob.get("/messages/alice").text
     assert "/static/stickers/nuvi/privet.webp" in html and 'title="Стикеры"' in html
@@ -611,3 +612,40 @@ def test_app_update(alice, monkeypatch, tmp_path):
     assert r.status_code == 200 and r.content == b"apk"
     page = alice.get("/app").text
     assert "На экран «Домой»" in page and "/download/android.apk" in page
+
+
+def test_admin_more(owner, alice, bob):
+    from packs.v3 import admin_plus, site
+    from services import handles
+    pid = create_post(alice, "Пост для проверки админки")
+    assert alice.get("/admin/posts", follow_redirects=False).status_code in (302, 303)
+    page = owner.get("/admin/posts?q=админки").text
+    assert "Пост для проверки админки" in page
+    assert "Пост для проверки админки" in owner.get("/admin/posts?q=@alice").text
+    owner.post(f"/admin/posts/{pid}/hide")
+    assert bob.get(f"/post/{pid}").status_code == 404 and "Пост для проверки" in owner.get("/admin/posts?f=held").text
+    owner.post(f"/admin/posts/{pid}/publish")
+    assert bob.get(f"/post/{pid}").status_code == 200
+    owner.post(f"/admin/posts/{pid}/delete")
+    s = db(); assert s.get(models.Post, pid) is None; s.close()
+    # статистика, хранилище, выгрузка
+    st = owner.get("/admin/stats").text
+    assert "DAU" in st and "Сообщения (только число)" in st and "Звонки за 30 дней" in st
+    assert "Вложения в чатах" in owner.get("/admin/storage").text
+    assert "Стёрто вложений" in owner.post("/admin/storage/chat-media").text
+    csv = owner.get("/admin/export/users.csv")
+    assert csv.status_code == 200 and "alice" in csv.text and "attachment" in csv.headers["content-disposition"]
+    assert alice.get("/admin/stats", follow_redirects=False).status_code in (302, 303)
+    # настройки сайта: звонки, стикеры, логины, IP
+    friends(alice, bob)
+    owner.post("/admin/site/save", data={"on": [p for p, _ in site.SECTIONS], "registration": "1", "pack": ["nuvi"],
+                                         "reserved": "Support @helpdesk", "banned_ips": "203.0.113.7\n10.1.0.0/16\nнеадрес"})
+    site._cache["t"] = 0
+    assert 'data-call="bob"' not in alice.get("/messages/bob").text  # звонки выключены
+    assert alice.post("/v3/call/bob/start", json={"offer": {"type": "offer", "sdp": "v=0"}}, headers=J).status_code == 403
+    assert [p["id"] for p in alice.get("/v3/stickers").json()["packs"]] == ["nuvi"]
+    assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:st:mur-myau]]"}, headers=J).status_code == 400
+    assert handles.check("support") and handles.check("helpdesk") and not handles.check("support2")
+    assert admin_plus.ip_banned("203.0.113.7") and admin_plus.ip_banned("10.1.200.3") and not admin_plus.ip_banned("10.2.0.1")
+    assert site.get("banned_ips") == ["203.0.113.7", "10.1.0.0/16"]
+    site._cache["t"] = 0; site._cache["v"] = dict(site.DEFAULTS)  # не тащим настройки в другие тесты

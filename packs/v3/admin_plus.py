@@ -1,6 +1,7 @@
 """Расширенная админ-панель владельца: карточка пользователя со всеми действиями, настройки сайта, группы,
 рассылка уведомлений. Переписку читать нельзя — ни личные сообщения, ни группы, ни секретные чаты:
 в карточке видно только количество сообщений."""
+import ipaddress
 import re
 from datetime import datetime
 from urllib.parse import quote
@@ -16,7 +17,7 @@ from routers.posts import purge_post
 from services import extras, handles, social
 
 from . import models as m
-from . import site
+from . import site, stickers
 from .common import router, s
 
 
@@ -264,6 +265,9 @@ def site_page(request: Request, ok: str = "", db: Session = Depends(get_db)):
     owners = {u.id: u for u in db.query(models.User).filter(models.User.id.in_([g.owner_id for g, _ in groups] or [0]))}
     return render(request, db, "packs/v3/admin_site.html", sidebar=False, ok=ok, sections=site.SECTIONS, disabled=set(site.disabled()),
                   registration=site.get("registration"), maintenance=site.get("maintenance"), maintenance_text=site.get("maintenance_text"),
+                  calls=site.get("calls"), packs=stickers.PACKS, packs_off=set(site.get("sticker_packs_off") or []),
+                  banned_ips="\n".join(site.get("banned_ips") or []), reserved="\n".join(site.get("reserved_handles") or []),
+                  my_ip=request.client.host if request.client else "",
                   groups=groups, owners=owners, users_n=db.query(models.User).filter(models.User.is_blocked != True).count())
 
 
@@ -278,9 +282,62 @@ async def site_save(request: Request, db: Session = Depends(get_db)):
     site.put(db, "registration", bool(f.get("registration")))
     site.put(db, "maintenance", bool(f.get("maintenance")))
     site.put(db, "maintenance_text", s(f.get("maintenance_text")).strip()[:300] or site.DEFAULTS["maintenance_text"])
+    site.put(db, "calls", bool(f.get("calls")))
+    on_packs = set(f.getlist("pack"))
+    site.put(db, "sticker_packs_off", [pid for pid, _, _ in stickers.PACKS if pid not in on_packs])
+    # блокировка по IP: адреса и подсети (1.2.3.4, 10.0.0.0/8); свой текущий адрес заблокировать нельзя
+    mine = request.client.host if request.client else ""
+    ips, bad = [], []
+    for line in re.split(r"[\s,;]+", s(f.get("banned_ips"))):
+        if not line:
+            continue
+        try:
+            net = ipaddress.ip_network(line, strict=False)
+        except ValueError:
+            bad.append(line)
+            continue
+        if mine and _ip_in(mine, [str(net)]):
+            bad.append(line + " (это ваш адрес)")
+            continue
+        ips.append(str(net) if net.num_addresses > 1 else line)
+    site.put(db, "banned_ips", ips[:500])
+    reserved = sorted({w.lower().lstrip("@") for w in re.split(r"[\s,;]+", s(f.get("reserved"))) if re.fullmatch(r"@?[a-zA-Z0-9_.]{2,30}", w)})
+    site.put(db, "reserved_handles", reserved[:2000])
     log_mod(db, me, "site_settings", "", f"off={len(site.SECTIONS) - len(enabled)}; reg={bool(f.get('registration'))}; maint={bool(f.get('maintenance'))}")
     db.commit()
-    return redirect("/admin/site?ok=" + quote("Настройки сайта сохранены"))
+    note = "Настройки сайта сохранены" + (". Не приняты: " + ", ".join(bad[:5]) if bad else "")
+    return redirect("/admin/site?ok=" + quote(note))
+
+
+def _ip_in(ip, nets):
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    for n in nets:
+        try:
+            if a in ipaddress.ip_network(n, strict=False):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+_nets = {"key": None, "nets": []}
+
+
+def ip_banned(ip):
+    """Заблокирован ли адрес. Проверяется на каждом запросе: список из настроек разбирается один раз."""
+    key = tuple(site.get("banned_ips") or ())
+    if not key:
+        return False
+    if _nets["key"] != key:
+        _nets.update(key=key, nets=[ipaddress.ip_network(n, strict=False) for n in key])
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(a in n for n in _nets["nets"])
 
 
 @router.post("/admin/site/notify-all")

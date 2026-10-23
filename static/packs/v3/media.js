@@ -54,14 +54,15 @@
   };
 })();
 
-/* Стикеры «Кит Нуви»: панель над полем ввода, по нажатию — отправка */
+/* Стикеры: панель над полем ввода с вкладками наборов, по нажатию — отправка */
 (function () {
   'use strict';
-  let pack = null, panel = null;
+  let packs = null, panel = null, tab = 0;
+  try { tab = +localStorage.getItem('st-tab') || 0; } catch (e) {}
   async function load() {
-    if (pack) return pack;
-    try { pack = (await (await fetch('/v3/stickers', { headers: { 'X-Requested-With': 'fetch' } })).json()).stickers || []; } catch (e) { pack = []; }
-    return pack;
+    if (packs) return packs;
+    try { packs = (await (await fetch('/v3/stickers', { headers: { 'X-Requested-With': 'fetch' } })).json()).packs || []; } catch (e) { packs = []; }
+    return packs;
   }
   async function send(btn, id) {
     const marker = `[[v3:st:${id}]]`;
@@ -73,17 +74,26 @@
     } catch (e) {}
   }
   function close() { if (panel) { panel.remove(); panel = null; } }
+  function draw() {
+    const p = packs[tab] || packs[0]; if (!p) { panel.innerHTML = '<div class="nv-stickers-h">Стикеры выключены</div>'; return; }
+    panel.innerHTML = '<div class="nv-stickers-tabs">' + packs.map((x, i) => `<button type="button" data-tab="${i}" class="${x === p ? 'on' : ''}" title="${x.title}"><img src="${x.stickers[0].url}" alt=""><span>${x.title}</span></button>`).join('') + '</div>'
+      + '<div class="nv-stickers-g">' + p.stickers.map(s => `<button type="button" data-st="${s.id}" title="${s.name}"><img src="${s.url}" alt="${s.name}" loading="lazy" decoding="async"></button>`).join('') + '</div>';
+  }
   document.addEventListener('click', async e => {
     const btn = e.target.closest('[data-stickers]');
     if (!btn) { if (panel && !e.target.closest('.nv-stickers')) close(); return; }
     e.preventDefault();
     if (panel) return close();
-    const list = await load();
+    await load();
     panel = document.createElement('div');
     panel.className = 'nv-stickers';
-    panel.innerHTML = '<div class="nv-stickers-h">Кит Нуви</div><div class="nv-stickers-g">' +
-      list.map(s => `<button type="button" data-st="${s.id}" title="${s.name}"><img src="${s.url}" alt="${s.name}" loading="lazy"></button>`).join('') + '</div>';
-    panel.addEventListener('click', ev => { const b = ev.target.closest('[data-st]'); if (b) { close(); send(btn, b.dataset.st); } });
+    draw();
+    panel.addEventListener('click', ev => {
+      ev.stopPropagation(); // вкладка перерисовывает панель — общий обработчик не должен принять это за клик мимо
+      const t = ev.target.closest('[data-tab]');
+      if (t) { tab = +t.dataset.tab; try { localStorage.setItem('st-tab', tab); } catch (er) {} draw(); return; }
+      const b = ev.target.closest('[data-st]'); if (b) { close(); send(btn, b.dataset.st); }
+    });
     const host = btn.closest('.cmp, .convo-input, form') || document.body;
     if (host !== document.body && getComputedStyle(host).position === 'static') host.style.position = 'relative';
     host.appendChild(panel);

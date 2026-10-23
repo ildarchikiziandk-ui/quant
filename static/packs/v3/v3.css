@@ -244,9 +244,6 @@ html.in-call, html.in-call body { overflow: hidden; }
   padding: calc(env(safe-area-inset-top) + 40px) 20px calc(env(safe-area-inset-bottom) + 28px); animation: call-in .25s ease-out; font-family: inherit; }
 .call-ui.closing { opacity: 0; transition: opacity .25s; }
 @keyframes call-in { from { opacity: 0; transform: scale(1.03); } }
-.call-remote { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #141311; opacity: 0; transition: opacity .3s; }
-.call-ui.is-video.has-remote:not(.peer-cam-off) .call-remote { opacity: 1; }
-.call-ui.is-audio .call-remote { width: 1px; height: 1px; }
 .call-peer { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; margin-top: 8vh; transition: margin .3s, transform .3s; }
 .call-peer b { font: 600 24px/1.2 var(--font-display, sans-serif); letter-spacing: -.02em; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .call-st { font-size: 15px; color: #c9bfb1; min-height: 1.3em; font-variant-numeric: tabular-nums; }
@@ -254,14 +251,6 @@ html.in-call, html.in-call body { overflow: hidden; }
 .call-av img { width: 100%; height: 100%; object-fit: cover; }
 .call-ui.incoming .call-av { animation: call-pulse 1.6s ease-out infinite; }
 @keyframes call-pulse { 0% { box-shadow: 0 0 0 0 rgba(127, 176, 211, .55); } 100% { box-shadow: 0 0 0 34px rgba(127, 176, 211, 0); } }
-.call-ui.is-video.has-remote:not(.peer-cam-off) .call-peer { margin-top: 0; }
-.call-ui.is-video.has-remote:not(.peer-cam-off) .call-av { display: none; }
-.call-ui.is-video.has-remote:not(.peer-cam-off) .call-peer b, .call-ui.is-video.has-remote:not(.peer-cam-off) .call-st { text-shadow: 0 1px 8px rgba(0, 0, 0, .7); }
-.call-ui.is-video.has-remote:not(.peer-cam-off) .call-peer b { font-size: 18px; }
-.call-local { position: absolute; z-index: 2; right: 16px; top: calc(env(safe-area-inset-top) + 16px); width: 104px; height: 150px; border-radius: 16px; object-fit: cover;
-  background: #22201d; border: 1px solid rgba(255, 255, 255, .15); transform: scaleX(-1); }
-.call-ui.back-cam .call-local { transform: none; }
-.call-ui.is-audio .call-local, .call-ui.cam-off .call-local, .call-ui.incoming .call-local { display: none; }
 .call-ctl { position: relative; z-index: 2; margin-top: auto; display: none; gap: 18px; justify-content: center; flex-wrap: wrap; }
 .call-ui.incoming .call-ctl-in, .call-ui.live .call-ctl-on { display: flex; }
 .call-ui.incoming .call-ctl-in { gap: 64px; }
@@ -277,7 +266,6 @@ html.in-call, html.in-call body { overflow: hidden; }
 @keyframes call-shake { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-14deg); } 80% { transform: rotate(12deg); } 90% { transform: rotate(-8deg); } }
 .call-ui.peer-mic-off .call-st::after { content: " · микрофон выключен"; }
 @media (prefers-reduced-motion: reduce) { .call-ui.incoming .call-av, .call-btn.green .i { animation: none; } }
-/* шапка переписки: имя и значки важнее кнопок; на телефоне одна кнопка звонка с выбором */
 .convo-head .convo-name { flex-wrap: nowrap; min-width: 0; }
 .convo-head .convo-name .name-line { min-width: 0; max-width: 100%; }
 .convo-head .convo-name .name-line > * { flex: none; }
@@ -285,11 +273,8 @@ html.in-call, html.in-call body { overflow: hidden; }
 .convo-head .convo-sub { flex-wrap: nowrap; min-width: 0; }
 .convo-head .convo-sub .fire { flex: none; font-size: 12px; }
 .convo-head .convo-sub .fire .i { width: 13px; height: 13px; }
-.call-pick { display: none; margin-left: 0; }
 @media (max-width: 640px) {
   .convo-head { gap: 6px; }
-  .convo-head .call-direct { display: none; }
-  .convo-head .call-pick { display: block; }
 }
 /* видео в чате — плеером; вложение, стёртое через 7 дней */
 .bubble video.att-video { display: block; width: 280px; max-width: 100%; max-height: 360px; border-radius: 12px; margin: -3px -7px 4px; background: #000; }
@@ -305,7 +290,6 @@ img.v3-sticker { display: block; width: 160px; height: 160px; object-fit: contai
 @keyframes st-pop { from { transform: scale(.6); opacity: 0; } }
 .nv-stickers { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); z-index: 50; background: var(--card); border: 1px solid var(--border); border-radius: 18px;
   box-shadow: var(--shadow-2); padding: 10px; max-height: 320px; overflow-y: auto; animation: call-in .2s ease-out; }
-.nv-stickers-h { font-size: 12px; font-weight: 700; color: var(--text-2); padding: 0 4px 6px; }
 .nv-stickers-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; }
 .nv-stickers-g button { background: none; border: 0; padding: 4px; border-radius: 12px; cursor: pointer; }
 .nv-stickers-g button:hover, .nv-stickers-g button:active { background: var(--hover); }
@@ -338,3 +322,23 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
   font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; text-align: left; }
 .cmp-menu button:hover, .cmp-menu button:active { background: var(--hover); }
 .cmp-menu button .i { width: 21px; height: 21px; color: var(--accent); }
+
+.call-remote { display: none; }
+.nv-stickers-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.nv-stickers-tabs button { display: flex; align-items: center; gap: 6px; flex: none; padding: 4px 10px 4px 4px; border-radius: 999px; border: 1px solid transparent; background: none;
+  color: var(--text-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.nv-stickers-tabs button.on { background: var(--input); color: var(--text); border-color: var(--border); }
+.nv-stickers-tabs img { width: 28px; height: 28px; }
+.nv-stickers-h { font-size: 13px; color: var(--text-2); padding: 8px; }
+/* админ-панель: статистика, посты, хранилище */
+.v3-astat { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.v3-astat > div { background: var(--input); border-radius: 12px; padding: 12px; display: grid; gap: 2px; }
+.v3-astat b { font: 600 22px var(--font-display, inherit); letter-spacing: -.02em; }
+.v3-astat span { font-size: 12px; color: var(--text-2); }
+.v3-abars { display: flex; align-items: flex-end; gap: 2px; height: 90px; margin: 6px 0; }
+.v3-abars i { flex: 1; min-height: 2px; background: var(--accent); border-radius: 3px 3px 0 0; opacity: .85; }
+.v3-arow { gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); color: inherit; }
+.v3-apost-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.v3-meter { height: 10px; border-radius: 6px; background: var(--input); overflow: hidden; }
+.v3-meter i { display: block; height: 100%; background: var(--accent); }
+.v3-adminnav { display: flex; gap: 6px; flex-wrap: wrap; }

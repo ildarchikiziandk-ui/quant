@@ -3,7 +3,7 @@
 {% block title %}Админ-панель — {{ brand }}{% endblock %}
 {% block layout_class %}wide{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">{{ icon("shield", "i in") }} Админ-панель</div><div class="row" style="gap:8px">{% if is_owner %}<a class="btn soft sm" href="/admin/site">{{ icon("settings", "i in") }} Сайт и группы</a>{% endif %}<span class="tag-pill">{{ "владелец" if is_owner else "модератор" }}</span></div></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("shield", "i in") }} Админ-панель</div><div class="row wrap" style="gap:8px;justify-content:flex-end"><a class="btn soft sm" href="/admin/posts">{{ icon("note", "i in") }} Посты</a>{% if is_owner %}<a class="btn soft sm" href="/admin/stats">{{ icon("chart", "i in") }} Статистика</a><a class="btn soft sm" href="/admin/storage">{{ icon("archive", "i in") }} Хранилище</a><a class="btn soft sm" href="/admin/site">{{ icon("settings", "i in") }} Сайт и группы</a>{% endif %}<span class="tag-pill">{{ "владелец" if is_owner else "модератор" }}</span></div></div>
 <div class="settings-nav">
   {% for k, l in [("dashboard","Обзор"),("users","Пользователи"),("reports","Жалобы (" ~ (post_reports|length + user_reports|length) ~ ")"),("requests","Заявки (" ~ special_requests|length ~ ")"),("support","Поддержка"),("ai","Умная модерация (" ~ ai_flags|length ~ ")"),("moderation","Стоп-слова"),("plus","Промокоды"),("content","Объявления и события"),("logs","Журнал"),("legal","Закон")] %}
   {% if is_owner or k in ("dashboard","users","reports","ai","support","moderation","logs") %}<a href="/admin?tab={{ k }}" class="chip {% if tab == k %}active{% endif %}">{{ l }}</a>{% endif %}

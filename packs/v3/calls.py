@@ -1,6 +1,6 @@
-"""Звонки 1 на 1 с видео (WebRTC).
+"""Звонки 1 на 1 (WebRTC, только голос).
 
-Видео и звук идут напрямую между браузерами собеседников. Сервер только передаёт короткие сигналы
+Звук идёт напрямую между браузерами собеседников. Сервер только передаёт короткие сигналы
 («звоню» с описанием соединения, «ответил», сетевые адреса, «положил трубку») и мгновенно будит ожидающий
 запрос получателя. Если напрямую соединиться нельзя (NAT оператора), браузеры идут через ретранслятор
 coturn — ему выдаётся временный пароль на сутки (TURN REST API, общий секрет TURN_SECRET).
@@ -55,6 +55,11 @@ def _wake(uid):
 
 def _signal(db, call, to_id, kind, data=None):
     db.add(m.CallSignal(call_id=call.id, to_id=to_id, kind=kind, data=json.dumps(data or {}, ensure_ascii=False)[:60000]))
+
+
+def calls_on():
+    from . import site
+    return bool(config.CALLS_ENABLED and site.get("calls"))
 
 
 def ice_servers(user):
@@ -120,7 +125,7 @@ async def call_start(username: str, request: Request, db: Session = Depends(get_
     user = current_user(request, db)
     if not user:
         return json_error("auth", 401)
-    if not config.CALLS_ENABLED:
+    if not calls_on():
         return json_error("Звонки временно недоступны", 403)
     other = _get_user(db, username)
     if not other or other.id == user.id:
@@ -137,7 +142,7 @@ async def call_start(username: str, request: Request, db: Session = Depends(get_
     _expire(db)
     if _busy(db, user.id):
         return json_error("Сначала завершите текущий звонок")
-    video = s(data.get("video")) in ("1", "true", "True")
+    video = False  # видеозвонки убраны: только голос
     if _busy(db, other.id):
         call = m.Call(caller_id=user.id, callee_id=other.id, video=video, status="busy", ended_at=datetime.utcnow())
         db.add(call)
@@ -190,7 +195,7 @@ async def call_signal(call_id: int, request: Request, db: Session = Depends(get_
         cands = [c for c in cands if isinstance(c, dict) and isinstance(c.get("candidate"), str) and len(c["candidate"]) < 600][:40]
         _signal(db, call, other_id, "ice", {"call": call.id, "candidates": cands, "from_tab": tab})
     elif kind == "media":
-        _signal(db, call, other_id, "media", {"call": call.id, "cam": bool(data.get("cam")), "mic": bool(data.get("mic"))})
+        _signal(db, call, other_id, "media", {"call": call.id, "mic": bool(data.get("mic"))})
     elif kind == "ping":
         call.alive_at = datetime.utcnow()
     elif kind == "decline" and user.id == call.callee_id and call.status == "ringing":

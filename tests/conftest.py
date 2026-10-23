@@ -27,6 +27,8 @@ def _fresh_state():
     import migrations
     from database import Base, SessionLocal, engine
     ratelimit.reset()
+    from packs.v3 import site
+    site._cache.update(t=0, v=dict(site.DEFAULTS))  # настройки сайта из прошлого теста не переносятся
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     s = SessionLocal()

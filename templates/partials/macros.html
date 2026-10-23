@@ -116,30 +116,7 @@
         {%- if user and user.pinned_post_id == main.id and main.user_id == user.id %}<span class="pill-info">{{ icon("pin", "i in") }} закреплён</span>{% endif %}
         <div class="menu-wrap">
           <button class="icon-btn" data-menu aria-label="Меню">{{ icon("more") }}</button>
-          <div class="menu">
-            <button data-act="copy" data-id="{{ main.id }}">{{ icon("link") }} Копировать ссылку</button>
-            {%- if main.content %}<button data-act="copy-text" data-id="{{ main.id }}">{{ icon("clipboard", "i in") }} Копировать текст</button>{% endif %}
-            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("plane", "i in") }} В Telegram</a>
-            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("chat", "i in") }} В WhatsApp</a>
-            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">ВКонтакте</a>
-            <a href="/post/{{ main.id }}/qr">{{ icon("qr", "i in") }} QR-код поста</a>
-            {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">{{ icon("inbox", "i in") }} Отправить в чат</button>
-            <button data-act="remind" data-id="{{ main.id }}">{{ icon("alarm", "i in") }} Напомнить завтра</button>{% endif %}
-            {% for _s in pack_slot("post_menu") %}{% include _s %}{% endfor %}
-            {%- if user and user.id == main.user_id %}
-            <button data-act="edit-post" data-id="{{ main.id }}">{{ icon("edit") }} Редактировать</button>
-            <button data-act="pin-post" data-id="{{ main.id }}">{{ icon("pin") }} Закрепить в профиле</button>
-            <a href="/post/{{ main.id }}/stats">{{ icon("chart") }} Статистика</a>
-            <button data-act="toggle" data-url="/post/{{ main.id }}/archive" data-reload="1" data-msg="Готово">{{ icon("archive", "i in") }} {% if main.is_archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
-            {%- endif %}
-            {%- if user and user.id != main.user_id %}
-            <button data-act="not-interested" data-id="{{ main.id }}">{{ icon("eye") }} Не интересно</button>
-            <button data-act="toggle" data-url="/mute/{{ main.author.username }}" data-msg="Готово: показ постов автора изменён">{{ icon("mute") }} Скрыть автора</button>
-            <button data-act="report-post" data-id="{{ main.id }}">{{ icon("flag") }} Пожаловаться</button>
-            {%- endif %}
-            {%- if user and (user.id == main.user_id or can_mod) %}<button class="danger" data-act="delete-post" data-id="{{ main.id }}">{{ icon("trash") }} Удалить</button>{% endif %}
-            {%- if user and user.id == p.user_id and p.id != main.id %}<button class="danger" data-act="delete-post" data-id="{{ p.id }}">{{ icon("trash") }} Удалить репост</button>{% endif %}
-          </div>
+          <div class="menu" data-menu-src="/post/{{ main.id }}/menu{% if p.id != main.id %}?rp={{ p.id }}{% endif %}"></div>{# пункты меню подгружаются по нажатию — лента легче в 2 раза #}
         </div>
       </div>
       {%- if user and user.id == main.user_id %}<textarea class="hidden" id="raw-{{ main.id }}">{{ main.content or "" }}</textarea>{% endif %}
@@ -212,3 +189,29 @@
 
 {% macro chat_video(url) -%}<video class="att att-video" src="{{ url }}" controls playsinline preload="metadata"></video>{%- endmacro %}
 {% macro media_gone(kind) -%}<div class="media-gone">{{ icon("clock", "i in") }} {{ {"photo": "Фото удалено", "video": "Видео удалено", "file": "Файл удалён", "voice": "Голосовое удалено", "circle": "Кружок удалён"}.get(kind, "Вложение удалено") }} с сервера: вложения в чатах хранятся 7 дней</div>{%- endmacro %}
+
+{# меню «⋯» поста: отдаётся по запросу /post/<id>/menu #}
+{% macro post_menu(p, main, user, can_mod=false) -%}
+            <button data-act="copy" data-id="{{ main.id }}">{{ icon("link") }} Копировать ссылку</button>
+            {%- if main.content %}<button data-act="copy-text" data-id="{{ main.id }}">{{ icon("clipboard", "i in") }} Копировать текст</button>{% endif %}
+            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("plane", "i in") }} В Telegram</a>
+            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("chat", "i in") }} В WhatsApp</a>
+            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">ВКонтакте</a>
+            <a href="/post/{{ main.id }}/qr">{{ icon("qr", "i in") }} QR-код поста</a>
+            {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">{{ icon("inbox", "i in") }} Отправить в чат</button>
+            <button data-act="remind" data-id="{{ main.id }}">{{ icon("alarm", "i in") }} Напомнить завтра</button>{% endif %}
+            {% for _s in pack_slot("post_menu") %}{% include _s %}{% endfor %}
+            {%- if user and user.id == main.user_id %}
+            <button data-act="edit-post" data-id="{{ main.id }}">{{ icon("edit") }} Редактировать</button>
+            <button data-act="pin-post" data-id="{{ main.id }}">{{ icon("pin") }} Закрепить в профиле</button>
+            <a href="/post/{{ main.id }}/stats">{{ icon("chart") }} Статистика</a>
+            <button data-act="toggle" data-url="/post/{{ main.id }}/archive" data-reload="1" data-msg="Готово">{{ icon("archive", "i in") }} {% if main.is_archived %}Вернуть из архива{% else %}В архив{% endif %}</button>
+            {%- endif %}
+            {%- if user and user.id != main.user_id %}
+            <button data-act="not-interested" data-id="{{ main.id }}">{{ icon("eye") }} Не интересно</button>
+            <button data-act="toggle" data-url="/mute/{{ main.author.username }}" data-msg="Готово: показ постов автора изменён">{{ icon("mute") }} Скрыть автора</button>
+            <button data-act="report-post" data-id="{{ main.id }}">{{ icon("flag") }} Пожаловаться</button>
+            {%- endif %}
+            {%- if user and (user.id == main.user_id or can_mod) %}<button class="danger" data-act="delete-post" data-id="{{ main.id }}">{{ icon("trash") }} Удалить</button>{% endif %}
+            {%- if user and user.id == p.user_id and p.id != main.id %}<button class="danger" data-act="delete-post" data-id="{{ p.id }}">{{ icon("trash") }} Удалить репост</button>{% endif %}
+{%- endmacro %}
