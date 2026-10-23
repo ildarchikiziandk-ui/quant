@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private var showingOffline = false
     private val bundle by lazy { BundledAssets(this) }
     private val updater by lazy { Updater(this) }
+    private var mainRetries = 0  // повторы загрузки страницы после сбоя сети
 
     private val fileChooser = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = fileCallback
@@ -142,6 +143,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
+                if (!url.endsWith("/offline")) mainRetries = 0
                 CookieManager.getInstance().flush()
                 // после входа включаем мгновенные уведомления (служба сама выключается, когда пользователь вышел)
                 val c = CookieManager.getInstance().getCookie(BuildConfig.SITE_URL)
@@ -149,10 +151,17 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) {
-                    showingOffline = true
-                    view.loadDataWithBaseURL(BuildConfig.SITE_URL + "/offline", bundle.offlinePage() ?: offlineHtml(), "text/html", "utf-8", null)
+                if (!request.isForMainFrame) return
+                // короткий сбой при живой сети (смена Wi-Fi и 4G, обрыв соединения) — тихо пробуем ещё раз,
+                // экран «Нет сети» только если сети правда нет или повторы не помогли
+                val url = request.url.toString()
+                if (isOnline() && mainRetries < 2 && !url.endsWith("/offline")) {
+                    mainRetries++
+                    view.postDelayed({ view.loadUrl(url) }, 700L * mainRetries)
+                    return
                 }
+                showingOffline = true
+                view.loadDataWithBaseURL(BuildConfig.SITE_URL + "/offline", bundle.offlinePage() ?: offlineHtml(), "text/html", "utf-8", null)
             }
         }
 
@@ -325,7 +334,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onLost(network: Network) {
-                    runOnUiThread { if (!isOnline()) web.settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK }
+                    // при смене Wi-Fi на 4G onLost приходит раньше, чем появляется новая сеть: ждём секунду
+                    web.postDelayed({ if (!isOnline()) web.settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK }, 1500)
                 }
             })
         } catch (e: Exception) {

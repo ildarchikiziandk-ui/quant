@@ -423,9 +423,26 @@
       list.unshift({ u, t }); localStorage.setItem('nv_saved_pages', JSON.stringify(list.slice(0, 12)));
     }
   } catch (e) {}
-  addEventListener('offline', () => show(true));
-  addEventListener('online', () => show(false));
-  if (!navigator.onLine) show(true);
+  // navigator.onLine в WebView часто врёт (переключение Wi-Fi и 4G, VPN), поэтому «нет сети» показываем
+  // только если сервер действительно не отвечает, и сами проверяем, когда связь вернулась
+  let offline = false, recheck = 0, checking = false;
+  async function verify() {
+    if (checking) return; checking = true;
+    let ok = false;
+    try {
+      const c = new AbortController(), t = setTimeout(() => c.abort(), 6000);
+      const r = await fetch('/healthz?ts=' + Date.now(), { cache: 'no-store', signal: c.signal });
+      clearTimeout(t); ok = !!r; // любой ответ сервера — значит, сеть есть
+    } catch (e) { ok = false; }
+    checking = false;
+    if (!ok && !offline) { offline = true; show(true); }
+    if (ok && offline) { offline = false; show(false); }
+    clearInterval(recheck);
+    if (offline) recheck = setInterval(verify, 5000);
+  }
+  addEventListener('offline', () => setTimeout(verify, 1500));
+  addEventListener('online', verify);
+  if (!navigator.onLine) setTimeout(verify, 1500);
 })();
 
 /* Красивые логины: покупка за баллы */

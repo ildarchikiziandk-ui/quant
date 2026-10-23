@@ -226,8 +226,8 @@
       if (m && m.dataset.menuSrc && !m.dataset.loaded) { // пункты меню поста подгружаются по первому нажатию
         m.dataset.loaded = '1';
         fetch(m.dataset.menuSrc, { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
-          .then(r => r.ok ? r.text() : Promise.reject()).then(h => { m.innerHTML = h; m.classList.add('open'); menuCards(); })
-          .catch(() => { m.dataset.loaded = ''; toast('Нет связи — меню не загрузилось', true); });
+          .then(r => r.ok ? r.text() : Promise.reject(r.status)).then(h => { m.innerHTML = h; m.classList.add('open'); menuCards(); })
+          .catch(st => { m.dataset.loaded = ''; toast(typeof st === 'number' ? 'Не удалось открыть меню, обновите страницу' : 'Нет связи — меню не загрузилось', true); });
       } else m?.classList.toggle('open');
     }
     const close = e.target.closest('[data-close]');
