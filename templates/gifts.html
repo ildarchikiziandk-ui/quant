@@ -6,7 +6,7 @@
 <div class="card row" style="gap:14px"><a href="/profile/{{ pu.username }}">{{ avatar(pu, 56) }}</a><div class="grow"><div class="page-title" style="margin:0;font-size:22px">{{ icon("gift", "i in") }} Подарки</div><div class="muted small">{{ name(pu) }} · получено {{ received|length }}</div></div></div>
 {% if user and not me %}
 <form class="card" method="post" action="/gifts/{{ pu.username }}/send" data-ajax data-reload data-success="Подарок отправлен">
-  <div class="card-title">Подарить {{ pu.name or pu.username }} <span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ balance }}</span></div>
+  <div class="card-title">Подарить {{ pu.name or pu.username }} <span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ "∞" if balance >= 1000000000 else balance }}</span></div>
   <div class="gift-grid">{% for code, emoji, title, base in gifts %}{% set price = gift_price(user, base) %}{% set locked = code in plus_exclusive and not is_plus %}
     <label class="gift {% if balance < price or locked %}poor{% endif %}{% if code in plus_exclusive %} excl{% endif %}"><input type="radio" name="gift" value="{{ code }}" {% if loop.first and balance >= price %}checked{% endif %} {% if balance < price or locked %}disabled{% endif %}><img class="ge" src="/static/gifts/{{ code }}.svg" alt="">{% if code in plus_exclusive %}<span class="gift-plus">PLUS</span>{% endif %}<span class="tiny">{{ title }}</span><b class="tiny">{{ icon("sparkle", "i in") }} {{ price }}{% if price != base %} <s class="faint">{{ base }}</s>{% endif %}</b></label>
   {% endfor %}</div>

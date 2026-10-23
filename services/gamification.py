@@ -89,6 +89,8 @@ def current_raffle(db):
 
 
 def _add_raffle_ticket(user, db):
+    if user.is_owner:  # владелец в розыгрышах не участвует
+        return
     raffle = current_raffle(db)
     entry = db.query(models.RaffleEntry).filter_by(raffle_id=raffle.id, user_id=user.id).first()
     if entry:
@@ -102,7 +104,7 @@ def draw_raffle(db, raffle):
     entries = db.query(models.RaffleEntry).filter_by(raffle_id=raffle.id).all()
     raffle.is_finished = True
     if entries:
-        pool = [e.user for e in entries for _ in range(max(1, e.tickets or 1)) if e.user]
+        pool = [e.user for e in entries for _ in range(max(1, e.tickets or 1)) if e.user and not e.user.is_owner]
         winner = random.SystemRandom().choice(pool) if pool else None
         if winner:
             raffle.winner_id = winner.id

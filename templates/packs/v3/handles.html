@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Красивые логины — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">{{ icon("at", "i in") }} Красивые логины</div><span class="chip" title="Баллы, которые можно потратить">{{ icon("sparkle", "i in") }} {{ balance }}</span></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("at", "i in") }} Красивые логины</div><span class="chip" title="Баллы, которые можно потратить">{{ icon("sparkle", "i in") }} {{ "∞" if balance >= 1000000000 else balance }}</span></div>
 <div class="page-sub">Короткие и звучные логины — за баллы. Сейчас у вас <b>@{{ user.username }}</b>; после покупки старый логин освободится, а ссылки на профиль начнут вести на новый.</div>
 <form class="card v3-hsearch" method="get"><input type="search" name="q" value="{{ q }}" placeholder="Найти логин: fox, lucky, anna…" autocomplete="off"></form>
 {% for price, names in tiers %}

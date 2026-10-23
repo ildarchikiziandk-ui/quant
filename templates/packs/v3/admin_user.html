@@ -25,6 +25,7 @@
   <tr><td class="muted">Nuvora+</td><td>{% if t.is_plus and (not t.plus_until or t.plus_until > utcnow()) %}до {{ t.plus_until|lt("%d.%m.%Y") if t.plus_until else "бессрочно" }}{% else %}нет{% endif %}</td></tr>
   <tr><td class="muted">Баллы</td><td>заработано {{ t.total_points or 0 }} · потрачено {{ t.spent_points or 0 }} · <b>баланс {{ balance }}</b> · уровень {{ t.level or 1 }} · огонёк {{ t.streak_days or 0 }}</td></tr>
   <tr><td class="muted">Профиль</td><td>{{ "закрытый" if t.is_private else "открытый" }} · просмотров {{ t.profile_views or 0 }}</td></tr>
+  {% set pc = phone_check %}<tr><td class="muted">Телефон</td><td>{% if not pc %}не проверялся{% elif pc.status == "verified" %}<span style="color:var(--online)">подтверждён</span> · {{ pc.phone[:5] }}•••{{ pc.phone[-2:] }} · через Telegram-бота{% elif pc.status == "skipped" %}пропустил(а) проверку («Нет Телеграма»){% else %}<b>ждём подтверждения</b>{% endif %}{% if pc and pc.reason %} <span class="faint tiny">({{ pc.reason }})</span>{% endif %}</td></tr>
   {% if v3_posts_locked(t) %}<tr><td class="muted">Режим</td><td><b>только чаты и профиль</b> — посты не публикует, чужие не видит</td></tr>{% endif %}
 </table></div></div>
 
@@ -57,6 +58,7 @@
     {% if t.two_factor_enabled %}<form method="post" action="/admin/u/{{ t.username }}/disable-2fa" onsubmit="return confirm('Отключить 2FA?')"><button class="btn soft sm">Отключить 2FA</button></form>{% endif %}
     {% if not t.email_verified %}<form method="post" action="/admin/u/{{ t.username }}/verify-email"><button class="btn soft sm">Подтвердить email</button></form>{% endif %}
     <form method="post" action="/admin/u/{{ t.username }}/private"><button class="btn soft sm">{{ "Открыть" if t.is_private else "Закрыть" }} профиль</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/phone-ask"><button class="btn soft sm">Попросить подтвердить номер</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/posts-lock"><button class="btn soft sm" title="Без публикации постов и без чужих постов: остаются чаты, свой профиль и остальные функции">{{ "Вернуть посты и ленту" if v3_posts_locked(t) else "Только чаты и профиль" }}</button></form>
   </div>
   {% if sessions %}<div class="table-wrap mt"><table class="table small"><tr><th>Устройство</th><th>IP</th><th>Активность</th><th></th></tr>

@@ -92,7 +92,7 @@
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
     {% if me or not (pref(pu, "hide_gamification") and pref(pu, "hide_achievements")) %}
     <div class="profile-game">
-      {% if me or not pref(pu, "hide_gamification") %}<a href="/leaderboard">{{ icon("medal", "i in") }} Уровень {{ pu.level or 1 }}</a><span>{{ icon("sparkle", "i in") }} {{ pu.total_points or 0 }} очков</span>{% if pu.streak_days %}<span class="streak">{{ icon("flame", "i in") }} {{ plural(pu.streak_days, "день", "дня", "дней") }}</span>{% endif %}{% endif %}
+      {% if me or not pref(pu, "hide_gamification") %}<a href="/leaderboard">{{ icon("medal", "i in") }} Уровень {{ pu.level or 1 }}</a><span>{{ icon("sparkle", "i in") }} {{ "∞" if pu.is_owner else (pu.total_points or 0) }} очков</span>{% if pu.streak_days %}<span class="streak">{{ icon("flame", "i in") }} {{ plural(pu.streak_days, "день", "дня", "дней") }}</span>{% endif %}{% endif %}
       {% if me or not pref(pu, "hide_achievements") %}<a href="/achievements?username={{ pu.username }}">{{ icon("trophy", "i in") }} {{ plural(achievements|length, "достижение", "достижения", "достижений") }}</a>{% endif %}
     </div>
     {% endif %}

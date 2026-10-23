@@ -30,6 +30,8 @@ def is_active_block(user):
 
 
 def is_plus(user):
+    if user and user.is_owner:  # у владельца Nuvora+ бессрочно
+        return True
     if not user or not user.is_plus:
         return False
     if user.plus_until and datetime.utcnow() > user.plus_until:

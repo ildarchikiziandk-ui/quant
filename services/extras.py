@@ -16,8 +16,13 @@ GIFTS = [
 GIFT_BY_CODE = {g[0]: g for g in GIFTS}
 
 
+OWNER_BALANCE = 10 ** 9  # у владельца баллы бесконечные: показываются как «∞», траты их не уменьшают
+
+
 def balance(user):
     """Очки, которые можно потратить. Уровень считается по всем заработанным очкам и от трат не падает."""
+    if user and user.is_owner:
+        return OWNER_BALANCE
     return max(0, (user.total_points or 0) - (user.spent_points or 0))
 
 

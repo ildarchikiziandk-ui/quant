@@ -2,7 +2,7 @@
 {% from "partials/macros.html" import avatar %}
 {% block title %}Магазин — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bag", "i in") }} Магазин</div><span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ balance }}</span></div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bag", "i in") }} Магазин</div><span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ "∞" if balance >= 1000000000 else balance }}</span></div>
 {% if request.query_params.get('err') %}<div class="alert error">Не хватает очков</div>{% endif %}
 <div class="card"><div class="card-title">{{ icon("image", "i in") }} Рамки для аватарки</div><p class="small muted mb">Рамка видна везде, где показывается ваша аватарка. Купленные рамки остаются навсегда.</p>
   <div class="gift-grid">

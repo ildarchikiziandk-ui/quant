@@ -200,3 +200,20 @@ class CallSignal(Base):
     kind = Column(String(12), default="")
     data = Column(Text, default="{}")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Проверка номера телефона (выборочно и при подозрении) --------------------------------------------------
+class PhoneCheck(Base):
+    __tablename__ = "v3_phone_checks"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
+    status = Column(String(10), default="pending")  # pending, verified, skipped
+    reason = Column(String(80), default="")
+    phone = Column(String(16), default="", index=True)
+    method = Column(String(6), default="")  # tg — номер подтверждён в Telegram-боте
+    code_hash = Column(String(64), default="")  # хэш одноразовой ссылки на бота
+    tg_user = Column(String(24), default="", index=True)  # id в Telegram того, кто поделился номером
+    code_sent_at = Column(DateTime, nullable=True)
+    attempts = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    done_at = Column(DateTime, nullable=True)

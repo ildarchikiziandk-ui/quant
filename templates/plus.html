@@ -5,7 +5,7 @@
   <span class="plus-tag" style="background:rgba(255,255,255,.22)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.8 5.1 2.6 7 7.7 7.8-5.1.8-6.9 2.6-7.7 7.7-.8-5.1-2.6-6.9-7.7-7.7 5.1-.8 6.9-2.7 7.7-7.8z"/></svg>PLUS</span>
   <h1 style="font-size:32px;font-weight:800;letter-spacing:-1px;margin-top:10px">{{ brand_plus }}</h1>
   <p style="opacity:.9">{{ plus_features|map(attribute=1)|map("length")|sum }} возможностей для тех, кто живёт в {{ brand }}</p>
-  {% if is_plus %}<div class="mt" style="font-weight:700">У вас активен {{ brand_plus }}{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}</div>
+  {% if is_plus %}<div class="mt" style="font-weight:700">У вас активен {{ brand_plus }}{% if user.is_owner %} навсегда{% elif user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}</div>
   <div class="row mt" style="justify-content:center;gap:8px"><a class="btn sm" style="background:#fff;color:#111" href="/settings?section=plus">Настроить</a></div>{% endif %}
 </div>
 {% for group, items in plus_features %}

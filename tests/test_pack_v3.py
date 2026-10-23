@@ -700,3 +700,71 @@ def test_chat_only_alias(owner):
     s = db(); accounts.seed_job(s); s.close()
     site._cache["t"] = 0
     assert c.get("/", follow_redirects=False).status_code == 200
+
+
+def test_phone_check_via_telegram_bot(owner, alice, monkeypatch):
+    import config
+    from packs.v3 import phone, site
+    monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "123:abc")
+    monkeypatch.setattr(config, "TELEGRAM_BOT_USERNAME", "nuvora_check_bot")
+    H = {"Accept": "text/html"}  # как у браузера при переходе по странице
+    s = db(); site.put(s, "phone_every", 1); s.commit(); s.close()  # каждая регистрация — для теста
+    site._cache["t"] = 0
+    c = make_client()
+    register(c, "newbie")
+    r = c.get("/", follow_redirects=False, headers=H)
+    assert r.status_code == 303 and r.headers["location"].startswith("/verify-phone")
+    page = c.get("/verify-phone").text
+    assert "Подтвердить в Telegram" in page and "Нет Телеграма" in page and "@nuvora_check_bot" in page
+    # пока не подтвердил — сообщения не уходят
+    assert c.post("/messages/send", json={"receiver": "alice", "content": "привет"}, headers=J).status_code == 403
+    url = c.post("/verify-phone/link", headers=J).json()["url"]
+    assert url.startswith("https://t.me/nuvora_check_bot?start=")
+    token = url.split("start=")[1]
+    said = []
+    say = lambda chat, text, kb=None: said.append((text, kb))
+    s = db()
+    assert phone.handle_update(s, {"message": {"chat": {"id": 5, "type": "private"}, "from": {"id": 5}, "text": "/start wrong"}}, say) == "no-token"
+    assert phone.handle_update(s, {"message": {"chat": {"id": 5, "type": "private"}, "from": {"id": 5}, "text": f"/start {token}"}}, say) == "asked"
+    assert said[-1][1]["keyboard"][0][0]["request_contact"] and "@newbie" in said[-1][0]
+    # чужой номер не принимаем
+    assert phone.handle_update(s, {"message": {"chat": {"id": 5, "type": "private"}, "from": {"id": 5},
+                                               "contact": {"phone_number": "79001112233", "user_id": 6}}}, say) == "foreign"
+    assert phone.handle_update(s, {"message": {"chat": {"id": 5, "type": "private"}, "from": {"id": 5},
+                                               "contact": {"phone_number": "79001112233", "user_id": 5}}}, say) == "verified"
+    s.close()
+    st = c.get("/verify-phone/status").json()
+    assert st["done"] and st["verified"]
+    assert c.get("/", follow_redirects=False, headers=H).status_code == 200
+    assert c.post("/messages/send", json={"receiver": "alice", "content": "привет"}, headers=J).json()["ok"]
+    assert "подтверждён" in owner.get("/admin/u/newbie").text
+    # «Нет Телеграма» — пропускаем без проверки
+    c2 = make_client()
+    register(c2, "nophone")
+    assert c2.get("/", follow_redirects=False, headers=H).status_code == 303
+    c2.post("/verify-phone/skip", headers=J)
+    assert c2.get("/", follow_redirects=False, headers=H).status_code == 200
+    # владельца не проверяем; админ может попросить любого
+    owner.post("/admin/u/alice/phone-ask")
+    assert alice.get("/", follow_redirects=False, headers=H).status_code in (200, 303)
+    s = db(); assert phone.pending(s, s.query(models.User).filter_by(username="alice").one()); s.close()
+
+
+def test_owner_perks(owner, alice):
+    from services import extras, gamification, social
+    s = db()
+    o = s.query(models.User).filter_by(username="owner").one()
+    assert social.is_plus(o) and extras.balance(o) >= 10 ** 9
+    assert "навсегда" in owner.get("/plus").text and "∞" in owner.get("/handles").text
+    # покупка не уменьшает бесконечные баллы
+    r = owner.post("/handles/buy", json={"name": "fox", "username": "fox", "handle": "fox"}, headers=J)
+    assert r.status_code in (200, 400), r.text
+    assert extras.balance(s.query(models.User).filter_by(username="owner").one()) >= 10 ** 9
+    # розыгрыш: владелец не участвует
+    gamification._add_raffle_ticket(o, s)
+    raffle = gamification.current_raffle(s)
+    assert not s.query(models.RaffleEntry).filter_by(raffle_id=raffle.id, user_id=o.id).first()
+    a = s.query(models.User).filter_by(username="alice").one()
+    s.add(models.RaffleEntry(raffle_id=raffle.id, user_id=o.id, tickets=50)); s.add(models.RaffleEntry(raffle_id=raffle.id, user_id=a.id, tickets=1)); s.commit()
+    assert gamification.draw_raffle(s, raffle).winner_id == a.id
+    s.close()

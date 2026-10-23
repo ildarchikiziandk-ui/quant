@@ -184,7 +184,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 {% elif section == "plus" %}
 <div class="card hero">
   <div style="font-size:22px;font-weight:800">{{ icon("sparkle", "i in") }} {{ brand_plus }}</div>
-  {% if is_plus %}<div class="muted">Активен{% if user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
+  {% if is_plus %}<div class="muted">Активен{% if user.is_owner %} навсегда{% elif user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
   {% else %}<div class="muted">Цветной значок и имя, гости профиля, ×1,5 очков, длинные посты и голосовые и ещё много всего. <a href="/plus" style="color:var(--link)">Все возможности</a></div>{% endif %}
 </div>
 {% if is_plus %}

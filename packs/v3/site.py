@@ -10,7 +10,8 @@ from . import models as m
 
 DEFAULTS = {"disabled": list(config.DISABLED_FEATURES), "registration": True, "maintenance": False,
             "maintenance_text": "Идут технические работы. Скоро вернёмся!",
-            "calls": True, "sticker_packs_off": [], "banned_ips": [], "reserved_handles": []}
+            "calls": True, "sticker_packs_off": [], "banned_ips": [], "reserved_handles": [],
+            "phone_check": True, "phone_every": 20}
 # разделы, которые можно включать и выключать
 SECTIONS = [("/random", "Случайный пост"), ("/guests", "Гости профиля"), ("/notes", "Заметки"), ("/memories", "В этот день"),
             ("/wheel", "Колесо фортуны"), ("/questions", "Анонимные вопросы"), ("/ask", "Задать вопрос (страница вопросов)"),

@@ -104,6 +104,11 @@ async def security_middleware(request: Request, call_next):
                                 "<body style='font-family:sans-serif;background:#f6f1e8;color:#1f1d1a;display:grid;place-items:center;min-height:90vh;"
                                 "text-align:center;padding:20px'><div><h2>Доступ ограничен</h2><p>С вашего адреса вход на сайт закрыт администрацией.</p></div>",
                                 status_code=403)
+    if (request.cookies.get("pv") == "1" and request.method == "GET" and "text/html" in request.headers.get("accept", "")
+            and not path.startswith(("/verify-phone", "/verify", "/static/", "/logout", "/privacy", "/terms", "/sw.js", "/healthz", "/offline",
+                                     "/uploads/", "/manifest", "/api/", "/v3/", "/signup/finish"))):
+        from urllib.parse import quote as _q  # ждёт подтверждения номера (выборочная проверка)
+        return RedirectResponse("/verify-phone?next=" + _q(path + (("?" + request.url.query) if request.url.query else "")), status_code=303)
     if site.is_disabled(path):  # выключенные разделы
         if request.method == "GET" and not request.headers.get("x-requested-with"):
             return RedirectResponse("/", status_code=303)
@@ -159,6 +164,9 @@ async def _background_jobs():
             print(f"[jobs] {e}")
         finally:
             db.close()
+
+    from packs.v3 import phone as _phone
+    _phone.start_bot()  # Telegram-бот проверки номера (если задан TELEGRAM_BOT_TOKEN)
 
     async def loop():
         while True:
