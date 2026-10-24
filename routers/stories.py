@@ -115,6 +115,9 @@ async def create_story(request: Request, db: Session = Depends(get_db)):
     from packs.v3.accounts import posts_locked
     if posts_locked(user):
         return json_error("Для вашего аккаунта публикация историй отключена", 403) if wants_json(request) else redirect("/stories/create")
+    from packs.v3.admin_tools import publish_blocked
+    if publish_blocked(user):
+        return json_error(publish_blocked(user), 403) if wants_json(request) else redirect("/stories/create")
     form = await request.form()
     text = (form.get("text_overlay") or "").strip()[:300]
     bg = form.get("bg_color") if re.match(r"^#[0-9a-fA-F]{6}$", form.get("bg_color") or "") else ""

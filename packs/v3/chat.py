@@ -215,6 +215,12 @@ def card(msg, user):
                 return ""
             peer = db.get(models.User, c.callee_id if user and user.id == c.caller_id else c.caller_id)
             html = templates.get_template("packs/v3/card_call.html").render(c=c, d=card_data(db, c, user), peer=peer, msg=msg, user=user)
+        elif kind in ("rps", "dice", "c4", "hang"):
+            from .chat_games import view
+            g = db.get(m.ChatGame, oid)
+            if not g:
+                return ""
+            html = templates.get_template("packs/v3/card_game.html").render(msg=msg, user=user, **view(db, g, user))
         else:
             return ""
         return Markup(html)

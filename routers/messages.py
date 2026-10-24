@@ -18,7 +18,7 @@ router = APIRouter()
 MSG_REACTIONS = ["❤️", "🐋"]  # только сердце и кит
 EFFECTS = ("confetti", "hearts", "snow", "fireworks")  # эффекты сообщений (Nuvora 3.0)
 # служебные сообщения модулей 3.0: опрос, игра — в списке чатов и уведомлениях показываем понятную подпись
-SPECIAL = {"poll": "Опрос", "ttt": "Крестики-нолики", "market": "Объявление", "call": "Звонок", "st": "Стикер"}
+from services.text import SPECIAL_LABELS as SPECIAL  # noqa: E402
 
 
 def special_kind(content):

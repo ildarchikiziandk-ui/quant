@@ -27,7 +27,7 @@
   <a href="/groups/{{ g.group.id }}" class="chat" data-kind="group" data-unread="{{ 1 if g.unread else 0 }}" data-online="0">
     <span class="av" style="width:50px;height:50px;border-radius:16px">{% if g.group.avatar %}<img src="{{ g.group.avatar }}" alt="">{% else %}<span style="font-size:20px">{{ g.group.name[0]|upper }}</span>{% endif %}</span>
     <div class="grow"><div class="row" style="justify-content:space-between"><b class="ellipsis">{{ icon("users", "i in") }} {{ g.group.name }}</b><span class="tiny faint">{{ g.time|ago }}</span></div>
-    <div class="preview ellipsis">{% if g.last %}{% if g.last.sender %}{{ g.last.sender.name or g.last.sender.username }}: {% endif %}{{ g.last.content or "Вложение" }}{% else %}Группа создана{% endif %}</div></div>
+    <div class="preview ellipsis">{% if g.last %}{% if g.last.sender %}{{ g.last.sender.name or g.last.sender.username }}: {% endif %}{{ g.last.content|chatsum }}{% else %}Группа создана{% endif %}</div></div>
   </a>
   {% endfor %}
   {% if not chats and not groups %}<div class="empty"><div class="big">{{ icon("mail", "i in") }}</div>Здесь появятся ваши диалоги.<br><button class="btn mt" data-modal="new-chat">Начать переписку</button></div>{% endif %}

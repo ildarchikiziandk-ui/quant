@@ -34,7 +34,7 @@
     </div>
   </div>
   <div id="chat-search" class="hidden" style="margin-bottom:8px"><input type="search" id="chat-search-q" placeholder="Поиск по сообщениям в этом чате…"></div>
-  {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">{{ icon("pin", "i in") }} <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content or "вложение" }}</span></div>{% endif %}
+  {% if pinned_msg %}<div class="pinned-msg" data-jump="{{ pinned_msg.id }}">{{ icon("pin", "i in") }} <span class="grow ellipsis"><b>Закреплено:</b> {{ pinned_msg.content|chatsum("вложение") }}</span></div>{% endif %}
   <template id="msg-tools-tpl"><div class="msg-tools">
     {% for e in msg_reactions %}<button data-mact="react" data-emoji="{{ e }}" title="{{ "Сердце" if e == "❤️" else "Кит" }}">{{ reaction(e) }}</button>{% endfor %}
     <button data-mact="reply" title="Ответить">{{ icon("reply", "i in") }}</button>
@@ -206,7 +206,7 @@ document.addEventListener('click', async e=>{
   const m=b.closest('.msg'), id=m.dataset.id, a=b.dataset.mact;
   try{
     if(a==='react'){ await App.api(`/messages/${id}/react`,{emoji:b.dataset.emoji}); await refreshMsg(id); }
-    else if(a==='reply'){ replyTo=id; document.getElementById('reply-text').textContent=(m.dataset.raw||'Вложение').slice(0,80); document.getElementById('reply-bar').classList.remove('hidden'); inp.focus(); }
+    else if(a==='reply'){ replyTo=id; document.getElementById('reply-text').textContent=(m.dataset.sum||'Вложение').slice(0,80); document.getElementById('reply-bar').classList.remove('hidden'); inp.focus(); }
     else if(a==='edit'){ startEdit(id, m.dataset.raw); }
     else if(a==='delete'){ if(!confirm('Удалить сообщение у всех?')) return; await App.api(`/messages/${id}/delete`); m.remove(); }
     else if(a==='hide'){ await App.api(`/messages/${id}/hide`); m.remove(); App.toast('Удалено у вас'); }

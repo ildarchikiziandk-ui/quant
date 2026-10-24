@@ -302,6 +302,8 @@ async def site_save(request: Request, db: Session = Depends(get_db)):
     site.put(db, "maintenance", bool(f.get("maintenance")))
     site.put(db, "maintenance_text", s(f.get("maintenance_text")).strip()[:300] or site.DEFAULTS["maintenance_text"])
     site.put(db, "calls", bool(f.get("calls")))
+    site.put(db, "read_only", bool(f.get("read_only")))
+    site.put(db, "read_only_text", s(f.get("read_only_text")).strip()[:300])
     site.put(db, "phone_check", bool(f.get("phone_check")))
     try:
         site.put(db, "phone_every", max(1, min(1000, int(s(f.get("phone_every")) or 20))))

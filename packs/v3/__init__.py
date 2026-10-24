@@ -1,9 +1,21 @@
 """Nuvora 3.x: модули чатов, игр, помощника Нувы, красивых логинов и безопасности."""
 from . import models  # noqa: F401  таблицы
-from . import account, accounts, admin_more, admin_plus, ai, appupdate, calls, capsule, chat, dayyot, feed, games, handles_shop, login_approve, media, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
+from . import account, accounts, admin_more, admin_plus, admin_tools, ai, appupdate, calls, capsule, chat, chat_games, dayyot, feed, games, handles_shop, login_approve, media, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
+from . import site
 
 WHATSNEW = [
+    ("Игры в чате", "dice", [
+        ("layers", "«Четыре в ряд»: фишки падают вниз, нужно собрать четыре подряд"),
+        ("wave", "«Камень, ножницы, бумага» до двух побед — выбор друга виден, только когда оба выбрали"),
+        ("dice", "«Кости»: кто выбросит больше на двух кубиках"),
+        ("type", "«Виселица»: загадайте слово — друг угадывает по буквам"),
+        ("reply", "Ответ на стикер или игру показывает понятную подпись, а не служебный код"),
+    ]),
+    ("Новый цвет", "palette", [
+        ("smartphone", "Больше фирменного синего: кнопки, свои сообщения, активные вкладки"),
+        ("check", "Мобильная версия: кнопки записи и отправки больше не уезжают за край экрана"),
+    ]),
     ("Стикеры", "whale", [
         ("whale", "Три набора стикеров: «Кит Нуви», «Кот Мур» и «Капибара Капи» — 41 стикер, вкладки в панели"),
     ]),
@@ -75,5 +87,5 @@ JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js"]
 JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job]
 GLOBALS = {
     "v3_card": chat.card, "v3_chest": people.chest_state, "v3_backup_left": account.backup_left,
-    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_aliases": handles_shop.aliases_of,
+    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_mute_until": admin_tools.mute_until, "site_get": site.get, "v3_warnings": admin_tools.warnings_of, "v3_aliases": handles_shop.aliases_of,
 }

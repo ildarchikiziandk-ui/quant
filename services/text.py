@@ -200,3 +200,18 @@ def censor(text, stop_words):
             continue
         text = re.sub(re.escape(w), lambda m: m.group(0)[0] + "*" * (len(m.group(0)) - 1), text, flags=re.IGNORECASE)
     return text
+
+
+# подписи служебных сообщений [[v3:вид:id]] — для ответов, превью чатов, закрепа, поиска и уведомлений
+SPECIAL_LABELS = {"poll": "Опрос", "ttt": "Крестики-нолики", "market": "Объявление", "call": "Звонок", "st": "Стикер",
+                  "rps": "Камень, ножницы, бумага", "dice": "Кости", "c4": "Четыре в ряд", "hang": "Виселица"}
+
+
+def chat_summary(content, empty="Вложение"):
+    """Короткий текст сообщения для цитаты/превью: служебная метка превращается в понятное слово."""
+    if not content:
+        return empty
+    if content.startswith("[[v3:") and content.endswith("]]"):
+        kind = content[5:-2].split(":", 1)[0]
+        return SPECIAL_LABELS.get(kind, "Сообщение")
+    return content

@@ -26,6 +26,7 @@ def _local_time(ctx, dt, fmt="%d.%m.%Y %H:%M"):
 
 env.filters["lt"] = _local_time
 env.filters["rich"] = text.richtext
+env.filters["chatsum"] = text.chat_summary
 env.filters["noemoji"] = text.strip_emoji
 env.filters["ago"] = text.timeago
 env.filters["compact"] = text.compact_number

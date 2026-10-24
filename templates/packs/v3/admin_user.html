@@ -58,6 +58,7 @@
     {% if t.two_factor_enabled %}<form method="post" action="/admin/u/{{ t.username }}/disable-2fa" onsubmit="return confirm('Отключить 2FA?')"><button class="btn soft sm">Отключить 2FA</button></form>{% endif %}
     {% if not t.email_verified %}<form method="post" action="/admin/u/{{ t.username }}/verify-email"><button class="btn soft sm">Подтвердить email</button></form>{% endif %}
     <form method="post" action="/admin/u/{{ t.username }}/private"><button class="btn soft sm">{{ "Открыть" if t.is_private else "Закрыть" }} профиль</button></form>
+    {% set la = v3_login_approve(t) %}<form method="post" action="/admin/u/{{ t.username }}/login-approve"><input type="hidden" name="on" value="{{ '' if la else '1' }}"><button class="btn soft sm" title="Вход с нового устройства — только после «Да» на уже открытой Nuvora">{{ "Выключить" if la else "Включить" }} подтверждение входа</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/phone-ask"><button class="btn soft sm">Попросить подтвердить номер</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/posts-lock"><button class="btn soft sm" title="Без публикации постов и без чужих постов: остаются чаты, свой профиль и остальные функции">{{ "Вернуть посты и ленту" if v3_posts_locked(t) else "Только чаты и профиль" }}</button></form>
   </div>
@@ -69,6 +70,13 @@
 <div class="card"><div class="card-title">Блокировка и уведомление</div>
   {% if t.is_blocked %}<form method="post" action="/admin/u/{{ t.username }}/unblock"><button class="btn sm">Разблокировать</button></form>
   {% else %}<form class="form-row" method="post" action="/admin/u/{{ t.username }}/block"><label class="field" style="max-width:120px"><span>Дней</span><input name="days" value="7" inputmode="numeric"></label><label class="field"><span>Причина</span><input name="reason" maxlength="200" placeholder="спам"></label><button class="btn danger" style="align-self:flex-end">Заблокировать</button></form>{% endif %}
+  {% set mu = v3_mute_until(t) %}{% set wn = v3_warnings(t) %}
+  <div class="pref-group mt">Предупреждения{% if wn %}: <b style="color:var(--like)">{{ wn }}</b>{% endif %}</div>
+  <form class="row" method="post" action="/admin/u/{{ t.username }}/warn" style="gap:8px"><input name="reason" maxlength="200" placeholder="За что (придёт человеку)" style="margin:0"><button class="btn soft sm">Предупредить</button></form>
+  {% if wn %}<form method="post" action="/admin/u/{{ t.username }}/warn-reset" class="mt"><button class="v3-link small">Снять предупреждения</button></form>{% endif %}
+  <div class="pref-group mt">Запрет публикаций (посты, комментарии, истории; чаты работают)</div>
+  {% if mu %}<p class="small">Действует до <b>{{ mu.strftime("%d.%m.%Y %H:%M") }}</b> UTC</p><form method="post" action="/admin/u/{{ t.username }}/unmute"><button class="btn soft sm">Снять запрет</button></form>
+  {% else %}<form class="form-row" method="post" action="/admin/u/{{ t.username }}/mute"><label class="field" style="max-width:120px"><span>Часов</span><input name="hours" value="24" inputmode="numeric"></label><label class="field"><span>Причина</span><input name="reason" maxlength="200" placeholder="флуд"></label><button class="btn soft sm">Запретить</button></form>{% endif %}
   <form class="row mt" method="post" action="/admin/u/{{ t.username }}/notify" style="gap:8px"><input name="text" maxlength="500" placeholder="Текст уведомления пользователю" style="margin:0" required><button class="btn sm">Отправить</button></form></div>
 
 <div class="card"><div class="card-title">Контент</div>

@@ -7,7 +7,7 @@
 {% if query %}
 <div class="card flat chat-list">
 {% for m in results %}{% set other = m.receiver if m.sender_id == user.id else m.sender %}{% if other %}
-  <a class="chat" href="/messages/{{ other.username }}#msg-{{ m.id }}">{{ avatar(other, 40) }}<div class="grow"><div class="row" style="justify-content:space-between"><b>{{ other.name or other.username }}</b><span class="tiny faint">{{ m.created_at|ago }}</span></div><div class="preview">{% if m.sender_id == user.id %}<span class="faint">Вы:</span> {% endif %}{{ m.content[:140] }}</div></div></a>
+  <a class="chat" href="/messages/{{ other.username }}#msg-{{ m.id }}">{{ avatar(other, 40) }}<div class="grow"><div class="row" style="justify-content:space-between"><b>{{ other.name or other.username }}</b><span class="tiny faint">{{ m.created_at|ago }}</span></div><div class="preview">{% if m.sender_id == user.id %}<span class="faint">Вы:</span> {% endif %}{{ (m.content|chatsum)[:140] }}</div></div></a>
 {% endif %}{% else %}<div class="empty">Ничего не найдено по запросу «{{ query }}»</div>{% endfor %}
 </div>
 {% endif %}

@@ -232,3 +232,17 @@ class LoginApproval(Base):
     notif_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     decided_at = Column(DateTime, nullable=True)
+
+
+# --- Игры в переписке: камень-ножницы-бумага, кости, четыре в ряд, виселица ------------------------------------
+class ChatGame(Base):
+    __tablename__ = "v3_chat_games"
+    id = Column(Integer, primary_key=True)
+    kind = Column(String(8), index=True)  # rps, dice, c4, hang
+    a_id = Column(Integer, ForeignKey("users.id"), index=True)  # кто предложил игру
+    b_id = Column(Integer, ForeignKey("users.id"), index=True)
+    state = Column(Text, default="{}")
+    turn = Column(Integer, nullable=True)  # чей ход (для пошаговых)
+    winner = Column(Integer, nullable=True)  # id победителя; 0 — ничья
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)

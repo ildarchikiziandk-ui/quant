@@ -819,3 +819,91 @@ def test_login_approval_stream_and_no_sessions(owner):
     s.query(models.UserSession).update({"last_active": datetime.utcnow() - timedelta(days=30)})
     s.commit(); s.close()
     assert make_client().post("/login", data={"username": "owner", "password": "secret123"}, follow_redirects=False).status_code == 303
+
+
+def _uid(name):
+    s = db()
+    try:
+        return s.query(models.User).filter_by(username=name).first().id
+    finally:
+        s.close()
+
+
+def test_chat_games(alice, bob):
+    mv = lambda c, gid, v: c.post(f"/v3/game/{gid}/move", json={"v": str(v)}, headers=J)
+    gid_of = lambda: last_msg().content[5:-2].split(":")[1]
+    page = lambda c: c.get("/messages/alice" if c is bob else "/messages/bob").text
+    # камень-ножницы-бумага: выбор соперника скрыт, пока оба не выбрали; до двух побед
+    assert alice.post("/v3/chat/bob/game", json={"kind": "rps"}, headers=J).json()["ok"]
+    g = gid_of()
+    assert mv(alice, g, "r").json()["ok"]
+    assert mv(alice, g, "p").status_code >= 400  # ждёт соперника
+    assert "ждём соперника" in page(alice) and "✊" not in page(bob).split("Камень, ножницы, бумага")[1][:400]
+    mv(bob, g, "s")  # 1:0
+    mv(alice, g, "p"); mv(bob, g, "p")  # ничья в раунде
+    mv(alice, g, "p")
+    assert mv(bob, g, "r").json()["winner"] == _uid("alice")  # 2:0
+    assert mv(bob, g, "r").status_code >= 400
+    assert "Вы победили" in page(alice)
+    # кости
+    alice.post("/v3/chat/bob/game", json={"kind": "dice"}, headers=J)
+    g = gid_of()
+    assert mv(alice, g, "roll").json()["winner"] is None
+    assert mv(alice, g, "roll").status_code >= 400
+    assert mv(bob, g, "roll").json()["winner"] is not None
+    assert bob.post(f"/v3/game/{g}/rematch", headers=J).json()["ok"]
+    # четыре в ряд: вертикаль из четырёх
+    alice.post("/v3/chat/bob/game", json={"kind": "c4"}, headers=J)
+    g = gid_of()
+    assert mv(bob, g, 0).status_code >= 400  # не его ход
+    for who, col in [(alice, 0), (bob, 1), (alice, 0), (bob, 1), (alice, 0), (bob, 1)]:
+        assert mv(who, g, col).json()["winner"] is None
+    assert mv(alice, g, 0).json()["winner"] == _uid("alice")
+    # виселица: слово видно только загадавшему
+    assert alice.post("/v3/chat/bob/game", json={"kind": "hang", "word": "x1"}, headers=J).status_code >= 400
+    alice.post("/v3/chat/bob/game", json={"kind": "hang", "word": "Ёжик"}, headers=J)
+    g = gid_of()
+    assert mv(alice, g, "е").status_code >= 400  # загадавший не угадывает
+    assert 'class="open">е<' not in page(bob)
+    for ch in "ежи":
+        assert mv(bob, g, ch).json()["winner"] is None
+    assert mv(bob, g, "к").json()["winner"] == _uid("bob")
+    assert bob.post(f"/v3/game/{g}/rematch", json={"word": "кот"}, headers=J).json()["ok"]
+    # ответ на игру или стикер — понятная подпись, а не служебный код
+    gm = last_msg("bob")
+    alice.post("/messages/send", json={"receiver": "bob", "content": "ха", "reply_to_id": gm.id}, headers=J)
+    html = bob.get("/messages/alice").text
+    assert "Виселица" in html and "[[v3:hang" not in html.split('data-raw="[[v3:hang')[0].split("msg-reply")[-1]
+
+
+def test_admin_tools(owner, alice, bob):
+    # предупреждение и запрет публикаций на срок
+    assert owner.post("/admin/u/alice/warn", data={"reason": "флуд"}, follow_redirects=False).status_code == 303
+    assert "Предупреждения: <b" in owner.get("/admin/u/alice").text
+    owner.post("/admin/u/alice/mute", data={"hours": "2", "reason": "спам"})
+    r = alice.post("/post/create", data={"content": "привет всем"}, headers=J)
+    assert r.status_code == 403 and "запрещено" in r.json()["error"]
+    assert alice.post("/messages/send", json={"receiver": "bob", "content": "а чаты работают"}, headers=J).json()["ok"]
+    owner.post("/admin/u/alice/unmute")
+    pid = alice.post("/post/create", data={"content": "снова можно"}, headers=J).json()
+    assert pid.get("ok", True)
+    # только чтение — для всех, кроме владельца
+    s = db()
+    from packs.v3 import site
+    site.put(s, "read_only", True); s.commit(); s.close()
+    assert bob.post("/post/create", data={"content": "тест"}, headers=J).status_code == 403
+    assert owner.post("/post/create", data={"content": "владельцу можно"}, headers=J).status_code == 200
+    s = db(); site.put(s, "read_only", False); s.commit(); s.close()
+    # журнал, комментарии, входы; модератору/человеку без прав — нельзя
+    assert "admin_warn" in owner.get("/admin/log").text
+    assert owner.get("/admin/comments").status_code == 200
+    page = owner.get("/admin/logins").text
+    assert "Несколько аккаунтов с одного адреса" in page and "@alice" in page
+    for path in ("/admin/log", "/admin/comments", "/admin/logins"):
+        assert alice.get(path, follow_redirects=False).status_code in (302, 303)
+    # подтверждение входа можно включить человеку из карточки
+    owner.post("/admin/u/bob/login-approve", data={"on": "1"})
+    from packs.v3 import login_approve
+    s = db()
+    assert login_approve.enabled(s.query(models.User).filter_by(username="bob").one())
+    s.close()

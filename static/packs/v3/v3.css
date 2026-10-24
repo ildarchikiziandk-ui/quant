@@ -62,7 +62,7 @@
 /* ---------- игры */
 .v3-game { display: flex; align-items: center; gap: 14px; transition: transform .15s; }
 .v3-game:hover { transform: translateY(-2px); }
-.v3-gic { width: 52px; height: 52px; border-radius: 14px; background: var(--ink) !important; color: var(--on-brand) !important; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.v3-gic { width: 52px; height: 52px; border-radius: 14px; background: var(--brand) !important; color: var(--on-brand) !important; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
 .v3-gic svg { width: 26px; height: 26px; }
 .v3-word { display: flex; flex-direction: column; gap: 6px; align-items: center; margin: 8px 0 10px; }
 .v3-wrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: min(310px, 100%); }
@@ -117,7 +117,7 @@
 .ai-log { display: flex; flex-direction: column; gap: 8px; max-height: 58vh; min-height: 220px; overflow-y: auto; padding-bottom: 6px; }
 .ai-msg { max-width: 86%; padding: 10px 14px; border-radius: 18px; line-height: 1.45; font-size: 15px; overflow-wrap: anywhere; }
 .ai-msg.bot { align-self: flex-start; background: var(--input); border-bottom-left-radius: 6px; }
-.ai-msg.me { align-self: flex-end; background: var(--ink); color: var(--on-brand); border-bottom-right-radius: 6px; }
+.ai-msg.me { align-self: flex-end; background: var(--brand); color: var(--on-brand); border-bottom-right-radius: 6px; }
 .ai-sugg { margin: 6px 0 2px; flex-wrap: wrap; }
 .ai-sugg .chip { white-space: normal; text-align: left; }
 .ai-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
@@ -349,3 +349,44 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .v3-la-sheet b{font-size:18px;display:block;margin-bottom:6px}
 .v3-la-sheet .btn{flex:1}
 @media(min-width:700px){.v3-la-modal{align-items:center}}
+
+/* игры в переписке */
+.v3-gamepick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.v3-gamepick button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); cursor: pointer; font: inherit; min-width: 0; }
+.v3-gamepick button .i { color: var(--brand); width: 22px; height: 22px; }
+.v3-gamepick b { font-size: 14px; } .v3-gamepick span { font-size: 12px; color: var(--text-2); line-height: 1.3; }
+.v3-game-note { font-size: 12px; opacity: .8; text-align: center; }
+.v3-rps-pick { display: flex; gap: 8px; justify-content: center; }
+.v3-rps-pick button { width: 58px; height: 58px; border-radius: 16px; border: 0; font-size: 30px; cursor: pointer; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; }
+.v3-rps-pick button:disabled { opacity: .5; }
+.v3-rps-rounds { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.v3-rps-r { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, currentColor 7%, transparent); font-size: 18px; }
+.v3-rps-r small { font-size: 10px; opacity: .55; } .v3-rps-r i { font-style: normal; opacity: .55; } .v3-rps-r i.win { opacity: 1; }
+.v3-dice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.v3-dice-p { text-align: center; padding: 8px 4px; border-radius: 14px; background: color-mix(in srgb, currentColor 7%, transparent); min-width: 0; }
+.v3-dice-p.win { background: color-mix(in srgb, var(--online) 30%, transparent); }
+.v3-dice-f { font-size: 38px; line-height: 1.1; letter-spacing: 2px; }
+.v3-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
+.v3-dot.r, .v3-c4 i.r { background: var(--brand); } .v3-dot.y, .v3-c4 i.y { background: #f2b630; }
+.v3-c4 { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 3px; padding: 5px; border-radius: 12px; background: color-mix(in srgb, var(--brand) 18%, transparent); width: 100%; max-width: 260px; align-self: center; }
+.v3-c4-col { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; }
+.v3-c4-col:not(:disabled):hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.v3-c4-col:disabled { cursor: default; }
+.v3-c4 i { display: block; aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, var(--card) 85%, transparent); }
+.v3-c4 i.last { box-shadow: 0 0 0 2px var(--card); }
+.v3-c4 i.win { box-shadow: 0 0 0 3px var(--online); }
+.v3-hang-top { display: flex; align-items: center; justify-content: space-between; }
+.v3-hang-lives { display: inline-flex; gap: 3px; } .v3-hang-lives i { width: 12px; height: 12px; border-radius: 50%; background: #e0475a; }
+.v3-hang-lives i.gone { background: color-mix(in srgb, currentColor 18%, transparent); }
+.v3-hang-word { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.v3-hang-word span { width: 22px; height: 30px; border-bottom: 2px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; text-transform: uppercase; }
+.v3-hang-word span.open { color: var(--brand); } .msg.mine .v3-hang-word span.open { color: inherit; }
+.v3-hang-kb { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+.v3-hang-kb button { padding: 5px 0; border: 0; border-radius: 7px; font: inherit; font-size: 13px; font-weight: 700; text-transform: uppercase; cursor: pointer; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; }
+.v3-hang-kb button.hit { background: color-mix(in srgb, var(--online) 35%, transparent); } .v3-hang-kb button.miss { opacity: .3; }
+.v3-game { width: 300px; max-width: min(300px, 74vw); }
+.v3-game .v3-ttt-who { width: 100%; align-self: stretch; }
+.v3-game .v3-ttt-who > span { min-width: 0; flex: 0 1 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v3-game .v3-ttt-who > span:last-child { text-align: right; }
+.v3-hang-top { gap: 8px; } .v3-hang-kb { width: 100%; }
+.v3-game .v3-card-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

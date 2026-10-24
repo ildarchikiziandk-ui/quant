@@ -9,7 +9,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render, templates
 from routers.posts import read_payload, wants_json
-from services import gamification, push, ratelimit, social
+from services import gamification, push, ratelimit, social, text
 from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
@@ -157,7 +157,7 @@ async def send_group_msg(group_id: int, request: Request, db: Session = Depends(
     muted = {mm.user_id for mm in db.query(models.MutedChat).filter_by(muted_group_id=group_id)}
     for mem in db.query(models.GroupMember).filter(models.GroupMember.group_id == group_id, models.GroupMember.user_id != user.id).all():
         if mem.user_id not in muted:
-            push.send_push_to_user(mem.user_id, db, g.name, f"{user.name or user.username}: {content[:80] or 'вложение'}", f"/groups/{group_id}")
+            push.send_push_to_user(mem.user_id, db, g.name, f"{user.name or user.username}: {text.chat_summary(content, 'вложение')[:80]}", f"/groups/{group_id}")
     if wants_json(request):
         return JSONResponse({"ok": True, "id": m.id})
     return redirect(f"/groups/{group_id}")

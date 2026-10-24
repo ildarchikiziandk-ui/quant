@@ -143,6 +143,9 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     from packs.v3.accounts import posts_locked
     if posts_locked(user):
         return json_error("Для вашего аккаунта публикация постов отключена", 403)
+    from packs.v3.admin_tools import publish_blocked
+    if publish_blocked(user):
+        return json_error(publish_blocked(user), 403)
     if not ratelimit.hit(f"post:{user.id}", 20, 600):
         return json_error("Слишком часто. Подождите немного.", 429)
     form = await request.form()
@@ -426,6 +429,9 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
         return json_error(social.VERIFY_MSG, 403)
     if post.comments_disabled and post.user_id != user.id:
         return json_error("Автор отключил комментарии", 403)
+    from packs.v3.admin_tools import publish_blocked
+    if publish_blocked(user):
+        return json_error(publish_blocked(user), 403)
     if not prefs.audience_allows(db, post.author, user, "who_can_comment"):
         return json_error("Автор ограничил, кто может комментировать", 403)
     if not ratelimit.hit(f"comment:{user.id}", 30, 300):

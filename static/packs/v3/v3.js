@@ -29,12 +29,42 @@
   // живые карточки (открытый опрос, идущая партия) обновляются сами, пока чат открыт
   setInterval(() => { if (document.hidden) return; $$('.v3-live').slice(-6).forEach(c => { const r = c.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) refreshCard(c); }); }, 3500);
 
-  // «+» в переписке: опрос или крестики-нолики
+  // игры: «Камень, ножницы, бумага», «Кости», «Четыре в ряд», «Виселица»
+  on('[data-v3-gmove]', async b => {
+    const card = b.closest('.v3-card'); card?.querySelectorAll('[data-v3-gmove]').forEach(x => x.disabled = true);
+    try { await A.api(`/v3/game/${b.dataset.v3Gmove}/move`, { v: b.dataset.v }); } catch (e) {}
+    refreshCard(b);
+  });
+  const askWord = () => new Promise(res => {
+    const md = A.modal('Загадайте слово', `<p class="small muted mb">Одно слово русскими буквами, 3–14 букв. Соперник будет угадывать его по буквам, у него 6 ошибок.</p>
+      <input id="v3-hw" type="password" maxlength="14" autocomplete="off" placeholder="Например, черепаха"><label class="check mt"><input type="checkbox" id="v3-hs"><span>Показать слово</span></label><button class="btn block mt" id="v3-hgo">Загадать</button>`);
+    const inp = $('#v3-hw', md); inp.focus();
+    $('#v3-hs', md).onchange = e => { inp.type = e.target.checked ? 'text' : 'password'; };
+    const go = () => { const w = inp.value.trim(); if (!w) return; md.classList.remove('open'); res(w); };
+    $('#v3-hgo', md).onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); go(); } };
+  });
+  on('[data-v3-grematch]', async b => {
+    const body = {};
+    if (b.dataset.hang) body.word = await askWord();
+    try { await A.api(`/v3/game/${b.dataset.v3Grematch}/rematch`, body); window.poll?.(); } catch (e) {}
+  });
+  const GAMES = [['ttt', 'grid', 'Крестики-нолики', 'по очереди, три в ряд'], ['c4', 'layers', 'Четыре в ряд', 'фишки падают вниз, нужно четыре подряд'],
+    ['rps', 'wave', 'Камень, ножницы, бумага', 'до двух побед'], ['dice', 'dice', 'Кости', 'у кого больше на двух кубиках'],
+    ['hang', 'type', 'Виселица', 'вы загадываете слово, друг угадывает']];
+  // «+» в переписке: опрос или игра
   on('[data-v3-attach]', b => {
     const u = b.dataset.v3Attach;
-    const md = A.modal('Отправить в чат', `<button class="btn soft block mb" data-k="poll">${IC('poll')} Опрос</button><button class="btn soft block" data-k="ttt">${IC('grid')} Крестики-нолики</button>`);
-    $('[data-k=ttt]', md).onclick = async () => { md.classList.remove('open'); try { await A.api(`/v3/chat/${encodeURIComponent(u)}/ttt`); await window.poll?.(); } catch (e) {} };
+    const md = A.modal('Отправить в чат', `<button class="btn soft block mb" data-k="poll">${IC('poll')} Опрос</button><div class="tiny faint mb">Игры</div>`
+      + `<div class="v3-gamepick">${GAMES.map(g => `<button type="button" data-k="${g[0]}">${IC(g[1])}<b>${g[2]}</b><span>${g[3]}</span></button>`).join('')}</div>`);
     $('[data-k=poll]', md).onclick = () => pollForm(u);
+    GAMES.forEach(([k]) => { $(`[data-k=${k}]`, md).onclick = async () => {
+      md.classList.remove('open');
+      try {
+        if (k === 'ttt') await A.api(`/v3/chat/${encodeURIComponent(u)}/ttt`);
+        else await A.api(`/v3/chat/${encodeURIComponent(u)}/game`, k === 'hang' ? { kind: k, word: await askWord() } : { kind: k });
+        await window.poll?.();
+      } catch (e) {}
+    }; });
   });
   function pollForm(u) {
     const md = A.modal('Новый опрос', `<input id="v3-pq" maxlength="200" placeholder="Вопрос"><div id="v3-po" class="mt"></div>
