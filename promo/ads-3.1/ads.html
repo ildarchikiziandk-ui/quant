@@ -432,30 +432,66 @@ ADS[12]={file:'zvonki',dark:1,hook:['Голосом','быстрее,','чем',
   }}};
 
 // ---------- запуск ----------
-ADS[13]={file:'promo-tiktok',dark:1,badge:'Только для TikTok',hook:['Месяц','Nuvora+','бесплатно.','Но','только','пятерым.'],hl:[1,5],chip:'ПРОМОКОД',
- title:'Код TIKTOK — 30 дней Nuvora+',sub:'всего 5 активаций: кто первый ввёл — того и подписка',cta:'Промокод на месяц Nuvora+<div style="font:800 58px/1.15 Unb;color:#5fa8e6;letter-spacing:.02em;margin-top:8px">TIKTOK</div>успей, пока не разобрали',ghost:'TIKTOK',
- endSm:'nvra.ru/plus → «Активировать» · всего 5 активаций',
+ADS[13]={file:'promo-tiktok',dark:1,badge:'Только для TikTok',hook:['Месяц','Nuvora+','бесплатно.','Но','только','пятерым.'],hl:[1,5],chip:'ПРОМОКОД TIKTOK',
+ title:'Как активировать за 10 секунд',sub:'Меню → Nuvora+ → поле «Промокод» внизу',ghost:'TIKTOK',
+ cta:'Промокод на месяц Nuvora+<div style="font:800 58px/1.15 Unb;color:#5fa8e6;letter-spacing:.02em;margin-top:8px">TIKTOK</div>Меню → Nuvora+ → «Промокод»',
+ endSm:'или сразу: nvra.ru/plus · всего 5 активаций',
  build(s){
-  s.innerHTML=`<div class="top"><div class="av" style="background:var(--whale)">${I('sparkle')}</div><div style="flex:1">Nuvora+<small>как получить</small></div></div>
-  <div style="padding:16px">
-   <div style="font:500 14px/1.4 Onest;color:var(--t2);margin-bottom:12px">Активируйте промокод от администрации</div>
-   <div style="display:flex;gap:8px"><div class="inbar" style="position:static;flex:1;padding-left:14px"><div class="tx" style="font:700 18px Unb;letter-spacing:.04em"></div></div><span class="btn go" style="height:44px">Активировать</span></div>
+  // три экрана телефона по очереди: лента с нижним меню → меню → страница Nuvora+
+  s.innerHTML=`
+  <div class="pg p1 abs" style="inset:0">
+    <div class="top"><div class="av" style="background:var(--whale)">N</div><div style="flex:1">Nuvora<small>лента</small></div></div>
+    <div style="padding:14px 16px">${[0,1].map(i=>`<div style="border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:12px"><div style="display:flex;gap:10px;align-items:center"><span class="av" style="background:${avc[i+1]}">${'АМ'[i]}</span><div style="font:700 15px Onest">${['Алина','Макс'][i]}<small style="display:block;font:500 12px Onest;color:var(--t3)">2 ч назад</small></div></div><div style="height:12px;border-radius:6px;background:var(--input);margin-top:12px;width:90%"></div><div style="height:12px;border-radius:6px;background:var(--input);margin-top:8px;width:60%"></div></div>`).join('')}</div>
+    <div class="abs nav" style="left:12px;right:12px;bottom:12px;height:62px;border-radius:20px;border:1px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:space-around;font:600 11px Onest;color:var(--t3)">
+      ${[['home','Лента'],['grid','Меню'],['plus',''],['chat','Чаты'],['user','Профиль']].map(([ic,l],i)=>i==2?`<span style="width:46px;height:42px;border-radius:14px;background:var(--whale);display:grid;place-items:center;color:#fff">${I(ic)}</span>`:`<span class="ni${i==1?' menu':''}" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:12px">${I(ic)}${l}</span>`).join('')}
+    </div>
   </div>
-  <div class="perks" style="padding:4px 16px"></div>`;
-  const tx=s.querySelector('.tx'),go=s.querySelector('.go'),pk=s.querySelector('.perks');
-  const perks=[['sparkle','Значок PLUS','18 цветов и градиентов'],['palette','Цветное имя','переливается в постах и комментариях'],['mic','Голосовые до 15 минут','и кружки до 2 минут'],['image','20 фото и видео','в одном посте'],['bolt','×1,5 очков','за посты, лайки и задания']]
-    .map(([ic,a,b])=>el(`<div class="row" style="padding:10px 4px;border:0"><span class="av" style="width:36px;height:36px;border-radius:11px;background:var(--whale)">${I(ic)}</span><div class="nm" style="font-size:15px">${a}<small>${b}</small></div></div>`,pk));
-  const toast=el(`<div class="abs toast" style="background:var(--whale);color:#fff">${I('check')} Nuvora+ на 30 дней!</div>`,s);
-  const s1=el(`<div class="abs stk" style="right:26px;top:214px;background:#f2b630;color:#1a1917">${I('bolt')} всего 5 активаций</div>`);
-  const s2=el(`<div class="abs stk" style="left:26px;top:800px">${I('clock')} 30 дней бесплатно</div>`);
+  <div class="pg p2 abs" style="inset:0;background:var(--card)">
+    <div class="top"><div style="flex:1">Меню<small>все разделы</small></div></div>
+    <div style="padding:8px 10px">${[['settings','Настройки'],['sparkle','Nuvora+'],['moon','Сменить тему'],['smartphone','Приложение для телефона']].map(([ic,l],i)=>`<div class="row mi${i==1?' plus':''}" style="border-radius:14px;border:0;padding:13px 12px"><span class="av" style="width:34px;height:34px;border-radius:10px;background:${i==1?'var(--whale)':'var(--input)'};color:${i==1?'#fff':'var(--text)'}">${I(ic)}</span><div class="nm" style="font-size:16px">${l}</div></div>`).join('')}</div>
+  </div>
+  <div class="pg p3 abs" style="inset:0;background:var(--card)">
+    <div class="top"><div class="av" style="background:var(--whale)">${I('sparkle')}</div><div style="flex:1">Nuvora+<small>подписка</small></div></div>
+    <div class="abs" style="left:0;right:0;top:71px;bottom:0;overflow:hidden"><div class="feed3" style="padding:12px 16px">
+      ${[['sparkle','Значок PLUS'],['palette','Цветное имя'],['mic','Голосовые до 15 минут'],['bolt','×1,5 очков']].map(([ic,l])=>`<div class="row" style="padding:9px 2px;border:0"><span class="av" style="width:32px;height:32px;border-radius:10px;background:var(--whale)">${I(ic)}</span><div class="nm" style="font-size:15px">${l}</div></div>`).join('')}
+      <div class="promo" style="margin-top:10px;border:2px solid var(--whale);border-radius:18px;padding:14px">
+        <div style="font:700 16px Onest">Как получить?</div>
+        <div style="font:500 13px/1.4 Onest;color:var(--t2);margin:4px 0 10px">Активируйте промокод</div>
+        <div style="display:flex;gap:8px"><div class="inbar" style="position:static;flex:1;padding-left:14px"><div class="tx" style="font:700 18px Unb;letter-spacing:.04em"></div></div><span class="btn go" style="height:44px">Активировать</span></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="abs tap" style="width:54px;height:54px;border-radius:50%;border:3px solid #fff;background:rgba(95,168,230,.35);z-index:6;pointer-events:none"></div>`;
+  const q=c=>s.querySelector(c);
+  const p1=q('.p1'),p2=q('.p2'),p3=q('.p3'),menu=q('.ni.menu'),mplus=q('.mi.plus'),feed3=q('.feed3'),promo=q('.promo'),tx=q('.tx'),go=q('.go');
+  const cap=el(`<div class="abs" style="left:28px;right:28px;top:806px;padding:14px 16px;border-radius:20px;background:var(--whale);color:#fff;font:700 21px/1.25 Onest;display:flex;gap:12px;align-items:center"><b class="sn" style="flex:none;width:38px;height:38px;border-radius:50%;background:#fff;color:var(--whale);display:grid;place-items:center;font:800 19px Unb"></b><span class="st"></span></div>`);
+  const sn=cap.querySelector('.sn'),stx=cap.querySelector('.st'),tap=q('.tap');
+  const toast=el(`<div class="abs toast" style="background:var(--ok);color:#fff">${I('check')} Nuvora+ на 30 дней!</div>`,s);
+  const s1=el(`<div class="abs stk" style="right:26px;top:226px;background:#f2b630;color:#1a1917">${I('bolt')} всего 5 активаций</div>`);
+  const steps=[[3.0,1,'В нижней панели нажмите «Меню»'],[4.9,2,'Выберите «Nuvora+»'],[6.6,3,'Пролистайте вниз до «Промокод»'],[7.6,4,'Введите TIKTOK и нажмите «Активировать»']];
+  // куда «нажимает палец»: [время, элемент]
+  const taps=[[4.2,menu],[5.9,mplus],[9.0,go]];
+  const at=(e)=>{const r=e.getBoundingClientRect(),b=s.getBoundingClientRect();return [r.left-b.left+r.width/2,r.top-b.top+r.height/2]};
   return t=>{
-    if(t<3.5)tx.innerHTML='<span class="ph" style="font:500 15px Onest;letter-spacing:0">Промокод</span>';else typ(tx,'TIKTOK',t,3.5,7,t<5);
-    press(go,t,4.75);
-    if(t>4.9){go.innerHTML=I('check')+'Готово';go.style.background='var(--ok)';go.style.color='#fff'}else{go.textContent='Активировать';go.style.background='';go.style.color=''}
-    show(toast,t,5.0,{d:.35,out:6.6});toast.style.transform+=' translateX(-50%)';
-    perks.forEach((r,i)=>show(r,t,5.6+i*.45,{d:.4,dy:18,sc:.9}));
-    show(s1,t,7.2,{d:.45,sc:.6,out:10.4});show(s2,t,8.6,{d:.45,sc:.6,out:10.4});
-    s1.style.transform+=' rotate(4deg)';s2.style.transform+=' rotate(-4deg)';
+    const cur=steps.filter(x=>t>=x[0]).pop();
+    cap.style.visibility=cur?'visible':'hidden';
+    if(cur){sn.textContent=cur[1];stx.textContent=cur[2];const k=eo(P(t,cur[0],cur[0]+.3));cap.style.transform=`translateY(${(1-k)*-10}px)`;cap.style.opacity=k}
+    // экраны: меню выезжает после нажатия, страница Nuvora+ — после второго нажатия
+    const k2=eio(P(t,4.45,4.85)),k3=eio(P(t,6.15,6.55));
+    p2.style.transform=`translateX(${(1-k2)*100}%)`;p3.style.transform=`translateX(${(1-k3)*100}%)`;
+    // на Nuvora+ прокручиваем к промокоду
+    feed3.style.transform=`translateY(${-eio(P(t,6.7,7.4))*120}px)`;
+    promo.style.boxShadow=t>7.3&&t<10.6?`0 0 0 ${4+Math.sin(t*8)*3}px rgba(95,168,230,.35)`:'none';
+    menu.style.background=t>3.4&&t<4.6?`rgba(95,168,230,${.18+Math.sin(t*9)*.1})`:'';menu.style.color=t>3.4&&t<4.6?'var(--whale)':'';
+    mplus.style.background=t>5.2&&t<6.3?`rgba(95,168,230,${.18+Math.sin(t*9)*.1})`:'';
+    if(t<7.8)tx.innerHTML='<span class="ph" style="font:500 15px Onest;letter-spacing:0">Промокод</span>';else typ(tx,'TIKTOK',t,7.8,7,t<8.9);
+    press(go,t,9.0);
+    if(t>9.15){go.innerHTML=I('check')+'Готово';go.style.background='var(--ok)';go.style.color='#fff'}else{go.textContent='Активировать';go.style.background='';go.style.color=''}
+    show(toast,t,9.25,{d:.35,out:10.7});toast.style.transform+=' translateX(-50%)';
+    show(s1,t,7.6,{d:.45,sc:.6,out:10.4});s1.style.transform+=' rotate(4deg)';
+    // палец
+    const tp=taps.find(([a])=>t>=a-.35&&t<a+.35);
+    if(tp){const [x,y]=at(tp[1]);const k=P(t,tp[0]-.35,tp[0]+.35);tap.style.left=(x-27)+'px';tap.style.top=(y-27)+'px';tap.style.opacity=k<.5?k*2:2-k*2;tap.style.transform=`scale(${1.3-.4*Math.min(1,k*2)})`}else tap.style.opacity=0;
   }}};
 
 const n=+new URLSearchParams(location.search).get('ad')||1;
