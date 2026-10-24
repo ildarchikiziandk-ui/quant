@@ -5,8 +5,8 @@
 @font-face{font-family:Onest;font-weight:100 900;src:url(onest-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
 @font-face{font-family:Unb;font-weight:200 900;src:url(unbounded-cyrillic-wght-normal.woff2) format("woff2");unicode-range:U+0400-045F,U+2116}
 @font-face{font-family:Unb;font-weight:200 900;src:url(unbounded-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
-:root{--ink:#1f1d1a;--paper:#f6f1e8;--whale:#2f6487;--card:#fffdf9;--card2:#fbf7f0;--border:#e7ddcd;--t2:#6b6357;--t3:#a0968a;--input:#f1eadf;--ok:#3c9a5f;--amber:#c98a1b;--red:#d63c3c;--bg:var(--paper);--text:var(--ink);--onink:#fbf7f0}
-.dark{--bg:#141311;--card:#1c1b18;--card2:#22201d;--border:#2e2b27;--text:#f3ece1;--t2:#a69d90;--t3:#6f685e;--input:#252320;--whale:#7fb0d3;--ink:#f3ece1;--onink:#1a1917;--ok:#5cc27f}
+:root{--ink:#1f1d1a;--paper:#f6f1e8;--whale:#1f6fb8;--card:#fffdf9;--card2:#fbf7f0;--border:#e7ddcd;--t2:#6b6357;--t3:#a0968a;--input:#f1eadf;--ok:#3c9a5f;--amber:#c98a1b;--red:#d63c3c;--bg:var(--paper);--text:var(--ink);--onink:#fbf7f0}
+.dark{--bg:#141311;--card:#1c1b18;--card2:#22201d;--border:#2e2b27;--text:#f3ece1;--t2:#a69d90;--t3:#6f685e;--input:#252320;--whale:#5fa8e6;--ink:#f3ece1;--onink:#1a1917;--ok:#5cc27f}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:540px;height:960px;overflow:hidden;background:#000}
 #st{position:relative;width:540px;height:960px;overflow:hidden;background:var(--bg);color:var(--text);font-family:Onest,sans-serif}
@@ -86,13 +86,13 @@ function frame(ad){
   if(ad.dark)st.classList.add('dark');
   const ghost=el(`<div class="abs ghost">${ad.ghost||'3.1'}</div>`);
   const bar=el(`<div class="abs bar"><i></i></div>`);
-  const badge=el(`<div class="abs" style="left:34px;top:226px"><span class="badge"><img src="logo-180.png">Nuvora 3.1</span></div>`);
+  const badge=el(`<div class="abs" style="left:34px;top:226px"><span class="badge"><img src="logo-180.png">${ad.badge||'Nuvora 3.1'}</span></div>`);
   const hook=el(`<div class="abs hook">${ad.hook.map((w,i)=>`<span class="w"><span class="${(ad.hl||[]).includes(i)?'hl':''}">${w}</span></span>`).join(' ')}</div>`);
   const words=[...hook.querySelectorAll('.w>span')];
   const head=el(`<div class="abs head"><span class="chip">${ad.chip}</span><h2>${ad.title}</h2><p>${ad.sub}</p></div>`);
   const scr=ad.noScreen?null:el(`<div class="abs scr"></div>`);
   const upd=ad.build(scr,st);
-  const end=el(`<div class="abs end"><div class="cta">${ad.cta}</div><img src="logo-180.png"><div class="nm">Nuvora</div><div class="url">nvra.ru</div><div class="sm">бесплатно · сайт и Android</div></div>`);
+  const end=el(`<div class="abs end"><div class="cta">${ad.cta}</div><img src="logo-180.png"><div class="nm">Nuvora</div><div class="url">nvra.ru</div><div class="sm">${ad.endSm||'бесплатно · сайт и Android'}</div></div>`);
   const ekids=[...end.children];
   const H=ad.hookEnd||2.6, E=10.9;
   return t=>{
@@ -432,6 +432,32 @@ ADS[12]={file:'zvonki',dark:1,hook:['Голосом','быстрее,','чем',
   }}};
 
 // ---------- запуск ----------
+ADS[13]={file:'promo-tiktok',dark:1,badge:'Только для TikTok',hook:['Месяц','Nuvora+','бесплатно.','Но','только','пятерым.'],hl:[1,5],chip:'ПРОМОКОД',
+ title:'Код TIKTOK — 30 дней Nuvora+',sub:'всего 5 активаций: кто первый ввёл — того и подписка',cta:'Промокод на месяц Nuvora+<div style="font:800 58px/1.15 Unb;color:#5fa8e6;letter-spacing:.02em;margin-top:8px">TIKTOK</div>успей, пока не разобрали',ghost:'TIKTOK',
+ endSm:'nvra.ru/plus → «Активировать» · всего 5 активаций',
+ build(s){
+  s.innerHTML=`<div class="top"><div class="av" style="background:var(--whale)">${I('sparkle')}</div><div style="flex:1">Nuvora+<small>как получить</small></div></div>
+  <div style="padding:16px">
+   <div style="font:500 14px/1.4 Onest;color:var(--t2);margin-bottom:12px">Активируйте промокод от администрации</div>
+   <div style="display:flex;gap:8px"><div class="inbar" style="position:static;flex:1;padding-left:14px"><div class="tx" style="font:700 18px Unb;letter-spacing:.04em"></div></div><span class="btn go" style="height:44px">Активировать</span></div>
+  </div>
+  <div class="perks" style="padding:4px 16px"></div>`;
+  const tx=s.querySelector('.tx'),go=s.querySelector('.go'),pk=s.querySelector('.perks');
+  const perks=[['sparkle','Значок PLUS','18 цветов и градиентов'],['palette','Цветное имя','переливается в постах и комментариях'],['mic','Голосовые до 15 минут','и кружки до 2 минут'],['image','20 фото и видео','в одном посте'],['bolt','×1,5 очков','за посты, лайки и задания']]
+    .map(([ic,a,b])=>el(`<div class="row" style="padding:10px 4px;border:0"><span class="av" style="width:36px;height:36px;border-radius:11px;background:var(--whale)">${I(ic)}</span><div class="nm" style="font-size:15px">${a}<small>${b}</small></div></div>`,pk));
+  const toast=el(`<div class="abs toast" style="background:var(--whale);color:#fff">${I('check')} Nuvora+ на 30 дней!</div>`,s);
+  const s1=el(`<div class="abs stk" style="right:26px;top:214px;background:#f2b630;color:#1a1917">${I('bolt')} всего 5 активаций</div>`);
+  const s2=el(`<div class="abs stk" style="left:26px;top:800px">${I('clock')} 30 дней бесплатно</div>`);
+  return t=>{
+    if(t<3.5)tx.innerHTML='<span class="ph" style="font:500 15px Onest;letter-spacing:0">Промокод</span>';else typ(tx,'TIKTOK',t,3.5,7,t<5);
+    press(go,t,4.75);
+    if(t>4.9){go.innerHTML=I('check')+'Готово';go.style.background='var(--ok)';go.style.color='#fff'}else{go.textContent='Активировать';go.style.background='';go.style.color=''}
+    show(toast,t,5.0,{d:.35,out:6.6});toast.style.transform+=' translateX(-50%)';
+    perks.forEach((r,i)=>show(r,t,5.6+i*.45,{d:.4,dy:18,sc:.9}));
+    show(s1,t,7.2,{d:.45,sc:.6,out:10.4});show(s2,t,8.6,{d:.45,sc:.6,out:10.4});
+    s1.style.transform+=' rotate(4deg)';s2.style.transform+=' rotate(-4deg)';
+  }}};
+
 const n=+new URLSearchParams(location.search).get('ad')||1;
 window.AD=ADS[n];window.seek=frame(ADS[n]);window.T=T;
 document.fonts.ready.then(()=>{window.seek(+new URLSearchParams(location.search).get('t')||0);window.READY=1});
