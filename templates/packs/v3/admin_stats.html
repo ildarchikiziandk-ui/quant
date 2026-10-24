@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Статистика — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Статистика</div><a class="btn soft sm" href="/admin/export/users.csv" title="Выгрузить всех пользователей в таблицу">{{ icon("download", "i in") }} CSV</a></div>
+<div class="card"><div class="card-title">Активность</div>
+  <div class="v3-astat">
+    <div><b>{{ act.dau }}</b><span>за сутки (DAU)</span></div><div><b>{{ act.wau }}</b><span>за неделю (WAU)</span></div>
+    <div><b>{{ act.mau }}</b><span>за месяц (MAU)</span></div><div><b>{{ act.stick }}%</b><span>DAU / MAU — как часто возвращаются</span></div>
+    <div><b>{{ act.new30 }}</b><span>новых за 30 дней</span></div><div><b>{{ act.silent }}</b><span>не заходили 30+ дней из {{ act.total }}</span></div>
+  </div></div>
+{% for title, rows in series.items() %}{% set mx = [1] + rows|map(attribute=1)|list %}
+<div class="card"><div class="card-title"><span>{{ title }}</span><span class="faint small">30 дней · всего {{ rows|sum(attribute=1) }}</span></div>
+  <div class="v3-abars">{% for d, n in rows %}<i style="height:{{ (n * 100 / (mx|max))|round|int }}%" title="{{ d }}: {{ n }}"></i>{% endfor %}</div>
+  <div class="row tiny faint" style="justify-content:space-between"><span>{{ rows[0][0] }}</span><span>{{ rows[-1][0] }}</span></div></div>
+{% endfor %}
+<div class="card"><div class="card-title">Звонки за 30 дней</div>
+  <div class="v3-astat"><div><b>{{ calls.all }}</b><span>всего</span></div><div><b>{{ calls.answered }}</b><span>состоялось</span></div>
+    <div><b>{{ calls.missed }}</b><span>пропущено или отклонено</span></div><div><b>{{ calls.minutes }}</b><span>минут разговоров</span></div><div><b>{{ calls.avg }}</b><span>средний разговор</span></div></div></div>
+<div class="card"><div class="card-title">Лучшие посты недели</div>
+  {% for p, n in top_posts %}<a class="row v3-arow" href="/post/{{ p.id }}"><span class="grow ellipsis">{{ (p.content or "медиа")[:80] }}</span><span class="faint small">@{{ p.author.username if p.author else "?" }}</span><b>{{ icon("heart", "i in") }} {{ n }}</b></a>{% else %}<div class="empty small">Пока нет лайков за неделю</div>{% endfor %}</div>
+<div class="card"><div class="card-title">Самые активные авторы недели</div>
+  {% for u, n in top_authors %}<a class="row v3-arow" href="/admin/u/{{ u.username }}">{{ avatar(u, 28) }}<span class="grow ellipsis">{{ u.name or u.username }} <span class="faint small">@{{ u.username }}</span></span><b>{{ n }} пост.</b></a>{% else %}<div class="empty small">Постов за неделю нет</div>{% endfor %}</div>
+<div class="card"><div class="card-title">Популярные хэштеги</div>
+  <div class="row wrap" style="gap:6px">{% for t in trends %}<a class="chip" href="/hashtag/{{ t.tag }}">#{{ t.tag }} <span class="faint">{{ t.count }}</span></a>{% else %}<span class="muted small">Хэштегов пока нет</span>{% endfor %}</div></div>
+{% endblock %}

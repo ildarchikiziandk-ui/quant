@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Черновики — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("note", "i in") }} Черновики и отложенные</div>
+<div class="card"><div class="card-title">{{ icon("alarm", "i in") }} Запланированные посты · {{ scheduled|length }}</div>
+{% for p in scheduled %}<div class="row" style="padding:8px 0;border-top:1px solid var(--border)"><div class="grow"><div class="ellipsis">{{ p.content or "медиа" }}</div><div class="tiny muted">выйдет {{ p.scheduled_at|lt }}</div></div>
+  <a href="/post/{{ p.id }}" class="btn soft sm">Открыть</a><form method="post" action="/post/{{ p.id }}/publish-now"><button class="btn sm">Сейчас</button></form></div>
+{% else %}<div class="muted small">Нет отложенных постов</div>{% endfor %}</div>
+<div class="card"><div class="card-title">Черновики · {{ drafts|length }}</div>
+{% for d in drafts %}<div class="row" style="padding:8px 0;border-top:1px solid var(--border)"><div class="grow"><div style="white-space:pre-wrap">{{ d.content[:300] }}</div><div class="tiny muted">{{ d.updated_at|ago }}</div></div>
+  <a class="btn sm" href="/create" onclick="try{localStorage.setItem('composer-draft', {{ d.content|tojson|forceescape }})}catch(e){}">Продолжить</a>
+  <form method="post" action="/drafts/{{ d.id }}/delete"><button class="btn ghost sm">Удалить</button></form></div>
+{% else %}<div class="muted small">Черновиков нет. Сохраняйте их кнопкой {{ icon("draft", "i in") }} в редакторе поста.</div>{% endfor %}</div>
+{% endblock %}

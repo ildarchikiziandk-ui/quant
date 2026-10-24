@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}@{{ t.username }} — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin?tab=users" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">@{{ t.username }}</div><a class="btn soft sm" href="/profile/{{ t.username }}">Профиль</a></div>
+{% if ok %}<div class="alert success mb">{{ ok }}</div>{% endif %}{% if err %}<div class="alert error mb">{{ err }}</div>{% endif %}
+
+<div class="card"><div class="row" style="gap:14px">{{ avatar(t, 64) }}<div class="grow" style="min-width:0">
+  <b style="font-size:18px">{{ t.name or t.username }}</b>{% if t.is_owner %} <span class="tag-pill">владелец</span>{% elif t.is_moderator %} <span class="tag-pill">модератор</span>{% endif %}
+  <div class="small muted">@{{ t.username }}{% for a in aliases %} · @{{ a }}{% endfor %} · id {{ t.id }}</div>
+  <div class="small">{% if t.is_blocked %}<b style="color:var(--danger)">заблокирован{% if t.blocked_until %} до {{ t.blocked_until|lt("%d.%m.%Y") }}{% endif %}</b>{% elif is_online(t) %}<span style="color:var(--online)">онлайн</span>{% else %}был(а) {{ t.last_seen|ago if t.last_seen else "давно" }}{% endif %}</div>
+</div></div>
+<div class="grid-4 mt">
+  <div class="stat-tile"><b>{{ counts.posts }}</b><span>постов</span></div><div class="stat-tile"><b>{{ counts.comments }}</b><span>комментариев</span></div>
+  <div class="stat-tile"><b>{{ counts.followers }}</b><span>подписчиков</span></div><div class="stat-tile"><b>{{ counts.following }}</b><span>подписок</span></div>
+  <div class="stat-tile"><b>{{ counts.messages }}</b><span>сообщений отправил</span></div><div class="stat-tile"><b>{{ counts.groups }}</b><span>групп</span></div>
+  <div class="stat-tile"><b>{{ counts.stories }}</b><span>историй</span></div><div class="stat-tile"><b>{{ counts.reports }}</b><span>жалоб на него</span></div>
+</div>
+<p class="tiny faint mt">Переписку администратор не видит: только количество сообщений.</p></div>
+
+<div class="card"><div class="card-title">Аккаунт</div><div class="table-wrap"><table class="table small">
+  <tr><td class="muted">Email</td><td>{% if is_owner %}{{ t.email }}{% else %}скрыт{% endif %} {% if t.email_verified %}<span style="color:var(--online)">подтверждён</span>{% else %}<span class="muted">не подтверждён</span>{% endif %}</td></tr>
+  <tr><td class="muted">Регистрация</td><td>{{ t.created_at|lt("%d.%m.%Y %H:%M") if t.created_at else "—" }}{% if t.yandex_id %} · через Яндекс{% endif %}</td></tr>
+  <tr><td class="muted">Двухфакторная защита</td><td>{{ "включена" if t.two_factor_enabled else "выключена" }}</td></tr>
+  <tr><td class="muted">Nuvora+</td><td>{% if t.is_plus and (not t.plus_until or t.plus_until > utcnow()) %}до {{ t.plus_until|lt("%d.%m.%Y") if t.plus_until else "бессрочно" }}{% else %}нет{% endif %}</td></tr>
+  <tr><td class="muted">Баллы</td><td>заработано {{ t.total_points or 0 }} · потрачено {{ t.spent_points or 0 }} · <b>баланс {{ balance }}</b> · уровень {{ t.level or 1 }} · огонёк {{ t.streak_days or 0 }}</td></tr>
+  <tr><td class="muted">Профиль</td><td>{{ "закрытый" if t.is_private else "открытый" }} · просмотров {{ t.profile_views or 0 }}</td></tr>
+  {% set pc = phone_check %}<tr><td class="muted">Телефон</td><td>{% if not pc %}не проверялся{% elif pc.status == "verified" %}<span style="color:var(--online)">подтверждён</span> · {{ pc.phone[:5] }}•••{{ pc.phone[-2:] }} · через бот MAX{% elif pc.status == "skipped" %}пропустил(а) проверку («Нет MAX»){% else %}<b>ждём подтверждения</b>{% endif %}{% if pc and pc.reason %} <span class="faint tiny">({{ pc.reason }})</span>{% endif %}</td></tr>
+  {% if v3_posts_locked(t) %}<tr><td class="muted">Режим</td><td><b>только чаты и профиль</b> — посты не публикует, чужие не видит</td></tr>{% endif %}
+</table></div></div>
+
+{% if is_owner %}
+<form class="card" method="post" action="/admin/u/{{ t.username }}/save"><div class="card-title">Изменить профиль</div>
+  <div class="form-row"><label class="field"><span>Имя</span><input name="name" maxlength="60" value="{{ t.name or '' }}"></label><label class="field"><span>Логин</span><input name="username" maxlength="30" value="{{ t.username }}" required></label></div>
+  <div class="form-row"><label class="field"><span>Email</span><input name="email" maxlength="120" value="{{ t.email or '' }}"></label><label class="field"><span>Город</span><input name="city" maxlength="60" value="{{ t.city or '' }}"></label></div>
+  <label class="field"><span>О себе</span><textarea name="bio" rows="2" maxlength="600">{{ t.bio or '' }}</textarea></label>
+  <button class="btn">Сохранить</button><span class="tiny faint"> Логин можно поставить любой, в том числе заповедный или платный.</span></form>
+
+<div class="card"><div class="card-title">Логины</div>
+  {% for a in aliases %}<form class="row" method="post" action="/admin/u/{{ t.username }}/alias-del" style="gap:8px;padding:4px 0"><b class="grow">@{{ a }}</b><input type="hidden" name="handle" value="{{ a }}"><button class="btn ghost sm">Освободить</button></form>{% endfor %}
+  {% if aliases|length < 2 %}<form class="row mt" method="post" action="/admin/u/{{ t.username }}/alias-add" style="gap:8px"><input name="handle" maxlength="30" placeholder="дополнительный логин" style="margin:0" required><button class="btn sm">Добавить</button></form>{% endif %}
+  {% if purchases %}<div class="tiny faint mt">Покупки: {% for p in purchases %}@{{ p.username }} за {{ p.price }}{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}</div>
+
+<div class="card"><div class="card-title">Баллы, Nuvora+ и значки</div>
+  <form class="row" method="post" action="/admin/u/{{ t.username }}/balance" style="gap:8px"><input name="balance" inputmode="numeric" value="{{ balance }}" style="margin:0;max-width:160px"><button class="btn sm">Установить баланс</button></form>
+  <div class="row wrap mt" style="gap:8px">
+    <form method="post" action="/admin/plus/{{ t.username }}" class="row" style="gap:6px"><input name="days" value="30" inputmode="numeric" style="margin:0;width:70px"><button class="btn soft sm">Выдать Plus (дней)</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/plus-off"><button class="btn soft sm">Снять Plus</button></form>
+    <form method="post" action="/admin/verify/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_verified_badge else "Дать" }} галочку</button></form>
+    <form method="post" action="/admin/star/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_starred else "Дать" }} звезду</button></form>
+    {% if not t.is_owner %}<form method="post" action="/admin/mod/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_moderator else "Сделать" }} модератором</button></form>{% endif %}
+  </div></div>
+
+<div class="card"><div class="card-title">Безопасность</div>
+  <div class="row wrap" style="gap:8px">
+    <form method="post" action="/admin/reset-password/{{ t.username }}" onsubmit="return confirm('Сбросить пароль?')"><button class="btn soft sm">Сбросить пароль</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/logout-all"><button class="btn soft sm">Выйти на всех устройствах</button></form>
+    {% if t.two_factor_enabled %}<form method="post" action="/admin/u/{{ t.username }}/disable-2fa" onsubmit="return confirm('Отключить 2FA?')"><button class="btn soft sm">Отключить 2FA</button></form>{% endif %}
+    {% if not t.email_verified %}<form method="post" action="/admin/u/{{ t.username }}/verify-email"><button class="btn soft sm">Подтвердить email</button></form>{% endif %}
+    <form method="post" action="/admin/u/{{ t.username }}/private"><button class="btn soft sm">{{ "Открыть" if t.is_private else "Закрыть" }} профиль</button></form>
+    {% set la = v3_login_approve(t) %}<form method="post" action="/admin/u/{{ t.username }}/login-approve"><input type="hidden" name="on" value="{{ '' if la else '1' }}"><button class="btn soft sm" title="Вход с нового устройства — только после «Да» на уже открытой Nuvora">{{ "Выключить" if la else "Включить" }} подтверждение входа</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/phone-ask"><button class="btn soft sm">Попросить подтвердить номер</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/posts-lock"><button class="btn soft sm" title="Без публикации постов и без чужих постов: остаются чаты, свой профиль и остальные функции">{{ "Вернуть посты и ленту" if v3_posts_locked(t) else "Только чаты и профиль" }}</button></form>
+  </div>
+  {% if sessions %}<div class="table-wrap mt"><table class="table small"><tr><th>Устройство</th><th>IP</th><th>Активность</th><th></th></tr>
+  {% for se in sessions %}<tr><td>{{ se.device or "—" }}</td><td class="muted">{{ se.ip or "—" }}</td><td class="muted">{{ se.last_active|ago if se.last_active else "—" }}</td>
+    <td>{% if se.is_active %}<form method="post" action="/admin/u/{{ t.username }}/session-end"><input type="hidden" name="sid" value="{{ se.id }}"><button class="btn ghost sm">Завершить</button></form>{% else %}<span class="faint">завершён</span>{% endif %}</td></tr>{% endfor %}
+  </table></div>{% endif %}</div>
+
+<div class="card"><div class="card-title">Блокировка и уведомление</div>
+  {% if t.is_blocked %}<form method="post" action="/admin/u/{{ t.username }}/unblock"><button class="btn sm">Разблокировать</button></form>
+  {% else %}<form class="form-row" method="post" action="/admin/u/{{ t.username }}/block"><label class="field" style="max-width:120px"><span>Дней</span><input name="days" value="7" inputmode="numeric"></label><label class="field"><span>Причина</span><input name="reason" maxlength="200" placeholder="спам"></label><button class="btn danger" style="align-self:flex-end">Заблокировать</button></form>{% endif %}
+  {% set mu = v3_mute_until(t) %}{% set wn = v3_warnings(t) %}
+  <div class="pref-group mt">Предупреждения{% if wn %}: <b style="color:var(--like)">{{ wn }}</b>{% endif %}</div>
+  <form class="row" method="post" action="/admin/u/{{ t.username }}/warn" style="gap:8px"><input name="reason" maxlength="200" placeholder="За что (придёт человеку)" style="margin:0"><button class="btn soft sm">Предупредить</button></form>
+  {% if wn %}<form method="post" action="/admin/u/{{ t.username }}/warn-reset" class="mt"><button class="v3-link small">Снять предупреждения</button></form>{% endif %}
+  <div class="pref-group mt">Запрет публикаций (посты, комментарии, истории; чаты работают)</div>
+  {% if mu %}<p class="small">Действует до <b>{{ mu.strftime("%d.%m.%Y %H:%M") }}</b> UTC</p><form method="post" action="/admin/u/{{ t.username }}/unmute"><button class="btn soft sm">Снять запрет</button></form>
+  {% else %}<form class="form-row" method="post" action="/admin/u/{{ t.username }}/mute"><label class="field" style="max-width:120px"><span>Часов</span><input name="hours" value="24" inputmode="numeric"></label><label class="field"><span>Причина</span><input name="reason" maxlength="200" placeholder="флуд"></label><button class="btn soft sm">Запретить</button></form>{% endif %}
+  <form class="row mt" method="post" action="/admin/u/{{ t.username }}/notify" style="gap:8px"><input name="text" maxlength="500" placeholder="Текст уведомления пользователю" style="margin:0" required><button class="btn sm">Отправить</button></form></div>
+
+<div class="card"><div class="card-title">Контент</div>
+  <div class="row wrap" style="gap:8px">
+    <form method="post" action="/admin/u/{{ t.username }}/delete-posts" onsubmit="return confirm('Удалить все посты?')"><button class="btn ghost sm danger">Удалить все посты</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/delete-comments" onsubmit="return confirm('Удалить все комментарии?')"><button class="btn ghost sm danger">Удалить все комментарии</button></form>
+    <form method="post" action="/admin/u/{{ t.username }}/delete-stories" onsubmit="return confirm('Удалить все истории?')"><button class="btn ghost sm danger">Удалить истории</button></form>
+    {% if not t.is_owner %}<form method="post" action="/admin/delete-user/{{ t.username }}" onsubmit="return confirm('Удалить аккаунт @{{ t.username }} со всеми данными? Это навсегда.')"><button class="btn danger sm">Удалить аккаунт</button></form>{% endif %}
+  </div>
+  {% if posts %}<div class="pref-group">Последние посты</div>{% for p in posts %}<a class="row small" href="/post/{{ p.id }}" style="padding:4px 0;gap:8px"><span class="grow ellipsis">{{ (p.content or "медиа")[:90] }}</span><span class="faint tiny">{{ p.created_at|ago }}</span></a>{% endfor %}{% endif %}
+  {% if comments %}<div class="pref-group">Последние комментарии</div>{% for c in comments %}<a class="row small" href="/post/{{ c.post_id }}" style="padding:4px 0;gap:8px"><span class="grow ellipsis">{{ (c.content or "")[:90] }}</span><span class="faint tiny">{{ c.created_at|ago }}</span></a>{% endfor %}{% endif %}
+</div>
+{% endif %}
+
+{% if logs %}<div class="card"><div class="card-title">Действия администрации</div>{% for l in logs %}<div class="row tiny" style="justify-content:space-between;padding:3px 0"><span>{{ l.action }}{% if l.details %} — {{ l.details[:80] }}{% endif %}</span><span class="faint">{{ l.created_at|ago }}</span></div>{% endfor %}</div>{% endif %}
+{% endblock %}

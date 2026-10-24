@@ -1,5 +1,14 @@
 venv/
+.venv/
 __pycache__/
-*.db
 *.pyc
-.env/root/quant/uploads
+*.db
+.env
+uploads/
+.pytest_cache/
+.vapid.json
+.claude/
+
+# файлы сайта для APK — собираются tools/bundle_app.py
+android/app/src/main/assets/www/
+data/app/

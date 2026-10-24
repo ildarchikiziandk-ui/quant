@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Дни рождения — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("cake", "i in") }} Дни рождения</div></div>
+<div class="page-sub">Ближайшие два месяца — у ваших друзей и подписчиков. В сам день придёт напоминание.</div>
+{% if items %}<a class="btn soft sm mb" href="/calendar/birthdays.ics">{{ icon("calendar", "i in") }} Добавить все в календарь телефона</a>{% endif %}
+{% set months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"] %}
+<div class="card flat">
+  {% for it in items %}
+  <div class="row bday-row{% if it.in_days == 0 %} today{% endif %}">
+    <a href="/profile/{{ it.user.username }}">{{ avatar(it.user, 46) }}</a>
+    <div class="grow" style="min-width:0"><a href="/profile/{{ it.user.username }}"><b class="ellipsis" style="display:block">{{ dname(it.user) }}</b></a>
+      <span class="small muted">{{ it.date.day }} {{ months[it.date.month - 1] }} · {% if it.in_days == 0 %}<b style="color:var(--accent)">сегодня</b>{% elif it.in_days == 1 %}завтра{% else %}через {{ plural(it.in_days, "день", "дня", "дней") }}{% endif %}</span></div>
+    {% if it.in_days == 0 %}<a class="btn sm" href="/messages/{{ it.user.username }}?greet=1">{{ icon("gift", "i in") }} Поздравить</a>
+    {% else %}<a class="btn sm soft" href="/gifts/{{ it.user.username }}" title="Подарить подарок">{{ icon("gift", "i in") }}</a>{% endif %}
+  </div>
+  {% else %}
+  <div class="empty" style="padding:30px">{{ icon("cake", "i in") }}<br>В ближайшие два месяца дней рождения нет.<br><span class="small">Дату своего дня рождения можно указать в <a href="/settings">настройках</a>.</span></div>
+  {% endfor %}
+</div>
+{% endblock %}

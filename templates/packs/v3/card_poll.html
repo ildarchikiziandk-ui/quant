@@ -1,0 +1,9 @@
+<div class="v3-card v3-poll{% if not p.closed %} v3-live{% endif %}" data-v3-msg="{{ msg.id }}">
+  <div class="v3-card-head">{{ icon_svg("poll", "i in") }} <span>Опрос{% if p.multi %} · несколько ответов{% endif %}{% if p.closed %} · закрыт{% endif %}</span></div>
+  <b class="v3-q">{{ p.question }}</b>
+  {% for o in opts %}{% set n = counts[loop.index0] %}{% set pct = (n * 100 / total)|round|int %}
+  <button type="button" class="v3-opt{% if loop.index0 in mine %} on{% endif %}" data-v3-vote="{{ p.id }}" data-opt="{{ loop.index0 }}"{% if p.closed %} disabled{% endif %}>
+    <i style="width:{{ pct if voters else 0 }}%"></i><span class="t">{% if loop.index0 in mine %}{{ icon_svg("check", "i in") }} {% endif %}{{ o }}</span><span class="n">{% if voters %}{{ pct }}%{% endif %}</span>
+  </button>{% endfor %}
+  <div class="v3-card-foot"><span>{{ plural(voters, "голос", "голоса", "голосов") }}</span>{% if user and user.id == p.creator_id and not p.closed %}<button type="button" class="v3-link" data-v3-close="{{ p.id }}">Закрыть опрос</button>{% endif %}</div>
+</div>

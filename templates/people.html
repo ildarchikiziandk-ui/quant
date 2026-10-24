@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import user_row %}{% from "partials/icons.html" import icon %}
+{% block title %}{{ "Подписчики" if kind == "followers" else "Подписки" }} @{{ profile_user.username }} — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="row"><a href="/profile/{{ profile_user.username }}" class="back-link">{{ icon("back") }}</a><div><div class="page-title" style="margin:0">{{ profile_user.name or profile_user.username }}</div><div class="small muted">@{{ profile_user.username }}</div></div></div></div>
+<div class="tabs"><a href="/profile/{{ profile_user.username }}/followers" class="{% if kind == 'followers' %}active{% endif %}">Подписчики</a><a href="/profile/{{ profile_user.username }}/following" class="{% if kind == 'following' %}active{% endif %}">Подписки</a></div>
+<div class="card">
+  <input type="search" placeholder="Фильтр по имени…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('#people .user-row').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')">
+  <div id="people" class="mt">{% for u in people %}{{ user_row(u, user, following) }}{% else %}<div class="empty">Список пуст</div>{% endfor %}</div>
+</div>
+{% endblock %}

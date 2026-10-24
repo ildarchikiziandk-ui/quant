@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import post_card %}
+{% block title %}Топ — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("trophy", "i in") }} Лучшие посты</div></div>
+<div class="tabs">{% for k, l in [("day","За сутки"),("week","За неделю"),("month","За месяц")] %}<a href="/top?period={{ k }}" class="{% if period == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
+{% for p in posts %}<div class="rec-reason">#{{ loop.index }}</div>{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty">За этот период постов нет</div>{% endfor %}
+{% endblock %}

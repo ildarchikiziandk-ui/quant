@@ -1,323 +1,45 @@
 {% extends "base.html" %}
-{% from "badges.html" import owner_badge, verify_badge, star_badge %}
+{% from "partials/macros.html" import avatar %}{% from "partials/icons.html" import icon %}
 {% block content %}
-
-{% if stories_users %}
-<div class="card" style="padding:12px 16px;margin-bottom:10px;">
-    <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;">
-        {% if user %}
-        <a href="/stories/create" style="text-decoration:none;flex-shrink:0;">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                <div style="position:relative;">
-                    <div class="avatar-circle" style="width:58px;height:58px;border:2px dashed var(--border);">
-                        {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:20px;">{{ user.username[0].upper() }}</span>{% endif %}
-                    </div>
-                    <div style="position:absolute;bottom:0;right:0;width:20px;height:20px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--card);">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    </div>
-                </div>
-                <span style="font-size:11px;color:var(--text-secondary);font-weight:600;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Добавить</span>
-            </div>
-        </a>
-        {% endif %}
-        {% for su in stories_users %}
-        <a href="/stories/{{ su.username }}" style="text-decoration:none;flex-shrink:0;">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                <div style="width:62px;height:62px;border-radius:50%;padding:2px;background:{% if su.seen %}var(--border){% else %}linear-gradient(45deg,#f59e0b,#ef4444,#8b5cf6){% endif %};">
-                    <div class="avatar-circle" style="width:100%;height:100%;border:2.5px solid var(--card);">
-                        {% if su.avatar %}<img src="{{ su.avatar }}">{% else %}<span style="font-size:18px;">{{ su.username[0].upper() }}</span>{% endif %}
-                    </div>
-                </div>
-                <span style="font-size:11px;color:var(--text);font-weight:600;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ su.name or su.username }}</span>
-            </div>
-        </a>
-        {% endfor %}
-    </div>
+{% if story_groups or user %}
+<div class="card stories-card" style="padding:12px 14px">
+  <div class="stories">
+    {% if user %}
+    <a href="/stories/create" class="story-item"><span class="story-add">{{ icon("plus") }}</span><span>Ваша история</span></a>
+    {% endif %}
+    {% for g in story_groups %}
+    <a href="/stories/{{ g.user.username }}" class="story-item">
+      <span class="ring {% if g.seen %}seen{% endif %}">{{ avatar(g.user, 58) }}</span>
+      <span>{% if user and g.user.id == user.id %}Вы{% else %}{{ g.user.name or g.user.username }}{% endif %}</span>
+    </a>
+    {% endfor %}
+  </div>
 </div>
 {% endif %}
 
-{% if user %}
-<div class="card" style="margin-bottom:10px;">
-    <div style="display:flex;gap:12px;">
-        <a href="/profile/{{ user.username }}">
-            <div class="avatar-circle" style="width:42px;height:42px;flex-shrink:0;">
-                {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:16px;">{{ user.username[0].upper() }}</span>{% endif %}
-            </div>
-        </a>
-        <form method="post" action="/post" enctype="multipart/form-data" style="flex:1;" id="post-form">
-            <textarea name="content" id="post-textarea" placeholder="Что происходит?" required style="border:none;padding:8px 0;font-size:16px;resize:none;min-height:64px;border-bottom:1.5px solid var(--border);border-radius:0;margin-bottom:12px;background:transparent;"></textarea>
-            <div id="media-preview" style="display:none;position:relative;margin-bottom:12px;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
-                <img id="preview-img" style="display:none;max-width:100%;max-height:400px;width:auto;border-radius:14px;">
-                <video id="preview-video" style="display:none;max-width:100%;max-height:400px;width:auto;border-radius:14px;" controls></video>
-                <button type="button" onclick="clearMedia()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;">×</button>
-            </div>
-            <input type="file" id="media-input" name="media" accept="image/jpeg,image/png,image/webp,video/mp4" style="display:none;" onchange="onMediaSelected(this)">
-            {% if upload_error %}
-            <div class="alert-error" style="margin-bottom:12px;">⚠️ {{ upload_error }}</div>
-            {% endif %}
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div style="display:flex;gap:4px;">
-                    <button type="button" onclick="document.getElementById('media-input').click()" class="action-btn">
-                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                        <span class="hide-mobile">Фото/видео</span>
-                    </button>
-                    <button type="button" onclick="togglePoll()" class="action-btn">
-                        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                        <span class="hide-mobile">Опрос</span>
-                    </button>
-                </div>
-                <button class="btn">Опубликовать</button>
-            </div>
-            <div id="poll-wrap" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
-                <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">Опрос</div>
-                <input type="text" name="poll_question" placeholder="Вопрос..." style="margin-bottom:8px;">
-                <input type="text" name="poll_option_1" placeholder="Вариант 1" style="margin-bottom:8px;">
-                <input type="text" name="poll_option_2" placeholder="Вариант 2" style="margin-bottom:8px;">
-                <input type="text" name="poll_option_3" placeholder="Вариант 3 (необяз.)" style="margin-bottom:0;">
-            </div>
-        </form>
-    </div>
+{% if not user %}
+<div class="card hero center" style="padding:34px 22px">
+  <img src="/static/brand/logo-180.png" alt="" style="width:64px;height:64px;border-radius:18px;margin-bottom:12px">
+  <h2 style="font-size:26px;font-weight:800;letter-spacing:-.6px">Добро пожаловать в {{ brand }}</h2>
+  <p class="muted" style="margin:6px 0 18px">{{ brand_tagline }}. Посты, истории, чаты и группы — в одном месте.</p>
+  <div class="row" style="justify-content:center"><a href="/register" class="btn">Создать аккаунт</a><a href="/login" class="btn ghost">Войти</a></div>
 </div>
+{% endif %}
+
+{% for _s in pack_slot("home_top") %}{% include _s %}{% endfor %}
+<div class="tabs">
+  {% if user %}<a href="/?tab=following" class="{% if tab == 'following' %}active{% endif %}">Подписки</a>{% endif %}
+  <a href="/?tab=foryou" class="{% if tab == 'foryou' %}active{% endif %}">Рекомендации</a>
+</div>
+
+{% if posts %}
+  {% set more_url = "/feed/more?tab=" ~ tab ~ "&page=2" %}
+  {% include "partials/post_list.html" %}
 {% else %}
-<div class="card" style="text-align:center;padding:48px 20px;margin-bottom:10px;">
-    <div style="font-size:40px;margin-bottom:14px;">⚡</div>
-    <h2 style="font-size:22px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;">Добро пожаловать в Quant</h2>
-    <p style="color:var(--text-secondary);margin-bottom:24px;font-size:15px;">Присоединяйся и общайся с людьми</p>
-    <div style="display:flex;gap:10px;justify-content:center;">
-        <a href="/register"><button class="btn">Зарегистрироваться</button></a>
-        <a href="/login"><button class="btn-outline">Войти</button></a>
-    </div>
+<div class="card empty">
+  <div class="big">{% if tab == 'following' %}{{ icon("eye", "i in") }}{% else %}{{ icon("sparkle", "i in") }}{% endif %}</div>
+  {% if tab == 'following' %}Подпишитесь на кого-нибудь, чтобы видеть их посты. <a href="/explore" style="color:var(--link);font-weight:600">Найти людей →</a>
+  {% else %}Пока нет постов. {% if user %}<a href="/create" style="color:var(--link);font-weight:600">Напишите первый →</a>{% else %}Будьте первым!{% endif %}{% endif %}
 </div>
 {% endif %}
-
-<div style="display:flex;background:var(--card);border-radius:14px;border:1px solid var(--border);margin-bottom:10px;overflow:hidden;">
-    <a href="/?tab=foryou" style="flex:1;text-align:center;padding:14px;font-size:14px;font-weight:600;{% if tab == 'foryou' or not tab %}border-bottom:2.5px solid var(--accent);color:var(--text);{% else %}color:var(--text-secondary);{% endif %}">Для вас</a>
-    <a href="/?tab=following" style="flex:1;text-align:center;padding:14px;font-size:14px;font-weight:600;{% if tab == 'following' %}border-bottom:2.5px solid var(--accent);color:var(--text);{% else %}color:var(--text-secondary);{% endif %}">Подписки</a>
-</div>
-
-{% for post in posts %}
-<div class="card" id="post-{{ post.id }}">
-    <div style="display:flex;gap:12px;">
-        <a href="/profile/{{ post.author.username }}">
-            <div class="avatar-circle" style="width:42px;height:42px;flex-shrink:0;">
-                {% if post.author.avatar %}<img src="{{ post.author.avatar }}">{% else %}<span style="font-size:16px;">{{ post.author.username[0].upper() }}</span>{% endif %}
-            </div>
-        </a>
-        <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap;">
-                <a href="/profile/{{ post.author.username }}" style="font-weight:700;font-size:14px;">{{ post.author.name or post.author.username }}</a>
-                {% if post.author.is_owner %}{{ owner_badge() }}{% endif %}
-                {% if post.author.is_verified_badge %}{{ verify_badge() }}{% endif %}
-                {% if post.author.is_starred %}{{ star_badge() }}{% endif %}
-                <span style="color:var(--text-secondary);font-size:13px;">@{{ post.author.username }}</span>
-                <span style="color:var(--text-muted);">·</span>
-                <span style="color:var(--text-muted);font-size:12px;">{{ post.created_at.strftime("%d.%m %H:%M") }}</span>
-                {% if user and (user.id == post.author.id or user.is_owner or user.is_moderator) %}
-                <form method="post" action="/delete/{{ post.id }}" style="margin-left:auto;" onsubmit="return confirm('Удалить пост?')">
-                    <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">×</button>
-                </form>
-                {% endif %}
-            </div>
-
-            {% if post.is_long %}
-            <div class="post-content" id="content-{{ post.id }}" style="max-height:200px;overflow:hidden;position:relative;">{{ post.content }}</div>
-            <button onclick="expandPost({{ post.id }})" id="expand-{{ post.id }}" style="background:none;border:none;color:#1d9bf0;cursor:pointer;font-size:13px;padding:4px 0;font-weight:600;">Читать полностью</button>
-            {% else %}
-            <div class="post-content">{{ post.content }}</div>
-            {% endif %}
-
-            {% if post.poll %}
-            <div style="border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
-                <div style="font-weight:700;font-size:14px;margin-bottom:10px;">{{ post.poll.question }}</div>
-                {% set total_votes = post.poll.options | sum(attribute='votes|length') %}
-                {% for option in post.poll.options %}
-                {% set votes = option.votes|length %}
-                {% set pct = ((votes / total_votes * 100) | int) if total_votes > 0 else 0 %}
-                {% set user_voted = user and (option.votes | selectattr('user_id', 'equalto', user.id) | list | length > 0) %}
-                {% if user and not user_voted %}
-                <form method="post" action="/poll/vote/{{ option.id }}" style="margin-bottom:8px;">
-                    <button type="submit" style="width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left;font-size:14px;color:var(--text);font-family:inherit;">{{ option.text }}</button>
-                </form>
-                {% else %}
-                <div style="margin-bottom:8px;background:var(--input-bg);border-radius:10px;padding:10px 14px;position:relative;overflow:hidden;">
-                    <div style="position:absolute;inset:0;background:{% if user_voted %}rgba(29,155,240,0.15){% else %}var(--input-bg){% endif %};width:{{ pct }}%;transition:width 0.5s;"></div>
-                    <div style="position:relative;display:flex;justify-content:space-between;font-size:13px;">
-                        <span {% if user_voted %}style="font-weight:700;color:#1d9bf0;"{% endif %}>{{ option.text }}</span>
-                        <span style="font-weight:600;color:var(--text-secondary);">{{ pct }}%</span>
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
-                <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">{{ total_votes }} голосов</div>
-            </div>
-            {% endif %}
-
-            {% if post.media_items and post.media_items|length > 1 %}
-            <div style="display:grid;grid-template-columns:{% if post.media_items|length == 2 %}1fr 1fr{% else %}1fr 1fr{% endif %};gap:4px;margin-bottom:12px;border-radius:14px;overflow:hidden;">
-                {% for item in post.media_items %}
-                {% if item.media_type == 'video' %}
-                <video src="{{ item.media_url }}" controls style="width:100%;aspect-ratio:1;object-fit:cover;"></video>
-                {% else %}
-                <img src="{{ item.media_url }}" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;" onclick="window.open(this.src,'_blank')">
-                {% endif %}
-                {% endfor %}
-            </div>
-            {% elif post.image %}
-            <div style="margin-bottom:12px;border-radius:14px;overflow:hidden;max-width:100%;background:#000;">
-                {% if post.media_type == 'video' %}
-                <video src="{{ post.image }}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:500px;width:auto;margin:0 auto;"></video>
-                {% else %}
-                <img src="{{ post.image }}" alt="" loading="lazy" style="display:block;max-width:100%;max-height:500px;width:auto;margin:0 auto;cursor:pointer;" onclick="window.open(this.src,'_blank')">
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <div class="post-footer">
-                {% set user_liked = false %}
-                {% set user_whaled = false %}
-                {% set user_bookmarked = false %}
-                {% if user %}
-                    {% for like in post.likes %}{% if like.user_id == user.id %}{% set user_liked = true %}{% endif %}{% endfor %}
-                    {% for whale in post.whales %}{% if whale.user_id == user.id %}{% set user_whaled = true %}{% endif %}{% endfor %}
-                {% endif %}
-                <form method="post" action="/like/{{ post.id }}" class="like-form">
-                    <button type="submit" class="action-btn {% if user_liked %}liked{% endif %}" id="like-btn-{{ post.id }}">
-                        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                        <span id="like-count-{{ post.id }}">{{ post.likes|length }}</span>
-                    </button>
-                </form>
-                <form method="post" action="/whale/{{ post.id }}" class="whale-form">
-                    <button type="submit" class="action-btn {% if user_whaled %}whaled{% endif %}" id="whale-btn-{{ post.id }}">
-                        🐋 <span id="whale-count-{{ post.id }}">{{ post.whales|length }}</span>
-                    </button>
-                </form>
-                <a href="/post/{{ post.id }}" class="action-btn">
-                    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    {{ post.comments|length }}
-                </a>
-                <button onclick="sharePost({{ post.id }})" id="share-{{ post.id }}" class="action-btn">
-                    <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                </button>
-                {% if user %}
-                <form method="post" action="/bookmark/{{ post.id }}" style="margin-left:auto;" class="bookmark-form">
-                    <button type="submit" class="action-btn" id="bm-btn-{{ post.id }}">
-                        <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-
-            {% if post.comments %}
-            <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
-                {% for comment in post.comments[:2] %}
-                <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;">
-                    <a href="/profile/{{ comment.author.username }}">
-                        <div class="avatar-circle" style="width:28px;height:28px;flex-shrink:0;">
-                            {% if comment.author.avatar %}<img src="{{ comment.author.avatar }}">{% else %}<span style="font-size:10px;">{{ comment.author.username[0].upper() }}</span>{% endif %}
-                        </div>
-                    </a>
-                    <div style="background:var(--input-bg);border-radius:12px;padding:7px 12px;flex:1;">
-                        <span style="font-weight:700;font-size:13px;"><a href="/profile/{{ comment.author.username }}">{{ comment.author.name or comment.author.username }}</a></span>
-                        <span style="font-size:13px;color:var(--text);margin-left:6px;">{{ comment.content }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-                {% if post.comments|length > 2 %}
-                <a href="/post/{{ post.id }}" style="font-size:13px;color:var(--text-secondary);padding:4px 0;display:block;">Показать все {{ post.comments|length }} комментариев →</a>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            {% if user %}
-            <form method="post" action="/comment/{{ post.id }}" style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-                <div class="avatar-circle" style="width:28px;height:28px;flex-shrink:0;">
-                    {% if user.avatar %}<img src="{{ user.avatar }}">{% else %}<span style="font-size:10px;">{{ user.username[0].upper() }}</span>{% endif %}
-                </div>
-                <input type="text" name="content" placeholder="Комментировать..." style="margin-bottom:0;flex:1;padding:8px 14px;font-size:13px;border-radius:24px;background:var(--input-bg);border:1px solid var(--border);">
-                <button class="btn" style="padding:8px 14px;font-size:13px;border-radius:20px;">→</button>
-            </form>
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endfor %}
-
-{% if not posts %}
-<div style="text-align:center;color:var(--text-secondary);padding:48px 0;font-size:15px;">
-    {% if tab == 'following' %}Подпишись на кого-нибудь, чтобы видеть их посты!
-    {% else %}Пока нет постов. Будь первым!{% endif %}
-</div>
-{% endif %}
-
-<script>
-function onMediaSelected(input) {
-    const file = input.files[0];
-    if (!file) { clearMedia(); return; }
-    const maxSize = file.type.startsWith('video/') ? 100*1024*1024 : 10*1024*1024;
-    if (file.size > maxSize) { alert('Файл слишком большой'); input.value=''; clearMedia(); return; }
-    const preview = document.getElementById('media-preview');
-    const img = document.getElementById('preview-img');
-    const video = document.getElementById('preview-video');
-    preview.style.display = 'block';
-    const url = URL.createObjectURL(file);
-    if (file.type.startsWith('image/')) { img.src=url; img.style.display='block'; video.style.display='none'; }
-    else { video.src=url; video.style.display='block'; img.style.display='none'; }
-}
-function clearMedia() {
-    document.getElementById('media-input').value='';
-    document.getElementById('media-preview').style.display='none';
-    document.getElementById('preview-img').style.display='none';
-    document.getElementById('preview-video').style.display='none';
-}
-function togglePoll() {
-    const w = document.getElementById('poll-wrap');
-    w.style.display = w.style.display==='none' ? 'block' : 'none';
-}
-function sharePost(id) {
-    const url = location.origin + '/post/' + id;
-    navigator.clipboard.writeText(url).then(() => {
-        const btn = document.getElementById('share-' + id);
-        const orig = btn.innerHTML;
-        btn.textContent = '✔ Скопировано';
-        setTimeout(() => btn.innerHTML = orig, 2000);
-    });
-}
-function expandPost(id) {
-    document.getElementById('content-' + id).style.maxHeight = 'none';
-    document.getElementById('expand-' + id).style.display = 'none';
-}
-document.querySelectorAll('.like-form').forEach(form => {
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const id = this.action.split('/').pop();
-        const btn = document.getElementById('like-btn-' + id);
-        const count = document.getElementById('like-count-' + id);
-        const liked = btn.classList.contains('liked');
-        await fetch(this.action, {method:'POST'});
-        btn.classList.toggle('liked', !liked);
-        count.textContent = parseInt(count.textContent) + (liked ? -1 : 1);
-    });
-});
-document.querySelectorAll('.whale-form').forEach(form => {
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const id = this.action.split('/').pop();
-        const btn = document.getElementById('whale-btn-' + id);
-        const count = document.getElementById('whale-count-' + id);
-        const whaled = btn.classList.contains('whaled');
-        await fetch(this.action, {method:'POST'});
-        btn.classList.toggle('whaled', !whaled);
-        count.textContent = parseInt(count.textContent) + (whaled ? -1 : 1);
-    });
-});
-document.querySelectorAll('.bookmark-form').forEach(form => {
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const id = this.action.split('/').pop();
-        await fetch(this.action, {method:'POST'});
-        const btn = document.getElementById('bm-btn-' + id);
-        btn.classList.toggle('bookmarked');
-    });
-});
-</script>
 {% endblock %}

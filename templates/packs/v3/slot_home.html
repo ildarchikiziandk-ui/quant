@@ -1,0 +1,6 @@
+{% if user %}{% set ch = v3_chest(user) %}
+<div class="card today" id="today-card">
+  <div class="today-main"><b id="today-hi">Привет, {{ user.name or user.username }}!</b><div class="small muted" id="today-tip"></div></div>
+  {% if ch and not ch.open %}<button type="button" class="today-chest" data-v3-chest title="Ежедневный сундук: день {{ ch.day }} из 7">{{ icon_svg("gift") }}<span>+{{ ch.reward }}</span></button>{% endif %}
+</div>
+{% endif %}

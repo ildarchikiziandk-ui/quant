@@ -1,70 +1,35 @@
 {% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Уведомления — {{ brand }}{% endblock %}
+{% set ICONS = {"like":"heart","whale":"whale","comment":"comment","reply":"reply","follow":"user-plus","follow_request":"user-plus","follow_accept":"user-check","mention":"at","repost":"repost","reaction":"heart","comment_like":"heart","achievement":"trophy","level":"medal","raffle":"party","support":"lifebuoy","support_reply":"lifebuoy","system":"sparkle","group_invite":"users","story_reaction":"camera","moderation":"shield","question":"help","answer":"bulb","gift":"gift","event":"calendar","invite":"handshake","secret":"secret","streak":"flame","reminder":"alarm","birthday":"cake","security":"shield","capsule":"mail","call":"phone","login_approve":"shield"} %}
 {% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-    <h2 style="font-size:20px;font-weight:800;">🔔 Уведомления</h2>
-    <form method="post" action="/notifications/read">
-        <button class="btn-outline" style="font-size:13px;padding:7px 14px;">Прочитать всё</button>
-    </form>
-</div>
-
-{% if notifications %}
-{% for notif in notifications %}
-<div class="card" style="{% if not notif.is_read %}border-left:3px solid var(--accent);{% endif %}padding:14px 16px;">
-    <div style="display:flex;align-items:flex-start;gap:12px;">
-        {% if notif.from_user %}
-        <a href="/profile/{{ notif.from_user.username }}">
-            <div class="avatar-circle" style="width:38px;height:38px;flex-shrink:0;">
-                {% if notif.from_user.avatar %}<img src="{{ notif.from_user.avatar }}">{% else %}<span style="font-size:13px;">{{ notif.from_user.username[0].upper() }}</span>{% endif %}
-            </div>
-        </a>
-        {% else %}
-        <div class="avatar-circle" style="width:38px;height:38px;flex-shrink:0;background:var(--input-bg);"><span style="font-size:18px;">⚡</span></div>
-        {% endif %}
-        <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;margin-bottom:4px;line-height:1.5;">
-                {% if notif.type == "like" %}
-                    <a href="/profile/{{ notif.from_user.username }}" style="font-weight:700;">{{ notif.from_user.name or notif.from_user.username }}</a> лайкнул твой пост ❤️
-                    {% if notif.post %}<a href="/post/{{ notif.post.id }}" style="color:var(--text-secondary);font-size:13px;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ notif.post.content[:60] }}</a>{% endif %}
-                {% elif notif.type == "comment" %}
-                    <a href="/profile/{{ notif.from_user.username }}" style="font-weight:700;">{{ notif.from_user.name or notif.from_user.username }}</a> прокомментировал твой пост 💬
-                    {% if notif.post %}<a href="/post/{{ notif.post.id }}" style="color:var(--text-secondary);font-size:13px;display:block;margin-top:2px;">{{ notif.post.content[:60] }}</a>{% endif %}
-                {% elif notif.type == "follow" %}
-                    <a href="/profile/{{ notif.from_user.username }}" style="font-weight:700;">{{ notif.from_user.name or notif.from_user.username }}</a> подписался на тебя 👤
-                    <div style="margin-top:6px;">
-                        <form method="post" action="/follow/{{ notif.from_user.username }}" style="display:inline;">
-                            <button class="btn-follow" style="font-size:12px;padding:5px 14px;">Подписаться</button>
-                        </form>
-                    </div>
-                {% elif notif.type == "support" %}
-                    <span style="font-weight:700;">🆘 Обращение в поддержку</span>
-                    {% if notif.text %}
-                    <div style="background:var(--input-bg);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:13px;white-space:pre-wrap;color:var(--text);">{{ notif.text }}</div>
-                    {% endif %}
-                    {% if notif.reply_email %}<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📧 {{ notif.reply_email }}</div>{% endif %}
-                    <div style="margin-top:10px;">
-                        <form method="post" action="/support/reply/{{ notif.id }}" style="display:flex;gap:8px;align-items:flex-start;">
-                            <textarea name="reply" placeholder="Ответить..." style="flex:1;min-height:60px;font-size:13px;border-radius:10px;border:1.5px solid var(--border);resize:vertical;margin-bottom:0;"></textarea>
-                            <button class="btn" style="font-size:13px;padding:8px 14px;flex-shrink:0;">Ответить</button>
-                        </form>
-                    </div>
-                {% elif notif.type == "support_reply" %}
-                    <span style="font-weight:700;">💬 Ответ от поддержки</span>
-                    {% if notif.text %}<div style="background:rgba(34,197,94,0.08);border-radius:10px;padding:10px 14px;margin-top:8px;font-size:13px;color:var(--success);">{{ notif.text }}</div>{% endif %}
-                {% elif notif.type == "achievement" %}
-                    🏆 Получено достижение: <b>{{ notif.text }}</b>
-                {% else %}
-                    ⚡ {{ notif.text or "Новое уведомление" }}
-                {% endif %}
-            </div>
-            <div style="font-size:12px;color:var(--text-muted);">{{ notif.created_at.strftime("%d.%m.%Y %H:%M") }}</div>
-        </div>
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("bell", "i in") }} Уведомления</div>
+  <form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')"><button class="icon-btn" title="Очистить все">{{ icon("trash") }}</button></form></div>
+{% if requests_count %}<a href="/follow-requests" class="card row" style="display:flex">{{ icon("wave", "i in") }} <b class="grow">Заявки на подписку</b><span class="unread-dot">{{ requests_count }}</span></a>{% endif %}
+<div class="chips">{% for k, l in [("all","Все"),("mentions","Упоминания"),("likes","Реакции"),("comments","Комментарии"),("follows","Подписки"),("system","Системные")] %}<a href="/notifications?f={{ k }}" class="chip {% if f == k %}active{% endif %}">{{ l }}</a>{% endfor %}{% for _s in pack_slot("notifications_top") %}{% include _s %}{% endfor %}</div>
+<div class="card flat">
+{% for n in notifications %}
+  {% set link = ("/messages/" ~ n.from_user.username) if n.from_user and n.type in ("reminder","birthday","call") else ("/post/" ~ n.post_id) if n.post_id else (("/profile/" ~ n.from_user.username) if n.from_user and n.type in ("follow","follow_accept") else ("/login-approve" if n.type == "login_approve" else "/follow-requests" if n.type == "follow_request" else ("/achievements" if n.type in ("achievement","level") else ""))) %}
+  <div class="row" id="n-{{ n.id }}" data-ntype="{{ n.type }}" data-npost="{{ n.post_id or '' }}" data-nname="{{ (n.from_user.name or n.from_user.username) if n.from_user else '' }}" style="padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;{% if n.id in unread_ids %}background:color-mix(in srgb,var(--brand) 6%,transparent);{% endif %}">
+    <div style="position:relative">{% if n.from_user %}<a href="/profile/{{ n.from_user.username }}">{{ avatar(n.from_user, 42) }}</a>{% else %}<span class="av notif-ico t-{{ n.type }}" style="width:42px;height:42px">{{ icon(ICONS.get(n.type, "sparkle")) }}</span>{% endif %}
+      {% if n.from_user %}<span class="notif-badge t-{{ n.type }}">{{ icon(ICONS.get(n.type, "sparkle")) }}</span>{% endif %}</div>
+    <div class="grow">
+      {% if link %}<a href="{{ link }}" style="display:block">{% endif %}
+      <div class="small">{% if n.from_user %}<b>{{ n.from_user.name or n.from_user.username }}</b> {% endif %}
+        {%- if n.type == "support" %}<span class="pill-info">обращение в поддержку</span><div style="white-space:pre-wrap;margin-top:4px">{{ n.text }}</div>
+        {%- elif n.type == "support_reply" %}<b>Ответ поддержки:</b> {{ n.text }}
+        {%- elif n.text %}{{ n.text|noemoji }}
+        {%- else %}{{ {"like":"оценил(а) ваш пост","whale":"отправил(а) кита вашему посту","comment":"прокомментировал(а) ваш пост","reply":"ответил(а) на ваш комментарий","follow":"подписался(лась) на вас","mention":"упомянул(а) вас","repost":"сделал(а) репост вашего поста","follow_request":"хочет подписаться на вас","follow_accept":"принял(а) вашу заявку","comment_like":"оценил(а) ваш комментарий"}.get(n.type, "новое уведомление") }}{% endif %}</div>
+      {% if n.post and n.post.content %}<div class="tiny muted ellipsis" style="margin-top:2px">«{{ n.post.content[:90] }}»</div>{% endif %}
+      {% if link %}</a>{% endif %}
+      <div class="tiny faint" style="margin-top:2px">{{ n.created_at|ago }}</div>
+      {% if n.type == "support" and can_mod %}
+      <form method="post" action="/support/reply/{{ n.id }}" class="row mt"><input name="reply" placeholder="Ответить пользователю…" required style="margin:0"><button class="btn sm">Ответить</button></form>
+      {% endif %}
+      {% if n.type == "follow_request" %}<a href="/follow-requests" class="btn sm mt">Рассмотреть</a>{% endif %}
     </div>
+    <button class="icon-btn" title="Удалить" onclick="App.api('/notifications/{{ n.id }}/delete').then(()=>document.getElementById('n-{{ n.id }}').remove())">{{ icon("x", "i in") }}</button>
+  </div>
+{% else %}<div class="empty"><div class="big">{{ icon("bell-off", "i in") }}</div>Уведомлений нет</div>{% endfor %}
 </div>
-{% endfor %}
-{% else %}
-<div class="card" style="text-align:center;color:var(--text-secondary);padding:48px 0;">
-    <div style="font-size:40px;margin-bottom:12px;">🔔</div>
-    <div style="font-size:16px;font-weight:600;">Нет уведомлений</div>
-</div>
-{% endif %}
 {% endblock %}

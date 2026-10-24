@@ -1,0 +1,7 @@
+<div class="v3-card v3-callcard{% if d.bad %} bad{% endif %}" data-v3-msg="{{ msg.id }}">
+  <div class="v3-callrow">
+    <span class="v3-callico">{{ icon_svg("video" if d.video else "phone", "i") }}</span>
+    <div class="grow"><b>{{ d.title }}</b><div class="tiny">{% if d.label %}{{ d.label }}{% endif %}{% if d.dur %}{{ " · " if d.label }}{{ d.dur }}{% endif %}</div></div>
+    {% if peer and v3_calls_on() %}<button type="button" class="btn sm soft" data-call="{{ peer.username }}">Перезвонить</button>{% endif %}
+  </div>
+</div>

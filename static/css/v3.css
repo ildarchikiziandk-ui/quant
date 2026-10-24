@@ -1,0 +1,172 @@
+/* ===== Nuvora — фирменный стиль «Чернила и бумага» =====
+   Цвета взяты из логотипа: графит (чернила), сливочный (бумага) и синий кита — он главный: кнопки, свои сообщения, активные вкладки.
+   Без градиентов и «парящих» плашек: тёплый фон, тонкие рамки, плотная типографика.
+   Заголовки — Unbounded, текст — Onest (оба со своего сервера и из APK, работают без сети). */
+@font-face { font-family: "Onest"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("/static/fonts/onest-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Onest"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("/static/fonts/onest-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Unbounded"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url("/static/fonts/unbounded-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Unbounded"; font-style: normal; font-weight: 200 900; font-display: swap;
+  src: url("/static/fonts/unbounded-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root {
+  --ink: #1f1d1a; --paper: #f6f1e8; --whale: #1f6fb8; --whale-2: #185a96; --cream: #f7ead7;
+  --accent: var(--whale); --accent-2: var(--whale-2); --accent-soft: color-mix(in srgb, var(--whale) 11%, transparent);
+  --grad: var(--whale);
+  --brand: var(--whale); --on-brand: #ffffff; --brand-2: #5d564c; --link: var(--whale);
+  --bg: var(--paper); --card: #fffdf9; --card-2: #fbf7f0; --border: #e7ddcd; --border-2: #d8cbb6;
+  --text: var(--ink); --text-2: #6b6357; --text-3: #a0968a;
+  --input: #f1eadf; --hover: rgba(31, 29, 26, .05);
+  --like: #d63c3c; --bookmark: #c98a1b; --online: #3c9a5f; --plus: var(--whale);
+  --shadow-1: none; --shadow-2: 0 10px 30px -12px rgba(40, 30, 15, .22); --shadow: var(--shadow-2);
+  --radius: 16px; --radius-sm: 11px;
+  --font-display: "Unbounded", "Onest", sans-serif;
+}
+[data-theme="dark"] {
+  --ink: #f3ece1; --whale: #5fa8e6; --whale-2: #8cc2ee;
+  --accent-soft: color-mix(in srgb, var(--whale) 15%, transparent);
+  --brand: var(--whale); --on-brand: #0b1724; --brand-2: #b3a99b;
+  --bg: #141311; --card: #1c1b18; --card-2: #22201d; --border: #2e2b27; --border-2: #3d3934;
+  --text: #f3ece1; --text-2: #a69d90; --text-3: #6f685e;
+  --input: #252320; --hover: rgba(243, 236, 225, .05);
+  --like: #f06a6a; --online: #5cc27f;
+  --shadow-2: 0 12px 34px -12px rgba(0, 0, 0, .6);
+}
+
+body { font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* Посты за пределами экрана не рисуются, пока до них не докрутили — лента с сотней постов не тормозит */
+article.post { content-visibility: auto; contain-intrinsic-size: auto 520px; }
+
+/* Заголовки: широкий Unbounded — узнаваемо и без «нейросетевого» Inter */
+.page-title, .logo-text, .profile-name, .wn-num, .auth-card h1, .auth-card h2, .v3-mbig, .hero h1 {
+  font-family: var(--font-display); letter-spacing: -.02em; }
+.page-title { font-size: 22px; font-weight: 600; }
+.logo-text { font-weight: 600; letter-spacing: -.03em; }
+.profile-name { font-weight: 600; }
+.card-title { font-size: 15px; letter-spacing: -.1px; }
+.profile-stats.tiles > * b, .v3-gscore b { font-family: var(--font-display); font-weight: 600; }
+
+/* Карточки: бумага с тонкой рамкой, без теней */
+.card { border: 1px solid var(--border); box-shadow: none; }
+.card.post { transition: border-color .2s; }
+@media (hover: hover) { .card.post:hover { border-color: var(--border-2); } }
+
+/* Кнопки: основная — «чернильная», мягкие — бумажные; без свечения */
+.btn { border-radius: 12px; font-weight: 650; letter-spacing: 0; box-shadow: none; }
+.btn.soft { background: var(--input); color: var(--text); }
+.btn.soft:hover { background: var(--accent-soft); color: var(--accent); }
+.btn.sm { border-radius: 10px; }
+.icon-btn { transition: background .15s, color .15s; }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+
+/* Ссылки, теги и упоминания — синий кита */
+.rt-tag, .rt-mention { color: var(--accent); }
+
+/* Поля ввода */
+input, textarea, select { border-radius: 12px; border: 1px solid var(--border); background: var(--input); }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--card); }
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+
+/* Чипсы и вкладки */
+.chip { background: var(--card); border: 1px solid var(--border); }
+.chip.active { background: var(--brand); color: var(--on-brand); border-color: var(--brand); box-shadow: none; }
+.tabs { background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0; gap: 4px; }
+.tabs a { border-radius: 0; padding: 11px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+.tabs a.active { background: none; color: var(--accent); border-bottom-color: var(--accent); box-shadow: none; }
+
+/* Боковое меню на компьютере */
+.nav-item.active { background: var(--accent-soft); color: var(--accent); }
+.nav-item.active .ico { color: var(--accent); }
+
+/* Пост */
+.post-actions .act { border-radius: 999px; transition: background .15s, color .15s; }
+@media (hover: hover) { .post-actions .act:hover { background: var(--hover); } }
+
+/* Кольцо истории — сплошной синий кита */
+.ring { background: var(--whale); }
+
+/* Мобильная шапка — сплошная; нижняя панель — «парящая» плашка (без размытия: оно тормозит на телефонах) */
+.mobile-top { background: var(--bg); backdrop-filter: none; border-bottom: 1px solid var(--border); }
+.mobile-top .logo-text, .logo-text { color: var(--accent); }
+@media (max-width: 640px) {
+  .mobile-nav { left: 10px; right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); padding-bottom: 0; border: 1px solid var(--border);
+    border-radius: 22px; background: var(--card); backdrop-filter: none; box-shadow: 0 10px 28px -12px rgba(40, 30, 15, .35); }
+  [data-theme="dark"] .mobile-nav { box-shadow: 0 10px 28px -10px rgba(0, 0, 0, .7); }
+  .mobile-nav-inner { height: 60px; background: none; }
+  .mobile-nav a { height: 60px; }
+  .mobile-nav a.active, .mobile-nav a.active svg { color: var(--accent); }
+  .mobile-nav a.active::after { content: ""; position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--whale); }
+  .mobile-nav .fab { width: 48px; height: 44px; border-radius: 15px; background: var(--brand); box-shadow: none; }
+  .mobile-nav .fab svg { color: var(--on-brand) !important; }
+  .main { padding-bottom: 100px; }
+  .to-top { bottom: 90px; }
+}
+
+/* Окна и меню */
+.modal { border-radius: 20px; border: 1px solid var(--border); }
+.menu { border-radius: 14px; box-shadow: var(--shadow-2); border-color: var(--border); }
+#toasts .toast { border-radius: 12px; }
+
+/* Фирменные мелочи без градиентов */
+.read-progress { background: var(--whale); }
+.whatsnew-card { background: var(--card); border-color: var(--border); }
+.wn-num { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--whale); font-weight: 700; }
+.tw-bars i { background: var(--whale); }
+.greet.bday, [data-theme="dark"] .greet.bday { background: color-mix(in srgb, var(--cream) 55%, var(--card)); }
+[data-theme="dark"] .greet.bday { background: var(--card-2); }
+.plus-hero { background: var(--whale); }
+.plus-feat .pi, .gift-plus { background: var(--whale); }
+.gift.excl { background: color-mix(in srgb, var(--whale) 7%, var(--card)); }
+.owner-pill { background: color-mix(in srgb, #c98a1b 16%, var(--card)); color: #7a4f0a; }
+[data-theme="dark"] .owner-pill { background: color-mix(in srgb, #c98a1b 22%, var(--card)); color: #f0c97a; }
+.t-follow, .t-follow_accept, .t-follow_request { color: var(--whale); }
+
+@media (prefers-reduced-motion: reduce) { .card.post { transition: none; } }
+
+/* Значок Nuvora+ — синий кита, без глянца */
+.plus-tag { background: var(--whale) !important; text-shadow: none; box-shadow: none; }
+.plus-tag::after { display: none; }
+[data-theme="dark"] .plus-tag { color: #10202c; }
+[data-theme="dark"] .plus-tag svg { fill: #10202c; }
+/* открытое меню «⋯» не обрезается краем карточки и лежит поверх соседних постов */
+article.post.menu-on { content-visibility: visible; position: relative; z-index: 5; }
+
+/* больше синего: значки разделов, счётчики, переключатели */
+.unread-dot { background: var(--accent); color: #fff; }
+.card-title .i, .page-title .i { color: var(--accent); }
+.btn.ghost { color: var(--accent); }
+.icon-btn.on, .icon-btn.active { color: var(--accent); }
+.av-ring, .story-item .ring { background: var(--accent); }
+::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* ===== Мобильная версия: ничего не выходит за экран ===== */
+/* в чате плашки «скачать приложение» не нужны — иначе поле ввода уезжает за нижний край */
+.chat-page #app-banner, .chat-page #ios-banner { display: none !important; }
+.chat-page .cookie-bar { bottom: auto; top: calc(8px + env(safe-area-inset-top)); }
+/* запись голосового: полоска громкости не раздвигает строку, кнопка отправки всегда на экране */
+.rec-panel { min-width: 0; overflow: hidden; }
+.rec-meter { min-width: 0; }
+.rec-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-row { min-width: 0; max-width: 100%; }
+.cmp-row > .cmp-send, .cmp-row > .cmp-rec, .cmp-row > .cmp-plus { flex-shrink: 0; }
+.rec-hint { max-width: calc(100vw - 32px); white-space: normal; }
+.rec-circle { max-width: calc(100vw - 40px); max-height: calc(100vw - 40px); }
+@media (max-width: 640px) {
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .main, .card, .convo, .convo-box { min-width: 0; max-width: 100%; }
+  .name-line, .ellipsis { min-width: 0; max-width: 100%; }
+  .modal { max-width: calc(100vw - 16px); }
+  .v3-card { min-width: 0; max-width: min(300px, 74vw); }
+  .msg .bubble { max-width: 100%; }
+  .cmp-menu { max-width: calc(100vw - 24px); }
+}
+/* поля в строке с кнопкой сжимаются, а не выталкивают кнопку за экран */
+.row > input, .row > select, .row > textarea, .grow { min-width: 0; }
+.row > .btn { flex-shrink: 0; }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid-3 > * { min-width: 0; } .ach b, .ach .tiny { overflow-wrap: anywhere; }
+@media (max-width: 380px) { #app-banner .small, #ios-banner .small { display: none; } #app-banner, #ios-banner { align-items: center; } }
+.cover { background-color: color-mix(in srgb, var(--accent) 16%, var(--card)); }
+.bars { overflow: hidden; } .bars .b { min-width: 0; }

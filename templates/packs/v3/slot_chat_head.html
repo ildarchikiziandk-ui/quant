@@ -1,0 +1,1 @@
+{% if other is defined and other and can_send and v3_calls_on() %}<button type="button" class="icon-btn" title="Позвонить" data-call="{{ other.username }}" data-name="{{ dname(other) }}" data-avatar="{{ other.avatar or '' }}">{{ icon_svg("phone") }}</button>{% endif %}

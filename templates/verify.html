@@ -1,20 +1,13 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="card" style="max-width: 400px; margin: 40px auto; text-align: center;">
-    <div style="font-size: 32px; margin-bottom: 12px;">📧</div>
-    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Подтверди email</h2>
-    <p style="color: #888; font-size: 14px; margin-bottom: 24px;">Мы отправили код на <b>{{ email }}</b></p>
-    {% if error %}
-    <div class="alert-error">⚠️ {{ error }}</div>
-    {% endif %}
-    <form method="post" action="/verify">
-        <input type="hidden" name="email" value="{{ email }}">
-        <input type="hidden" name="username" value="{{ username }}">
-        <input type="hidden" name="name" value="{{ name }}">
-        <input type="hidden" name="password" value="{{ password }}">
-        <input type="text" name="code" placeholder="Введи 6-значный код" maxlength="6" style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 700;" required autofocus>
-        <button class="btn" style="width: 100%;">Подтвердить</button>
-    </form>
-    <p style="margin-top: 16px; font-size: 13px; color: #888;">Не получил письмо? Проверь папку "Спам"</p>
-</div>
+{% extends "bare.html" %}
+{% block title %}Подтверждение email — {{ brand }}{% endblock %}
+{% block card %}
+<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">Подтвердите email</h1>
+<p class="center muted small mb">Мы отправили код на <b>{{ user.email }}</b></p>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<form method="post" action="/verify">
+  <input name="code" inputmode="numeric" maxlength="6" placeholder="000000" required autofocus style="text-align:center;font-size:24px;letter-spacing:8px;margin-bottom:12px">
+  <button class="btn block">Подтвердить</button>
+</form>
+<form method="post" action="/verify/resend" class="center mt"><button class="btn soft sm">Отправить код ещё раз</button></form>
+<p class="center mt small muted">Письмо не пришло? Проверьте папку «Спам». <a href="/" style="color:var(--link)">Позже</a></p>
 {% endblock %}

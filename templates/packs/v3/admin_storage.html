@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Хранилище — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Хранилище</div></div>
+{% if ok %}<div class="alert success mb">{{ ok }}</div>{% endif %}
+{% if disk %}<div class="card"><div class="card-title"><span>Диск сервера</span><span class="faint small">занято {{ disk_pct }}%</span></div>
+  <div class="v3-meter"><i style="width:{{ disk_pct }}%"></i></div><div class="small muted mt">Свободно {{ disk.free }} из {{ disk.total }}</div></div>{% endif %}
+<div class="card"><div class="card-title">Что занимает место</div>
+  <div class="v3-astat"><div><b>{{ up }}</b><span>загрузки ({{ up_n }} файлов): посты, аватарки, истории, вложения</span></div>
+    <div><b>{{ dbs }}</b><span>база данных</span></div><div><b>{{ app }}</b><span>копия APK для обновлений</span></div></div></div>
+<form class="card" method="post" action="/admin/storage/chat-media" onsubmit="return confirm('Стереть с сервера вложения чатов старше {{ keep }} дней?')">
+  <div class="card-title">Вложения в чатах</div>
+  <p class="small muted mb">Сейчас в чатах {{ chat_media }} вложений. Старше {{ keep }} дней — {{ old_media }}: они стираются автоматически раз в минуту небольшими порциями, а эта кнопка стирает всё сразу. Посты, аватарки и истории не трогаются.</p>
+  <button class="btn soft">Стереть старые вложения сейчас</button></form>
+<form class="card" method="post" action="/admin/storage/signals">
+  <div class="card-title">Служебные записи звонков</div>
+  <p class="small muted mb">{{ signals }} записей. Удаляются сами через час; здесь можно убрать их сразу (кроме идущих сейчас звонков).</p>
+  <button class="btn soft">Очистить</button></form>
+{% endblock %}

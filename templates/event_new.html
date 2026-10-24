@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Новое мероприятие — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("calendar", "i in") }} Новое мероприятие</div>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<form class="card" method="post" action="/events/create">
+  <label class="field"><span>Название</span><input name="title" maxlength="120" required value="{{ form.get('title', '') if form else '' }}" placeholder="Вечерняя прогулка по набережной"></label>
+  <div class="form-row">
+    <label class="field"><span>Когда <span class="faint">— время: {{ tz_city(user) }}</span></span><input type="datetime-local" name="starts_at" required></label>
+    <label class="field"><span>Где</span><input name="place" maxlength="200" placeholder="Адрес или «онлайн»" value="{{ form.get('place', '') if form else '' }}"></label>
+  </div>
+  <label class="field"><span>Описание</span><textarea name="description" maxlength="3000" rows="4" placeholder="Что будет, что взять с собой…">{{ form.get('description', '') if form else '' }}</textarea></label>
+  <button class="btn">Создать</button>
+</form>
+{% endblock %}

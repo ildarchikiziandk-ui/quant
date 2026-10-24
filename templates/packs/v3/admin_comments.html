@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Комментарии — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Комментарии</div></div>
+<form class="card" method="get" action="/admin/comments">
+  <div class="row" style="gap:8px"><input name="q" value="{{ q }}" placeholder="Текст комментария или @логин автора" class="grow"><button class="btn">Найти</button></div>
+</form>
+{% for c in rows %}<div class="card">
+  <div class="row" style="gap:10px">{% if c.author %}<a href="/admin/u/{{ c.author.username }}">{{ avatar(c.author, 32) }}</a>{% endif %}
+    <div class="grow"><b>{{ c.author.name if c.author else "—" }}</b> <span class="faint small">@{{ c.author.username if c.author else "?" }} · {{ c.created_at|ago }}</span>{% if c.is_hidden %} <b class="small" style="color:var(--like)">скрыт</b>{% endif %}</div>
+    <a class="btn soft sm" href="/post/{{ c.post_id }}#c-{{ c.id }}">К посту</a></div>
+  <div class="small mt" style="white-space:pre-wrap;overflow-wrap:anywhere">{{ (c.content or "")[:500] }}</div>
+  <div class="row wrap mt" style="gap:6px">
+    {% if c.is_hidden %}<form method="post" action="/admin/comments/{{ c.id }}/show"><button class="btn soft sm">Показать</button></form>
+    {% else %}<form method="post" action="/admin/comments/{{ c.id }}/hide"><button class="btn soft sm">Скрыть</button></form>{% endif %}
+    <form method="post" action="/admin/comments/{{ c.id }}/delete" onsubmit="return confirm('Удалить комментарий и ответы на него?')"><button class="btn ghost sm danger">Удалить</button></form>
+  </div></div>
+{% else %}<div class="card empty">Ничего не найдено</div>{% endfor %}
+{% endblock %}

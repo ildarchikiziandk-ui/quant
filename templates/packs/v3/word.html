@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Словечко — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/games" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Словечко</div><span class="small muted">побед: {{ wins }} из {{ played }}</span></div>
+<div class="page-sub">Слово из 5 букв, одно на всех на сегодня. <b style="color:#16a34a">Зелёная</b> — буква на месте, <b style="color:#ca8a04">жёлтая</b> — есть в слове, серая — нет.</div>
+<div class="v3-word" id="v3-word" data-state="{{ state|tojson|forceescape }}"></div>
+<div class="v3-wmsg" id="v3-wmsg"></div>
+<div class="v3-kb" id="v3-kb">{% for row in ["йцукенгшщзх", "фывапролджэ", "⏎ячсмитьбю⌫"] %}<div>{% for ch in row %}<button type="button" data-k="{{ ch }}"{% if ch in "⏎⌫" %} class="wide"{% endif %}>{% if ch == "⏎" %}Ввод{% elif ch == "⌫" %}{{ icon("back", "i in") }}{% else %}{{ ch }}{% endif %}</button>{% endfor %}</div>{% endfor %}</div>
+<div class="center mt"><button type="button" class="btn soft sm hidden" id="v3-wshare">{{ icon("share", "i in") }} Поделиться результатом</button></div>
+{% endblock %}

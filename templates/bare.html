@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="auth-wrap">
+  <div class="auth-card {% block card_class %}{% endblock %}">
+    <a href="/" class="auth-logo"><img src="/static/brand/logo-180.png" alt=""><span class="logo-text" style="font-size:28px">{{ brand }}</span></a>
+    {% block card %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Входы — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Входы и мультиаккаунты</div></div>
+<div class="row wrap mb" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip {% if days == d %}active{% endif %}" href="/admin/logins?days={{ d }}">{{ {1: "Сутки", 7: "Неделя", 30: "Месяц"}[d] }}</a>{% endfor %}</div>
+<div class="card"><div class="card-title">{{ icon("users", "i in") }} Несколько аккаунтов с одного адреса · 30 дней</div>
+  <p class="tiny muted mb">Бывает и честно (семья, общий Wi-Fi, мобильный интернет), но часто так выглядят фейки и накрутка.</p>
+  {% for ip, uids in shared %}<div class="row small" style="gap:8px;padding:7px 0;border-top:1px solid var(--border);align-items:flex-start;flex-wrap:wrap">
+    <code class="kbd">{{ ip }}</code><span class="tag-pill">{{ uids|length }} акк.</span>
+    <span class="grow" style="min-width:160px">{% for uid in uids|sort %}{% set u = users.get(uid) %}{% if u %}<a href="/admin/u/{{ u.username }}">@{{ u.username }}</a>{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}</span>
+    {% if ip in banned %}<span class="tiny" style="color:var(--like)">заблокирован</span>{% else %}<form method="post" action="/admin/logins/ban-ip" onsubmit="return confirm('Заблокировать адрес {{ ip }}? Все с него перестанут попадать на сайт.')"><input type="hidden" name="ip" value="{{ ip }}"><button class="btn ghost sm danger">Заблокировать IP</button></form>{% endif %}
+  </div>{% else %}<div class="empty small">Не найдено</div>{% endfor %}</div>
+<div class="card"><div class="card-title">{{ icon("login", "i in") }} Последние входы</div>
+  {% for r in recent %}{% set u = users.get(r.user_id) %}<div class="row small" style="gap:8px;padding:6px 0;border-top:1px solid var(--border);flex-wrap:wrap">
+    <span class="faint tiny" style="width:84px">{{ r.created_at|lt("%d.%m %H:%M") }}</span>
+    <span class="grow" style="min-width:120px">{% if u %}<a href="/admin/u/{{ u.username }}"><b>@{{ u.username }}</b></a>{% else %}?{% endif %} · {{ r.device or "?" }}</span>
+    <code class="tiny">{{ r.ip }}</code>{% if not r.is_active %}<span class="tiny faint">завершён</span>{% endif %}
+  </div>{% else %}<div class="empty small">Входов нет</div>{% endfor %}</div>
+{% endblock %}

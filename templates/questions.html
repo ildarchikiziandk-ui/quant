@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Входящие вопросы — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("help", "i in") }} Входящие вопросы</div>
+<div class="page-sub">Ответы появляются в вашем профиле. <a href="/ask/{{ user.username }}" style="color:var(--link)">Мои ответы →</a> · Ссылка для друзей: <span class="kbd">{{ site_url }}/ask/{{ user.username }}</span></div>
+{% for q in inbox %}
+<div class="card">
+  <div class="small muted">{% if q.is_anonymous or not q.from_user %}{{ icon("incognito", "i in") }} Аноним{% else %}<a href="/profile/{{ q.from_user.username }}">@{{ q.from_user.username }}</a>{% endif %} · {{ q.created_at|ago }}</div>
+  <div style="font-weight:700;margin:6px 0 10px">{{ q.text }}</div>
+  <form method="post" action="/questions/{{ q.id }}/answer" data-ajax data-reload data-success="Ответ опубликован">
+    <textarea name="answer" maxlength="2000" rows="2" required placeholder="Ваш ответ…"></textarea>
+    <div class="row" style="justify-content:space-between;margin-top:6px"><label class="check" style="margin:0"><input type="checkbox" name="to_feed" value="1"><span><b>Опубликовать и в ленте</b></span></label>
+    <div class="row" style="gap:6px"><button type="button" class="btn ghost sm" data-act="toggle" data-url="/questions/{{ q.id }}/delete" data-reload="1" data-msg="Вопрос удалён">Удалить</button><button class="btn sm">Ответить</button></div></div>
+  </form>
+</div>
+{% else %}<div class="card empty"><div class="big">{{ icon("inbox", "i in") }}</div>Новых вопросов нет.<br><span class="small">Поделитесь ссылкой <b>{{ site_url }}/ask/{{ user.username }}</b> — и друзья смогут спросить что угодно.</span></div>{% endfor %}
+{% endblock %}

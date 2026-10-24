@@ -1,0 +1,1 @@
+{% if user and main %}{% if user.id != main.user_id and main.author %}<button type="button" data-v3-hide="{{ main.author.username }}">{{ icon_svg("eye-off", "i in") }} Не показывать 30 дней</button>{% endif %}{% endif %}

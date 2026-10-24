@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Сайт — админ-панель — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/admin" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Сайт</div></div>
+{% if ok %}<div class="alert success mb">{{ ok }}</div>{% endif %}
+<form class="card" method="post" action="/admin/site/save">
+  <div class="card-title">Разделы</div>
+  <p class="small muted mb">Выключенный раздел пропадает: его адреса ведут на главную. Ссылки в меню на выключенные разделы лучше тоже не показывать.</p>
+  <div class="v3-sitegrid">{% for p, label in sections %}<label class="check"><input type="checkbox" name="on" value="{{ p }}"{% if p not in disabled %} checked{% endif %}><span>{{ label }} <span class="faint tiny">{{ p }}</span></span></label>{% endfor %}</div>
+  <div class="pref-group">Доступ</div>
+  <label class="check"><input type="checkbox" name="registration" value="1"{% if registration %} checked{% endif %}><span><b>Регистрация открыта</b><small>Выключите, чтобы новые аккаунты временно не создавались</small></span></label>
+  <label class="check"><input type="checkbox" name="maintenance" value="1"{% if maintenance %} checked{% endif %}><span><b>Технические работы</b><small>Сайт видят только владелец и модераторы, остальным — заглушка</small></span></label>
+  <label class="field mt"><span>Текст заглушки</span><input name="maintenance_text" maxlength="300" value="{{ maintenance_text }}"></label>
+  <label class="check mt"><input type="checkbox" name="read_only" value="1"{% if site_get("read_only") %} checked{% endif %}><span><b>Только чтение</b><small>Новые посты, комментарии и истории временно нельзя публиковать (например, при наплыве спама). Чаты работают</small></span></label>
+  <label class="field mt"><span>Что показать при попытке опубликовать</span><input name="read_only_text" maxlength="300" value="{{ site_get('read_only_text') }}" placeholder="Публикации временно отключены. Чаты работают как обычно."></label>
+  <div class="pref-group">Общение</div>
+  <label class="check"><input type="checkbox" name="calls" value="1"{% if calls %} checked{% endif %}><span><b>Звонки</b><small>Голосовые звонки 1 на 1 в переписке. Выключите — кнопка с трубкой пропадёт у всех</small></span></label>
+  <label class="check"><input type="checkbox" name="phone_check" value="1"{% if phone_check %} checked{% endif %}><span><b>Проверка номера через бот MAX</b><small>{% if bot_ready %}Бот {{ bot }} подключён.{% else %}Бот не подключён — запустите на сервере <code>bash /opt/nuvora/deploy/set-max.sh</code>.{% endif %} Спрашиваем при подозрении и выборочно — примерно каждую N-ю регистрацию; кнопка «Нет MAX» пропускает проверку</small></span></label>
+  <label class="field" style="max-width:260px"><span>Выборочно: каждая N-я регистрация</span><input name="phone_every" type="number" min="1" max="1000" value="{{ phone_every }}"></label>
+  <div class="small muted mt">Наборы стикеров</div>
+  <div class="v3-sitegrid">{% for pid, title, items in packs %}<label class="check"><input type="checkbox" name="pack" value="{{ pid }}"{% if pid not in packs_off %} checked{% endif %}><span>{{ title }} <span class="faint tiny">{{ items|length }} шт.</span></span></label>{% endfor %}</div>
+  <div class="pref-group">Логины</div>
+  <label class="field"><span>Зарезервировать ещё логины <small class="faint">— через пробел или с новой строки; занять их смогут только владелец и модераторы</small></span>
+    <textarea name="reserved" rows="2" placeholder="nuvora_help official support">{{ reserved }}</textarea></label>
+  <div class="pref-group">Блокировка по IP</div>
+  <label class="field"><span>Адреса и подсети <small class="faint">— по одному в строке: 1.2.3.4 или 10.0.0.0/24. С них сайт не откроется вовсе. Ваш адрес сейчас: {{ my_ip }}</small></span>
+    <textarea name="banned_ips" rows="3" placeholder="203.0.113.7">{{ banned_ips }}</textarea></label>
+  <button class="btn mt">Сохранить</button>
+</form>
+<form class="card" method="post" action="/admin/site/notify-all" onsubmit="return confirm('Отправить уведомление всем ({{ users_n }})?')">
+  <div class="card-title">Уведомление всем</div>
+  <p class="small muted mb">Придёт в «Уведомления» каждому незаблокированному пользователю — {{ users_n }}.</p>
+  <textarea name="text" maxlength="500" rows="2" placeholder="Например: «Вышло обновление 3.1 — загляните в „Что нового“»" required></textarea>
+  <button class="btn mt">Отправить всем</button>
+</form>
+<div class="card" id="groups"><div class="card-title"><span>Группы</span><span class="faint small">{{ groups|length }}</span></div>
+  <p class="small muted mb">Видно название, владельца и число участников. Переписку в группах читать нельзя.</p>
+  {% for g, n in groups %}<div class="row" style="gap:10px;padding:6px 0;border-bottom:1px solid var(--border)"><div class="grow" style="min-width:0"><b class="ellipsis" style="display:block">{{ g.name }}</b><span class="tiny faint">{{ n }} участн. · владелец {% if owners.get(g.owner_id) %}<a href="/admin/u/{{ owners[g.owner_id].username }}">@{{ owners[g.owner_id].username }}</a>{% else %}—{% endif %} · {{ g.created_at|ago }}</span></div>
+    <form method="post" action="/admin/groups/{{ g.id }}/delete" onsubmit="return confirm('Удалить группу «{{ g.name }}» со всеми сообщениями?')"><button class="btn ghost sm danger">Удалить</button></form></div>
+  {% else %}<div class="empty small">Групп нет</div>{% endfor %}</div>
+{% endblock %}

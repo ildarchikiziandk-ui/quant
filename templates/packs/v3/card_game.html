@@ -1,0 +1,42 @@
+{%- set an = dname(a) if a else "?" -%}{%- set bn = dname(b) if b else "?" -%}
+{%- set won = done and g.winner and g.winner == me -%}
+{%- macro result() -%}
+  {%- if g.winner == 0 %}<b>Ничья!</b>{% elif won %}<b>Вы победили!</b>{% else %}<b>Победа: {{ an if g.winner == g.a_id else bn }}</b>{% endif -%}
+{%- endmacro -%}
+<div class="v3-card v3-game v3-g-{{ g.kind }}{% if not done %} v3-live{% endif %}" data-v3-msg="{{ msg.id }}">
+{%- if g.kind == "rps" %}
+  <div class="v3-card-head">{{ icon_svg("wave", "i in") }} <span>Камень, ножницы, бумага · до {{ 2 }} побед</span></div>
+  <div class="v3-ttt-who"><span>{{ an }}: <b>{{ score[0] }}</b></span><span>{{ bn }}: <b>{{ score[1] }}</b></span></div>
+  {% if rounds %}<div class="v3-rps-rounds">{% for x, y, w in rounds %}<span class="v3-rps-r"><i class="{{ 'win' if w == 'a' }}">{{ x }}</i><small>{{ loop.index }}</small><i class="{{ 'win' if w == 'b' }}">{{ y }}</i></span>{% endfor %}</div>{% endif %}
+  {% if not done and side %}
+    {% if waiting %}<div class="v3-game-note">Вы выбрали {{ picked }} — ждём соперника…</div>
+    {% else %}<div class="v3-rps-pick">{% for k, e in opts.items() %}<button type="button" data-v3-gmove="{{ g.id }}" data-v="{{ k }}" title="{{ {'r':'Камень','p':'Бумага','s':'Ножницы'}[k] }}">{{ e }}</button>{% endfor %}</div>
+      {% if their_wait %}<div class="v3-game-note">Соперник уже выбрал — ваш ход</div>{% endif %}{% endif %}
+  {% endif %}
+  <div class="v3-card-foot"><span>{% if done %}{{ result() }}{% else %}Раунд {{ rounds|length + 1 }}{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}">Сыграть ещё</button>{% endif %}</div>
+{%- elif g.kind == "dice" %}
+  {%- set faces = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"] -%}
+  <div class="v3-card-head">{{ icon_svg("dice", "i in") }} <span>Кости · у кого больше</span></div>
+  <div class="v3-dice">
+    {% for who, r in ((an, ra), (bn, rb)) %}<div class="v3-dice-p{% if done and g.winner and ((loop.first and g.winner == g.a_id) or (loop.last and g.winner == g.b_id)) %} win{% endif %}"><div class="tiny ellipsis">{{ who }}</div>
+      {% if r %}<div class="v3-dice-f">{{ faces[r[0]] }}{{ faces[r[1]] }}</div><b>{{ r[0] + r[1] }}</b>{% else %}<div class="v3-dice-f faint">? ?</div><span class="tiny faint">ещё не бросил(а)</span>{% endif %}</div>{% endfor %}
+  </div>
+  {% if can_roll %}<button type="button" class="btn sm block" data-v3-gmove="{{ g.id }}" data-v="roll">{{ icon_svg("dice", "i in") }} Бросить кубики</button>{% endif %}
+  <div class="v3-card-foot"><span>{% if done %}{{ result() }}{% elif not can_roll and side %}Ждём бросок соперника…{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}">Ещё раз</button>{% endif %}</div>
+{%- elif g.kind == "c4" %}
+  <div class="v3-card-head">{{ icon_svg("grid", "i in") }} <span>Четыре в ряд</span></div>
+  <div class="v3-ttt-who"><span><i class="v3-dot r"></i> {{ an }}</span><span><i class="v3-dot y"></i> {{ bn }}</span></div>
+  <div class="v3-c4" style="--cols:{{ cols }}">
+    {% for c in range(cols) %}<button type="button" class="v3-c4-col" data-v3-gmove="{{ g.id }}" data-v="{{ c }}" aria-label="Столбец {{ c + 1 }}"{% if not my_turn or full[c] %} disabled{% endif %}>
+      {% for r in range(rows) %}{% set i = r * cols + c %}<i class="{{ cells[i] if cells[i] != '.' }}{% if i in line %} win{% endif %}{% if i == last %} last{% endif %}"></i>{% endfor %}</button>{% endfor %}
+  </div>
+  <div class="v3-card-foot"><span>{% if done %}{{ result() }}{% elif my_turn %}<b>Ваш ход</b> — нажмите на столбец{% else %}Ход соперника…{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}">Сыграть ещё</button>{% endif %}</div>
+{%- else %}
+  <div class="v3-card-head">{{ icon_svg("type", "i in") }} <span>Виселица · загадал(а) {{ an }}</span></div>
+  <div class="v3-hang-top"><span class="v3-hang-lives" title="Ошибок: {{ misses }} из {{ lives }}">{% for i in range(lives) %}<i class="{{ 'gone' if i < misses }}"></i>{% endfor %}</span><span class="tiny">ошибок {{ misses }}/{{ lives }}</span></div>
+  <div class="v3-hang-word">{% for ch in mask %}<span class="{{ 'open' if opened[loop.index0] }}">{{ ch }}</span>{% endfor %}</div>
+  {% if guesser %}<div class="v3-hang-kb">{% for ch in alphabet %}{% set used = ch in guessed %}<button type="button" data-v3-gmove="{{ g.id }}" data-v="{{ ch }}"{% if used %} disabled class="{{ 'hit' if ch in mask else 'miss' }}"{% endif %}>{{ ch }}</button>{% endfor %}</div>
+  {% elif not done and side == "a" %}<div class="v3-game-note">Вы загадали слово — соперник угадывает{% if guessed %}: {{ guessed|upper|join(" ") }}{% endif %}</div>{% endif %}
+  <div class="v3-card-foot"><span>{% if done %}{% if g.winner == g.b_id %}{% if won %}<b>Вы угадали!</b>{% else %}<b>{{ bn }} угадал(а) слово</b>{% endif %}{% elif won %}<b>Слово не угадали — вы победили!</b>{% else %}<b>Не угадали.</b> Слово: {{ mask|join("") }}{% endif %}{% elif guesser %}Угадайте слово по буквам{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}" data-hang="1">Загадать своё</button>{% endif %}</div>
+{%- endif %}
+</div>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Пригласить друзей — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card hero center" style="padding:28px 20px"><div style="font-size:44px">{{ icon("handshake", "i in") }}</div><div style="font-size:22px;font-weight:800;margin:6px 0">Зовите друзей в {{ brand }}</div>
+<div class="muted">За каждого друга, который зарегистрируется по вашей ссылке, — <b>+100 очков</b> и достижение «Пригласивший».</div>
+<div class="row mt" style="justify-content:center;gap:8px;flex-wrap:wrap"><input value="{{ link }}" readonly style="margin:0;max-width:360px" onclick="this.select()"><button class="btn" data-act="copy" data-url="{{ link }}">Скопировать</button></div>
+<div class="row mt" style="justify-content:center;gap:8px"><a class="btn soft sm" target="_blank" rel="noopener" href="https://t.me/share/url?url={{ link|urlencode }}&text={{ ('Заходи в ' ~ brand ~ '!')|urlencode }}">Telegram</a><a class="btn soft sm" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('Заходи в ' ~ brand ~ ': ' ~ link)|urlencode }}">WhatsApp</a><a class="btn soft sm" target="_blank" rel="noopener" href="https://vk.com/share.php?url={{ link|urlencode }}">ВКонтакте</a></div></div>
+<div class="card"><div class="card-title">Приглашены · {{ invited|length }}</div>
+{% for u in invited %}<a href="/profile/{{ u.username }}" class="row small" style="padding:6px 0">{{ avatar(u, 30) }}<span class="grow">{{ u.name or u.username }} <span class="muted">@{{ u.username }}</span></span><span class="faint">{{ u.created_at|ago }}</span></a>
+{% else %}<div class="small muted">Пока никого — отправьте ссылку друзьям</div>{% endfor %}</div>
+{% endblock %}
