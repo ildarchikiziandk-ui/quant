@@ -342,3 +342,10 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .v3-meter { height: 10px; border-radius: 6px; background: var(--input); overflow: hidden; }
 .v3-meter i { display: block; height: 100%; background: var(--accent); }
 .v3-adminnav { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* окно подтверждения входа */
+.v3-la-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.v3-la-sheet{background:var(--card,#fff);color:var(--text,#111);border-radius:18px;padding:18px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.v3-la-sheet b{font-size:18px;display:block;margin-bottom:6px}
+.v3-la-sheet .btn{flex:1}
+@media(min-width:700px){.v3-la-modal{align-items:center}}

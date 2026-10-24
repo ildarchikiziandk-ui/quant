@@ -217,3 +217,18 @@ class PhoneCheck(Base):
     attempts = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     done_at = Column(DateTime, nullable=True)
+
+
+# --- Подтверждение входа на телефоне ----------------------------------------------------------------------
+class LoginApproval(Base):
+    __tablename__ = "v3_login_approvals"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    token_hash = Column(String(64), index=True)  # хэш секрета из cookie ожидающего устройства
+    status = Column(String(10), default="pending")  # pending, approved, denied, used
+    device = Column(String(120), default="")
+    ip = Column(String(64), default="")
+    next_url = Column(String(300), default="/")
+    notif_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    decided_at = Column(DateTime, nullable=True)

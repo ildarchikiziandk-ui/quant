@@ -1,6 +1,6 @@
 """Nuvora 3.x: модули чатов, игр, помощника Нувы, красивых логинов и безопасности."""
 from . import models  # noqa: F401  таблицы
-from . import account, accounts, admin_more, admin_plus, ai, appupdate, calls, capsule, chat, dayyot, feed, games, handles_shop, media, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
+from . import account, accounts, admin_more, admin_plus, ai, appupdate, calls, capsule, chat, dayyot, feed, games, handles_shop, login_approve, media, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
 
 WHATSNEW = [
@@ -75,5 +75,5 @@ JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js"]
 JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job]
 GLOBALS = {
     "v3_card": chat.card, "v3_chest": people.chest_state, "v3_backup_left": account.backup_left,
-    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_aliases": handles_shop.aliases_of,
+    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_aliases": handles_shop.aliases_of,
 }

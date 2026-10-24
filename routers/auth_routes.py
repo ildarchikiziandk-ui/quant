@@ -62,7 +62,12 @@ def _tz_ctx():
     return {"tz_options": timezones.options(), "tz_map": timezones.iana_map()}
 
 
-def _finish_login(request, db, user, next_url="/"):
+def _finish_login(request, db, user, next_url="/", approved=False):
+    if not approved:
+        from packs.v3 import login_approve
+        wait = login_approve.intercept(request, db, user, next_url)  # вход ждёт «Да, это я» на телефоне
+        if wait is not None:
+            return wait
     token = auth.start_session(db, user, request)
     resp = redirect(safe_next(next_url))
     auth.set_auth_cookie(resp, token)

@@ -107,10 +107,11 @@ class NotifyService : Service() {
                         val isCall = e.optBoolean("call")
                         val isMessage = e.optString("kind") == "message" || isCall
                         if (isMessage && appVisible) continue  // открытое приложение само показывает сообщения и экран звонка
+                        val urgent = e.optBoolean("urgent")  // «Это вы входите?» — громко, как сообщение
                         show(
                             this,
                             if (isMessage && !isCall) ("chat:" + e.optString("chat")).hashCode() else 100000 + e.optInt("id"),
-                            e.optString("title"), e.optString("text"), e.optString("url", "/notifications"), isMessage
+                            e.optString("title"), e.optString("text"), e.optString("url", "/notifications"), isMessage || urgent
                         )
                     }
                 }

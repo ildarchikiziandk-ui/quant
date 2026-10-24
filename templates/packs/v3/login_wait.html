@@ -1,0 +1,33 @@
+{% extends "bare.html" %}
+{% block title %}Подтвердите вход — {{ brand }}{% endblock %}
+{% block card %}
+<h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">{{ icon("smartphone", "i in") }} Подтвердите вход</h1>
+<p class="center muted small mb">На телефоне, где открыта Nuvora, придёт уведомление «Это вы?». Нажмите «Да, это я» — и вход завершится сам.</p>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<div class="card center small" id="lw-box" style="padding:14px">Ждём подтверждения…<div class="tiny faint mt">Это устройство: {{ device }}</div></div>
+<form method="post" action="/login/wait/finish" id="lw-finish" hidden></form>
+{% if backup %}
+<details class="mt small"><summary class="muted">Нет доступа к телефону?</summary>
+<form method="post" action="/login/wait/backup" class="mt">
+  <input name="code" inputmode="numeric" maxlength="9" placeholder="Резервный код 2FA (8 цифр)" required style="text-align:center;margin-bottom:8px">
+  <button class="btn soft block">Войти по резервному коду</button>
+</form></details>
+{% endif %}
+<p class="center mt small"><a href="/login" class="muted">← Назад</a></p>
+<script>
+(function(){
+  const box=document.getElementById('lw-box');
+  const say=(t,bad)=>{ box.innerHTML=t; if(bad) box.classList.add('error'); };
+  const tick=async()=>{
+    try{
+      const r=await (await fetch('/login/wait/status',{headers:{'X-Requested-With':'fetch'},cache:'no-store'})).json();
+      if(r.state==='approved'){ say('Вход подтверждён'); document.getElementById('lw-finish').submit(); return; }
+      if(r.state==='denied') return say('Вход отклонён на телефоне.',1);
+      if(r.state==='expired'||r.state==='gone'||r.state==='used') return say('Время вышло. <a href="/login">Войдите ещё раз</a>.',1);
+    }catch(e){}
+    setTimeout(tick,2000);
+  };
+  setTimeout(tick,1500);
+})();
+</script>
+{% endblock %}

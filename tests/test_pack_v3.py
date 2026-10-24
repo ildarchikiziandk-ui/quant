@@ -769,3 +769,53 @@ def test_owner_perks(owner, alice):
     s.add(models.RaffleEntry(raffle_id=raffle.id, user_id=o.id, tickets=50)); s.add(models.RaffleEntry(raffle_id=raffle.id, user_id=a.id, tickets=1)); s.commit()
     assert gamification.draw_raffle(s, raffle).winner_id == a.id
     s.close()
+
+
+def test_login_approval_on_phone(owner, alice):
+    login = lambda c: c.post("/login", data={"username": "owner", "password": "secret123"}, follow_redirects=False)
+    # обычные пользователи входят как раньше
+    a2 = make_client()
+    assert a2.post("/login", data={"username": "alice", "password": "secret123"}, follow_redirects=False).status_code == 303
+    # владелец: вход с нового устройства ждёт подтверждения на уже открытом сеансе
+    c = make_client()
+    r = login(c)
+    assert r.status_code == 200 and "Подтвердите вход" in r.text
+    assert c.get("/login/wait/status").json()["state"] == "pending"
+    assert c.get("/settings", follow_redirects=False).status_code in (302, 303)  # ещё не вошёл
+    assert c.post("/login/wait/finish", follow_redirects=False).headers["location"] == "/login"
+    rows = owner.get("/login-approve/pending").json()["rows"]
+    assert len(rows) == 1
+    assert alice.post(f"/login-approve/{rows[0]['id']}", data={"decision": "yes"}, headers=J).status_code == 404  # чужой запрос
+    assert "Это вы" in owner.get("/login-approve").text
+    # «Нет» — вход отклонён
+    assert owner.post(f"/login-approve/{rows[0]['id']}", data={"decision": "no"}, headers=J).json()["state"] == "denied"
+    assert c.get("/login/wait/status").json()["state"] == "denied"
+    assert c.post("/login/wait/finish", follow_redirects=False).headers["location"] == "/login"
+    # «Да» — вход завершается, повторно тем же подтверждением войти нельзя
+    login(c)
+    rid = owner.get("/login-approve/pending").json()["rows"][0]["id"]
+    owner.post(f"/login-approve/{rid}", data={"decision": "yes"}, headers=J)
+    assert c.get("/login/wait/status").json()["state"] == "approved"
+    r = c.post("/login/wait/finish", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/"
+    assert c.get("/settings", follow_redirects=False).status_code == 200
+    assert c.get("/login/wait/status").json()["state"] in ("used", "gone")
+    # выключил — входит как обычно
+    owner.post("/v3/login-approval", data={"on": ""}, headers=J)
+    assert login(make_client()).status_code == 303
+
+
+def test_login_approval_stream_and_no_sessions(owner):
+    from datetime import datetime, timedelta
+    import models
+    c = make_client()
+    since = owner.get("/api/stream?since_notif=-1&since_msg=-1").json()
+    c.post("/login", data={"username": "owner", "password": "secret123"})
+    ev = owner.get(f"/api/stream?since_notif={since['notif']}&since_msg={since['msg']}&wait=0").json()["events"]
+    la = [e for e in ev if e.get("urgent")]
+    assert la and la[0]["url"] == "/login-approve"
+    # подтвердить некому (сеансы давно не использовались) — вход не блокируется
+    s = db()
+    s.query(models.UserSession).update({"last_active": datetime.utcnow() - timedelta(days=30)})
+    s.commit(); s.close()
+    assert make_client().post("/login", data={"username": "owner", "password": "secret123"}, follow_redirects=False).status_code == 303
