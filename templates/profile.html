@@ -117,6 +117,7 @@
   <a href="?tab=replies" class="{% if tab == 'replies' %}active{% endif %}">Ответы</a>
   <a href="?tab=media" class="{% if tab == 'media' %}active{% endif %}">Медиа</a>
   {% if me %}<a href="?tab=likes" class="{% if tab == 'likes' %}active{% endif %}" title="Видите только вы">Лайки {{ icon("lock", "i in") }}</a>{% endif %}
+  <a href="/profile/{{ profile_user.username }}/photos">Фото</a>
   {% for _s in pack_slot("profile_tabs") %}{% include _s %}{% endfor %}
 </div>
 {% set pack_tab = namespace(done=false) %}{% for _s in pack_slot("profile_tab_body") %}{% include _s %}{% endfor %}

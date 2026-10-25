@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block title %}Фото — {{ brand }}{% endblock %}
+{% block meta %}<meta property="og:title" content="{{ a.title }}"><meta property="og:image" content="{{ site_url }}{{ p.url }}">{% endblock %}
+{% block content %}
+<div class="page-head"><a href="/albums/{{ a.id }}" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0;font-size:18px">{{ a.title }} <span class="tiny faint">{{ pos }} / {{ total }}</span></div></div>
+<div class="ph-view" id="ph-view">
+  <img src="{{ p.url }}" alt="{{ p.caption }}" id="ph-img">
+  {% for t, u in tags %}<a class="ph-tag" href="/profile/{{ u.username }}" style="left:{{ t.x }}%;top:{{ t.y }}%">{{ u.name or u.username }}</a>{% endfor %}
+  {% if prev %}<a class="ph-nav l" href="/photos/{{ prev }}" aria-label="Предыдущее">{{ icon("back") }}</a>{% endif %}
+  {% if next %}<a class="ph-nav r" href="/photos/{{ next }}" aria-label="Следующее">{{ icon("back") }}</a>{% endif %}
+</div>
+<div class="card">
+  <div class="row" style="gap:10px">{% if uploader %}{{ avatar(uploader, 32) }}<div class="grow small"><b>{{ uploader.name or uploader.username }}</b><div class="tiny faint">{{ p.created_at|ago }}</div></div>{% endif %}</div>
+  {% if p.caption %}<p class="mt">{{ p.caption }}</p>{% endif %}
+  {% if tags %}<div class="mt small">{{ icon("user", "i in") }} На фото: {% for t, u in tags %}<a href="/profile/{{ u.username }}" style="color:var(--link);font-weight:600">{{ u.name or u.username }}</a>{% if user and (u.id == user.id or t.by_user_id == user.id or can_edit) %} <button class="v3-link tiny" data-untag="{{ u.id }}">убрать</button>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+  {% if can_tag %}<div class="row wrap mt" style="gap:6px"><button class="btn soft sm" id="ph-tagmode">{{ icon("user-plus", "i in") }} Отметить друга</button>
+    {% if can_edit or (user and user.id == p.user_id) %}<button class="btn soft sm" id="ph-cap">{{ icon("edit", "i in") }} Подпись</button><button class="btn ghost sm danger" id="ph-del">{{ icon("trash", "i in") }} Удалить</button>{% endif %}
+    <a class="btn ghost sm" href="{{ p.url }}" download>{{ icon("download", "i in") }} Скачать</a></div>
+  <p class="tiny faint mt hidden" id="ph-hint">Нажмите на фото там, где человек, — и выберите его.</p>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script>
+(function(){ const pid={{ p.id }}, view=document.getElementById('ph-view'), img=document.getElementById('ph-img'); let tagging=false;
+  const tm=document.getElementById('ph-tagmode'); if(tm) tm.onclick=()=>{ tagging=!tagging; view.classList.toggle('tagging',tagging); document.getElementById('ph-hint').classList.toggle('hidden',!tagging); };
+  img.addEventListener('click',async e=>{ if(!tagging) return; const r=img.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)/r.width*100), y=Math.round((e.clientY-r.top)/r.height*100);
+    const u=prompt('Кого отметить? Напишите @логин'); if(!u) return; const fd=new FormData(); fd.append('username',u); fd.append('x',x); fd.append('y',y);
+    try{ await App.api(`/photos/${pid}/tag`,fd); location.reload(); }catch(er){} });
+  document.querySelectorAll('[data-untag]').forEach(b=>b.onclick=async()=>{ const fd=new FormData(); fd.append('user',b.dataset.untag); try{ await App.api(`/photos/${pid}/untag`,fd); location.reload(); }catch(e){} });
+  const cap=document.getElementById('ph-cap'); if(cap) cap.onclick=async()=>{ const t=prompt('Подпись к фото',{{ p.caption|tojson }}); if(t===null) return; const fd=new FormData(); fd.append('caption',t); try{ await App.api(`/photos/${pid}/caption`,fd); location.reload(); }catch(e){} };
+  const del=document.getElementById('ph-del'); if(del) del.onclick=async()=>{ if(!confirm('Удалить фото?')) return; try{ const r=await App.api(`/photos/${pid}/delete`); location.href=r.url; }catch(e){} };
+})();</script>{% endblock %}

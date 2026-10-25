@@ -1051,3 +1051,30 @@ def test_wall_posts(alice, bob):
     # «Никто»
     alice.post("/settings/prefs/privacy", data={"who_can_post_wall": "nobody"})
     assert bob.post("/post/create", data={"content": "ещё", "wall": "alice"}, headers=J).status_code == 403
+
+
+def test_albums_and_tags(alice, bob):
+    eve = register(make_client(), "eve")
+    r = alice.post("/albums/new", data={"title": "Лето", "privacy": "all"}, headers=J).json()
+    aid = int(r["url"].rsplit("/", 1)[1])
+    up = alice.post(f"/albums/{aid}/upload", files=[("photos", ("a.png", png_bytes(), "image/png")), ("photos", ("b.png", png_bytes((10, 200, 30)), "image/png"))], headers=J).json()
+    assert up["added"] == 2
+    assert bob.post(f"/albums/{aid}/upload", files=[("photos", ("c.png", png_bytes(), "image/png"))], headers=J).status_code == 403
+    page = bob.get(f"/albums/{aid}").text
+    assert "2 фото" in page
+    from packs.v3.models import Photo
+    s = db()
+    photo_id = s.query(Photo).order_by(Photo.id).first().id
+    s.close()
+    # отметить можно только того, с кем есть подписка
+    assert alice.post(f"/photos/{photo_id}/tag", data={"username": "bob", "x": 30, "y": 40}, headers=J).status_code == 400
+    bob.post("/follow/alice", headers=J)
+    assert alice.post(f"/photos/{photo_id}/tag", data={"username": "bob", "x": 30, "y": 40}, headers=J).json()["ok"]
+    assert "Фото со мной" in bob.get("/profile/bob/photos").text
+    assert "Bob" in alice.get(f"/photos/{photo_id}").text
+    # отмеченный убирает отметку сам
+    assert bob.post(f"/photos/{photo_id}/untag", headers=J).json()["ok"]
+    # приватность альбома
+    r2 = alice.post("/albums/new", data={"title": "Личное", "privacy": "me"}, headers=J).json()
+    assert bob.get(r2["url"]).status_code == 404 and "Личное" not in eve.get("/profile/alice/photos").text
+    assert alice.post(f"/albums/{aid}/delete", headers=J).json()["ok"]

@@ -288,3 +288,38 @@ class CommunityMember(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     role = Column(String(8), default="member")  # owner, admin, member
     joined_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Фотоальбомы и отметки на фото ----------------------------------------------------------------------------
+class Album(Base):
+    __tablename__ = "v3_albums"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)  # владелец (для альбома сообщества — кто создал)
+    community_id = Column(Integer, nullable=True, index=True)  # альбом сообщества
+    title = Column(String(80))
+    description = Column(String(300), default="")
+    privacy = Column(String(10), default="all")  # all, followers, me
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Photo(Base):
+    __tablename__ = "v3_photos"
+    id = Column(Integer, primary_key=True)
+    album_id = Column(Integer, ForeignKey("v3_albums.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)  # кто загрузил
+    url = Column(String(300))
+    caption = Column(String(300), default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PhotoTag(Base):
+    """Отметка человека на фото: x, y — доли ширины и высоты (0…1)."""
+    __tablename__ = "v3_photo_tags"
+    __table_args__ = (UniqueConstraint("photo_id", "user_id"),)
+    id = Column(Integer, primary_key=True)
+    photo_id = Column(Integer, ForeignKey("v3_photos.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    by_user_id = Column(Integer, ForeignKey("users.id"))
+    x = Column(Integer, default=50)  # проценты
+    y = Column(Integer, default=50)
+    created_at = Column(DateTime, default=datetime.utcnow)

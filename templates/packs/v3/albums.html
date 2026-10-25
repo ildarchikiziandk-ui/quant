@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Фото — {{ brand }}{% endblock %}
+{% block content %}
+{% set back = ("/c/" ~ community.slug) if community else ("/profile/" ~ pu.username) %}
+<div class="page-head"><a href="{{ back }}" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Фото{% if community %} · {{ community.name }}{% elif not me %} · {{ pu.name or pu.username }}{% endif %}</div>
+  {% if me %}<button class="btn sm" data-modal="al-new" title="Новый альбом">{{ icon("plus") }}<span class="btn-lbl">Альбом</span></button>{% endif %}</div>
+{% if tagged %}<div class="card"><div class="card-title">{{ icon("user", "i in") }} Фото {{ "со мной" if me else "с " ~ (pu.name or pu.username) }}</div>
+  <div class="ph-grid">{% for p in tagged %}<a href="/photos/{{ p.id }}"><img src="{{ p.url }}" alt="" loading="lazy"></a>{% endfor %}</div></div>{% endif %}
+<div class="al-grid">
+{% for x in albums %}<a class="al-card" href="/albums/{{ x.a.id }}"><div class="al-cover"{% if x.cover %} style="background-image:url('{{ x.cover }}')"{% endif %}>{% if not x.cover %}{{ icon("image") }}{% endif %}{% if x.a.privacy != "all" %}<span class="al-lock">{{ icon("lock", "i in") }}</span>{% endif %}</div>
+  <b>{{ x.a.title }}</b><span class="tiny muted">{{ x.n }} фото</span></a>
+{% else %}<div class="card empty" style="grid-column:1/-1">{{ icon("image", "i in") }}<br>Альбомов пока нет{% if me %} — создайте первый{% endif %}</div>{% endfor %}
+</div>
+{% if me %}
+<div class="modal-bg" id="al-new"><div class="modal">
+  <div class="modal-head"><b>Новый альбом</b><button class="icon-btn" data-close>{{ icon("x") }}</button></div>
+  <form id="al-new-form">{% if community %}<input type="hidden" name="community" value="{{ community.slug }}">{% endif %}
+    <input name="title" maxlength="80" placeholder="Название: «Лето 2026»" required class="mb">
+    <textarea name="description" maxlength="300" rows="2" placeholder="Описание (необязательно)"></textarea>
+    {% if not community %}<label class="field mt"><span>Кто видит</span><select name="privacy">{% for k, l in privacy.items() %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></label>{% endif %}
+    <button class="btn block mt">Создать</button></form>
+</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>(function(){ const f=document.getElementById('al-new-form'); if(f) f.addEventListener('submit',async e=>{ e.preventDefault(); try{ const r=await App.api('/albums/new',new FormData(f)); location.href=r.url; }catch(er){} }); })();</script>{% endblock %}

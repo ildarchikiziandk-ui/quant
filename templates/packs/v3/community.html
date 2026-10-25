@@ -14,6 +14,7 @@
       {% else %}<a class="btn" href="/register">Присоединиться</a>{% endif %}
     </div>
   </div>
+  <div class="c-links"><a href="/c/{{ c.slug }}/photos">{{ icon("image", "i in") }} Фотоальбомы</a><a href="/c/{{ c.slug }}/members">{{ icon("users", "i in") }} Подписчики</a></div>
   {% if c.description %}<div class="c-desc">{{ c.description|rich }}</div>{% endif %}
 </div>
 {% if can_post %}{% set post_to = {"ref": c.slug, "back": "/c/" ~ c.slug} %}{% include "partials/composer.html" %}{% endif %}

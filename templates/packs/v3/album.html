@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }} — {{ brand }}{% endblock %}
+{% block content %}
+{% set back = ("/c/" ~ community.slug ~ "/photos") if community else ("/profile/" ~ owner.username ~ "/photos") %}
+<div class="page-head"><a href="{{ back }}" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis">{{ a.title }}</div>
+  {% if can_edit %}<label class="btn sm" title="Добавить фото">{{ icon("plus") }}<span class="btn-lbl">Фото</span><input type="file" id="al-files" accept="image/*" multiple hidden></label>
+  <button class="btn soft sm" data-modal="al-edit" title="Изменить">{{ icon("settings") }}</button>{% endif %}</div>
+<div class="small muted mb">{{ photos|length }} фото{% if a.privacy != "all" %} · видят: {{ privacy[a.privacy]|lower }}{% endif %}{% if a.description %} · {{ a.description }}{% endif %}</div>
+<div class="ph-grid big">{% for p in photos %}<a href="/photos/{{ p.id }}"><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy"></a>{% else %}<div class="card empty" style="grid-column:1/-1">{{ icon("image", "i in") }}<br>В альбоме пока нет фото</div>{% endfor %}</div>
+{% if can_edit %}
+<div class="modal-bg" id="al-edit"><div class="modal">
+  <div class="modal-head"><b>Альбом</b><button class="icon-btn" data-close>{{ icon("x") }}</button></div>
+  <form method="post" action="/albums/{{ a.id }}/save"><input name="title" value="{{ a.title }}" maxlength="80" class="mb"><textarea name="description" maxlength="300" rows="2">{{ a.description }}</textarea>
+    {% if not community %}<label class="field mt"><span>Кто видит</span><select name="privacy">{% for k, l in privacy.items() %}<option value="{{ k }}"{% if a.privacy == k %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>{% endif %}
+    <button class="btn block mt">Сохранить</button></form>
+  <button class="btn danger block mt" id="al-del">Удалить альбом с фото</button>
+</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+(function(){ const inp=document.getElementById('al-files');
+  if(inp) inp.onchange=async()=>{ const fd=new FormData(); [...inp.files].slice(0,30).forEach(f=>fd.append('photos',f)); try{ const r=await App.api('/albums/{{ a.id }}/upload',fd,{title:'Загружаем фото'}); App.toast('Добавлено фото: '+r.added); setTimeout(()=>location.reload(),400); }catch(e){} };
+  const del=document.getElementById('al-del'); if(del) del.onclick=async()=>{ if(!confirm('Удалить альбом и все фото в нём?')) return; try{ const r=await App.api('/albums/{{ a.id }}/delete'); location.href=r.url; }catch(e){} };
+})();</script>{% endblock %}
