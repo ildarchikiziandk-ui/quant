@@ -81,6 +81,14 @@ for _name in ("after_flush", "after_commit", "after_rollback", "after_soft_rollb
     _event.listen(_Session, _name, _reset_memo)
 
 
+def follower_ids(db, user):
+    """Кто подписан на человека."""
+    if not user:
+        return set()
+    return set(_memo(db, ("followers", user.id), lambda: (
+        f.follower_id for f in db.query(models.Follow.follower_id).filter(models.Follow.following_id == user.id))))
+
+
 def following_ids(db, user):
     if not user:
         return set()

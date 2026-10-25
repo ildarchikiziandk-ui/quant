@@ -24,7 +24,8 @@ def get_feed(db, user, tab="foryou", page=1):
     now = datetime.utcnow()
     q = recommend.guests_hidden_filter(recommend.apply_filters(with_loads(social.visible_posts(db, user)), user), user)
     if tab == "following" and user:
-        fids = social.following_ids(db, user) | {user.id}
+        # «Подписки и подписчики»: посты тех, на кого вы подписаны, и тех, кто подписан на вас
+        fids = social.following_ids(db, user) | social.follower_ids(db, user) | {user.id}
         tags = [t.tag for t in db.query(models.HashtagFollow.tag).filter_by(user_id=user.id).limit(30)]
         cond = models.Post.user_id.in_(fids)
         if tags:  # подписки на темы: посты с этими хэштегами тоже попадают в ленту

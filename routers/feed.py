@@ -24,7 +24,7 @@ def home(request: Request, tab: str = "", db: Session = Depends(get_db)):
         return redirect("/messages")
     if not tab and user:
         tab = prefs.get(user, "feed_default_tab")
-    tab = tab if tab in TABS else "foryou"
+    tab = tab if tab in TABS else "following"
     if tab == "following" and not user:
         tab = "foryou"
     posts, has_more, reasons = feed.get_feed(db, user, tab, 1)

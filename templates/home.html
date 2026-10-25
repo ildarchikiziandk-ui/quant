@@ -5,7 +5,7 @@
 <div class="card stories-card" style="padding:12px 14px">
   <div class="stories">
     {% if user %}
-    <a href="/stories/create" class="story-item"><span class="story-add">{{ icon("plus") }}</span><span>Ваша история</span></a>
+    <a href="/stories/create" class="story-item"><span class="story-add">{{ icon("plus") }}</span><span>{% if story_groups %}Ваша история{% else %}Добавить историю{% endif %}</span></a>
     {% endif %}
     {% for g in story_groups %}
     <a href="/stories/{{ g.user.username }}" class="story-item">
@@ -28,7 +28,7 @@
 
 {% for _s in pack_slot("home_top") %}{% include _s %}{% endfor %}
 <div class="tabs">
-  {% if user %}<a href="/?tab=following" class="{% if tab == 'following' %}active{% endif %}">Подписки</a>{% endif %}
+  {% if user %}<a href="/?tab=following" class="{% if tab == 'following' %}active{% endif %}">Подписки и подписчики</a>{% endif %}
   <a href="/?tab=foryou" class="{% if tab == 'foryou' %}active{% endif %}">Рекомендации</a>
 </div>
 
@@ -38,7 +38,7 @@
 {% else %}
 <div class="card empty">
   <div class="big">{% if tab == 'following' %}{{ icon("eye", "i in") }}{% else %}{{ icon("sparkle", "i in") }}{% endif %}</div>
-  {% if tab == 'following' %}Подпишитесь на кого-нибудь, чтобы видеть их посты. <a href="/explore" style="color:var(--link);font-weight:600">Найти людей →</a>
+  {% if tab == 'following' %}Здесь посты ваших подписок и подписчиков. Подпишитесь на кого-нибудь, чтобы их стало больше. <a href="/explore" style="color:var(--link);font-weight:600">Найти людей →</a>
   {% else %}Пока нет постов. {% if user %}<a href="/create" style="color:var(--link);font-weight:600">Напишите первый →</a>{% else %}Будьте первым!{% endif %}{% endif %}
 </div>
 {% endif %}

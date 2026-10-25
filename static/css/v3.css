@@ -164,9 +164,70 @@ article.post.menu-on { content-visibility: visible; position: relative; z-index:
   .cmp-menu { max-width: calc(100vw - 24px); }
 }
 /* поля в строке с кнопкой сжимаются, а не выталкивают кнопку за экран */
-.row > input, .row > select, .row > textarea, .grow { min-width: 0; }
+.row > input, .row > select, .row > textarea, .row:not(.wrap) > .grow { min-width: 0; }
+.row.wrap > .grow { min-width: min(100%, 200px); }
 .row > .btn { flex-shrink: 0; }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid-3 > * { min-width: 0; } .ach b, .ach .tiny { overflow-wrap: anywhere; }
 @media (max-width: 380px) { #app-banner .small, #ios-banner .small { display: none; } #app-banner, #ios-banner { align-items: center; } }
 .cover { background-color: color-mix(in srgb, var(--accent) 16%, var(--card)); }
 .bars { overflow: hidden; } .bars .b { min-width: 0; }
+
+/* ===== Улучшение интерфейса ===== */
+/* пост: «⋯» всегда в правом верхнем углу, имя и время не уезжают на отдельные строки из-за него */
+.card.post { position: relative; }
+.post-meta { padding-right: 34px; row-gap: 0; }
+.post-meta > .menu-wrap { position: absolute; top: 10px; right: 8px; margin: 0; }
+.post-meta .handle, .post-meta .time { white-space: nowrap; }
+/* счётчики под постом: пустые — без «0», иконки чуть крупнее и ровнее */
+.post-actions .act .n:empty, .post-actions .act span:empty { display: none; }
+.post-actions { gap: 4px; margin-top: 10px; }
+.post-actions .act { min-height: 36px; padding: 6px 10px; }
+.post-text { line-height: 1.5; }
+.post .att, .post .post-media img, .post .media-grid { border-radius: 16px; }
+@media (max-width: 640px) {
+  /* текст, фото и кнопки поста — на всю ширину карточки, а не узкой колонкой справа от аватарки */
+  .card.post { padding: 14px 14px 10px; }
+  .post-head { gap: 10px; }
+  .post-head > a:first-child { flex: none; }
+  .post-body > :not(.post-meta) { margin-left: -54px; }
+  .post-meta { min-height: 44px; align-content: center; }
+  .post-actions { margin-left: -60px; justify-content: space-between; }
+  .post-actions .menu-wrap { margin-left: 0; }
+}
+/* истории: если своих историй ещё нет — компактная строка вместо большой пустой карточки */
+.stories-card:not(:has(.ring)) { padding: 10px 14px !important; }
+.stories-card:not(:has(.ring)) .stories { padding: 0; }
+.stories-card:not(:has(.ring)) .story-item { flex-direction: row; width: auto; gap: 12px; }
+.stories-card:not(:has(.ring)) .story-add { width: 44px; height: 44px; }
+.stories-card:not(:has(.ring)) .story-item span:last-child { max-width: none; font-size: 14px; }
+.story-item span { max-width: 74px; }
+@media (max-width: 640px) { .post-meta .meta-dot { display: none; } .post-meta .handle { max-width: 45%; overflow: hidden; text-overflow: ellipsis; } }
+/* инструменты под постом — одна строка небольших кнопок, листается вбок */
+.post-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 4px !important; }
+.post-tools::-webkit-scrollbar { display: none; }
+.post-tools .btn { flex: none; padding: 6px 11px; font-size: 13px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); color: var(--text-2); }
+.post-tools .btn .i { color: var(--accent); }
+/* список чатов: строка папок — только если папки есть (создать папку — в меню «⋯») */
+#v3-folders:not(:has([data-folder]:not([data-folder=""]))) { display: none; }
+.chat-tabs { margin-bottom: 8px; }
+/* профиль без закреплённых историй: маленькая строка «+ Добавить историю» вместо большого кружка */
+.highlights.hl-empty { padding-top: 4px; }
+.highlights.hl-empty .highlight { flex-direction: row; gap: 10px; width: auto; }
+.highlights.hl-empty .hl { width: 36px; height: 36px; }
+.highlights.hl-empty .hl .i { width: 18px; height: 18px; }
+.highlights.hl-empty .tiny { font-size: 14px; font-weight: 600; color: var(--accent); }
+/* шапка раздела: заголовок и кнопки в одну строку, кнопки не переносятся под заголовок без нужды */
+@media (max-width: 640px) { .page-head { flex-wrap: nowrap; gap: 8px; } .page-head .page-title { min-width: 0; font-size: 20px; } .page-head > .row { flex-shrink: 0; } }
+/* заголовок карточки: значок и текст рядом слева, ссылка «Все →» — справа */
+.card-title { justify-content: flex-start; }
+.card-title > a:last-child, .card-title > .btn:last-child, .card-title > button:last-child, .card-title > .menu-wrap:last-child, .card-title > form:last-child { margin-left: auto; }
+@media (max-width: 400px) {
+  .page-head .btn .btn-lbl { display: none; }
+  .page-head .btn:has(.btn-lbl) { padding: 9px 11px; }
+}
+/* строка человека (Кого почитать, поиск, подписчики): длинное имя обрезается, кнопка не налезает */
+.user-row { display: flex; align-items: center; gap: 10px; }
+.user-row .info { flex: 1; min-width: 0; }
+.user-row .info > div:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-row .info .bio { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-row > :last-child { flex-shrink: 0; }

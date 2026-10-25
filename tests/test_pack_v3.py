@@ -907,3 +907,23 @@ def test_admin_tools(owner, alice, bob):
     s = db()
     assert login_approve.enabled(s.query(models.User).filter_by(username="bob").one())
     s.close()
+
+
+def test_feed_default_followers_and_following(owner, alice, bob):
+    eve = register(make_client(), "eve")
+    # bob подписан на alice; eve ни с кем не связана
+    bob.post("/follow/alice", headers=J)
+    bob.post("/post/create", data={"content": "пост подписчика"}, headers=J)
+    eve.post("/post/create", data={"content": "пост незнакомки"}, headers=J)
+    page = alice.get("/").text
+    assert 'class="active">Подписки и подписчики' in page
+    assert "пост подписчика" in page and "пост незнакомки" not in page
+    # старое сохранённое «Рекомендации» один раз переключается
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    a.prefs = '{"feed_default_tab": "foryou"}'
+    s.commit()
+    from packs.v3 import accounts
+    accounts.seed_job(s)
+    assert '"following"' in s.query(models.User).filter_by(username="alice").one().prefs
+    s.close()

@@ -39,8 +39,21 @@ def set_locked(db, user, on):
 
 
 def seed_job(db):
-    """Раз в минуту: один раз подписать всех на владельца; включить режим «только чаты» для заданных логинов."""
+    """Раз в минуту: один раз подписать всех на владельца; включить режим «только чаты» для заданных логинов;
+    один раз сделать вкладкой ленты по умолчанию «Подписки и подписчики» (дальше каждый выбирает сам)."""
+    import json
     import models
+    if not site.get("feed_tab_reset"):
+        for u in db.query(models.User).filter(models.User.prefs.like('%"feed_default_tab"%')):
+            try:
+                pr = json.loads(u.prefs or "{}")
+            except ValueError:
+                continue
+            if pr.get("feed_default_tab") == "foryou":
+                pr["feed_default_tab"] = "following"
+                u.prefs = json.dumps(pr, ensure_ascii=False)
+        site.put(db, "feed_tab_reset", True)
+        db.commit()
     if not site.get("owner_follow_seeded"):
         owner = db.query(models.User).filter_by(is_owner=True).first()
         if owner:

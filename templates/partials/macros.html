@@ -108,7 +108,7 @@
       <div class="post-meta">
         {{ name(main.author) }}
         <span class="handle">@{{ main.author.username }}</span>
-        <span class="faint">·</span>
+        <span class="faint meta-dot">·</span>
         <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at|lt('%d.%m.%Y %H:%M') }}">{{ main.created_at|ago }}</a>
         {%- if main.edited_at %}<a class="faint tiny" href="/post/{{ main.id }}/history" title="История правок">· изм.</a>{% endif %}
         {%- if main.is_archived %}<span class="pill-info">{{ icon("archive", "i in") }} в архиве</span>{% endif %}
@@ -135,11 +135,11 @@
       {%- endif %}
       <div class="post-actions">
         {%- set hide = main.author.hide_likes and not (user and user.id == main.user_id) %}
-        <button class="act like {% if main.id in st.liked %}on{% endif %}" data-act="like" data-id="{{ main.id }}" title="Нравится">{{ icon("heart", "i off-ico") }}{{ icon("heart-fill", "i on-ico") }}<span class="n">{% if not hide %}{{ main.likes|length }}{% endif %}</span></button>
-        <button class="act whale {% if main.id in st.whaled %}on{% endif %}" data-act="whale" data-id="{{ main.id }}" title="Кит — суперлайк">{{ icon("whale", "i off-ico") }}{{ icon("whale-fill", "i on-ico") }}<span class="n">{{ main.whales|length }}</span></button>
-        <a class="act" href="/post/{{ main.id }}#comments" title="Комментарии">{{ icon("comment") }}<span>{{ main.comments|length }}</span></a>
+        <button class="act like {% if main.id in st.liked %}on{% endif %}" data-act="like" data-id="{{ main.id }}" title="Нравится">{{ icon("heart", "i off-ico") }}{{ icon("heart-fill", "i on-ico") }}<span class="n">{% if not hide and main.likes %}{{ main.likes|length }}{% endif %}</span></button>
+        <button class="act whale {% if main.id in st.whaled %}on{% endif %}" data-act="whale" data-id="{{ main.id }}" title="Кит — суперлайк">{{ icon("whale", "i off-ico") }}{{ icon("whale-fill", "i on-ico") }}<span class="n">{{ main.whales|length or "" }}</span></button>
+        <a class="act" href="/post/{{ main.id }}#comments" title="Комментарии">{{ icon("comment") }}<span>{{ main.comments|length or "" }}</span></a>
         <span class="menu-wrap" style="margin-left:0">
-          <button class="act repost {% if main.id in st.reposted %}on{% endif %}" data-menu title="Репост">{{ icon("repost") }}<span class="n">{{ repost_counts.get(main.id, 0) }}</span></button>
+          <button class="act repost {% if main.id in st.reposted %}on{% endif %}" data-menu title="Репост">{{ icon("repost") }}<span class="n">{{ repost_counts.get(main.id, 0) or "" }}</span></button>
           <div class="menu" style="left:0;right:auto;">
             <button data-act="repost" data-id="{{ main.id }}">{{ icon("repost") }} {% if main.id in st.reposted %}Отменить репост{% else %}Репост{% endif %}</button>
             <button data-act="quote" data-id="{{ main.id }}">{{ icon("edit") }} Цитировать</button>

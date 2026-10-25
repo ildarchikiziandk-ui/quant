@@ -294,11 +294,11 @@
         const r = await api(url);
         const on = act === 'like' ? r.liked : act === 'whale' ? r.whaled : r.bookmarked;
         b.classList.toggle('on', on); bump(b);
-        const c = $('.n', b); if (c && r.count !== undefined) c.textContent = r.count;
+        const c = $('.n', b); if (c && r.count !== undefined) c.textContent = r.count || '';
         if (act === 'bookmark') toast(on ? 'Добавлено в закладки' : 'Удалено из закладок');
       } else if (act === 'repost') {
         const r = await api(`/repost/${id}`, {});
-        b.classList.toggle('on', r.reposted); const c = $('.n', b); if (c) c.textContent = r.count;
+        b.classList.toggle('on', r.reposted); const c = $('.n', b); if (c) c.textContent = r.count || '';
         toast(r.reposted ? 'Репост сделан' : 'Репост отменён');
       } else if (act === 'quote') {
         const m = modal('Цитировать пост', `<textarea id="quote-text" maxlength="1000" placeholder="Добавьте комментарий..."></textarea><button class="btn block mt" id="quote-send">Опубликовать</button>`);
