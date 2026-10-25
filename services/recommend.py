@@ -135,6 +135,9 @@ def social_affinity(db, user):
         back = {f for (f,) in db.query(models.Follow.follower_id).filter(models.Follow.following_id == user.id, models.Follow.follower_id.in_(mine or {-1}))}
         for u in back:
             out[u] = out.get(u, 0) + 0.8
+        from packs.v3.shares import sharers_for
+        for sid, n in sharers_for(db, user).items():  # кто делился с вами постами — его посты ближе к вам
+            out[sid] = out.get(sid, 0) + 0.7 * math.log1p(n) + 0.5
         for (o,) in db.query(models.ProfileVisit.owner_id).filter(models.ProfileVisit.viewer_id == user.id).order_by(models.ProfileVisit.id.desc()).limit(40):
             out[o] = out.get(o, 0) + 0.25
         top = max(out.values() or [1.0])

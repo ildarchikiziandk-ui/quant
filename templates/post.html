@@ -32,6 +32,10 @@
 <div class="row" style="gap:6px">{% if post.is_long %}<button class="btn ghost sm" onclick="document.body.classList.toggle('reader');this.lastChild.textContent=document.body.classList.contains('reader')?' Выйти из чтения':' Режим чтения'">{{ icon("book", "i in") }} Режим чтения</button>{% endif %}
 {% if user and user.id == post.user_id %}<a class="btn soft sm" href="/post/{{ post.id }}/stats">{{ icon("chart") }} Статистика</a>{% endif %}</div></div>
 {% if post.scheduled_at and post.scheduled_at > now %}<div class="alert info">{{ icon("alarm", "i in") }} Пост запланирован на {{ post.scheduled_at|lt }}. <form method="post" action="/post/{{ post.id }}/publish-now" style="display:inline"><button class="btn sm">Опубликовать сейчас</button></form></div>{% endif %}
+{% if shared_by %}<div class="card share-by row" style="gap:12px">{{ avatar(shared_by, 40) }}<div class="grow" style="min-width:0"><b>{{ shared_by.name or shared_by.username }}</b> поделился(ась) с вами этим постом
+  {% if not user %}<div class="small muted">Присоединяйтесь к {{ brand }} — {{ shared_by.name or shared_by.username }} сразу будет у вас в друзьях.</div>{% endif %}</div>
+  {% if not user %}<a class="btn sm" href="/register?ref={{ shared_by.username }}">Присоединиться</a>
+  {% elif not shared_following %}<button class="btn sm" data-share-follow="{{ shared_by.username }}">{{ icon("user-plus", "i in") }} В друзья</button>{% endif %}</div>{% endif %}
 {{ post_card(post, user, st, originals, repost_counts, can_mod, full=true) }}
 {%- set tid = post.repost_id if (post.is_repost and not post.original_comment and originals.get(post.repost_id)) else post.id %}
 {%- set tauthor = (originals.get(post.repost_id).author if tid != post.id else post.author) %}

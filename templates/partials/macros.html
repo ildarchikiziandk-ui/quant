@@ -205,9 +205,9 @@
 {% macro post_menu(p, main, user, can_mod=false) -%}
             <button data-act="copy" data-id="{{ main.id }}">{{ icon("link") }} Копировать ссылку</button>
             {%- if main.content %}<button data-act="copy-text" data-id="{{ main.id }}">{{ icon("clipboard", "i in") }} Копировать текст</button>{% endif %}
-            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("plane", "i in") }} В Telegram</a>
-            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">{{ icon("chat", "i in") }} В WhatsApp</a>
-            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id)|urlencode }}" target="_blank" rel="noopener">ВКонтакте</a>
+            <a href="https://t.me/share/url?url={{ (site_url ~ '/post/' ~ main.id ~ ('?from=' ~ user.username if user else ''))|urlencode }}" target="_blank" rel="noopener">{{ icon("plane", "i in") }} В Telegram</a>
+            <a href="https://wa.me/?text={{ (site_url ~ '/post/' ~ main.id ~ ('?from=' ~ user.username if user else ''))|urlencode }}" target="_blank" rel="noopener">{{ icon("chat", "i in") }} В WhatsApp</a>
+            <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id ~ ('?from=' ~ user.username if user else ''))|urlencode }}" target="_blank" rel="noopener">ВКонтакте</a>
             <a href="/post/{{ main.id }}/qr">{{ icon("qr", "i in") }} QR-код поста</a>
             {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">{{ icon("inbox", "i in") }} Отправить в чат</button>
             <button data-act="remind" data-id="{{ main.id }}">{{ icon("alarm", "i in") }} Напомнить завтра</button>{% endif %}

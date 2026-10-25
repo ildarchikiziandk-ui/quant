@@ -315,7 +315,8 @@
         const bar = $(`#reactions-${id}`);
         if (bar) bar.innerHTML = Object.entries(r.counts).map(([em, n]) => `<button class="reaction-pill ${r.mine === em ? 'mine' : ''}" data-act="react" data-id="${id}" data-emoji="${em}">${em} <b>${n}</b></button>`).join('');
       } else if (act === 'share' || act === 'copy') {
-        const raw = b.dataset.url || `/post/${id}`; const url = /^https?:/.test(raw) ? raw : location.origin + raw;
+        const raw = b.dataset.url || `/post/${id}`; let url = /^https?:/.test(raw) ? raw : location.origin + raw;
+        if (ME.user && url.startsWith(location.origin + '/post/') && !url.includes('from=')) url += (url.includes('?') ? '&' : '?') + 'from=' + encodeURIComponent(ME.user);  // «след» того, кто поделился
         if (act === 'share' && navigator.share) { try { await navigator.share({ url }); } catch (er) {} }
         else { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
       } else if (act === 'expand') {

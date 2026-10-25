@@ -559,3 +559,18 @@
   setInterval(check, 5000); check();
   document.addEventListener('visibilitychange', check);
 })();
+
+/* «Поделился(ась) с вами» и «позвал(а) вас»: добавить в друзья одним нажатием */
+(function () {
+  'use strict';
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-share-follow]');
+    if (b) {
+      b.disabled = true;
+      try { await App.api('/follow/' + encodeURIComponent(b.dataset.shareFollow)); b.textContent = 'Добавлен(а)'; App.toast('Теперь вы подписаны'); if (b.dataset.dismiss) App.api('/v3/suggest-follow/dismiss').catch(() => {}); }
+      catch (er) { b.disabled = false; }
+      return;
+    }
+    if (e.target.closest('[data-sg-close]')) { document.getElementById('sg-card')?.remove(); App.api('/v3/suggest-follow/dismiss').catch(() => {}); }
+  });
+})();

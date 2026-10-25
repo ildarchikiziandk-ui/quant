@@ -108,8 +108,15 @@ def post_page(post_id: int, request: Request, sort: str = "old", db: Session = D
             models.CommentLike.user_id == user.id, models.CommentLike.comment_id.in_([c.id for c in comments]))}
     ctx = feed.feed_context(db, user, [post])
     from routers.features import similar_posts
-    return render(request, db, "post.html", post=post, roots=roots, children=children, liked_comments=liked_comments,
-                  comment_count=len(comments), sort=sort, similar=similar_posts(db, user, post), **ctx)
+    from packs.v3 import shares
+    set_cookies = []
+    shared_by = shares.visit(db, request, set_cookies, post, user)  # ссылка с «следом» ?from=логин
+    resp = render(request, db, "post.html", post=post, roots=roots, children=children, liked_comments=liked_comments,
+                  comment_count=len(comments), sort=sort, similar=similar_posts(db, user, post), shared_by=shared_by,
+                  shared_following=bool(user and shared_by and social.is_following(db, user, shared_by)), **ctx)
+    for k, v in set_cookies:
+        resp.set_cookie(k, v, **shares.cookie_kwargs())
+    return resp
 
 
 @router.get("/post/{post_id}/stats")

@@ -211,6 +211,9 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     if ref and ratelimit.hit(f"invite-reward:{ref.lower()}", 5, 86400):  # не больше 5 наград в сутки — защита от накрутки
         from routers.extras import reward_inviter
         reward_inviter(db, user, ref)
+    if ref:
+        from packs.v3 import shares
+        shares.after_register(db, user, ref)  # на главной предложим добавить того, кто позвал
     db.commit()
     resp = _finish_login(request, db, user, "/verify" if config.EMAIL_ENABLED else "/welcome")
     resp.delete_cookie("ref")

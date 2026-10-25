@@ -273,3 +273,4 @@ input:checked + .c-kind { border-color: var(--accent); background: var(--accent-
 .ph-nav.l { left: 10px; } .ph-nav.r { right: 10px; } .ph-nav.r svg { transform: scaleX(-1); }
 @media (hover: none) { .ph-tag { opacity: .9; } }
 .c-links { display: flex; gap: 16px; padding: 0 16px 12px; font-size: 13.5px; font-weight: 650; } .c-links a { color: var(--accent); display: inline-flex; gap: 5px; align-items: center; }
+.share-by { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }

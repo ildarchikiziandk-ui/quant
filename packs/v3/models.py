@@ -323,3 +323,15 @@ class PhotoTag(Base):
     x = Column(Integer, default=50)  # проценты
     y = Column(Integer, default=50)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Ссылки с «следом»: кто поделился постом ------------------------------------------------------------------
+class ShareVisit(Base):
+    """Человек открыл пост по ссылке, которой поделился sharer (…/post/5?from=логин)."""
+    __tablename__ = "v3_share_visits"
+    __table_args__ = (UniqueConstraint("sharer_id", "viewer_id", "post_id"),)
+    id = Column(Integer, primary_key=True)
+    sharer_id = Column(Integer, ForeignKey("users.id"), index=True)
+    viewer_id = Column(Integer, ForeignKey("users.id"), index=True)
+    post_id = Column(Integer, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

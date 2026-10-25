@@ -1108,3 +1108,29 @@ def test_recommendations_people_signals(alice, bob):
     recommend._cache.pop(("aff", a.id), None)
     assert recommend.social_affinity(s, a).get(e.id, 0) > 0
     s.close()
+
+
+def test_share_trace(alice, bob):
+    from services import recommend
+    pid = alice.post("/post/create", data={"content": "Мой пост для друзей"}, headers=J).json()["post_id"]
+    menu = alice.get(f"/post/{pid}/menu").text
+    assert "from%3Dalice" in menu  # ссылки «поделиться» несут логин
+    # вошедший человек видит, кто поделился, и предложение добавить в друзья
+    page = bob.get(f"/post/{pid}?from=alice").text
+    assert "поделился(ась) с вами" in page and 'data-share-follow="alice"' in page
+    s = db()
+    b = s.query(models.User).filter_by(username="bob").one()
+    a = s.query(models.User).filter_by(username="alice").one()
+    assert recommend.social_affinity(s, b).get(a.id, 0) > 0  # её посты ближе в рекомендациях
+    s.close()
+    # без аккаунта: запоминаем, кто позвал; после регистрации — награда и предложение в друзья
+    guest = make_client()
+    assert "Присоединиться" in guest.get(f"/post/{pid}?from=alice").text
+    register(guest, "newcomer")
+    home = guest.get("/").text
+    assert "позвал(а) вас" in home
+    s = db()
+    n = s.query(models.User).filter_by(username="newcomer").one()
+    assert n.referred_by == a.id
+    s.close()
+    assert bob.get(f"/post/{pid}?from=nobody_here").status_code == 200
