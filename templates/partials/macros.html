@@ -113,6 +113,7 @@
     {% if as_channel %}<a href="/c/{{ cm.slug }}">{{ community_avatar(cm, 44) }}</a>{% else %}<a href="/profile/{{ main.author.username }}">{{ avatar(main.author, 44, online=true) }}</a>{% endif %}
     <div class="post-body">
       <div class="post-meta">
+        {% if main.wall_owner_id and main.wall_owner and main.wall_owner_id != main.user_id %}{% set wo = main.wall_owner %}{% endif %}
         {% if as_channel %}<a class="name" href="/c/{{ cm.slug }}"><b>{{ cm.name }}</b>{% if cm.official %}<span class="badge official-c" title="Официальное сообщество">{{ icon("check", "i") }}</span>{% endif %}</a>
         <span class="handle">канал</span>{% else %}{{ name(main.author) }}
         <span class="handle">@{{ main.author.username }}</span>{% endif %}
@@ -127,6 +128,7 @@
           <div class="menu" data-menu-src="/post/{{ main.id }}/menu{% if p.id != main.id %}?rp={{ p.id }}{% endif %}"></div>{# пункты меню подгружаются по нажатию — лента легче в 2 раза #}
         </div>
       </div>
+      {%- if main.wall_owner_id and main.wall_owner and main.wall_owner_id != main.user_id %}<a class="post-comm" href="/profile/{{ main.wall_owner.username }}">{{ icon("forward", "i in") }} на стене у {{ main.wall_owner.name or main.wall_owner.username }}</a>{% endif %}
       {%- if cm and not as_channel %}<a class="post-comm" href="/c/{{ cm.slug }}">{{ community_avatar(cm, 18) }} {{ cm.name }}</a>{% endif %}
       {%- if user and user.id == main.user_id %}<textarea class="hidden" id="raw-{{ main.id }}">{{ main.content or "" }}</textarea>{% endif %}
       {%- if p.is_repost and p.original_comment %}

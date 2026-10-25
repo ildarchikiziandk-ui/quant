@@ -92,5 +92,5 @@ JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js"]
 JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job, payments.pending_job, communities.seed_job]
 GLOBALS = {
     "v3_card": chat.card, "v3_chest": people.chest_state, "v3_backup_left": account.backup_left,
-    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_mute_until": admin_tools.mute_until, "site_get": site.get, "v3_community": communities.info, "v3_pay_keys": payments.keys_set, "v3_pay_on": payments.enabled, "v3_warnings": admin_tools.warnings_of, "v3_aliases": handles_shop.aliases_of,
+    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_mute_until": admin_tools.mute_until, "site_get": site.get, "v3_community": communities.info, "v3_wall_ok": accounts.wall_ok, "v3_pay_keys": payments.keys_set, "v3_pay_on": payments.enabled, "v3_warnings": admin_tools.warnings_of, "v3_aliases": handles_shop.aliases_of,
 }

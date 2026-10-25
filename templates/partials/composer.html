@@ -1,6 +1,6 @@
 {% from "partials/icons.html" import icon %}{% from "partials/macros.html" import avatar %}
 <form class="card composer" id="composer" enctype="multipart/form-data" autocomplete="off"{% if post_to is defined and post_to %} data-back="{{ post_to.back }}"{% endif %}>
-  <a id="compose"></a>{% if post_to is defined and post_to %}<input type="hidden" name="community" value="{{ post_to.ref }}">{% endif %}
+  <a id="compose"></a>{% if post_to is defined and post_to %}<input type="hidden" name="{{ post_to.field or 'community' }}" value="{{ post_to.ref }}">{% endif %}
   <div class="row" style="align-items:flex-start;gap:12px">
     <a href="/profile/{{ user.username }}">{{ avatar(user, 44) }}</a>
     <div class="grow">

@@ -89,6 +89,26 @@ def follower_ids(db, user):
         f.follower_id for f in db.query(models.Follow.follower_id).filter(models.Follow.following_id == user.id))))
 
 
+def wall_allowed(db, owner, actor):
+    """Можно ли actor написать на стене owner (настройка «Кто может писать на моей стене»)."""
+    from services import prefs
+    if not owner or not actor:
+        return False
+    if owner.id == actor.id:
+        return True
+    if is_blocked_between(db, owner, actor) or is_active_block(actor):
+        return False
+    mode = prefs.get(owner, "who_can_post_wall")
+    if mode == "nobody":
+        return False
+    if mode == "all":
+        return True
+    follows_me = is_following(db, actor, owner)
+    if mode == "followers":
+        return follows_me
+    return follows_me and is_following(db, owner, actor)  # mutual — друзья
+
+
 def following_ids(db, user):
     if not user:
         return set()

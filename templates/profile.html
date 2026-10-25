@@ -126,6 +126,8 @@
 {% elif tab == "replies" %}
   {% for c in replies %}<a class="card" href="/post/{{ c.post_id }}#comment-{{ c.id }}" style="display:block"><div class="tiny muted mb">в ответ на пост {{ c.post.author.name or c.post.author.username }} · {{ c.created_at|ago }}</div><div>{{ c.content }}</div></a>{% else %}<div class="card empty">Ответов пока нет</div>{% endfor %}
 {% else %}
+  {% if user and not me and v3_wall_ok(pu, user) %}<details class="card wall-write"><summary class="row" style="gap:10px;cursor:pointer">{{ icon("edit", "i in") }}<b class="grow">Написать на стене</b><span class="tiny faint">{{ pu.name or pu.username }} увидит запись в профиле</span></summary>
+    {% set post_to = {"ref": pu.username, "back": "/profile/" ~ pu.username, "field": "wall"} %}<div class="mt">{% include "partials/composer.html" %}</div></details>{% endif %}
   {% if pinned_post %}<div class="tiny muted" style="padding:0 6px 6px">{{ icon("pin", "i in") }} Закреплённый пост</div>{{ post_card(pinned_post, user, st, originals, repost_counts, can_mod) }}{% endif %}
   {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">{{ icon("note", "i in") }}</div>{% if me %}Здесь появятся ваши посты. <a href="/create" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
 {% endif %}

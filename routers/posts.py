@@ -180,14 +180,23 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     is_plus = plus.active(user)
     allowed_exp = ("24", "72", "168") + (tuple(k for k, _ in plus.EXPIRES) if is_plus else ())
     allowed_bg = extras.BG_KEYS | (plus.BG_KEYS if is_plus else set())
-    community = None
+    community = wall = None
+    if form.get("wall"):
+        from services import handles
+        wall = handles.owner_of(db, str(form.get("wall")).strip().lstrip("@"))
+        if wall and wall.id == user.id:
+            wall = None
+        elif not wall or not social.wall_allowed(db, wall, user):
+            return json_error("Этот человек не разрешает писать на своей стене", 403)
+        visibility = "all"
     if form.get("community"):
         from packs.v3 import communities
         community = communities.by_ref(db, form.get("community"))
         if not community or not communities.can_post(db, community, user):
             return json_error("Публиковать здесь могут только админы", 403)
         visibility = "all"  # посты сообществ открыты всем
-    post = models.Post(content=content, user_id=user.id, community_id=community.id if community else None, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
+    post = models.Post(content=content, user_id=user.id, community_id=community.id if community else None,
+                       wall_owner_id=wall.id if wall else None, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
                        is_long=len(content) > 500, scheduled_at=scheduled, visibility=visibility,
                        comments_disabled=bool(form.get("comments_disabled")),
                        mood=form.get("mood") if form.get("mood") in extras.MOOD_BY else "",
@@ -223,6 +232,8 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         update_trends(db, content)  # темы закрытых и отложенных постов не попадают в публичные тренды
     db.flush()
     social.process_mentions(db, user, content, post.id)
+    if wall:
+        social.notify(db, wall.id, "wall", user, text="написал(а) на вашей стене", post_id=post.id)
     gamification.add_points(user, db, 3)
     db.commit()
     gamification.complete_task(user, db, "post")
@@ -239,7 +250,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         return JSONResponse({"ok": True, "post_id": post.id, "scheduled": bool(scheduled), "warnings": errors,
                              "held": bool(flag and flag.held),
                              "message": "Пост отправлен на проверку модераторам" if flag and flag.held else ""})
-    return redirect(f"/c/{community.slug}" if community else f"/post/{post.id}")
+    return redirect(f"/c/{community.slug}" if community else f"/profile/{wall.username}" if wall else f"/post/{post.id}")
 
 
 @router.post("/post/{post_id}/edit")
@@ -305,9 +316,10 @@ async def delete_post(post_id: int, request: Request, db: Session = Depends(get_
     post = _get_post(db, post_id)
     if not post:
         return json_error("not found", 404)
-    if post.user_id != user.id and not social.can_mod(user):
+    on_my_wall = post.wall_owner_id == user.id  # запись на моей стене — могу удалить
+    if post.user_id != user.id and not social.can_mod(user) and not on_my_wall:
         return json_error("forbidden", 403)
-    if post.user_id != user.id:
+    if post.user_id != user.id and not on_my_wall:
         from deps import log_mod
         log_mod(db, user, "delete_post", post.id, (post.content or "")[:200])
     elif not post.is_repost and post.created_at and datetime.utcnow() - post.created_at < timedelta(days=1):

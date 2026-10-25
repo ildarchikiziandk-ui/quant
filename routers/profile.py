@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 import models
@@ -52,7 +52,10 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
         db.commit()
     if not user and prefs.get(pu, "guests_hidden"):
         can_see = False
-    q = social.visible_posts(db, user, hide_muted=False).filter(models.Post.user_id == pu.id, models.Post.community_id == None)
+    from sqlalchemy import and_
+    # стена: свои записи (кроме оставленных на чужих стенах и в сообществах) и записи друзей на этой стене
+    q = social.visible_posts(db, user, hide_muted=False).filter(models.Post.community_id == None, or_(
+        and_(models.Post.user_id == pu.id, models.Post.wall_owner_id == None), models.Post.wall_owner_id == pu.id))
     posts, liked_posts = [], []
     if can_see:
         if tab == "media":

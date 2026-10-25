@@ -76,3 +76,16 @@ def seed_job(db):
     if changed:
         site.put(db, "locks_applied", sorted(applied))
         db.commit()
+
+
+def wall_ok(owner, actor):
+    """Для профиля: показывать ли «Написать на стене»."""
+    from database import SessionLocal
+    from services import social
+    if not owner or not actor:
+        return False
+    db = SessionLocal()
+    try:
+        return social.wall_allowed(db, owner, actor)
+    finally:
+        db.close()

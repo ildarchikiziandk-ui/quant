@@ -138,6 +138,7 @@ class Post(Base):
     community_id = Column(Integer, nullable=True, index=True)  # пост в канале или сообществе (Nuvora 3.2)
     wall_owner_id = Column(Integer, nullable=True, index=True)  # запись на стене другого человека
     author = relationship("User", back_populates="posts")
+    wall_owner = relationship("User", primaryjoin="Post.wall_owner_id == User.id", foreign_keys=[wall_owner_id], viewonly=True)
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")
     whales = relationship("Whale", back_populates="post")

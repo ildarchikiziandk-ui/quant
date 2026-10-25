@@ -1033,3 +1033,21 @@ def test_communities(owner, alice, bob):
     assert "Котики" in bob.get("/c").text
     assert alice.post("/c/cats/delete", headers=J).json()["ok"]
     assert bob.get(f"/post/{pid}").status_code in (200, 404)
+
+
+def test_wall_posts(alice, bob):
+    eve = register(make_client(), "eve")
+    # по умолчанию — только друзья (взаимная подписка)
+    assert bob.post("/post/create", data={"content": "привет на стене", "wall": "alice"}, headers=J).status_code == 403
+    alice.post("/follow/bob", headers=J); bob.post("/follow/alice", headers=J)
+    assert "Написать на стене" in bob.get("/profile/alice").text
+    pid = bob.post("/post/create", data={"content": "привет на стене", "wall": "alice"}, headers=J).json()["post_id"]
+    prof = alice.get("/profile/alice").text
+    assert "привет на стене" in prof and "на стене у" in prof
+    assert "привет на стене" not in bob.get("/profile/bob").text  # у автора на странице её нет
+    assert eve.post("/post/create", data={"content": "я чужая", "wall": "alice"}, headers=J).status_code == 403
+    # владелица стены может удалить чужую запись у себя
+    assert alice.post(f"/post/{pid}/delete", headers=J).json()["ok"]
+    # «Никто»
+    alice.post("/settings/prefs/privacy", data={"who_can_post_wall": "nobody"})
+    assert bob.post("/post/create", data={"content": "ещё", "wall": "alice"}, headers=J).status_code == 403
