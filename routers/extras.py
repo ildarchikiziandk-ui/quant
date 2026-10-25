@@ -350,8 +350,8 @@ def invite_page(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return login_redirect(request)
-    invited = db.query(models.User).filter_by(referred_by=user.id).order_by(models.User.created_at.desc()).all()
-    return render(request, db, "invite.html", invited=invited, link=f"{config.SITE_URL}/invite/{user.username}")
+    from packs.v3 import growth
+    return render(request, db, "invite.html", link=f"{config.SITE_URL}/invite/{user.username}", **growth.invite_stats(db, user))
 
 
 @router.get("/invite/{username}")
@@ -370,9 +370,9 @@ def reward_inviter(db, new_user, ref):
     if not inviter or inviter.id == new_user.id:
         return
     new_user.referred_by = inviter.id
-    gamification.add_points(inviter, db, 100)
+    from packs.v3 import growth  # награда частями: сразу немного, остальное — когда друг освоится
+    growth.on_register(db, new_user, inviter)
     gamification.check_achievement(inviter, db, "inviter")
-    social.notify(db, inviter.id, "invite", new_user, text="зарегистрировался(лась) по вашему приглашению · +100 искр")
 
 
 # ===================================== Воспоминания =====================================

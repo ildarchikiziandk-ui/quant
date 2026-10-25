@@ -143,7 +143,8 @@ def service_worker():
 
 @router.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
-    return "User-agent: *\nDisallow: /settings\nDisallow: /messages\nDisallow: /admin\nDisallow: /api/\n"
+    return ("User-agent: *\nDisallow: /settings\nDisallow: /messages\nDisallow: /admin\nDisallow: /api/\nDisallow: /secret\n"
+            f"Sitemap: {config.SITE_URL}/sitemap.xml\n")
 
 
 @router.get("/privacy")

@@ -77,6 +77,7 @@ class User(Base):
     prefs = Column(Text, default="")
     interests = Column(String, default="")
     referred_by = Column(Integer, nullable=True)
+    referral_done = Column(Boolean, default=False)  # приглашение засчитано (друг начал пользоваться)
     spent_points = Column(Integer, default=0)
     status_text = Column(String, default="")
     status_until = Column(DateTime, nullable=True)

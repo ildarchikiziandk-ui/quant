@@ -636,7 +636,7 @@ def test_invite_and_interests(alice, bob):
     s = db()
     nb = s.query(models.User).filter_by(username="newbie").first()
     me = s.query(models.User).filter_by(username="alice").first()
-    assert nb.referred_by == me.id and me.total_points >= before + 100
+    assert nb.referred_by == me.id and me.total_points >= before + 20
     s.close()
     assert "newbie" in alice.get("/invite").text
     alice.post("/settings/profile", data={"name": "Alice", "interests": "Музыка, #футбол, аниме"})

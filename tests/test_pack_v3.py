@@ -1158,3 +1158,38 @@ def test_nuva_gigachat(alice, monkeypatch):
     monkeypatch.setattr(gigachat, "_post", lambda *a, **k: (_ for _ in ()).throw(OSError("down")))
     r = alice.post("/ai/chat", json={"question": "Как получить искры?"}, headers=J).json()
     assert r["ok"] and not r.get("ai")
+
+
+def test_growth(alice):
+    from packs.v3 import growth
+    from datetime import datetime, timedelta
+    # приглашение: сразу немного, остальное — когда друг освоится
+    guest = make_client()
+    guest.get("/invite/alice")
+    register(guest, "friend1")
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    f = s.query(models.User).filter_by(username="friend1").one()
+    before = a.total_points
+    assert f.referred_by == a.id and not f.referral_done
+    growth.referral_job(s)
+    assert not s.get(models.User, f.id).referral_done  # ещё не освоился
+    f.created_at = datetime.utcnow() - timedelta(days=2)
+    s.add(models.Post(user_id=f.id, content="мой первый пост"))
+    s.commit()
+    growth.referral_job(s)
+    a = s.get(models.User, a.id)
+    assert s.get(models.User, f.id).referral_done and a.total_points >= before + growth.INVITE_LATER
+    s.close()
+    assert "засчитан" in alice.get("/invite").text
+    # карта сайта, robots, превью
+    pid = alice.post("/post/create", data={"content": "Открытый пост для всех"}, headers=J).json()["post_id"]
+    anon = make_client()
+    sm = anon.get("/sitemap.xml").text
+    assert f"/post/{pid}" in sm and "/profile/alice" in sm
+    assert "Sitemap:" in anon.get("/robots.txt").text
+    page = anon.get(f"/post/{pid}").text
+    assert f"/og/post/{pid}.png" in page and "Присоединиться" in page
+    img = anon.get(f"/og/post/{pid}.png")
+    assert img.status_code == 200 and img.headers["content-type"] == "image/png" and len(img.content) > 5000
+    assert anon.get("/og/profile/alice.png").status_code == 200

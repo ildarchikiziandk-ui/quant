@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% from "partials/macros.html" import post_card, avatar, name %}{% from "partials/icons.html" import icon %}
 {% block title %}{{ post.author.name or post.author.username }}: «{{ (post.content or post.original_comment or "пост")[:60] }}» — {{ brand }}{% endblock %}
-{% block meta %}<meta property="og:title" content="{{ post.author.name or post.author.username }} в {{ brand }}"><meta property="og:description" content="{{ (post.content or '')[:200] }}">{% if post.image and post.media_type == 'image' %}<meta property="og:image" content="{{ site_url }}{{ post.image }}">{% endif %}{% endblock %}
+{% block meta %}<meta property="og:type" content="article"><meta property="og:url" content="{{ site_url }}/post/{{ post.id }}"><meta property="og:site_name" content="{{ brand }}">
+<meta property="og:title" content="{{ post.author.name or post.author.username }} в {{ brand }}"><meta property="og:description" content="{{ (post.content or 'Фото и видео в ' ~ brand)[:200] }}"><meta name="description" content="{{ (post.content or '')[:160] }}">
+<meta property="og:image" content="{{ site_url }}{% if post.image and post.media_type == 'image' %}{{ post.image }}{% else %}/og/post/{{ post.id }}.png{% endif %}"><meta name="twitter:card" content="summary_large_image"><link rel="canonical" href="{{ site_url }}/post/{{ post.id }}">{% endblock %}
 {% macro comment_item(c, depth=0) %}
 <div class="row" id="comment-{{ c.id }}" style="align-items:flex-start;gap:10px;padding:10px 0;{% if depth %}margin-left:{{ [depth, 3]|min * 34 }}px;{% endif %}">
   {% if c.author %}<a href="/profile/{{ c.author.username }}">{{ avatar(c.author, 34 if not depth else 28) }}</a>{% endif %}

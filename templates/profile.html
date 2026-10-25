@@ -3,7 +3,9 @@
 {% set pu = profile_user %}
 {% set me = user and user.id == pu.id %}
 {% block title %}{{ pu.name or pu.username }} (@{{ pu.username }}) — {{ brand }}{% endblock %}
-{% block meta %}<meta property="og:title" content="{{ pu.name or pu.username }} в {{ brand }}"><meta property="og:description" content="{{ pu.bio or '' }}">{% if pu.avatar %}<meta property="og:image" content="{{ site_url }}{{ pu.avatar }}">{% endif %}{% endblock %}
+{% block meta %}<meta property="og:type" content="profile"><meta property="og:url" content="{{ site_url }}/profile/{{ pu.username }}"><meta property="og:site_name" content="{{ brand }}">
+<meta property="og:title" content="{{ pu.name or pu.username }} (@{{ pu.username }}) в {{ brand }}"><meta property="og:description" content="{{ pu.bio or ('Страница ' ~ (pu.name or pu.username) ~ ' в ' ~ brand) }}"><meta name="description" content="{{ (pu.bio or '')[:160] }}">
+<meta property="og:image" content="{{ site_url }}/og/profile/{{ pu.username }}.png"><meta name="twitter:card" content="summary_large_image"><link rel="canonical" href="{{ site_url }}/profile/{{ pu.username }}">{% endblock %}
 {% block content %}
 <div class="card flat">
   <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus %}background:{{ plus_bg(pu) }};{% endif %}">

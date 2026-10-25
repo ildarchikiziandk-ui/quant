@@ -1,10 +1,21 @@
 """Nuvora 3.x: модули чатов, игр, помощника Нувы, красивых логинов и безопасности."""
 from . import models  # noqa: F401  таблицы
-from . import account, accounts, admin_more, albums, admin_plus, admin_tools, ai, appupdate, calls, capsule, chat, chat_games, communities, dayyot, feed, games, handles_shop, login_approve, media, payments, shares, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
+from . import account, accounts, admin_more, albums, admin_plus, admin_tools, ai, appupdate, calls, capsule, chat, chat_games, communities, dayyot, feed, games, handles_shop, login_approve, media, payments, shares, growth, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
 from . import site
 
 WHATSNEW = [
+    ("Новое в 3.2", "sparkle", [
+        ("users", "Сообщества и каналы: создавайте свои, подписывайтесь, публикуйте от имени канала"),
+        ("whale", "Официальный канал Nuvora — новости и обновления первыми"),
+        ("sparkle", "Искры вместо очков: подарки стали дешевле, а подарок теперь приходит и в чат"),
+        ("image", "Фотоальбомы в профиле и сообществах, отметки друзей на фото"),
+        ("edit", "Записи на стене друга — кто может писать, решаете в настройках приватности"),
+        ("chat", "Нуви стала умнее: отвечает нейросетью и помнит, о чём вы говорили"),
+        ("heart", "Рекомендации учитывают ваших друзей, похожие вкусы и свежие обсуждения"),
+        ("share", "Поделились постом — друг увидит, от кого он, и сможет добавить вас в друзья"),
+        ("gift", "Пригласи друга: +20 Искр сразу и ещё +80, когда друг освоится; каждые 5 друзей — неделя Nuvora+"),
+    ]),
     ("Лента и интерфейс", "home", [
         ("users", "Лента «Подписки и подписчики» открывается по умолчанию: посты тех, на кого вы подписаны, и тех, кто подписан на вас"),
         ("sparkle", "Посты на телефоне — на всю ширину, без «0» под кнопками; «⋯» всегда в углу"),
@@ -89,7 +100,7 @@ SLOTS = {
 
 CSS = ["packs/v3/v3.css"]
 JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js"]
-JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job, payments.pending_job, communities.seed_job]
+JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job, payments.pending_job, communities.seed_job, growth.referral_job]
 GLOBALS = {
     "v3_card": chat.card, "v3_chest": people.chest_state, "v3_backup_left": account.backup_left,
     "v3_ai_on": ai.enabled, "v3_ai_smart": ai.smart, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_mute_until": admin_tools.mute_until, "site_get": site.get, "v3_community": communities.info, "v3_wall_ok": accounts.wall_ok, "v3_suggest": shares.suggestion, "v3_pay_keys": payments.keys_set, "v3_pay_on": payments.enabled, "v3_warnings": admin_tools.warnings_of, "v3_aliases": handles_shop.aliases_of,

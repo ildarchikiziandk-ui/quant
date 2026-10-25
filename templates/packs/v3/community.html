@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/macros.html" import community_avatar, post_card, avatar %}
 {% block title %}{{ c.name }} — {{ brand }}{% endblock %}
-{% block meta %}<meta property="og:title" content="{{ c.name }}"><meta property="og:description" content="{{ (c.description or kinds[c.kind] ~ ' в ' ~ brand)[:200] }}">{% if c.avatar %}<meta property="og:image" content="{{ site_url }}{{ c.avatar }}">{% endif %}{% endblock %}
+{% block meta %}<meta property="og:title" content="{{ c.name }}"><meta property="og:description" content="{{ (c.description or kinds[c.kind] ~ ' в ' ~ brand)[:200] }}"><meta property="og:image" content="{{ site_url }}/og/c/{{ c.slug }}.png"><meta name="twitter:card" content="summary_large_image"><meta property="og:url" content="{{ site_url }}/c/{{ c.slug }}">{% endblock %}
 {% block content %}
 <div class="card c-hero">
   <div class="c-cover"{% if c.cover %} style="background-image:url('{{ c.cover }}')"{% endif %}></div>

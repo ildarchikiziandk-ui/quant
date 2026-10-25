@@ -161,6 +161,10 @@
 {% endif %}
 {% endblock %}
 <div id="toasts"></div>
+{% if not user and request.url.path not in ("/login", "/register", "/forgot", "/welcome", "/login/2fa") and not request.url.path.startswith("/login/") %}
+<div class="join-bar" id="join-bar"><img src="/static/brand/logo-180.png" alt="" width="36" height="36"><div class="grow" style="min-width:0"><b>{{ brand }}</b><span>Посты, чаты, сообщества и друзья</span></div>
+  <a class="btn sm" href="/register{% if request.query_params.get('from') %}?ref={{ request.query_params.get('from')|urlencode }}{% endif %}">Присоединиться</a><a class="btn ghost sm" href="/login?next={{ request.url.path|urlencode }}">Войти</a></div>
+<style>.cookie-bar{bottom:calc(84px + env(safe-area-inset-bottom))!important}main.main{padding-bottom:100px}</style>{% endif %}
 <div class="cookie-bar small" id="cookie-bar" hidden><span class="grow">Мы используем только необходимые cookie — для входа и защиты аккаунта. <a href="/privacy#cookie" style="text-decoration:underline">Подробнее</a></span><button class="btn sm" onclick="try{localStorage.setItem('nv_cookie_ok','1')}catch(e){};this.parentNode.hidden=true">Понятно</button></div>
 <script>try{if(!localStorage.getItem('nv_cookie_ok'))document.getElementById('cookie-bar').hidden=false}catch(e){}</script>
 <script>window.ICON=function(n,c){return '<svg class="'+(c||'i in')+'" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg?v={{ sprite_v() }}#'+n+'"/></svg>'};window.ICON_PLAY=ICON('play');window.ICON_PAUSE=ICON('pause');window.ICON_TICKS=ICON('ticks');</script>
