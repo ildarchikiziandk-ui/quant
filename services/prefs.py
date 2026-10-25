@@ -72,7 +72,7 @@ PREFS = [
     _p("hide_following_list", "privacy", "Скрыть список подписок", "", where="server", group="Профиль"),
     _p("hide_from_search", "privacy", "Не показывать меня в поиске и рекомендациях", "", where="server", group="Профиль"),
     _p("hide_birthday", "privacy", "Скрыть день рождения в профиле", "", where="server", group="Профиль"),
-    _p("hide_gamification", "privacy", "Скрыть уровень, очки и стрик в профиле", "", where="server", group="Профиль"),
+    _p("hide_gamification", "privacy", "Скрыть уровень, искры и стрик в профиле", "", where="server", group="Профиль"),
     _p("hide_achievements", "privacy", "Скрыть достижения в профиле", "", where="server", group="Профиль"),
     _p("guests_hidden", "privacy", "Скрыть посты от незарегистрированных", "Гости без аккаунта не увидят ваши посты", where="server", group="Профиль"),
     _p("who_can_ask", "privacy", "Кто может задавать мне вопросы", "Раздел «Вопросы» в профиле", "all", "select", AUDIENCE, "server", "Вопросы"),

@@ -111,7 +111,7 @@ def test_hide_author_30_days(alice, bob):
 def test_daily_chest(alice):
     assert "data-v3-chest" in alice.get("/").text
     r = alice.post("/v3/chest", headers=J).json()
-    assert r["reward"] == 5 and r["streak"] == 1
+    assert r["reward"] == 3 and r["streak"] == 1
     assert alice.post("/v3/chest", headers=J).status_code == 400
     assert "data-v3-chest" not in alice.get("/").text
     s = db()
@@ -119,7 +119,7 @@ def test_daily_chest(alice):
     row.last_day = (datetime.strptime(row.last_day, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     s.commit()
     s.close()
-    assert alice.post("/v3/chest", headers=J).json() == {"ok": True, "reward": 10, "streak": 2}
+    assert alice.post("/v3/chest", headers=J).json() == {"ok": True, "reward": 5, "streak": 2}
 
 
 def test_capsule(alice, bob):
@@ -339,7 +339,7 @@ def test_beautiful_handles(alice, owner):
     r = c.post("/register", data={**form, "username": "Love"}, follow_redirects=False)
     assert r.status_code != 303 and "зарезервирован" in r.text
     r = c.post("/register", data={**form, "username": "fox"}, follow_redirects=False)
-    assert r.status_code != 303 and "баллов" in r.text
+    assert r.status_code != 303 and "искр" in r.text
     r = alice.post("/settings/username", data={"username": "lucky", "password": "secret123"})
     assert "Магазине логинов" in r.text
     page = alice.get("/handles").text
@@ -927,3 +927,21 @@ def test_feed_default_followers_and_following(owner, alice, bob):
     accounts.seed_job(s)
     assert '"following"' in s.query(models.User).filter_by(username="alice").one().prefs
     s.close()
+
+
+def test_gift_in_chat(alice, bob):
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    a.total_points = 500
+    s.commit(); s.close()
+    gl = alice.get("/v3/gifts").json()
+    assert gl["ok"] and any(g["code"] == "rose" for g in gl["gifts"])
+    assert alice.post("/gifts/bob/send", data={"gift": "rose", "message": "Тебе!"}, headers=J).json()["ok"]
+    m = last_msg()
+    assert m.content.startswith("[[v3:gift:")
+    page = bob.get("/messages/alice").text
+    assert "Подарок для вас" in page and "/static/gifts/rose.svg" in page and "Тебе!" in page
+    assert "Подарок" in bob.get("/messages").text  # в списке чатов — понятная подпись
+    # анонимный подарок в чат не попадает
+    alice.post("/gifts/bob/send", data={"gift": "heart", "anonymous": "1"}, headers=J)
+    assert last_msg().id == m.id

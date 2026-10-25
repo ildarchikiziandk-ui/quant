@@ -3,7 +3,7 @@
 {% block title %}Магазин — {{ brand }}{% endblock %}
 {% block content %}
 <div class="page-head"><div class="page-title" style="margin:0">{{ icon("bag", "i in") }} Магазин</div><span class="tag-pill">у вас {{ icon("sparkle", "i in") }} {{ "∞" if balance >= 1000000000 else balance }}</span></div>
-{% if request.query_params.get('err') %}<div class="alert error">Не хватает очков</div>{% endif %}
+{% if request.query_params.get('err') %}<div class="alert error">Не хватает искр</div>{% endif %}
 <div class="card"><div class="card-title">{{ icon("image", "i in") }} Рамки для аватарки</div><p class="small muted mb">Рамка видна везде, где показывается ваша аватарка. Купленные рамки остаются навсегда.</p>
   <div class="gift-grid">
     <form method="post" action="/shop/frame/none" class="gift" style="cursor:default">{{ avatar(user, 54) }}<span class="tiny">Без рамки</span><button class="btn ghost sm" {% if not user.avatar_frame %}disabled{% endif %}>{% if not user.avatar_frame %}Сейчас{% else %}Снять{% endif %}</button></form>

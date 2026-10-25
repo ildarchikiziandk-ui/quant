@@ -23,7 +23,7 @@
   <tr><td class="muted">Регистрация</td><td>{{ t.created_at|lt("%d.%m.%Y %H:%M") if t.created_at else "—" }}{% if t.yandex_id %} · через Яндекс{% endif %}</td></tr>
   <tr><td class="muted">Двухфакторная защита</td><td>{{ "включена" if t.two_factor_enabled else "выключена" }}</td></tr>
   <tr><td class="muted">Nuvora+</td><td>{% if t.is_plus and (not t.plus_until or t.plus_until > utcnow()) %}до {{ t.plus_until|lt("%d.%m.%Y") if t.plus_until else "бессрочно" }}{% else %}нет{% endif %}</td></tr>
-  <tr><td class="muted">Баллы</td><td>заработано {{ t.total_points or 0 }} · потрачено {{ t.spent_points or 0 }} · <b>баланс {{ balance }}</b> · уровень {{ t.level or 1 }} · огонёк {{ t.streak_days or 0 }}</td></tr>
+  <tr><td class="muted">Искры</td><td>заработано {{ t.total_points or 0 }} · потрачено {{ t.spent_points or 0 }} · <b>баланс {{ balance }}</b> · уровень {{ t.level or 1 }} · огонёк {{ t.streak_days or 0 }}</td></tr>
   <tr><td class="muted">Профиль</td><td>{{ "закрытый" if t.is_private else "открытый" }} · просмотров {{ t.profile_views or 0 }}</td></tr>
   {% set pc = phone_check %}<tr><td class="muted">Телефон</td><td>{% if not pc %}не проверялся{% elif pc.status == "verified" %}<span style="color:var(--online)">подтверждён</span> · {{ pc.phone[:5] }}•••{{ pc.phone[-2:] }} · через бот MAX{% elif pc.status == "skipped" %}пропустил(а) проверку («Нет MAX»){% else %}<b>ждём подтверждения</b>{% endif %}{% if pc and pc.reason %} <span class="faint tiny">({{ pc.reason }})</span>{% endif %}</td></tr>
   {% if v3_posts_locked(t) %}<tr><td class="muted">Режим</td><td><b>только чаты и профиль</b> — посты не публикует, чужие не видит</td></tr>{% endif %}
@@ -41,7 +41,7 @@
   {% if aliases|length < 2 %}<form class="row mt" method="post" action="/admin/u/{{ t.username }}/alias-add" style="gap:8px"><input name="handle" maxlength="30" placeholder="дополнительный логин" style="margin:0" required><button class="btn sm">Добавить</button></form>{% endif %}
   {% if purchases %}<div class="tiny faint mt">Покупки: {% for p in purchases %}@{{ p.username }} за {{ p.price }}{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}</div>
 
-<div class="card"><div class="card-title">Баллы, Nuvora+ и значки</div>
+<div class="card"><div class="card-title">Искры, Nuvora+ и значки</div>
   <form class="row" method="post" action="/admin/u/{{ t.username }}/balance" style="gap:8px"><input name="balance" inputmode="numeric" value="{{ balance }}" style="margin:0;max-width:160px"><button class="btn sm">Установить баланс</button></form>
   <div class="row wrap mt" style="gap:8px">
     <form method="post" action="/admin/plus/{{ t.username }}" class="row" style="gap:6px"><input name="days" value="30" inputmode="numeric" style="margin:0;width:70px"><button class="btn soft sm">Выдать Plus (дней)</button></form>

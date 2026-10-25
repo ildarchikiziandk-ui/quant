@@ -216,7 +216,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         update_trends(db, content)  # темы закрытых и отложенных постов не попадают в публичные тренды
     db.flush()
     social.process_mentions(db, user, content, post.id)
-    gamification.add_points(user, db, 5)
+    gamification.add_points(user, db, 3)
     db.commit()
     gamification.complete_task(user, db, "post")
     count = db.query(models.Post).filter(models.Post.user_id == user.id, models.Post.is_repost == False).count()
@@ -304,7 +304,7 @@ async def delete_post(post_id: int, request: Request, db: Session = Depends(get_
         from deps import log_mod
         log_mod(db, user, "delete_post", post.id, (post.content or "")[:200])
     elif not post.is_repost and post.created_at and datetime.utcnow() - post.created_at < timedelta(days=1):
-        gamification.add_points(user, db, -5)  # создать и сразу удалить — не способ набрать очки
+        gamification.add_points(user, db, -3)  # создать и сразу удалить — не способ набрать искры
     purge_post(db, post)
     db.commit()
     if wants_json(request):
@@ -456,7 +456,7 @@ async def add_comment(post_id: int, request: Request, db: Session = Depends(get_
     if parent and parent.user_id not in (user.id, post.user_id):
         social.notify(db, parent.user_id, "reply", user, post_id)
     social.process_mentions(db, user, content, post_id)
-    gamification.add_points(user, db, 2)
+    gamification.add_points(user, db, 1)
     db.commit()
     gamification.complete_task(user, db, "comment")
     if db.query(models.Comment).filter_by(user_id=user.id).count() >= 20:
@@ -479,7 +479,7 @@ def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_
     if c.user_id != user.id and not social.can_mod(user) and not (post and post.user_id == user.id):
         return json_error("forbidden", 403)
     if c.user_id == user.id and c.created_at and datetime.utcnow() - c.created_at < timedelta(days=1):
-        gamification.add_points(user, db, -2)
+        gamification.add_points(user, db, -1)
     ids = [c.id]
     frontier = [c.id]
     while frontier:
@@ -552,7 +552,7 @@ def poll_vote(option_id: int, request: Request, db: Session = Depends(get_db)):
         if poll.correct_option_id:
             right = option_id == poll.correct_option_id
             if right and poll.post.user_id != user.id:
-                gamification.add_points(user, db, 10)
+                gamification.add_points(user, db, 5)
                 wins = (db.query(models.PollVote).join(models.Poll, models.Poll.id == models.PollVote.poll_id)
                         .filter(models.PollVote.user_id == user.id, models.PollVote.option_id == models.Poll.correct_option_id).count())
                 if wins >= 4:

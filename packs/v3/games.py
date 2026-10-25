@@ -106,7 +106,7 @@ async def word_guess(request: Request, db: Session = Depends(get_db)):
     row.guesses = json.dumps(guesses, ensure_ascii=False)
     if g == answer:
         row.solved = True
-        gamification.add_points(user, db, 10 + (6 - len(guesses)) * 2)  # раз в день: слово дня одно
+        gamification.add_points(user, db, 5 + (6 - len(guesses)))  # раз в день: слово дня одно
     db.commit()
     return JSONResponse({"ok": True, **_state(row, answer)})
 

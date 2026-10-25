@@ -109,7 +109,7 @@ async def question_answer(qid: int, request: Request, db: Session = Depends(get_
         social.notify(db, q.from_user_id, "answer", user, text="ответил(а) на ваш вопрос", url=f"/ask/{user.username}#q-{q.id}")
     if db.query(models.Question).filter(models.Question.to_user_id == user.id, models.Question.answer != "").count() >= 4:
         gamification.check_achievement(user, db, "answerer")
-    gamification.add_points(user, db, 3)
+    gamification.add_points(user, db, 2)
     db.commit()
     return JSONResponse({"ok": True}) if wants_json(request) else redirect("/questions")
 
@@ -272,7 +272,7 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
         return json_error("Этот подарок доступен только с Nuvora+")
     price = plus.gift_price(user, g[3])
     if extras.balance(user) < price:
-        return json_error(f"Не хватает очков: нужно {price}, у вас {extras.balance(user)}")
+        return json_error(f"Не хватает искр: нужно {price}, у вас {extras.balance(user)}")
     msg = str(data.get("message") or "").strip()[:140]
     if banned(msg, social.stop_words(db)):
         return json_error(BANNED_MSG)
@@ -280,7 +280,13 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
         return json_error("Подпись похожа на оскорбление — измените её")
     anon = bool(data.get("anonymous"))
     user.spent_points = (user.spent_points or 0) + price
-    db.add(models.UserGift(gift_code=g[0], from_user_id=user.id, to_user_id=pu.id, message=msg, is_anonymous=anon))
+    gift = models.UserGift(gift_code=g[0], from_user_id=user.id, to_user_id=pu.id, message=msg, is_anonymous=anon)
+    db.add(gift)
+    db.flush()
+    if not anon and social.can_message(db, user, pu)[0]:
+        # подарок виден и в переписке — карточкой (без отдельного push: уведомление о подарке уже приходит)
+        db.add(models.Message(sender_id=user.id, receiver_id=pu.id, content=f"[[v3:gift:{gift.id}]]",
+                              is_delivered=social.is_online(pu), silent=True))
     social.notify(db, pu.id, "gift", None if anon else user, text=f"Вам подарили подарок «{g[2]}»" + (f": «{msg}»" if msg else ""),
                   url=f"/gifts/{pu.username}")
     gamification.check_achievement(user, db, "generous")
@@ -359,14 +365,14 @@ def invite_link(username: str, request: Request, db: Session = Depends(get_db)):
 
 
 def reward_inviter(db, new_user, ref):
-    """Вызывается после регистрации: +100 очков пригласившему и достижение."""
+    """Вызывается после регистрации: +100 искр пригласившему и достижение."""
     inviter = _user(db, ref) if ref else None
     if not inviter or inviter.id == new_user.id:
         return
     new_user.referred_by = inviter.id
     gamification.add_points(inviter, db, 100)
     gamification.check_achievement(inviter, db, "inviter")
-    social.notify(db, inviter.id, "invite", new_user, text="зарегистрировался(лась) по вашему приглашению · +100 очков")
+    social.notify(db, inviter.id, "invite", new_user, text="зарегистрировался(лась) по вашему приглашению · +100 искр")
 
 
 # ===================================== Воспоминания =====================================

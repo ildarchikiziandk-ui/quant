@@ -390,3 +390,18 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .v3-game .v3-ttt-who > span:last-child { text-align: right; }
 .v3-hang-top { gap: 8px; } .v3-hang-kb { width: 100%; }
 .v3-game .v3-card-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* подарок в переписке */
+.v3-gift { color: inherit; text-decoration: none; }
+.v3-gift-body { display: flex; align-items: center; gap: 12px; }
+.v3-gift-body img { width: 84px; height: 84px; flex: none; filter: drop-shadow(0 6px 12px rgba(0,0,0,.18)); animation: v3gift .9s cubic-bezier(.2,1.4,.4,1) both; }
+.v3-gift-body b { font-size: 16px; }
+.v3-gift-msg { font-size: 14px; margin: 2px 0; overflow-wrap: anywhere; }
+@keyframes v3gift { from { transform: scale(.4) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .v3-gift-body img { animation: none; } }
+.v3-giftpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; max-height: 46vh; overflow-y: auto; }
+.v3-giftpick button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 2px solid var(--border); background: var(--card-2); color: var(--text); cursor: pointer; font: inherit; }
+.v3-giftpick button img { width: 48px; height: 48px; }
+.v3-giftpick button b { font-size: 12.5px; } .v3-giftpick button span { font-size: 11.5px; color: var(--text-2); }
+.v3-giftpick button.on { border-color: var(--accent); background: var(--accent-soft); }
+.v3-giftpick button:disabled { opacity: .45; cursor: not-allowed; }

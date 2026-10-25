@@ -350,7 +350,7 @@
         if (r.correct) {  // викторина
           const ok = $(`[data-opt="${r.correct}"]`, box); if (ok) ok.classList.add('quiz-right');
           if (r.right === false) { const mine = $(`[data-opt="${id}"]`, box); if (mine) mine.classList.add('quiz-wrong'); }
-          if (r.right !== null && r.right !== undefined) toast(r.right ? 'Верно! +10 очков' : 'Неверно — правильный ответ отмечен зелёным', !r.right);
+          if (r.right !== null && r.right !== undefined) toast(r.right ? 'Верно! +5 искр' : 'Неверно — правильный ответ отмечен зелёным', !r.right);
         }
       } else if (act === 'follow') {
         const r = await api(`/follow/${b.dataset.user}`);

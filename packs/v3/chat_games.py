@@ -251,3 +251,17 @@ def view(db, g, user):
         d["alphabet"] = ALPHABET
         d["guesser"] = me == g.b_id and not d["done"]
     return d
+
+
+# ---------------------------------------------------------------- подарки из переписки
+@router.get("/v3/gifts")
+def gifts_list(request: Request, db: Session = Depends(get_db)):
+    """Подарки с ценой для этого человека (скидка Nuvora+) и его баланс Искр — для окна «Подарок» в чате."""
+    from services import extras, plus
+    user = current_user(request, db)
+    if not user:
+        return json_error("auth", 401)
+    items = [{"code": c, "name": n, "price": plus.gift_price(user, p), "plus": c in plus.EXCLUSIVE_GIFTS}
+             for c, _e, n, p in extras.GIFTS]
+    bal = extras.balance(user)
+    return JSONResponse({"ok": True, "gifts": items, "balance": "∞" if user.is_owner else bal, "plus": plus.active(user)})

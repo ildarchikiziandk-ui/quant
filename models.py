@@ -838,7 +838,7 @@ class EventRSVP(Base):
 
 
 class UserGift(Base):
-    """Подарок за очки: виден в профиле получателя."""
+    """Подарок за искры: виден в профиле получателя."""
     __tablename__ = "user_gifts"
     id = Column(Integer, primary_key=True, index=True)
     gift_code = Column(String)

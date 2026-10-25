@@ -154,7 +154,7 @@ def _balance(db, me, t, f):
         t.total_points = spent + want
     else:
         t.spent_points = total - want
-    return f"Баланс: {want} баллов", False
+    return f"Баланс: {want} искр", False
 
 
 @action("plus-off")

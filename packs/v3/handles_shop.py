@@ -1,4 +1,4 @@
-"""«Магазин логинов»: красивые логины за баллы (списки — в services/handles.py)."""
+"""«Магазин логинов»: красивые логины за искры (списки — в services/handles.py)."""
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
@@ -58,7 +58,7 @@ async def handles_buy(request: Request, db: Session = Depends(get_db)):
     if not auth.verify_password(s(data.get("password")), user.password):
         return json_error("Неверный пароль")
     if extras.balance(user) < price:
-        return json_error(f"Не хватает баллов: нужно {price}, у вас {extras.balance(user)}")
+        return json_error(f"Не хватает искр: нужно {price}, у вас {extras.balance(user)}")
     old = user.username
     user.spent_points = (user.spent_points or 0) + price
     if as_alias:

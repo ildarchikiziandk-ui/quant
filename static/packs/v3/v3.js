@@ -54,9 +54,10 @@
   // «+» в переписке: опрос или игра
   on('[data-v3-attach]', b => {
     const u = b.dataset.v3Attach;
-    const md = A.modal('Отправить в чат', `<button class="btn soft block mb" data-k="poll">${IC('poll')} Опрос</button><div class="tiny faint mb">Игры</div>`
+    const md = A.modal('Отправить в чат', `<div class="row mb" style="gap:8px"><button class="btn soft grow" data-k="poll">${IC('poll')} Опрос</button><button class="btn soft grow" data-k="gift">${IC('gift')} Подарок</button></div><div class="tiny faint mb">Игры</div>`
       + `<div class="v3-gamepick">${GAMES.map(g => `<button type="button" data-k="${g[0]}">${IC(g[1])}<b>${g[2]}</b><span>${g[3]}</span></button>`).join('')}</div>`);
     $('[data-k=poll]', md).onclick = () => pollForm(u);
+    $('[data-k=gift]', md).onclick = () => giftForm(u);
     GAMES.forEach(([k]) => { $(`[data-k=${k}]`, md).onclick = async () => {
       md.classList.remove('open');
       try {
@@ -66,6 +67,17 @@
       } catch (e) {}
     }; });
   });
+  async function giftForm(u) {
+    let r; try { r = await A.get('/v3/gifts'); } catch (e) { return; }
+    const md = A.modal('Подарок', `<div class="small muted mb">У вас ${r.balance} искр. Подарок появится в переписке и в профиле получателя.</div>
+      <div class="v3-giftpick">${r.gifts.map(g => `<button type="button" data-g="${g.code}"${g.plus && !r.plus ? ' disabled title="Только с Nuvora+"' : ''}><img src="/static/gifts/${g.code}.svg" alt=""><b>${g.name}</b><span>${g.price} искр${g.plus ? ' · Plus' : ''}</span></button>`).join('')}</div>
+      <input id="v3-gmsg" maxlength="140" placeholder="Подпись (необязательно)" class="mt"><button class="btn block mt" id="v3-ggo" disabled>Подарить</button>`);
+    let pick = '';
+    $$('[data-g]', md).forEach(b => b.onclick = () => { $$('[data-g]', md).forEach(x => x.classList.remove('on')); b.classList.add('on'); pick = b.dataset.g; $('#v3-ggo', md).disabled = false; });
+    $('#v3-ggo', md).onclick = async () => {
+      try { await A.api(`/gifts/${encodeURIComponent(u)}/send`, { gift: pick, message: $('#v3-gmsg', md).value }); md.classList.remove('open'); A.toast('Подарок отправлен'); play('confetti'); await window.poll?.(); } catch (e) {}
+    };
+  }
   function pollForm(u) {
     const md = A.modal('Новый опрос', `<input id="v3-pq" maxlength="200" placeholder="Вопрос"><div id="v3-po" class="mt"></div>
       <button type="button" class="btn ghost sm" id="v3-padd">${IC('plus')} Вариант</button>
@@ -179,7 +191,7 @@
     try {
       const r = await A.api('/v3/chest');
       b.classList.add('opened'); b.innerHTML = `${IC('check')}<span>+${r.reward}</span>`;
-      A.toast(`Сундук открыт: +${r.reward} очков · серия ${plural(r.streak, 'день', 'дня', 'дней')}`); play('confetti');
+      A.toast(`Сундук открыт: +${r.reward} искр · серия ${plural(r.streak, 'день', 'дня', 'дней')}`); play('confetti');
       setTimeout(() => b.remove(), 2500);
     } catch (e) { b.disabled = false; }
   });
@@ -475,7 +487,7 @@
   if (!navigator.onLine) setTimeout(verify, 1500);
 })();
 
-/* Красивые логины: покупка за баллы */
+/* Красивые логины: покупка за искры */
 (function () {
   const A = window.App;
   document.addEventListener('click', e => {
@@ -483,7 +495,7 @@
     const name = b.dataset.v3Handle, price = +b.dataset.price;
     const md = A.modal('@' + name, `<p class="small muted mb">Можно сделать @${A.esc(name)} основным логином (старый освободится) или добавить дополнительным — у одного человека до трёх логинов.</p>
       <input type="password" id="v3-hpass" placeholder="Пароль для подтверждения" autocomplete="current-password">
-      <button class="btn block mt" data-mode="main">Сделать основным · ${price} баллов</button><button class="btn soft block mt" data-mode="alias">Добавить дополнительным · ${price} баллов</button>`);
+      <button class="btn block mt" data-mode="main">Сделать основным · ${price} искр</button><button class="btn soft block mt" data-mode="alias">Добавить дополнительным · ${price} искр</button>`);
     md.querySelector('#v3-hpass').focus();
     md.querySelectorAll('[data-mode]').forEach(btn => btn.onclick = async () => {
       try {

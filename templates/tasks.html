@@ -2,10 +2,10 @@
 {% from "partials/macros.html" import avatar %}
 {% block title %}Задания — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">{{ icon("target", "i in") }} Задания и награды</div><div class="page-sub">Выполняйте задания, копите очки, растите в уровнях и выигрывайте {{ brand_plus }}</div>
+<div class="page-title">{{ icon("target", "i in") }} Задания и награды</div><div class="page-sub">Выполняйте задания, копите искры, растите в уровнях и выигрывайте {{ brand_plus }}</div>
 <div class="card hero">
   <div class="row" style="justify-content:space-between;align-items:flex-start">
-    <div><div class="muted small">Уровень {{ user.level or 1 }}</div><div style="font-size:34px;font-weight:800;letter-spacing:-1px">{{ icon("sparkle", "i in") }} {{ user.total_points or 0 }}</div><div class="muted small">очков всего · {{ user.weekly_points or 0 }} за неделю</div></div>
+    <div><div class="muted small">Уровень {{ user.level or 1 }}</div><div style="font-size:34px;font-weight:800;letter-spacing:-1px">{{ icon("sparkle", "i in") }} {{ user.total_points or 0 }}</div><div class="muted small">искр всего · {{ user.weekly_points or 0 }} за неделю</div></div>
     <div class="center"><div style="font-size:30px">{{ icon("flame", "i in") }}</div><div style="font-size:24px;font-weight:800">{{ user.streak_days or 0 }}</div><div class="muted tiny">дней подряд</div></div>
   </div>
   <div class="lvl-bar mt"><div style="width:{{ level.pct }}%"></div></div>

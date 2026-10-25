@@ -150,7 +150,7 @@ class NuvaMiss(Base):
 
 # --- Красивые логины ---------------------------------------------------------------------------------------
 class HandlePurchase(Base):
-    """Покупка красивого логина за баллы."""
+    """Покупка красивого логина за искры."""
     __tablename__ = "v3_handle_purchases"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)

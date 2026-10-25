@@ -7,43 +7,43 @@ import models
 from database import Base, engine
 
 ACHIEVEMENTS = [
-    ("first_post", "Первый пост", "Опубликуй первый пост", "note", 10),
-    ("first_like", "Лайкни!", "Поставь первый лайк", "heart", 5),
-    ("first_follow", "Подписчик", "Подпишись на кого-нибудь", "user", 5),
-    ("popular", "Популярный", "Набери 10 подписчиков", "star", 50),
-    ("very_popular", "Знаменитость", "Набери 100 подписчиков", "star", 200),
-    ("active", "Активный", "Опубликуй 10 постов", "flame", 30),
-    ("prolific", "Плодовитый", "Опубликуй 50 постов", "bolt", 100),
-    ("social", "Общительный", "Напиши 20 комментариев", "chat", 30),
-    ("liker", "Любитель лайков", "Поставь 50 лайков", "heart", 20),
-    ("streak_3", "Стрик 3 дня", "Заходи 3 дня подряд", "flame", 30),
-    ("streak_7", "Стрик 7 дней", "Заходи 7 дней подряд", "trophy", 100),
-    ("streak_30", "Стрик 30 дней", "Заходи 30 дней подряд", "crown", 500),
-    ("whale", "Кит", "Поставь 10 китов", "whale", 30),
-    ("photographer", "Фотограф", "Опубликуй 5 фото", "camera", 20),
-    ("rich", "Богач", "Набери 1000 очков", "store", 100),
-    ("storyteller", "Рассказчик", "Опубликуй 10 историй", "camera", 40),
-    ("pollster", "Социолог", "Создай первый опрос", "chart", 15),
-    ("night_owl", "Сова", "Опубликуй пост ночью (0–5 часов)", "moon", 15),
-    ("group_founder", "Основатель", "Создай группу", "users", 20),
-    ("secure", "Под защитой", "Включи двухфакторную защиту", "secret", 50),
-    ("inviter", "Пригласивший", "Пригласи друга по своей ссылке", "handshake", 50),
-    ("quiz_master", "Эрудит", "Правильно ответь на 5 викторин", "bulb", 40),
-    ("generous", "Щедрая душа", "Подари кому-нибудь подарок", "gift", 20),
-    ("answerer", "Открытая книга", "Ответь на 5 вопросов", "help", 30),
-    ("event_host", "Организатор", "Создай мероприятие", "calendar", 20),
-    ("lucky", "Везунчик", "Покрути колесо фортуны", "wheel", 10),
-    ("stylist", "Стилист", "Купи рамку для аватарки", "image", 20),
+    ("first_post", "Первый пост", "Опубликуй первый пост", "note", 5),
+    ("first_like", "Лайкни!", "Поставь первый лайк", "heart", 3),
+    ("first_follow", "Подписчик", "Подпишись на кого-нибудь", "user", 3),
+    ("popular", "Популярный", "Набери 10 подписчиков", "star", 25),
+    ("very_popular", "Знаменитость", "Набери 100 подписчиков", "star", 100),
+    ("active", "Активный", "Опубликуй 10 постов", "flame", 15),
+    ("prolific", "Плодовитый", "Опубликуй 50 постов", "bolt", 50),
+    ("social", "Общительный", "Напиши 20 комментариев", "chat", 15),
+    ("liker", "Любитель лайков", "Поставь 50 лайков", "heart", 10),
+    ("streak_3", "Стрик 3 дня", "Заходи 3 дня подряд", "flame", 15),
+    ("streak_7", "Стрик 7 дней", "Заходи 7 дней подряд", "trophy", 50),
+    ("streak_30", "Стрик 30 дней", "Заходи 30 дней подряд", "crown", 250),
+    ("whale", "Кит", "Поставь 10 китов", "whale", 15),
+    ("photographer", "Фотограф", "Опубликуй 5 фото", "camera", 10),
+    ("rich", "Богач", "Набери 1000 искр", "store", 50),
+    ("storyteller", "Рассказчик", "Опубликуй 10 историй", "camera", 20),
+    ("pollster", "Социолог", "Создай первый опрос", "chart", 8),
+    ("night_owl", "Сова", "Опубликуй пост ночью (0–5 часов)", "moon", 8),
+    ("group_founder", "Основатель", "Создай группу", "users", 10),
+    ("secure", "Под защитой", "Включи двухфакторную защиту", "secret", 25),
+    ("inviter", "Пригласивший", "Пригласи друга по своей ссылке", "handshake", 25),
+    ("quiz_master", "Эрудит", "Правильно ответь на 5 викторин", "bulb", 20),
+    ("generous", "Щедрая душа", "Подари кому-нибудь подарок", "gift", 10),
+    ("answerer", "Открытая книга", "Ответь на 5 вопросов", "help", 15),
+    ("event_host", "Организатор", "Создай мероприятие", "calendar", 10),
+    ("lucky", "Везунчик", "Покрути колесо фортуны", "wheel", 5),
+    ("stylist", "Стилист", "Купи рамку для аватарки", "image", 10),
 ]
 
 DAILY_TASKS = [
-    ("daily_post", "Опубликуй пост", "Опубликуй хотя бы один пост сегодня", "note", 20, "post", 1),
-    ("daily_like", "Поставь лайки", "Поставь 3 лайка", "heart", 10, "like", 3),
-    ("daily_comment", "Прокомментируй", "Оставь комментарий", "chat", 15, "comment", 1),
-    ("daily_follow", "Подпишись", "Подпишись на нового пользователя", "user", 10, "follow", 1),
-    ("daily_story", "История", "Опубликуй историю", "camera", 25, "story", 1),
-    ("daily_login", "Ежедневный вход", "Просто зайди сюда", "sparkle", 5, "login", 1),
-    ("daily_message", "Напиши сообщение", "Напиши кому-нибудь", "mail", 10, "message", 1),
+    ("daily_post", "Опубликуй пост", "Опубликуй хотя бы один пост сегодня", "note", 10, "post", 1),
+    ("daily_like", "Поставь лайки", "Поставь 3 лайка", "heart", 5, "like", 3),
+    ("daily_comment", "Прокомментируй", "Оставь комментарий", "chat", 8, "comment", 1),
+    ("daily_follow", "Подпишись", "Подпишись на нового пользователя", "user", 5, "follow", 1),
+    ("daily_story", "История", "Опубликуй историю", "camera", 13, "story", 1),
+    ("daily_login", "Ежедневный вход", "Просто зайди сюда", "sparkle", 3, "login", 1),
+    ("daily_message", "Напиши сообщение", "Напиши кому-нибудь", "mail", 5, "message", 1),
 ]
 
 
@@ -105,6 +105,17 @@ def seed(db):
         if not db.query(models.DailyTask).filter_by(code=code).first():
             db.add(models.DailyTask(code=code, title=title, description=desc, emoji=emoji, points=pts,
                                     task_type=ttype, target_count=target))
+    # награды пересчитаны под «Искры» (вдвое меньше) — обновляем уже созданные записи
+    want_ach = {c: pts for c, _, _, _, pts in ACHIEVEMENTS}
+    want_task = {c: pts for c, _, _, _, pts, *_ in DAILY_TASKS}
+    for row in db.query(models.Achievement).all():
+        if row.code in want_ach and row.points_reward != want_ach[row.code]:
+            row.points_reward = want_ach[row.code]
+        if row.code == "rich" and row.description != "Набери 1000 искр":
+            row.description = "Набери 1000 искр"
+    for row in db.query(models.DailyTask).all():
+        if row.code in want_task and row.points != want_task[row.code]:
+            row.points = want_task[row.code]
     # эмодзи в старых записях → имена иконок (интерфейс рисует SVG-иконки вместо эмодзи)
     icons_by_code = {c: e for c, _, _, e, _ in ACHIEVEMENTS} | {c: e for c, _, _, e, *_ in DAILY_TASKS}
     for model in (models.Achievement, models.DailyTask):

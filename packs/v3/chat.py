@@ -215,6 +215,14 @@ def card(msg, user):
                 return ""
             peer = db.get(models.User, c.callee_id if user and user.id == c.caller_id else c.caller_id)
             html = templates.get_template("packs/v3/card_call.html").render(c=c, d=card_data(db, c, user), peer=peer, msg=msg, user=user)
+        elif kind == "gift":
+            from services import extras
+            g = db.get(models.UserGift, oid)
+            info = extras.GIFT_BY_CODE.get(g.gift_code) if g else None
+            if not g or not info:
+                return ""
+            html = templates.get_template("packs/v3/card_gift.html").render(g=g, info=info, msg=msg, user=user,
+                                                                             sender=db.get(models.User, g.from_user_id), to=db.get(models.User, g.to_user_id))
         elif kind in ("rps", "dice", "c4", "hang"):
             from .chat_games import view
             g = db.get(m.ChatGame, oid)

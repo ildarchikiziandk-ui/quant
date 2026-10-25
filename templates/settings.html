@@ -67,7 +67,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="form-row"><label class="field"><span>Новый логин</span><input name="username" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" required></label>
   <label class="field"><span>Пароль</span><input type="password" name="password" required></label></div>
   <button class="btn">Сменить логин</button>
-  <a class="btn ghost sm" href="/handles">{{ icon("at", "i in") }} Красивые логины за баллы</a>
+  <a class="btn ghost sm" href="/handles">{{ icon("at", "i in") }} Красивые логины за искры</a>
 </form>
 {% set al = v3_aliases(user) %}
 <div class="card" id="v3-aliases"><div class="card-title"><span>Дополнительные логины</span><span class="faint small">{{ al|length }} из 2</span></div>
@@ -185,7 +185,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 <div class="card hero">
   <div style="font-size:22px;font-weight:800">{{ icon("sparkle", "i in") }} {{ brand_plus }}</div>
   {% if is_plus %}<div class="muted">Активен{% if user.is_owner %} навсегда{% elif user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
-  {% else %}<div class="muted">Цветной значок и имя, гости профиля, ×1,5 очков, длинные посты и голосовые и ещё много всего. <a href="/plus" style="color:var(--link)">Все возможности</a></div>{% endif %}
+  {% else %}<div class="muted">Цветной значок и имя, гости профиля, ×1,5 искр, длинные посты и голосовые и ещё много всего. <a href="/plus" style="color:var(--link)">Все возможности</a></div>{% endif %}
 </div>
 {% if is_plus %}
 <form class="card" method="post" action="/settings/prefs/plus">

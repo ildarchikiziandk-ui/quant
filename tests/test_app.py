@@ -587,12 +587,12 @@ def test_gifts(alice, bob):
     s.commit()
     s.close()
     r = alice.post("/gifts/bob/send", data={"gift": "rose", "message": "Спасибо!"}, headers=J).json()
-    assert r["ok"] and r["balance"] == 100  # −20 за розу, +20 за достижение «Щедрая душа»
+    assert r["ok"] and r["balance"] == 100  # −10 за розу, +10 за достижение «Щедрая душа»
     assert alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).status_code == 400  # не хватает очков
     assert "/static/gifts/rose.svg" in alice.get("/profile/bob").text and "Спасибо!" in bob.get("/gifts/bob").text
     s = db()
     a = s.query(models.User).filter_by(username="alice").first()
-    assert a.total_points >= 100 and a.spent_points == 20  # уровень не падает от трат
+    assert a.total_points >= 100 and a.spent_points == 10  # уровень не падает от трат
     s.close()
 
 
@@ -619,7 +619,7 @@ def test_quiz(alice, bob):
     pts = lambda: db().query(models.User).filter_by(username="alice").first().total_points
     before = pts()
     v = alice.post(f"/poll/vote/{paris.id}", headers=J).json()
-    assert v["right"] is True and v["correct"] == paris.id and pts() == before + 10
+    assert v["right"] is True and v["correct"] == paris.id and pts() == before + 5
     carol = register(make_client(), "carolq")
     assert carol.post(f"/poll/vote/{rome.id}", headers=J).json()["right"] is False
     assert "Викторина" in alice.get(f"/post/{r['post_id']}").text
@@ -940,10 +940,10 @@ def test_plus_features(alice, bob, owner):
     assert plus.active(a) and plus.limit(a, "post_length") == 15000 and plus.limit(a, "voice") == 900
     before = a.spent_points or 0
     s.close()
-    r = alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).json()  # 500 со скидкой 30% = 350
+    r = alice.post("/gifts/bob/send", data={"gift": "rocket"}, headers=J).json()  # 250 со скидкой 30% = 175
     assert r["ok"]
     s = db()
-    assert s.query(models.User).filter_by(username="alice").one().spent_points - before == 350
+    assert s.query(models.User).filter_by(username="alice").one().spent_points - before == 175
     s.close()
     assert alice.post("/gifts/bob/send", data={"gift": "whale"}, headers=J).json()["ok"]
     # очки ×1,5

@@ -29,7 +29,7 @@ def validate_username(u, user=None):
     if u.lower() in RESERVED:
         return "Этот логин зарезервирован"
     from services import handles
-    return handles.check(u, user)  # красивые логины: заповедные и продающиеся за баллы
+    return handles.check(u, user)  # красивые логины: заповедные и продающиеся за искры
 
 
 def handles_owner(db, name):

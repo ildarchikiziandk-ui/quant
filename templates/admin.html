@@ -32,7 +32,7 @@
 {% if is_owner %}<div class="row mb"><a class="btn soft sm" href="/admin/export/users.csv">{{ icon("download", "i in") }} Экспорт пользователей (CSV)</a></div>{% endif %}
 <form method="get" class="card row"><input type="hidden" name="tab" value="users"><input type="search" name="q" value="{{ q }}" placeholder="Логин, имя или email" style="margin:0"><button class="btn">Найти</button></form>
 <div class="card table-wrap"><table class="table">
-  <tr><th>Пользователь</th><th>Email</th><th>Очки</th><th>Статус</th><th>Создан</th><th></th></tr>
+  <tr><th>Пользователь</th><th>Email</th><th>Искры</th><th>Статус</th><th>Создан</th><th></th></tr>
   {% for u in all_users %}
   <tr><td><div class="row">{{ avatar(u, 30) }}<div>{{ name(u) }}<div class="tiny muted">@{{ u.username }}</div></div></div></td>
     <td class="small">{{ u.email }}{% if u.email_verified %} {{ icon("check", "i in") }}{% endif %}</td><td>{{ u.total_points or 0 }}</td>
@@ -50,7 +50,7 @@
         <form method="post" action="/admin/mod/{{ u.username }}"><button>{{ "Снять" if u.is_moderator else "Сделать" }} модератором</button></form>
         <form method="post" action="/admin/plus/{{ u.username }}"><input type="hidden" name="days" value="30"><button>Подарить Plus 30 дн.</button></form>
         <form method="post" action="/admin/reset-password/{{ u.username }}" onsubmit="return confirm('Сбросить пароль @{{ u.username }}?')"><button>{{ icon("key", "i in") }} Сбросить пароль</button></form>
-        <form method="post" action="/admin/points/{{ u.username }}"><input type="hidden" name="points" value="100"><button>+100 очков</button></form>
+        <form method="post" action="/admin/points/{{ u.username }}"><input type="hidden" name="points" value="100"><button>+100 искр</button></form>
         <form method="post" action="/admin/delete-user/{{ u.username }}" onsubmit="return confirm('Удалить @{{ u.username }} со всеми данными?')"><button class="danger">Удалить аккаунт</button></form>
         {% endif %}
       {% endif %}
@@ -137,7 +137,7 @@
   <label class="field"><span>Сколько раз</span><input name="target_count" type="number" value="10" min="1"></label><label class="field"><span>Награда</span><input name="points" type="number" value="150" min="1"></label></div>
   <button class="btn">Запустить на 7 дней</button></form>
 <div class="card"><div class="card-title">{{ icon("ticket", "i in") }} Розыгрыш недели</div><p class="small mb">Приз: <b>{{ raffle.prize }}</b> · участников: {{ raffle.entries|length }} · билетов: {{ raffle.entries|sum(attribute="tickets") }}</p>
-  <form method="post" action="/admin/raffle/draw" onsubmit="return confirm('Провести розыгрыш сейчас? Недельные очки будут обнулены.')"><button class="btn">Провести розыгрыш</button></form></div>
+  <form method="post" action="/admin/raffle/draw" onsubmit="return confirm('Провести розыгрыш сейчас? Недельные искры будут обнулены.')"><button class="btn">Провести розыгрыш</button></form></div>
 
 {% elif tab == "legal" and is_owner %}
 <div class="card small muted">Автоматическая проверка соответствия законам РФ. Это памятка, а не юридическое заключение: пункты «{{ icon("circle", "i in") }} сделать» и спорные вопросы стоит обсудить с юристом.</div>

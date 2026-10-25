@@ -132,7 +132,7 @@ async def create_story(request: Request, db: Session = Depends(get_db)):
                          audience="close" if form.get("audience") == "close" else "all",
                          expires_at=datetime.utcnow() + timedelta(hours=24))
     db.add(story)
-    gamification.add_points(user, db, 5)
+    gamification.add_points(user, db, 3)
     db.commit()
     gamification.complete_task(user, db, "story")
     if db.query(models.Story).filter_by(user_id=user.id).count() >= 10:

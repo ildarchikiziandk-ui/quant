@@ -208,7 +208,7 @@ def export_users(request: Request, db: Session = Depends(get_db)):
         return redirect("/")
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
-    w.writerow(["id", "логин", "имя", "email", "регистрация", "последний вход", "баллы", "Nuvora+", "заблокирован"])
+    w.writerow(["id", "логин", "имя", "email", "регистрация", "последний вход", "искры", "Nuvora+", "заблокирован"])
     from services import extras
     for u in db.query(models.User).order_by(models.User.id).yield_per(500):
         w.writerow([u.id, u.username, s(u.name), u.email, u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "",

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-title">{{ icon("chart", "i in") }} Рейтинг</div>{% if my_rank %}<div class="page-sub">Ваше место: <b>#{{ my_rank }}</b></div>{% endif %}
 {% if user %}<div class="chips">{% for k, l in [("all","Все"),("friends","Среди друзей")] %}<a href="/leaderboard?by={{ by }}&scope={{ k }}" class="chip {% if scope == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>{% endif %}
-<div class="tabs">{% for k, l in [("total","Очки"),("weekly","Неделя"),("streak","Стрики"),("level","Уровни")] %}<a href="/leaderboard?by={{ k }}&scope={{ scope }}" class="{% if by == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
+<div class="tabs">{% for k, l in [("total","Искры"),("weekly","Неделя"),("streak","Стрики"),("level","Уровни")] %}<a href="/leaderboard?by={{ k }}&scope={{ scope }}" class="{% if by == k %}active{% endif %}">{{ l }}</a>{% endfor %}</div>
 <div class="card">
 {% for u in users %}
   <div class="row" style="padding:8px 0;{% if not loop.first %}border-top:1px solid var(--border){% endif %}{% if user and u.id == user.id %};background:color-mix(in srgb,var(--brand) 7%,transparent);border-radius:10px{% endif %}">
