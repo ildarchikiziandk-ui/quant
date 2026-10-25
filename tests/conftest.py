@@ -29,6 +29,10 @@ def _fresh_state():
     ratelimit.reset()
     from packs.v3 import site
     site._cache.update(t=0, v=dict(site.DEFAULTS))  # настройки сайта из прошлого теста не переносятся
+    from services import recommend
+    recommend._cache.clear()  # кэши рекомендаций привязаны к id, а id в каждом тесте начинаются заново
+    from packs.v3 import communities
+    communities._info.update(t=0, v={})
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     s = SessionLocal()
