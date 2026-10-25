@@ -9,6 +9,10 @@
    возраста) + свежесть + немного «исследования» нового. Просмотренные, уже лайкнутые и
    «неинтересные» посты штрафуются.
 4. Разнообразие. Финальный список собирается так, чтобы один автор или одна тема не шли подряд.
+5. Люди (3.2): близость к тем, с кем вы переписываетесь, взаимно подписаны и чьи профили открываете;
+   «похожие вкусы» — что недавно понравилось людям, которые лайкают то же, что и вы; пост, который
+   набирает лайки прямо сейчас; подписки на сообщества и официальное сообщество Nuvora; меньше —
+   авторам, которых вы постоянно пролистываете, и постам с жалобами.
 
 Всё считается за один проход по SQL без тяжёлых библиотек; профиль кэшируется на минуту.
 """
@@ -104,6 +108,72 @@ def _noise(user_id, post_id):
     return (zlib.crc32(f"{user_id}:{post_id}:{datetime.utcnow():%Y%m%d}".encode()) % 1000) / 1000
 
 
+def _cached(key, ttl, fn):
+    hit = _cache.get(key)
+    if hit and time.time() - hit[0] < ttl:
+        return hit[1]
+    v = fn()
+    _cache[key] = (time.time(), v)
+    return v
+
+
+def social_affinity(db, user):
+    """{author_id: вес} — насколько человек вам близок: переписка (только число сообщений), взаимная подписка, визиты профиля."""
+    def calc():
+        since = datetime.utcnow() - timedelta(days=60)
+        from sqlalchemy import func
+        out = {}
+        for other, n in (db.query(models.Message.receiver_id, func.count(models.Message.id))
+                         .filter(models.Message.sender_id == user.id, models.Message.receiver_id != None, models.Message.created_at >= since)
+                         .group_by(models.Message.receiver_id).order_by(func.count(models.Message.id).desc()).limit(60)):
+            out[other] = out.get(other, 0) + math.log1p(n)
+        for other, n in (db.query(models.Message.sender_id, func.count(models.Message.id))
+                         .filter(models.Message.receiver_id == user.id, models.Message.created_at >= since)
+                         .group_by(models.Message.sender_id).order_by(func.count(models.Message.id).desc()).limit(60)):
+            out[other] = out.get(other, 0) + 0.6 * math.log1p(n)
+        mine = {f for (f,) in db.query(models.Follow.following_id).filter(models.Follow.follower_id == user.id)}
+        back = {f for (f,) in db.query(models.Follow.follower_id).filter(models.Follow.following_id == user.id, models.Follow.follower_id.in_(mine or {-1}))}
+        for u in back:
+            out[u] = out.get(u, 0) + 0.8
+        for (o,) in db.query(models.ProfileVisit.owner_id).filter(models.ProfileVisit.viewer_id == user.id).order_by(models.ProfileVisit.id.desc()).limit(40):
+            out[o] = out.get(o, 0) + 0.25
+        top = max(out.values() or [1.0])
+        return {k: v / top for k, v in out.items() if k != user.id}
+    return _cached(("aff", user.id), 300, calc)
+
+
+def similar_taste(db, user):
+    """{post_id: вес} — недавние лайки людей, у которых лайки похожи на ваши (коллаборативная фильтрация)."""
+    def calc():
+        from sqlalchemy import func
+        mine = [pid for (pid,) in db.query(models.Like.post_id).filter(models.Like.user_id == user.id).order_by(models.Like.id.desc()).limit(150)]
+        if len(mine) < 2:
+            return {}
+        peers = (db.query(models.Like.user_id, func.count(models.Like.id)).filter(models.Like.post_id.in_(mine), models.Like.user_id != user.id)
+                 .group_by(models.Like.user_id).order_by(func.count(models.Like.id).desc()).limit(25).all())
+        peers = [(u, n) for u, n in peers if n >= 2]
+        if not peers:
+            return {}
+        w = {u: math.log1p(n) for u, n in peers}
+        mine_set = set(mine)
+        out = {}
+        for u, pid in (db.query(models.Like.user_id, models.Like.post_id).filter(models.Like.user_id.in_(list(w)))
+                       .order_by(models.Like.id.desc()).limit(600)):
+            if pid not in mine_set:
+                out[pid] = out.get(pid, 0) + w[u]
+        top = max(out.values() or [1.0])
+        return {k: v / top for k, v in out.items()}
+    return _cached(("cf", user.id), 600, calc)
+
+
+def extra_candidate_ids(db, user, limit=80):
+    """Посты, которые стоит добавить в кандидаты, даже если они не самые свежие: «похожие вкусы»."""
+    if not user:
+        return []
+    cf = similar_taste(db, user)
+    return [pid for pid, _ in sorted(cf.items(), key=lambda x: -x[1])[:limit]]
+
+
 FRESH = {"fresh": (1.0, 0.25), "normal": (0.6, 0.45), "popular": (0.3, 0.8)}
 EXPLORE = {"low": 0.05, "normal": 0.18, "high": 0.4}
 
@@ -126,6 +196,24 @@ def rank(db, user, pool, fids):
         liked = {r.post_id for r in db.query(models.Like.post_id).filter(models.Like.user_id == user.id, models.Like.post_id.in_(ids or [-1]))}
     eng = {p.id: len(p.likes) * 1 + len(p.comments) * 2 + len(p.whales) * 1.5 + len(p.reactions) + (p.views or 0) * 0.02 for p in pool}
     max_q = max([math.log1p(e) for e in eng.values()] + [1.0])
+    ids = [p.id for p in pool] or [-1]
+    from sqlalchemy import func
+    # набирает лайки прямо сейчас: лайки за последние 6 часов
+    hot = dict(db.query(models.Like.post_id, func.count(models.Like.id)).filter(models.Like.post_id.in_(ids),
+               models.Like.created_at >= now - timedelta(hours=6)).group_by(models.Like.post_id))
+    max_hot = max(list(hot.values()) + [1])
+    reports = dict(db.query(models.PostReport.post_id, func.count(models.PostReport.id)).filter(models.PostReport.post_id.in_(ids))
+                   .group_by(models.PostReport.post_id))
+    aff = social_affinity(db, user) if user else {}
+    cf = similar_taste(db, user) if user else {}
+    from packs.v3 import communities as _comm
+    my_comms = _comm.member_ids(db, user) if user else set()
+    official = (_comm.info_by_slug(_comm.OFFICIAL_SLUG) or {}).get("id")
+    # «усталость»: авторы, которых вы много раз видели в рекомендациях за неделю и ни разу не оценили
+    fatigue = _cached(("fat", user.id), 300, lambda: dict(
+        db.query(models.Post.user_id, func.count(models.SeenPost.id)).join(models.Post, models.Post.id == models.SeenPost.post_id)
+        .filter(models.SeenPost.user_id == user.id, models.SeenPost.created_at >= now - timedelta(days=7))
+        .group_by(models.Post.user_id).having(func.count(models.SeenPost.id) >= 8))) if user else {}
     out = []
     for p in pool:
         age_h = max(0.1, (now - p.created_at).total_seconds() / 3600)
@@ -150,6 +238,27 @@ def rank(db, user, pool, fids):
         if p.user_id in fids:
             rel += 0.35
             reason = reason or "Из ваших подписок"
+        close = aff.get(p.user_id, 0)
+        if close:
+            rel += 0.9 * close
+            if close > 0.4:
+                reason = reason or "Вы часто общаетесь"
+        taste = cf.get(p.id, 0)
+        if taste:
+            rel += 0.8 * taste
+            if taste > 0.3:
+                reason = reason or "Нравится людям с похожими вкусами"
+        if p.community_id:
+            if p.community_id == official:
+                rel += 0.6
+                reason = "Официально от Nuvora"
+            elif p.community_id in my_comms:
+                rel += 0.4
+                reason = reason or "Из ваших сообществ"
+        h = hot.get(p.id, 0)
+        if h >= 2:
+            quality += 0.35 * h / max_hot
+            reason = reason or "Набирает лайки прямо сейчас"
         score = rel + w_quality * quality + w_fresh * fresh + explore * _noise(user.id if user else 0, p.id)
         if not reason and quality > 0.6:
             reason = "Популярное сейчас"
@@ -160,6 +269,10 @@ def rank(db, user, pool, fids):
                 score *= 0.3
         if p.id in liked:
             score *= 0.25
+        if reports.get(p.id):
+            score *= 0.6 ** min(3, reports[p.id])
+        if fatigue.get(p.user_id) and (not prof or prof["authors"].get(p.user_id, 0) <= 0) and not close:
+            score *= 0.75
         if seen.get(p.id):
             score *= 0.4 ** seen[p.id]
         out.append((p, score, reason))

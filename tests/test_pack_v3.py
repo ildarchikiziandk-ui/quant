@@ -1078,3 +1078,33 @@ def test_albums_and_tags(alice, bob):
     r2 = alice.post("/albums/new", data={"title": "Личное", "privacy": "me"}, headers=J).json()
     assert bob.get(r2["url"]).status_code == 404 and "Личное" not in eve.get("/profile/alice/photos").text
     assert alice.post(f"/albums/{aid}/delete", headers=J).json()["ok"]
+
+
+def test_recommendations_people_signals(alice, bob):
+    from services import recommend
+    carol, dan, eve = (register(make_client(), n) for n in ("carol", "dan", "eve"))
+    post = lambda c, t: c.post("/post/create", data={"content": t}, headers=J).json()["post_id"]
+    x1, x2 = post(dan, "Закат над морем"), post(dan, "Рассвет в горах")
+    y = post(eve, "Редкая птица в парке")
+    z = post(eve, "Обычный пост про погоду")
+    for c in (bob, carol):
+        c.post(f"/like/{x1}", headers=J); c.post(f"/like/{x2}", headers=J); c.post(f"/like/{y}", headers=J)
+    alice.post(f"/like/{x1}", headers=J); alice.post(f"/like/{x2}", headers=J)
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    recommend.invalidate(a.id)
+    cf = recommend.similar_taste(s, a)
+    assert cf.get(y, 0) > 0 and z not in cf  # «похожие вкусы»: bob и carol лайкают то же, что alice, и ещё «птицу»
+    pool = s.query(models.Post).filter(models.Post.id.in_([y, z])).all()
+    ranked = [p.id for p, _, _ in recommend.rank(s, a, pool, set())]
+    assert ranked.index(y) < ranked.index(z)
+    s.close()
+    # близость: alice переписывается с eve
+    for i in range(5):
+        alice.post("/messages/send", json={"receiver": "eve", "content": f"привет {i}"}, headers=J)
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    e = s.query(models.User).filter_by(username="eve").one()
+    recommend._cache.pop(("aff", a.id), None)
+    assert recommend.social_affinity(s, a).get(e.id, 0) > 0
+    s.close()

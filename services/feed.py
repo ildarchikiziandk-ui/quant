@@ -47,6 +47,10 @@ def get_feed(db, user, tab="foryou", page=1):
     pool = q.filter(models.Post.created_at > now - timedelta(days=21)).order_by(models.Post.created_at.desc()).limit(500).all()
     if len(pool) < 40:
         pool = q.order_by(models.Post.created_at.desc()).limit(500).all()
+    extra = recommend.extra_candidate_ids(db, user)
+    if extra:  # «похожие вкусы» — даже если пост старше трёх недель
+        have = {p.id for p in pool}
+        pool += [p for p in q.filter(models.Post.id.in_([x for x in extra if x not in have] or [-1])).all()]
     pool = recommend.post_filter(db, user, pool)
     ranked = recommend.rank(db, user, pool, fids)
     chunk = ranked[(page - 1) * per:(page - 1) * per + per + 1]

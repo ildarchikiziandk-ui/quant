@@ -34,11 +34,9 @@ _info = {"t": 0.0, "v": {}}
 
 
 # ---------------------------------------------------------------- данные для шаблонов (с кэшем на минуту)
-def info(cid):
-    """{id, slug, name, kind, avatar, official} сообщества по id — для карточек постов."""
-    if not cid:
-        return None
-    if time.time() - _info["t"] > 60 or cid not in _info["v"]:
+def _load(force=False):
+    """Все сообщества в памяти (их немного): обновляется раз в минуту или сразу после изменений."""
+    if force or time.time() - _info["t"] > 60:
         db = SessionLocal()
         try:
             _info["v"] = {c.id: {"id": c.id, "slug": c.slug, "name": c.name, "kind": c.kind, "avatar": c.avatar,
@@ -47,7 +45,21 @@ def info(cid):
             _info["t"] = time.time()
         finally:
             db.close()
-    return _info["v"].get(cid)
+    return _info["v"]
+
+
+def info(cid):
+    """{id, slug, name, kind, avatar, official} сообщества по id — для карточек постов."""
+    if not cid:
+        return None
+    v = _load()
+    if cid not in v and time.time() - _info["t"] > 5:  # только что созданное сообщество
+        v = _load(force=True)
+    return v.get(cid)
+
+
+def info_by_slug(slug):
+    return next((v for v in _load().values() if v["slug"] == slug), None)
 
 
 def _reset():
