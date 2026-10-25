@@ -180,7 +180,14 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     is_plus = plus.active(user)
     allowed_exp = ("24", "72", "168") + (tuple(k for k, _ in plus.EXPIRES) if is_plus else ())
     allowed_bg = extras.BG_KEYS | (plus.BG_KEYS if is_plus else set())
-    post = models.Post(content=content, user_id=user.id, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
+    community = None
+    if form.get("community"):
+        from packs.v3 import communities
+        community = communities.by_ref(db, form.get("community"))
+        if not community or not communities.can_post(db, community, user):
+            return json_error("Публиковать здесь могут только админы", 403)
+        visibility = "all"  # посты сообществ открыты всем
+    post = models.Post(content=content, user_id=user.id, community_id=community.id if community else None, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
                        is_long=len(content) > 500, scheduled_at=scheduled, visibility=visibility,
                        comments_disabled=bool(form.get("comments_disabled")),
                        mood=form.get("mood") if form.get("mood") in extras.MOOD_BY else "",
@@ -232,7 +239,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
         return JSONResponse({"ok": True, "post_id": post.id, "scheduled": bool(scheduled), "warnings": errors,
                              "held": bool(flag and flag.held),
                              "message": "Пост отправлен на проверку модераторам" if flag and flag.held else ""})
-    return redirect(f"/post/{post.id}")
+    return redirect(f"/c/{community.slug}" if community else f"/post/{post.id}")
 
 
 @router.post("/post/{post_id}/edit")

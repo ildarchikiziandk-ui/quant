@@ -521,7 +521,7 @@
         const r = await api('/post/create', fd);
         try { localStorage.removeItem('composer-draft'); } catch (er) {}
         toast(r.held ? r.message : r.scheduled ? 'Пост запланирован' : 'Опубликовано');
-        setTimeout(() => location.href = r.scheduled ? '/drafts' : `/post/${r.post_id}`, 400);
+        setTimeout(() => location.href = r.scheduled ? '/drafts' : (composer.dataset.back || `/post/${r.post_id}`), 400);
       } catch (err) { btn.disabled = false; btn.textContent = 'Опубликовать'; }
     });
     $$('[data-draft-load]').forEach(a => a.addEventListener('click', (e) => {

@@ -135,6 +135,8 @@ class Post(Base):
     bg = Column(String, default="")
     is_archived = Column(Boolean, default=False)
     expires_at = Column(DateTime, nullable=True)
+    community_id = Column(Integer, nullable=True, index=True)  # пост в канале или сообществе (Nuvora 3.2)
+    wall_owner_id = Column(Integer, nullable=True, index=True)  # запись на стене другого человека
     author = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post")
     comments = relationship("Comment", back_populates="post")

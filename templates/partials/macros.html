@@ -94,6 +94,11 @@
 {%- if p.expires_at %}<div class="tiny faint" style="margin-top:-4px">{{ icon("hourglass", "i in") }} пост исчезнет {{ p.expires_at|lt("%d.%m в %H:%M") }}</div>{% endif %}
 {%- endmacro %}
 
+{% macro community_avatar(c, size=44) -%}
+{%- if c.avatar %}<img class="av c-av" src="{{ c.avatar }}" alt="" width="{{ size }}" height="{{ size }}" style="width:{{ size }}px;height:{{ size }}px" loading="lazy">
+{%- else %}<span class="av c-av c-letter" style="width:{{ size }}px;height:{{ size }}px;font-size:{{ (size * 0.42)|int }}px">{{ c.letter if c.letter is defined else (c.name or "?")[:1]|upper }}</span>{% endif -%}
+{%- endmacro %}
+
 {% macro post_card(p, user, st, originals={}, repost_counts={}, can_mod=false, full=false) -%}
 {%- set orig = originals.get(p.repost_id) if p.is_repost else None -%}
 {%- set simple_repost = p.is_repost and not p.original_comment -%}
@@ -102,12 +107,15 @@
   {%- if simple_repost %}<div class="repost-label">{{ icon("repost") }} <a href="/profile/{{ p.author.username }}">{{ p.author.name or p.author.username }}</a> сделал(а) репост</div>{% endif %}
   {%- if simple_repost and not orig %}<div class="muted small">Оригинальный пост удалён или недоступен</div>
   {%- else %}
+  {%- set cm = v3_community(main.community_id) if main.community_id else None -%}
+  {%- set as_channel = cm and cm.kind == "channel" -%}
   <div class="post-head">
-    <a href="/profile/{{ main.author.username }}">{{ avatar(main.author, 44, online=true) }}</a>
+    {% if as_channel %}<a href="/c/{{ cm.slug }}">{{ community_avatar(cm, 44) }}</a>{% else %}<a href="/profile/{{ main.author.username }}">{{ avatar(main.author, 44, online=true) }}</a>{% endif %}
     <div class="post-body">
       <div class="post-meta">
-        {{ name(main.author) }}
-        <span class="handle">@{{ main.author.username }}</span>
+        {% if as_channel %}<a class="name" href="/c/{{ cm.slug }}"><b>{{ cm.name }}</b>{% if cm.official %}<span class="badge official-c" title="Официальное сообщество">{{ icon("check", "i") }}</span>{% endif %}</a>
+        <span class="handle">канал</span>{% else %}{{ name(main.author) }}
+        <span class="handle">@{{ main.author.username }}</span>{% endif %}
         <span class="faint meta-dot">·</span>
         <a class="time" href="/post/{{ main.id }}" title="{{ main.created_at|lt('%d.%m.%Y %H:%M') }}">{{ main.created_at|ago }}</a>
         {%- if main.edited_at %}<a class="faint tiny" href="/post/{{ main.id }}/history" title="История правок">· изм.</a>{% endif %}
@@ -119,6 +127,7 @@
           <div class="menu" data-menu-src="/post/{{ main.id }}/menu{% if p.id != main.id %}?rp={{ p.id }}{% endif %}"></div>{# пункты меню подгружаются по нажатию — лента легче в 2 раза #}
         </div>
       </div>
+      {%- if cm and not as_channel %}<a class="post-comm" href="/c/{{ cm.slug }}">{{ community_avatar(cm, 18) }} {{ cm.name }}</a>{% endif %}
       {%- if user and user.id == main.user_id %}<textarea class="hidden" id="raw-{{ main.id }}">{{ main.content or "" }}</textarea>{% endif %}
       {%- if p.is_repost and p.original_comment %}
         <div class="post-text">{{ p.original_comment|rich }}</div>

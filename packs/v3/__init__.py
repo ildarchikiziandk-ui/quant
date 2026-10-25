@@ -1,6 +1,6 @@
 """Nuvora 3.x: модули чатов, игр, помощника Нувы, красивых логинов и безопасности."""
 from . import models  # noqa: F401  таблицы
-from . import account, accounts, admin_more, admin_plus, admin_tools, ai, appupdate, calls, capsule, chat, chat_games, dayyot, feed, games, handles_shop, login_approve, media, payments, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
+from . import account, accounts, admin_more, admin_plus, admin_tools, ai, appupdate, calls, capsule, chat, chat_games, communities, dayyot, feed, games, handles_shop, login_approve, media, payments, people, phone, stickers  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
 from . import site
 
@@ -89,8 +89,8 @@ SLOTS = {
 
 CSS = ["packs/v3/v3.css"]
 JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js"]
-JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job, payments.pending_job]
+JOBS = [feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job, payments.pending_job, communities.seed_job]
 GLOBALS = {
     "v3_card": chat.card, "v3_chest": people.chest_state, "v3_backup_left": account.backup_left,
-    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_mute_until": admin_tools.mute_until, "site_get": site.get, "v3_pay_keys": payments.keys_set, "v3_pay_on": payments.enabled, "v3_warnings": admin_tools.warnings_of, "v3_aliases": handles_shop.aliases_of,
+    "v3_ai_on": ai.enabled, "v3_calls_on": calls.calls_on, "v3_posts_locked": accounts.posts_locked, "v3_login_approve": login_approve.enabled, "v3_mute_until": admin_tools.mute_until, "site_get": site.get, "v3_community": communities.info, "v3_pay_keys": payments.keys_set, "v3_pay_on": payments.enabled, "v3_warnings": admin_tools.warnings_of, "v3_aliases": handles_shop.aliases_of,
 }

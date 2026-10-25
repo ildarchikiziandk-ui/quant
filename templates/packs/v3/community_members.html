@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import avatar %}
+{% block content %}
+<div class="page-head"><a href="/c/{{ c.slug }}" class="back-link">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Подписчики · {{ n }}</div></div>
+<div class="card">{% for u, r in rows %}<a class="c-row" href="/profile/{{ u.username }}">{{ avatar(u, 40) }}<div class="grow" style="min-width:0"><b>{{ u.name or u.username }}</b><div class="tiny muted">@{{ u.username }}</div></div>{% if r in ("owner", "admin") %}<span class="tag-pill">{{ "владелец" if r == "owner" else "админ" }}</span>{% endif %}</a>{% endfor %}</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import community_avatar %}
+{% block title %}Сообщества — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("megaphone", "i in") }} Сообщества</div>
+  {% if user %}<button class="btn sm" data-modal="c-new" title="Создать">{{ icon("plus") }}<span class="btn-lbl">Создать</span></button>{% endif %}</div>
+<form method="get" action="/c" class="mb"><input type="search" name="q" value="{{ q }}" placeholder="Найти канал или сообщество"></form>
+{% macro row(c) %}<a class="c-row" href="/c/{{ c.slug }}">{{ community_avatar(c, 48) }}<div class="grow" style="min-width:0"><b>{{ c.name }}{% if c.is_official %}<span class="badge official-c" title="Официальное">{{ icon("check", "i") }}</span>{% endif %}</b>
+  <div class="tiny muted">{{ kinds[c.kind] }} · {{ counts.get(c.id, 0) }} {{ "подписчик" if counts.get(c.id, 0) % 10 == 1 and counts.get(c.id, 0) % 100 != 11 else "подписчиков" }}</div>
+  {% if c.description %}<div class="small muted ellipsis">{{ c.description[:90] }}</div>{% endif %}</div></a>{% endmacro %}
+{% if mine %}<div class="card"><div class="card-title">{{ icon("check-circle", "i in") }} Мои подписки</div>{% for c in mine %}{{ row(c) }}{% endfor %}</div>{% endif %}
+<div class="card"><div class="card-title">{{ icon("trend", "i in") }} {% if q %}Найдено{% else %}Популярные{% endif %}</div>{% for c in other %}{{ row(c) }}{% else %}<div class="empty small">{% if q %}Ничего не нашлось{% else %}Пока пусто — создайте первое сообщество!{% endif %}</div>{% endfor %}</div>
+{% if user %}
+<div class="modal-bg" id="c-new"><div class="modal">
+  <div class="modal-head"><b>Новое сообщество</b><button class="icon-btn" data-close>{{ icon("x") }}</button></div>
+  <form id="c-new-form">
+    <div class="v3-gamepick mb" style="grid-template-columns:1fr 1fr">
+      <label><input type="radio" name="kind" value="channel" checked hidden><span class="c-kind">{{ icon("megaphone") }}<b>Канал</b><small>Пишете вы и админы, подписчики читают</small></span></label>
+      <label><input type="radio" name="kind" value="community" hidden><span class="c-kind">{{ icon("users") }}<b>Сообщество</b><small>Публиковать могут все участники</small></span></label>
+    </div>
+    <input name="name" maxlength="80" placeholder="Название" required class="mb">
+    <div class="row mb" style="gap:6px"><span class="muted small" style="white-space:nowrap">nvra.ru/c/</span><input name="slug" maxlength="32" placeholder="adres" required autocapitalize="none" spellcheck="false" style="margin:0"></div>
+    <textarea name="description" maxlength="1000" placeholder="О чём это сообщество?" rows="3"></textarea>
+    <button class="btn block mt">Создать</button>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+(function(){ const f=document.getElementById('c-new-form'); if(!f) return;
+  f.name.addEventListener('input',()=>{ if(f.slug.dataset.touched) return; const map={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ы:'y',э:'e',ю:'yu',я:'ya'};
+    f.slug.value=f.name.value.toLowerCase().split('').map(ch=>map[ch]!==undefined?map[ch]:ch).join('').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,32); });
+  f.slug.addEventListener('input',()=>f.slug.dataset.touched=1);
+  f.addEventListener('submit',async e=>{ e.preventDefault(); try{ const r=await App.api('/c/new',new FormData(f)); location.href=r.url; }catch(er){} });
+})();</script>{% endblock %}

@@ -168,7 +168,8 @@ def visible_posts(db, viewer, hide_muted=True):
     fids = following_ids(db, viewer)
     own = {viewer.id} if viewer else set()
     allowed = fids | own
-    q = q.filter(or_(models.User.is_private == False, models.User.is_private == None, models.Post.user_id.in_(allowed or {-1})))
+    q = q.filter(or_(models.User.is_private == False, models.User.is_private == None, models.Post.user_id.in_(allowed or {-1}),
+                     models.Post.community_id != None))
     q = q.filter(or_(models.Post.visibility == None, models.Post.visibility != "followers", models.Post.user_id.in_(allowed or {-1})))
     hidden = blocked_ids(db, viewer)
     if hide_muted:
@@ -201,7 +202,7 @@ def can_view_post(db, viewer, post):
             return False
     if post.scheduled_at and post.scheduled_at > datetime.utcnow():
         return False
-    if not can_see_content(db, viewer, post.author):
+    if not post.community_id and not can_see_content(db, viewer, post.author):
         return False
     if post.visibility == "followers" and not is_following(db, viewer, post.author):
         return False

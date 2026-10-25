@@ -199,6 +199,8 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     db.commit()
     from packs.v3.accounts import follow_owner
     follow_owner(db, user)  # все подписаны на владельца по умолчанию
+    from packs.v3.communities import join_official
+    join_official(db, user)  # и на официальное сообщество Nuvora
     from packs.v3 import phone
     phone.on_register(db, user, request)  # выборочно и при подозрении — подтверждение номера
     if config.EMAIL_ENABLED:
@@ -389,6 +391,8 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
         db.commit()
         from packs.v3.accounts import follow_owner
         follow_owner(db, user)
+        from packs.v3.communities import join_official
+        join_official(db, user)
         from packs.v3 import phone
         phone.on_register(db, user, request)
         new = True

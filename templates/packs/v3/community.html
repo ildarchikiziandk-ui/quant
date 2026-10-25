@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import community_avatar, post_card, avatar %}
+{% block title %}{{ c.name }} — {{ brand }}{% endblock %}
+{% block meta %}<meta property="og:title" content="{{ c.name }}"><meta property="og:description" content="{{ (c.description or kinds[c.kind] ~ ' в ' ~ brand)[:200] }}">{% if c.avatar %}<meta property="og:image" content="{{ site_url }}{{ c.avatar }}">{% endif %}{% endblock %}
+{% block content %}
+<div class="card c-hero">
+  <div class="c-cover"{% if c.cover %} style="background-image:url('{{ c.cover }}')"{% endif %}></div>
+  <div class="c-top">{{ community_avatar(c, 84) }}
+    <div class="grow" style="min-width:160px"><h1>{{ c.name }}{% if c.is_official %}<span class="badge official-c" title="Официальное сообщество">{{ icon("check", "i") }}</span>{% endif %}</h1>
+      <div class="small muted">{{ kinds[c.kind] }}{% if c.is_official %} · официальное{% endif %} · <a href="/c/{{ c.slug }}/members" data-cn>{{ n }}</a> подписчиков</div></div>
+    <div class="row" style="gap:6px">
+      {% if user %}{% if role != "owner" %}<button class="btn{% if joined %} soft{% endif %}" data-cjoin="{{ c.slug }}" data-joined="{{ 1 if joined else 0 }}">{{ "Вы подписаны" if joined else "Подписаться" }}</button>{% endif %}
+      {% if can_manage %}<button class="btn soft" data-modal="c-edit" title="Управление">{{ icon("settings") }}</button>{% endif %}
+      {% else %}<a class="btn" href="/register">Присоединиться</a>{% endif %}
+    </div>
+  </div>
+  {% if c.description %}<div class="c-desc">{{ c.description|rich }}</div>{% endif %}
+</div>
+{% if can_post %}{% set post_to = {"ref": c.slug, "back": "/c/" ~ c.slug} %}{% include "partials/composer.html" %}{% endif %}
+{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}
+{% else %}<div class="card empty"><div class="big">{{ icon("megaphone", "i in") }}</div>Здесь пока нет записей{% if can_post %} — напишите первую{% endif %}</div>{% endfor %}
+{% if has_more %}<div class="center"><a class="btn soft" href="/c/{{ c.slug }}?pg={{ pg + 1 }}">Ещё записи</a></div>{% endif %}
+{% if can_manage %}
+<div class="modal-bg" id="c-edit"><div class="modal">
+  <div class="modal-head"><b>Управление</b><button class="icon-btn" data-close>{{ icon("x") }}</button></div>
+  <form method="post" action="/c/{{ c.slug }}/save" enctype="multipart/form-data">
+    {% if not c.is_official %}<label class="field"><span>Название</span><input name="name" value="{{ c.name }}" maxlength="80"></label>{% endif %}
+    <label class="field"><span>Описание</span><textarea name="description" maxlength="1000" rows="3">{{ c.description }}</textarea></label>
+    <div class="form-row"><label class="field"><span>Аватарка</span><input type="file" name="avatar" accept="image/*"></label><label class="field"><span>Обложка</span><input type="file" name="cover" accept="image/*"></label></div>
+    {% if c.kind == "community" %}<label class="check"><input type="checkbox" name="open_wall" value="1"{% if c.open_wall %} checked{% endif %}><span><b>Участники могут публиковать</b></span></label>{% endif %}
+    <button class="btn block mt">Сохранить</button>
+  </form>
+  {% if role == "owner" and not c.is_official %}
+  <div class="pref-group mt">Админы</div>
+  {% for a in admins %}{% if a.id != c.owner_id %}<div class="row small" style="padding:4px 0">{{ avatar(a, 28) }}<span class="grow">{{ a.name or a.username }}</span><button class="btn ghost sm danger" data-cadmin="remove" data-u="{{ a.username }}">Снять</button></div>{% endif %}{% endfor %}
+  <form class="row mt" id="c-admin-add" style="gap:8px"><input name="username" placeholder="@логин" style="margin:0"><button class="btn soft sm">Назначить</button></form>
+  <button class="btn danger block mt" id="c-del">Удалить {{ "канал" if c.kind == "channel" else "сообщество" }}</button>
+  {% endif %}
+</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+(function(){ const slug={{ c.slug|tojson }};
+  document.querySelectorAll('[data-cjoin]').forEach(b=>b.onclick=async()=>{ const j=b.dataset.joined==='1';
+    try{ const r=await App.api(`/c/${slug}/${j?'leave':'join'}`); b.dataset.joined=r.joined?'1':'0'; b.textContent=r.joined?'Вы подписаны':'Подписаться'; b.classList.toggle('soft',r.joined); document.querySelector('[data-cn]').textContent=r.n; }catch(e){} });
+  const add=document.getElementById('c-admin-add'); if(add) add.addEventListener('submit',async e=>{ e.preventDefault(); try{ await App.api(`/c/${slug}/admin-add`,new FormData(add)); location.reload(); }catch(er){} });
+  document.querySelectorAll('[data-cadmin]').forEach(b=>b.onclick=async()=>{ const fd=new FormData(); fd.append('username',b.dataset.u); try{ await App.api(`/c/${slug}/admin-remove`,fd); location.reload(); }catch(e){} });
+  const del=document.getElementById('c-del'); if(del) del.onclick=async()=>{ if(!confirm('Удалить навсегда? Записи будут скрыты.')) return; try{ const r=await App.api(`/c/${slug}/delete`); location.href=r.url; }catch(e){} };
+})();</script>{% endblock %}

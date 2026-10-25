@@ -991,3 +991,45 @@ def test_payments(owner, alice, monkeypatch):
     from services import extras
     assert extras.balance(a) >= 400 and a.total_points == total and a.level == lvl
     s.close()
+
+
+def test_communities(owner, alice, bob):
+    from packs.v3 import communities as C
+    s = db()
+    C.seed_job(s)
+    off = s.query(C.m.Community).filter_by(slug="nuvora").one()
+    assert off.is_official and C._count(s, off.id) >= 3  # все подписаны на официальное сообщество
+    s.close()
+    new = register(make_client(), "newbie")
+    s = db()
+    nid = s.query(models.User).filter_by(username="newbie").one().id
+    assert s.query(C.m.CommunityMember).filter_by(community_id=off.id, user_id=nid).first()
+    s.close()
+    # в официальном публикует только владелец
+    assert alice.post("/post/create", data={"content": "я тоже хочу", "community": "nuvora"}, headers=J).status_code == 403
+    assert owner.post("/post/create", data={"content": "Добро пожаловать в Nuvora 3.2!", "community": "nuvora"}, headers=J).json()["ok"]
+    assert "Добро пожаловать в Nuvora 3.2" in new.get("/").text  # подписчики видят пост в ленте
+    assert "Официальное сообщество" in new.get("/c/nuvora").text
+    # alice создаёт канал: пишет только она; bob подписывается
+    assert alice.post("/c/new", data={"name": "Котики", "slug": "nuvora", "kind": "channel"}, headers=J).status_code == 400
+    r = alice.post("/c/new", data={"name": "Котики", "slug": "cats", "kind": "channel", "description": "про котов"}, headers=J).json()
+    assert r["url"] == "/c/cats"
+    assert bob.post("/post/create", data={"content": "чужой", "community": "cats"}, headers=J).status_code == 403
+    assert bob.post("/c/cats/join", headers=J).json()["joined"]
+    pid = alice.post("/post/create", data={"content": "Мурзик спит", "community": "cats"}, headers=J).json()["post_id"]
+    page = bob.get("/").text
+    assert "Мурзик спит" in page and "/c/cats" in page
+    assert "Мурзик спит" not in alice.get("/profile/alice").text  # пост канала — не на личной странице
+    # сообщество: публикуют участники
+    alice.post("/c/new", data={"name": "Фото", "slug": "photo_club", "kind": "community"}, headers=J)
+    assert bob.post("/post/create", data={"content": "до вступления", "community": "photo_club"}, headers=J).status_code == 403
+    bob.post("/c/photo_club/join", headers=J)
+    assert bob.post("/post/create", data={"content": "мой снимок", "community": "photo_club"}, headers=J).json()["ok"]
+    assert "мой снимок" in make_client().get("/c/photo_club").text  # открыто и без входа
+    # админ, удаление; официальное удалить нельзя
+    assert alice.post("/c/cats/admin-add", data={"username": "bob"}, headers=J).json()["ok"]
+    assert bob.post("/post/create", data={"content": "я теперь админ", "community": "cats"}, headers=J).json()["ok"]
+    assert owner.post("/c/nuvora/delete", headers=J).status_code >= 400
+    assert "Котики" in bob.get("/c").text
+    assert alice.post("/c/cats/delete", headers=J).json()["ok"]
+    assert bob.get(f"/post/{pid}").status_code in (200, 404)

@@ -28,6 +28,11 @@ def get_feed(db, user, tab="foryou", page=1):
         fids = social.following_ids(db, user) | social.follower_ids(db, user) | {user.id}
         tags = [t.tag for t in db.query(models.HashtagFollow.tag).filter_by(user_id=user.id).limit(30)]
         cond = models.Post.user_id.in_(fids)
+        from packs.v3.communities import member_ids
+        cids = member_ids(db, user)
+        if cids:
+            from sqlalchemy import or_ as _or
+            cond = _or(cond, models.Post.community_id.in_(cids))
         if tags:  # подписки на темы: посты с этими хэштегами тоже попадают в ленту
             from sqlalchemy import or_
             cond = or_(cond, *[models.Post.content.ilike(f"%#{t}%") for t in tags])

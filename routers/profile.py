@@ -52,7 +52,7 @@ def profile(username: str, request: Request, tab: str = "posts", db: Session = D
         db.commit()
     if not user and prefs.get(pu, "guests_hidden"):
         can_see = False
-    q = social.visible_posts(db, user, hide_muted=False).filter(models.Post.user_id == pu.id)
+    q = social.visible_posts(db, user, hide_muted=False).filter(models.Post.user_id == pu.id, models.Post.community_id == None)
     posts, liked_posts = [], []
     if can_see:
         if tab == "media":

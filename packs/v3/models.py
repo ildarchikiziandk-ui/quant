@@ -261,3 +261,30 @@ class Payment(Base):
     applied = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     paid_at = Column(DateTime, nullable=True)
+
+
+# --- Каналы и сообщества ------------------------------------------------------------------------------------------
+class Community(Base):
+    """Канал — пишут только админы, остальные читают. Сообщество — писать могут участники (если открыта стена)."""
+    __tablename__ = "v3_communities"
+    id = Column(Integer, primary_key=True)
+    slug = Column(String(40), unique=True, index=True)
+    name = Column(String(80))
+    kind = Column(String(10), default="community")  # channel, community
+    description = Column(Text, default="")
+    avatar = Column(String(300), default="")
+    cover = Column(String(300), default="")
+    owner_id = Column(Integer, ForeignKey("users.id"), index=True)
+    is_official = Column(Boolean, default=False)
+    open_wall = Column(Boolean, default=True)  # в сообществе участники могут публиковать
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CommunityMember(Base):
+    __tablename__ = "v3_community_members"
+    __table_args__ = (UniqueConstraint("community_id", "user_id"),)
+    id = Column(Integer, primary_key=True)
+    community_id = Column(Integer, ForeignKey("v3_communities.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    role = Column(String(8), default="member")  # owner, admin, member
+    joined_at = Column(DateTime, default=datetime.utcnow)
