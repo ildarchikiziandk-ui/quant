@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% from "_m.html" import i, grade with context %}
+{% block title %}Расписание — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("calendar") }} Расписание</h1>
+<div class="row mb"><a class="btn soft sm" href="?week={{ week - 1 }}">←</a><b class="grow" style="text-align:center">{{ monday.strftime("%d.%m") }} — {{ (days[-1].date).strftime("%d.%m") }}{% if week == 0 %} · эта неделя{% endif %}</b><a class="btn soft sm" href="?week={{ week + 1 }}">→</a></div>
+{% if user.is_teacher %}<p class="small mb"><a href="/t/schedule" style="color:var(--accent);font-weight:650">{{ i("edit") }} Изменить расписание</a></p>{% endif %}
+<div class="grid2">
+{% for d in days %}
+<div class="card{% if d.date == today %} today{% endif %}"><h2 class="day-h">{{ WD[d.wd] }} <small>{{ d.date.strftime("%d.%m") }}</small></h2>
+  {% for l in d.lessons %}{% set hs = hw_map.get((d.date, l.subject_id), []) %}{% set gs = grade_map.get((d.date, l.subject_id), []) %}
+  <div class="lesson"><div class="n" style="background:{{ l.subject.color }}22;color:{{ l.subject.color }}">{{ l.num }}</div>
+    <div class="grow"><div class="row"><b class="grow">{{ l.subject.name }}</b>{% for g in gs %}{{ grade(g) }}{% endfor %}</div><div class="t">{{ bells[l.num - 1] if bells|length >= l.num else "" }}{% if l.room %} · {{ l.room }}{% endif %}</div>
+      {% for h in hs %}<div class="hw">{{ i("book") }} {{ h.text }}</div>{% endfor %}</div></div>
+  {% else %}<div class="empty small">Уроков нет</div>{% endfor %}
+</div>
+{% endfor %}
+</div>
+{% endblock %}

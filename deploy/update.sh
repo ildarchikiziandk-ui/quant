@@ -14,4 +14,9 @@ if ! grep -q '^TURN_SECRET=.' "$APP_DIR/.env" 2>/dev/null; then
   bash "$APP_DIR/deploy/set-calls.sh" || echo "Ретранслятор звонков не установился — звонки будут работать напрямую. Повторить: bash $APP_DIR/deploy/set-calls.sh"
 fi
 systemctl restart nuvora
+# школа (school.nvra.ru), если установлена
+if systemctl list-unit-files nuvora-school.service >/dev/null 2>&1 && [ -f "$APP_DIR/school/.env" ]; then
+  chown -R nuvora:nuvora "$APP_DIR/school"
+  systemctl restart nuvora-school
+fi
 echo "Обновлено до $(git -C "$APP_DIR" log --oneline -1)"

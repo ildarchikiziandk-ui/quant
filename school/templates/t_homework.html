@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Задания — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("book") }} Домашние задания</h1>
+{% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}
+<form class="card" method="post" action="/t/homework/new">
+  <h2>{{ i("plus") }} Новое задание</h2>
+  <div class="form-row">
+    <label class="f"><span>Предмет</span><select name="subject" id="hw-subject" data-due='{{ due_for|tojson }}' required><option value="">Выберите…</option>{% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></label>
+    <label class="f"><span>К какому дню</span><input type="date" name="due" id="hw-due" value="{{ today.isoformat() }}"></label>
+  </div>
+  <label class="f"><span>Задание</span><textarea name="text" maxlength="4000" required placeholder="Учебник стр. 24, упр. 3 и 5"></textarea></label>
+  {% if students|length > 1 %}<label class="f"><span>Кому</span><select name="student"><option value="0">Всем ученикам</option>{% for s in students %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></label>{% endif %}
+  <button class="btn">Задать</button>
+  <p class="tiny faint mt">Срок сам подставляется на ближайший урок этого предмета по расписанию.</p>
+</form>
+{% macro hwcard(h) %}<div class="li" style="align-items:flex-start"><i class="dot" style="background:{{ h.subject.color }};margin-top:7px"></i>
+  <div class="grow"><b>{{ h.subject.name }}</b> <span class="pill">{{ human_date(h.due) }}</span>{% if h.student_id %} <span class="pill">{{ names.get(h.student_id, "") }}</span>{% endif %}
+    <div style="white-space:pre-wrap;overflow-wrap:anywhere">{{ h.text }}</div>
+    {% if done.get(h.id) %}<div class="tiny" style="color:var(--ok);font-weight:650">{{ i("check") }} сделал(а): {% for sid in done[h.id] %}{{ names.get(sid, "") }}{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}</div>
+  <form method="post" action="/t/homework/{{ h.id }}/delete" data-confirm="Удалить задание?"><button class="btn danger sm" aria-label="Удалить">{{ i("trash") }}</button></form></div>{% endmacro %}
+<div class="card"><h2>{{ i("clock") }} Предстоящие</h2><div class="list">{% for h in upcoming %}{{ hwcard(h) }}{% else %}<div class="empty small">Заданий нет</div>{% endfor %}</div></div>
+{% if past %}<details class="card"><summary><h2 style="margin:0">Прошедшие · {{ past|length }}</h2></summary><div class="list mt">{% for h in past %}{{ hwcard(h) }}{% endfor %}</div></details>{% endif %}
+{% endblock %}

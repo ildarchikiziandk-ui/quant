@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Предметы — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("layers") }} Предметы</h1>
+{% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}
+<form class="card" method="post" action="/t/subjects/new">
+  <div class="form-row"><label class="f"><span>Новый предмет</span><input name="name" maxlength="60" required placeholder="Математика"></label><button class="btn">{{ i("plus") }} Создать</button></div>
+  <div class="chips" style="margin:4px 0 0">{% for c in ["Математика","Русский язык","Литература","Английский язык","Окружающий мир","Музыка","Рисование","Физкультура","Чтение","Технология"] %}<button type="button" class="chip" onclick="this.form.name.value='{{ c }}'">{{ c }}</button>{% endfor %}</div>
+</form>
+{% for s in subjects %}
+<div class="card"{% if s.archived %} style="opacity:.55"{% endif %}>
+  <form method="post" action="/t/subjects/{{ s.id }}/save">
+    <div class="row"><input type="color" name="color" value="{{ s.color }}" style="width:46px;height:42px;padding:3px;flex:none"><input name="name" value="{{ s.name }}" maxlength="60"></div>
+    <input class="mt" name="note" value="{{ s.teacher_note }}" maxlength="200" placeholder="Заметка: учебник, тетрадь…">
+    <div class="row mt wrapr"><button class="btn soft sm">Сохранить</button>
+      <button class="btn soft sm" formaction="/t/subjects/{{ s.id }}/up" title="Выше">↑</button><button class="btn soft sm" formaction="/t/subjects/{{ s.id }}/down" title="Ниже">↓</button>
+      <button class="btn soft sm" formaction="/t/subjects/{{ s.id }}/archive">{{ "Вернуть" if s.archived else "Скрыть" }}</button>
+      <button class="btn danger sm" formaction="/t/subjects/{{ s.id }}/delete" onclick="return confirm('Удалить «{{ s.name }}» вместе с его оценками, заданиями и уроками в расписании?')">{{ i("trash") }}</button></div>
+  </form>
+</div>
+{% else %}<div class="card empty">{{ i("layers") }}Предметов пока нет — создайте первый</div>{% endfor %}
+{% endblock %}

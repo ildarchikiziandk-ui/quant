@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Приложение — {{ school }}{% endblock %}
+{% macro body() %}
+<div class="card" style="text-align:center">
+  <img src="/static/icon-192.png" alt="" style="width:88px;height:88px;border-radius:24px;margin:6px auto 12px;display:block">
+  <h1 style="justify-content:center;margin:0">{{ school }}</h1>
+  <p class="muted mb">Приложение для телефона: оценки, задания и сообщения с уведомлениями</p>
+  {% if info %}<a class="btn" href="/download/school.apk">{{ i("download") }} Скачать для Android · {{ info.version }}</a>
+  {% else %}<p class="small faint">Приложение для Android скоро появится.</p>{% endif %}
+</div>
+<div class="card"><h2>{{ i("smartphone") }} Как установить на Android</h2><ol class="small" style="padding-left:18px;line-height:1.7">
+  <li>Нажмите «Скачать» и откройте файл <b>School.apk</b>.</li><li>Разрешите установку из этого источника, если телефон спросит.</li><li>Откройте приложение и войдите со своим логином и паролем.</li></ol>
+  <p class="tiny faint">Новые версии приложение найдёт само и предложит обновиться.</p></div>
+<div class="card"><h2>На iPhone</h2><p class="small">Откройте этот сайт в Safari → «Поделиться» → «На экран Домой». Появится значок, как у приложения.</p></div>
+{% endmacro %}
+{% block content %}{{ body() }}{% endblock %}
+{% block bare %}<div class="login" style="max-width:460px">{{ body() }}<p style="text-align:center"><a class="btn ghost" href="/login">Войти</a></p></div>{% endblock %}

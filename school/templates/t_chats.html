@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% from "_m.html" import i, av with context %}
+{% block title %}Чаты — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("chat") }} Чаты</h1>
+<div class="card"><div class="list">
+{% for r in rows %}<a class="li" href="/t/chat/{{ r.s.id }}">{{ av(r.s) }}<div class="grow"><b>{{ r.s.name }}</b><div class="small muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{% if r.last %}{% if r.last.from_teacher %}Вы: {% endif %}{{ r.last.text[:80] }}{% else %}Напишите первым{% endif %}</div></div>{% if r.unread %}<span class="badge">{{ r.unread }}</span>{% endif %}</a>
+{% else %}<div class="empty">Добавьте ученика — здесь появится переписка с ним</div>{% endfor %}
+</div></div>
+{% endblock %}

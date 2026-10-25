@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% from "_m.html" import i, av, avg with context %}
+{% block title %}Поведение — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("smile") }} Поведение</h1>
+{% if not st %}<div class="card empty">{{ i("users") }}Сначала добавьте ученика</div>{% else %}
+{% if students|length > 1 %}<div class="chips">{% for s in students %}<a class="chip{% if s.id == st.id %} on{% endif %}" href="/t/behavior?student={{ s.id }}">{{ s.name }}</a>{% endfor %}</div>{% endif %}
+<form class="card" method="post" action="/t/behavior/new" id="beh-form">
+  <h2>{{ st.name }}: оценка за поведение</h2>
+  <input type="hidden" name="student" value="{{ st.id }}"><input type="hidden" name="value">
+  <div class="pick mb">{% for v in [5,4,3,2,1] %}<button type="button" class="g{{ v }}" data-v="{{ v }}" title="{{ BEHAVIOR[v] }}">{{ v }}</button>{% endfor %}</div>
+  <div class="tiny muted mb" id="beh-label">5 — отлично, 4 — хорошо, 3 — нормально, 2 — плохо, 1 — очень плохо</div>
+  <div class="form-row"><label class="f"><span>Дата</span><input type="date" name="day" value="{{ today.isoformat() }}"></label></div>
+  <label class="f"><span>Комментарий</span><input name="comment" maxlength="300" placeholder="Была внимательна на уроке"></label>
+  <button class="btn">Сохранить</button>
+</form>
+<div class="card"><h2>История {{ avg(avg_total) }}</h2><div class="list">
+  {% for b in rows %}<div class="li"><span class="g g{{ b.value }}">{{ b.value }}</span><div class="grow"><b>{{ BEHAVIOR[b.value] }}</b>{% if b.comment %} — {{ b.comment }}{% endif %}<div class="tiny faint">{{ human_date(b.date) }}</div></div>
+    <form method="post" action="/t/behavior/{{ b.id }}/delete" data-confirm="Удалить эту запись?"><button class="btn danger sm" aria-label="Удалить">{{ i("trash") }}</button></form></div>
+  {% else %}<div class="empty small">Записей пока нет</div>{% endfor %}
+</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+(function(){ const f=document.getElementById('beh-form'); if(!f) return; const L={5:'Отлично',4:'Хорошо',3:'Нормально',2:'Плохо',1:'Очень плохо'};
+  f.querySelectorAll('.pick button').forEach(b=>b.onclick=()=>{ f.querySelectorAll('.pick button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); f.querySelector('[name=value]').value=b.dataset.v; document.getElementById('beh-label').textContent=L[b.dataset.v]; });
+  f.addEventListener('submit',e=>{ if(!f.querySelector('[name=value]').value){ e.preventDefault(); School.toast('Выберите оценку'); } });
+})();</script>{% endblock %}

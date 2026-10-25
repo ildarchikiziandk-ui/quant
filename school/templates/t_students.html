@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% from "_m.html" import i, av with context %}
+{% block title %}Ученики — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("users") }} Ученики</h1>
+{% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}{% if err %}<div class="alert err">{{ err }}</div>{% endif %}
+<form class="card" method="post" action="/t/students/new">
+  <h2>{{ i("plus") }} Новый ученик</h2>
+  <label class="f"><span>Имя и фамилия</span><input name="name" maxlength="80" required placeholder="Например, Аня Петрова"></label>
+  <div class="form-row">
+    <label class="f"><span>Логин для входа</span><input name="login" maxlength="40" required autocapitalize="none" spellcheck="false" placeholder="anya"></label>
+    <label class="f"><span>Пароль</span><input name="password" minlength="4" required autocomplete="new-password" placeholder="не короче 4 символов"></label>
+  </div>
+  <button class="btn">Добавить ученика</button>
+  <p class="tiny faint mt">Ученик входит на этом же сайте или в приложении с этим логином и паролем.</p>
+</form>
+{% for s in students %}
+<div class="card"><div class="row">{{ av(s) }}<div class="grow"><b>{{ s.name }}</b><div class="tiny muted">логин: <b>{{ s.login }}</b>{% if not s.active %} · <span style="color:var(--red)">вход выключен</span>{% endif %}{% if s.last_seen %} · заходил(а) {{ msk(s.last_seen) }}{% endif %}</div></div></div>
+  <details class="mt"><summary class="small" style="color:var(--accent);font-weight:650">Изменить</summary>
+    <form class="form-row mt" method="post" action="/t/students/{{ s.id }}/rename"><input name="name" value="{{ s.name }}" maxlength="80"><button class="btn soft sm">Переименовать</button></form>
+    <form class="form-row mt" method="post" action="/t/students/{{ s.id }}/password"><input name="password" minlength="4" placeholder="Новый пароль" autocomplete="new-password" required><button class="btn soft sm">Сменить пароль</button></form>
+    <div class="row mt wrapr">
+      <form method="post" action="/t/students/{{ s.id }}/toggle"><button class="btn soft sm">{{ "Выключить вход" if s.active else "Включить вход" }}</button></form>
+      <form method="post" action="/t/students/{{ s.id }}/delete" data-confirm="Удалить ученика {{ s.name }} со всеми оценками и перепиской? Это навсегда."><button class="btn danger sm">{{ i("trash") }} Удалить</button></form>
+    </div>
+  </details>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% from "_m.html" import i, av with context %}
+{% block title %}Переписка — {{ school }}{% endblock %}
+{% block content %}
+<div class="chat">
+  <div class="chat-head">{% if user.is_teacher %}<a href="/t/chat" class="btn soft sm" aria-label="Назад">{{ i("back") }}</a>{% endif %}
+    {% if peer %}{{ av(peer, 40) }}<div class="grow"><b>{{ peer.name or "Учитель" }}</b><div class="tiny faint">{{ "ученик" if user.is_teacher else "учитель" }}</div></div>{% endif %}</div>
+  <div class="msgs" id="msgs" data-api="{{ api }}"></div>
+  <div class="composer"><textarea id="msg-text" rows="1" maxlength="4000" placeholder="Сообщение…"></textarea><button class="btn" id="msg-send" aria-label="Отправить">{{ i("send") }}</button></div>
+</div>
+{% endblock %}

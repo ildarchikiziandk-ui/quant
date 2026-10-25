@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Настройки — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("settings") }} Настройки</h1>
+{% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}{% if err %}<div class="alert err">{{ err }}</div>{% endif %}
+<form class="card" method="post" action="/t/settings">
+  <h2>Школа</h2>
+  <label class="f"><span>Название школы</span><input name="school" value="{{ school }}" maxlength="60"></label>
+  <label class="f"><span>Ваше имя (видят ученики)</span><input name="name" value="{{ me.name }}" maxlength="80"></label>
+  <button class="btn">Сохранить</button>
+</form>
+<form class="card" method="post" action="/t/settings/password">
+  <h2>{{ i("key") }} Пароль учителя</h2>
+  <p class="small muted mb">Логин: <b>{{ me.login }}</b>. Придумайте пароль, который сложно угадать.</p>
+  <label class="f"><span>Текущий пароль</span><input type="password" name="old" autocomplete="current-password" required></label>
+  <div class="form-row"><label class="f"><span>Новый пароль</span><input type="password" name="new" minlength="6" autocomplete="new-password" required></label>
+  <label class="f"><span>Ещё раз</span><input type="password" name="new2" minlength="6" autocomplete="new-password" required></label></div>
+  <button class="btn">Сменить пароль</button>
+</form>
+<div class="card"><div class="row wrapr"><a class="btn soft" href="/t/subjects">{{ i("layers") }} Предметы</a><a class="btn soft" href="/t/students">{{ i("users") }} Ученики</a><a class="btn soft" href="/t/behavior">{{ i("smile") }} Поведение</a><a class="btn soft" href="/t/schedule">{{ i("edit") }} Расписание</a><a class="btn soft" href="/app">{{ i("smartphone") }} Приложение</a>
+  <form method="post" action="/logout"><button class="btn danger">{{ i("logout") }} Выйти</button></form></div></div>
+{% endblock %}

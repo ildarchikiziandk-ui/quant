@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% from "_m.html" import i, grade, avg with context %}
+{% block content %}
+<div class="card hello">
+  <h2 style="color:#fff;font-size:21px;margin:0">Привет, {{ user.first_name }}!</h2>
+  <div class="muted small">{{ WD[today.weekday()] if today.weekday() < 6 else "Воскресенье — выходной" }}</div>
+  <div class="stats">
+    <a href="/s/grades"><b>{{ "%.1f"|format(avg_total) if avg_total else "—" }}</b><span>средний балл</span></a>
+    <a href="/s/homework"><b>{{ hw|length }}</b><span>заданий</span></a>
+    <a href="/s/behavior"><b>{{ beh.value if beh else "—" }}</b><span>поведение</span></a>
+  </div>
+</div>
+<div class="grid2">
+<div class="card"><h2>{{ i("calendar") }} {% if show == today %}Уроки сегодня{% else %}Уроки: {{ human_date(show) }}{% endif %} <a href="/s/schedule">Неделя</a></h2>
+  {% for l in lessons %}{% set h = hw_map.get((show, l.subject_id)) %}
+  <div class="lesson"><div class="n" style="background:{{ l.subject.color }}22;color:{{ l.subject.color }}">{{ l.num }}</div><div class="grow"><b>{{ l.subject.name }}</b><div class="t">{{ bells[l.num - 1] if bells|length >= l.num else "" }}{% if l.room %} · {{ l.room }}{% endif %}</div>
+    {% if h %}<div class="hw">{{ i("book") }} {{ h.text[:120] }}</div>{% endif %}</div></div>
+  {% else %}<div class="empty small">{{ i("smile") }}Уроков нет — отдыхай!</div>{% endfor %}
+</div>
+<div>
+<div class="card"><h2>{{ i("book") }} Задания <a href="/s/homework">Все</a></h2>
+  <div class="list">{% for h in hw %}<div class="hw-item{% if h.id in done %} done{% endif %}"><button class="ck" data-done="{{ h.id }}" aria-label="Сделано">{{ i("check") }}</button><div class="grow"><b>{{ h.subject.name }}</b> <span class="pill">{{ human_date(h.due) }}</span><div class="txt small">{{ h.text }}</div></div></div>
+  {% else %}<div class="empty small">Всё сделано 🎉</div>{% endfor %}</div></div>
+<div class="card"><h2>{{ i("star") }} Новые оценки <a href="/s/grades">Все</a></h2>
+  {% for g in new_grades %}<div class="li">{{ grade(g) }}<div class="grow"><b>{{ g.subject.name }}</b><div class="tiny faint">{{ KINDS.get(g.kind, g.kind) }} · {{ human_date(g.date) }}{% if g.comment %} · {{ g.comment }}{% endif %}</div></div>{% if not g.seen %}<span class="pill" style="background:var(--accent);color:#fff">новая</span>{% endif %}</div>
+  {% else %}<div class="empty small">Оценок пока нет</div>{% endfor %}</div>
+</div>
+</div>
+{% endblock %}

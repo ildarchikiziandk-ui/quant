@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% from "_m.html" import i, av, grade, avg, terms with context %}
+{% block title %}Журнал — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("star") }} Журнал <a href="/t/behavior{% if st %}?student={{ st.id }}{% endif %}" class="btn soft sm" style="margin-left:auto">{{ i("smile") }} Поведение</a></h1>
+{% if not st %}<div class="card empty">{{ i("users") }}Сначала добавьте ученика в разделе <a href="/t/students" style="color:var(--accent)">Ученики</a></div>
+{% else %}
+{% if students|length > 1 %}<div class="chips">{% for s in students %}<a class="chip{% if s.id == st.id %} on{% endif %}" href="/t/journal?student={{ s.id }}&term={{ term }}">{{ s.name }}</a>{% endfor %}</div>{% endif %}
+{{ terms(term, "/t/journal?student=" ~ st.id ~ "&") }}
+<div class="card"><div class="row">{{ av(st, 48) }}<div class="grow"><b>{{ st.name }}</b><div class="tiny muted">Средний балл за период</div></div><div class="big-avg {{ grade_class(total) }}" style="background:none;color:{% if total %}var(--{{ grade_class(total) }}){% endif %}">{{ "%.2f"|format(total) if total else "—" }}</div></div></div>
+<div class="card"><div class="list">
+  {% for r in rows %}<div class="subj">
+    <div class="nm"><i class="dot" style="background:{{ r.sub.color }}"></i><span>{{ r.sub.name }}</span></div>
+    {{ avg(r.avg) }}
+    <div class="gs">{% for g in r.grades %}{{ grade(g, del=true) }}{% endfor %}
+      <button type="button" class="g" style="background:var(--input);color:var(--accent)" data-open="grade-sheet" data-subject="{{ r.sub.id }}" data-name="{{ r.sub.name }}" aria-label="Поставить оценку">+</button></div>
+  </div>{% else %}<div class="empty">Нет предметов — <a href="/t/subjects" style="color:var(--accent)">создайте их</a></div>{% endfor %}
+</div></div>
+<p class="tiny faint">Нажмите «+», чтобы поставить оценку. Нажмите на оценку, чтобы увидеть подробности или удалить её. Контрольные — с белой рамкой и считаются вдвое.</p>
+
+<div class="sheet" id="grade-sheet"><div>
+  <form method="post" action="/t/grades/new">
+    <h2>Оценка · <span id="gs-title"></span></h2>
+    <input type="hidden" name="student" value="{{ st.id }}"><input type="hidden" name="subject"><input type="hidden" name="value">
+    <div class="pick mb">{% for v in [5,4,3,2,1] %}<button type="button" class="g{{ v }}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</div>
+    <label class="f"><span>За что</span><select name="kind">{% for k, l in kinds %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></label>
+    <div class="form-row"><label class="f"><span>Дата</span><input type="date" name="day" value="{{ today.isoformat() }}"></label></div>
+    <label class="f"><span>Комментарий (увидит ученик)</span><input name="comment" maxlength="300" placeholder="Молодец, без ошибок!"></label>
+    <div class="row"><button class="btn grow">Поставить</button><button type="button" class="btn soft" data-close>Отмена</button></div>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}

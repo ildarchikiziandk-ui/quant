@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Расписание — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("edit") }} Расписание</h1>
+{% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}
+{% if not subjects %}<div class="alert err">Сначала создайте предметы — <a href="/t/subjects" style="text-decoration:underline">Предметы</a></div>{% endif %}
+<form method="post" action="/t/schedule">
+<div class="chips" id="days">{% for d in range(6) %}<button type="button" class="chip{% if d == day %} on{% endif %}" data-day="{{ d }}">{{ WD_SHORT[d] }}</button>{% endfor %}</div>
+{% for d in range(6) %}
+<div class="card" data-daycard="{{ d }}"{% if d != day %} hidden{% endif %}>
+  <h2>{{ WD[d] }}</h2>
+  {% for n in range(1, 9) %}{% set l = grid.get((d, n)) %}
+  <div class="row" style="margin-bottom:8px"><div class="lesson" style="padding:0"><div class="n">{{ n }}</div></div>
+    <select name="s_{{ d }}_{{ n }}" class="grow"><option value="">— нет урока —</option>{% for s in subjects %}<option value="{{ s.id }}"{% if l and l.subject_id == s.id %} selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
+    <input name="r_{{ d }}_{{ n }}" value="{{ l.room if l else '' }}" placeholder="где" maxlength="30" style="width:90px;flex:none"></div>
+  {% endfor %}
+  <button type="button" class="btn ghost sm" data-copy="{{ d }}">Скопировать этот день в другой…</button>
+</div>
+{% endfor %}
+<details class="card"><summary><h2 style="margin:0">{{ i("clock") }} Звонки <span class="tiny faint" style="margin-left:auto">нажмите, чтобы изменить</span></h2></summary>
+  <div class="mt">{% for n in range(1, 9) %}<div class="row" style="margin-bottom:6px"><b style="width:24px">{{ n }}</b><input name="bell_{{ n }}" value="{{ bells[n - 1] if bells|length >= n else '' }}" maxlength="20" placeholder="08:30–09:15"></div>{% endfor %}</div>
+</details>
+<button class="btn block">Сохранить расписание</button>
+</form>
+{% endblock %}
+{% block scripts %}<script>
+(function(){
+  const chips=[...document.querySelectorAll('[data-day]')], cards=[...document.querySelectorAll('[data-daycard]')];
+  const show=d=>{ chips.forEach(c=>c.classList.toggle('on',c.dataset.day==d)); cards.forEach(c=>c.hidden=c.dataset.daycard!=d); };
+  chips.forEach(c=>c.onclick=()=>show(c.dataset.day));
+  document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
+    const from=+b.dataset.copy, names=['пн','вт','ср','чт','пт','сб'];
+    const to=prompt('В какой день скопировать? Напишите: пн, вт, ср, чт, пт или сб'); const t=names.indexOf((to||'').trim().toLowerCase().slice(0,2));
+    if(t<0||t===from) return;
+    for(let n=1;n<=8;n++){ document.querySelector(`[name=s_${t}_${n}]`).value=document.querySelector(`[name=s_${from}_${n}]`).value; document.querySelector(`[name=r_${t}_${n}]`).value=document.querySelector(`[name=r_${from}_${n}]`).value; }
+    show(t); School.toast('Скопировано — не забудьте сохранить');
+  });
+})();
+</script>{% endblock %}

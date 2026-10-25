@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Вход — {{ school }}{% endblock %}
+{% block bare %}
+<div class="login">
+  <img class="logo" src="/static/icon-192.png" alt="">
+  <h1>{{ school }}</h1>
+  <p class="sub muted">Электронный дневник: оценки, задания и расписание</p>
+  {% if error %}<div class="alert err">{{ error }}</div>{% endif %}
+  <form method="post" action="/login" class="card">
+    <label class="f"><span>Логин</span><input name="login" value="{{ login or '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></label>
+    <label class="f"><span>Пароль</span><input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn block mt">Войти</button>
+  </form>
+  <p class="tiny faint" style="text-align:center">Логин и пароль выдаёт учитель.</p>
+  <p class="small" style="text-align:center;margin-top:14px"><a href="/app" style="color:var(--accent);font-weight:650">{{ i("smartphone", "i") }} Приложение для телефона</a></p>
+</div>
+{% endblock %}

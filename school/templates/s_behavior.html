@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% from "_m.html" import i, avg with context %}
+{% block title %}Поведение — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("smile") }} Поведение</h1>
+<div class="card"><div class="row"><div class="grow"><b>Среднее</b><div class="tiny muted">по всем записям</div></div><div class="big-avg" style="color:{% if avg_total %}var(--{{ grade_class(avg_total) }}){% endif %}">{{ "%.1f"|format(avg_total) if avg_total else "—" }}</div></div></div>
+<div class="card"><div class="list">
+  {% for b in rows %}<div class="li"><span class="g g{{ b.value }}">{{ b.value }}</span><div class="grow"><b>{{ BEHAVIOR[b.value] }}</b>{% if b.comment %}<div class="small">{{ b.comment }}</div>{% endif %}<div class="tiny faint">{{ human_date(b.date) }}</div></div>{% if not b.seen %}<span class="pill" style="background:var(--accent);color:#fff">новая</span>{% endif %}</div>
+  {% else %}<div class="empty">Записей пока нет</div>{% endfor %}
+</div></div>
+{% endblock %}

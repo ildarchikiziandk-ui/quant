@@ -12,3 +12,6 @@ uploads/
 # файлы сайта для APK — собираются tools/bundle_app.py
 android/app/src/main/assets/www/
 data/app/
+
+# школа: база и скачанные APK
+school/data/

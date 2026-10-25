@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% from "_m.html" import i, grade, avg, terms with context %}
+{% block title %}Оценки — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("star") }} Оценки</h1>
+{{ terms(term, "/s/grades?") }}
+<div class="card"><div class="row"><div class="grow"><b>Средний балл</b><div class="tiny muted">за {{ "год" if term == "year" else term ~ " четверть" }}</div></div><div class="big-avg" style="color:{% if total %}var(--{{ grade_class(total) }}){% endif %}">{{ "%.2f"|format(total) if total else "—" }}</div></div></div>
+<div class="card"><div class="list">
+  {% for r in rows %}<div class="subj">
+    <div class="nm"><i class="dot" style="background:{{ r.sub.color }}"></i><span>{{ r.sub.name }}</span></div>{{ avg(r.avg) }}
+    <div class="gs">{% for g in r.grades %}{{ grade(g) }}{% else %}<span class="tiny faint">оценок нет</span>{% endfor %}</div>
+  </div>{% else %}<div class="empty">Предметов пока нет</div>{% endfor %}
+</div></div>
+<p class="tiny faint">Нажми на оценку — увидишь, за что она и когда. Контрольные — с белой рамкой и считаются вдвое.</p>
+{% endblock %}

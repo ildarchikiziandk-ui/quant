@@ -1,0 +1,40 @@
+{% from "_m.html" import i with context %}<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}{{ school }}{% endblock %}</title>
+<meta name="theme-color" content="#1f6fb8">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icon-192.png">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/static/school.css?v=1">
+</head><body>
+{% if user %}
+{% set T = user.is_teacher %}
+{% set nav = ([("/t","home","Главная"),("/t/journal","star","Журнал"),("/t/homework","book","Задания"),("/t/week","calendar","Расписание"),("/t/chat","chat","Чаты")] if T else
+               [("/s","home","Главная"),("/s/grades","star","Оценки"),("/s/homework","book","Задания"),("/s/schedule","calendar","Расписание"),("/s/chat","chat","Учитель")]) %}
+<div class="top"><img src="/static/icon-192.png" alt=""><b>{{ school }}</b>{% if T %}<a href="/t/settings" class="btn soft sm" aria-label="Настройки">{{ i("settings") }}</a>{% endif %}</div>
+<div class="wrap">
+<aside class="side">
+  <div class="brand"><img src="/static/icon-192.png" alt="">{{ school }}</div>
+  <nav class="nav">
+    {% for href, ic, label in nav %}<a href="{{ href }}" class="{% if path == href or (href != '/t' and href != '/s' and path.startswith(href)) %}on{% endif %}">{{ i(ic) }}{{ label }}{% if href.endswith('chat') %}<span class="badge" data-unread{% if not unread %} hidden{% endif %}>{{ unread or "" }}</span>{% endif %}</a>{% endfor %}
+    {% if T %}<div class="sep"></div>
+    <a href="/t/behavior" class="{% if path.startswith('/t/behavior') %}on{% endif %}">{{ i("smile") }}Поведение</a>
+    <a href="/t/students" class="{% if path.startswith('/t/students') %}on{% endif %}">{{ i("users") }}Ученики</a>
+    <a href="/t/subjects" class="{% if path.startswith('/t/subjects') %}on{% endif %}">{{ i("layers") }}Предметы</a>
+    <a href="/t/schedule" class="{% if path == '/t/schedule' %}on{% endif %}">{{ i("edit") }}Изменить расписание</a>
+    <a href="/t/settings" class="{% if path.startswith('/t/settings') %}on{% endif %}">{{ i("settings") }}Настройки</a>
+    {% else %}<div class="sep"></div><a href="/s/behavior" class="{% if path.startswith('/s/behavior') %}on{% endif %}">{{ i("smile") }}Поведение</a>{% endif %}
+    <a href="/app">{{ i("smartphone") }}Приложение</a>
+    <form method="post" action="/logout"><button>{{ i("logout") }}Выйти</button></form>
+  </nav>
+</aside>
+<main>{% block content %}{% endblock %}</main>
+</div>
+<nav class="bottom">{% for href, ic, label in nav %}<a href="{{ href }}" class="{% if path == href or (href != '/t' and href != '/s' and path.startswith(href)) %}on{% endif %}">{{ i(ic) }}{{ label }}{% if href.endswith('chat') %}<span class="badge" data-unread{% if not unread %} hidden{% endif %}>{{ unread or "" }}</span>{% endif %}</a>{% endfor %}</nav>
+{% else %}{% block bare %}{% endblock %}{% endif %}
+<div id="toast"></div>
+<script src="/static/school.js?v=1"></script>
+{% block scripts %}{% endblock %}
+</body></html>

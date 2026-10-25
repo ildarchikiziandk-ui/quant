@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% from "_m.html" import i with context %}
+{% block title %}Задания — {{ school }}{% endblock %}
+{% block content %}
+<h1>{{ i("book") }} Домашние задания</h1>
+{% for d, items in days %}
+<div class="card{% if d == today %} today{% endif %}"><h2 class="day-h">{{ human_date(d)|capitalize }}{% if d < today %} <small style="color:var(--red)">просрочено</small>{% endif %}</h2>
+  <div class="list">{% for h in items %}<div class="hw-item{% if h.id in done %} done{% endif %}"><button class="ck" data-done="{{ h.id }}" aria-label="Сделано">{{ i("check") }}</button>
+    <div class="grow"><b><i class="dot" style="background:{{ h.subject.color }};display:inline-block;margin-right:6px"></i>{{ h.subject.name }}</b><div class="txt">{{ h.text }}</div></div></div>{% endfor %}</div>
+</div>
+{% else %}<div class="card empty">{{ i("smile") }}Заданий нет — можно отдыхать</div>{% endfor %}
+<p class="tiny faint">Нажми на квадратик, когда сделаешь задание — учитель увидит отметку.</p>
+{% endblock %}

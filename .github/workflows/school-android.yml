@@ -1,0 +1,63 @@
+name: School APK
+
+on:
+  push:
+    branches: [main, claude/happy-wozniak-vvu5w4]
+    paths:
+      - "school/android/**"
+      - ".github/workflows/school-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      # тот же закрытый ключ подписи, что у Nuvora (если задан в секретах репозитория)
+      - name: Use private signing key
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        if: ${{ env.KS != '' }}
+        run: echo "$KS" | base64 -d > android/nuvora.keystore
+
+      - name: Build APK
+        working-directory: school/android
+        env:
+          SITE_URL: https://school.nvra.ru
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp school/android/app/build/outputs/apk/release/app-release.apk School.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: School-apk
+          path: School.apk
+
+      # make_latest: false — «последним» релизом репозитория остаётся Nuvora, её обновления не путаются со школой
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: school-v1.0.${{ github.run_number }}
+          name: Школа для Android 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: false
+          body: |
+            Приложение школы (school.nvra.ru) для Android.
+
+            Скачивать удобнее прямо с сайта: https://school.nvra.ru/app — там же инструкция по установке.
+          files: School.apk
