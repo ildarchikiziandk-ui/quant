@@ -20,6 +20,6 @@
   <p class="small muted mb">Логотип {{ brand }} — кит внутри кольца. Его можно использовать в постах о {{ brand }}, обзорах и на мерче.</p>
   <div class="grid-3">{% for f, t in [("logo-dark","Тёмный"),("logo-warm","Тёплый"),("logo-mono","Чёрно-белый")] %}
     <a href="/static/brand/{{ f }}.png" download class="center" style="display:block"><img src="/static/brand/{{ f }}.png" alt="{{ t }}" style="width:100%;border-radius:18px"><div class="small mt">{{ t }} {{ icon("download", "i in") }}</div></a>{% endfor %}</div>
-  <div class="row mt" style="gap:8px"><a class="btn soft sm" href="/static/brand/logo-mark-black.png" download>Знак без фона (чёрный)</a><a class="btn soft sm" href="/static/brand/logo-mark-white.png" download>Знак без фона (белый)</a></div>
+  <div class="row mt" style="gap:8px;flex-wrap:wrap"><a class="btn soft sm" href="/static/brand/logo-mark-black.png" download>Знак без фона (чёрный)</a><a class="btn soft sm" href="/static/brand/logo-mark-white.png" download>Знак без фона (белый)</a></div>
 </div>
 {% endblock %}

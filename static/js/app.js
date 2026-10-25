@@ -113,7 +113,7 @@
         if (TEXT_DEFAULT.test(m)) return m;  // ©, ™, стрелки без U+FE0F — это текст, а не эмодзи
         frag.appendChild(document.createTextNode(text.slice(last, off)));
         const img = document.createElement('img');
-        img.className = 'emj'; img.alt = m; img.draggable = false;
+        img.className = 'emj'; img.alt = m; img.draggable = false; img.loading = 'lazy'; img.decoding = 'async';
         img.src = '/static/emoji/' + emojiCode(m) + '.svg';
         img.onerror = () => img.replaceWith(document.createTextNode(m));
         frag.appendChild(img); last = off + m.length; changed = true;

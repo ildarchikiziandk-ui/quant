@@ -7,7 +7,7 @@
   <div class="c-cover"{% if c.cover %} style="background-image:url('{{ c.cover }}')"{% endif %}></div>
   <div class="c-top">{{ community_avatar(c, 84) }}
     <div class="grow" style="min-width:160px"><h1>{{ c.name }}{% if c.is_official %}<span class="badge official-c" title="Официальное сообщество">{{ icon("check", "i") }}</span>{% endif %}</h1>
-      <div class="small muted">{{ kinds[c.kind] }}{% if c.is_official %} · официальное{% endif %} · <a href="/c/{{ c.slug }}/members" data-cn>{{ n }}</a> подписчиков</div></div>
+      <div class="small muted">{{ kinds[c.kind] }}{% if c.is_official %} · официальное{% endif %} · <a href="/c/{{ c.slug }}/members"><span data-cn>{{ n }}</span> {{ plural(n, "подписчик", "подписчика", "подписчиков").split(" ", 1)[1] }}</a></div></div>
     <div class="row" style="gap:6px">
       {% if user %}{% if role != "owner" %}<button class="btn{% if joined %} soft{% endif %}" data-cjoin="{{ c.slug }}" data-joined="{{ 1 if joined else 0 }}">{{ "Вы подписаны" if joined else "Подписаться" }}</button>{% endif %}
       {% if can_manage %}<button class="btn soft" data-modal="c-edit" title="Управление">{{ icon("settings") }}</button>{% endif %}

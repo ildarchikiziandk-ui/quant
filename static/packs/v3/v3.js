@@ -557,8 +557,11 @@
     } catch (e) {}
     busy = false;
   }
-  setInterval(check, 5000); check();
+  // отдельного частого опроса нет: сервер сообщает о запросе входа вместе со счётчиками (раз в 20 секунд),
+  // а при открытии приложения проверяем сразу
+  check();
   document.addEventListener('visibilitychange', check);
+  addEventListener('nv:counters', e => { if (e.detail && e.detail.la) check(); });
 })();
 
 /* «Поделился(ась) с вами» и «позвал(а) вас»: добавить в друзья одним нажатием */

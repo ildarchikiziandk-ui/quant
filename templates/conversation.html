@@ -103,6 +103,19 @@ const toBottom = () => box.scrollTop = box.scrollHeight;
 const jd=document.getElementById('jump-down'), jn=document.getElementById('jump-n'); let unseen=0;
 box.addEventListener('scroll',()=>{ const far=box.scrollHeight-box.scrollTop-box.clientHeight>300; jd.classList.toggle('hidden',!far); if(!far){ unseen=0; jn.classList.add('hidden'); } },{passive:true});
 jd.onclick=()=>{ box.scrollTo({top:box.scrollHeight,behavior:'smooth'}); };
+// при открытии рисуем только последние сообщения — старые подгружаются, когда долистаете до верха
+let hasOlder={{ 'true' if has_older else 'false' }}, loadingOlder=false;
+async function loadOlder(){
+  const first=box.querySelector('.msg'); if(!hasOlder||loadingOlder||!first) return false;
+  loadingOlder=true;
+  try{ const r=await (await fetch(`/messages/older/${OTHER}?before=${first.dataset.id}`,{headers:{'X-Requested-With':'fetch'}})).json();
+    hasOlder=!!(r.ok&&r.more); if(!r.ok||!r.html) return false;
+    const h=box.scrollHeight, top=box.scrollTop, tmp=document.createElement('div'), frag=document.createDocumentFragment(); tmp.innerHTML=r.html;
+    [...tmp.children].forEach(el=>{ if(!el.id||!document.getElementById(el.id)) frag.appendChild(el); });
+    first.before(frag); addDaySeps(); box.scrollTop=top+(box.scrollHeight-h); return true;
+  }catch(e){ return false; } finally{ loadingOlder=false; }
+}
+box.addEventListener('scroll',()=>{ if(box.scrollTop<400) loadOlder(); },{passive:true});
 // черновик чата сохраняется на устройстве
 const DKEY='nv_draft_'+{{ other.id }};
 if(inp && new URLSearchParams(location.search).has('greet') && !inp.value){ inp.value='С днём рождения! Счастья, здоровья и всего самого лучшего '; setTimeout(()=>inp.focus(),300); }
@@ -123,7 +136,10 @@ async function poll(){
     const st=document.getElementById('chat-status'); if(r.online && !st.dataset.on){ st.dataset.on=1; st.innerHTML='<span style="color:var(--online)">в сети</span>'; }
   }catch(e){}
 }
-setInterval(()=>{ if(!document.hidden) poll(); }, 2500);
+// часто спрашиваем, пока идёт разговор; если минуту тихо — раз в 7,5 секунды, чтобы не грузить телефон и сеть
+let lastAct=Date.now(), tick=0; ['keydown','pointerdown','scroll'].forEach(ev=>addEventListener(ev,()=>{ lastAct=Date.now(); },{passive:true,capture:true}));
+const _poll=poll; poll=async()=>{ const n=lastId; await _poll(); if(lastId!==n) lastAct=Date.now(); };
+setInterval(()=>{ tick++; if(document.hidden) return; if(Date.now()-lastAct>60000 && tick%3) return; poll(); }, 2500);
 document.getElementById('box').addEventListener('dblclick',async e=>{ if((APP.prefs||{}).dbl_tap_react===false) return; const m=e.target.closest('.msg'); if(!m||e.target.closest('a,button,audio,video')) return; try{ await App.api(`/messages/${m.dataset.id}/react`,{emoji:'❤️'}); await refreshMsg(m.dataset.id); }catch(err){} });
 async function refreshMsg(id){ const r=await App.get(`/messages/fragment/${id}`); const tmp=document.createElement('div'); tmp.innerHTML=r.html; document.getElementById('msg-'+id)?.replaceWith(tmp.firstElementChild); }
 if(inp){
@@ -201,7 +217,7 @@ document.getElementById('chat-search-q').addEventListener('input',e=>{ const q=e
   box.querySelectorAll('.msg').forEach(m=>{ const hit=q && (m.dataset.raw||'').toLowerCase().includes(q); m.classList.toggle('highlight',hit); m.style.opacity=(!q||hit)?1:.35; if(hit&&!first) first=m; }); first?.scrollIntoView({block:'center'}); });
 window.clearChat = async ()=>{ if(!confirm('Удалить все ваши сообщения в этом чате у обоих собеседников?')) return; await App.api(`/chats/clear/${OTHER}`); location.reload(); };
 document.addEventListener('click', async e=>{
-  const j=e.target.closest('[data-jump]'); if(j){ const t=document.getElementById('msg-'+j.dataset.jump); if(t){ t.scrollIntoView({block:'center'}); t.classList.add('highlight'); setTimeout(()=>t.classList.remove('highlight'),1500);} return; }
+  const j=e.target.closest('[data-jump]'); if(j){ let t=document.getElementById('msg-'+j.dataset.jump); for(let i=0;!t&&i<10&&await loadOlder();i++) t=document.getElementById('msg-'+j.dataset.jump); if(t){ t.scrollIntoView({block:'center'}); t.classList.add('highlight'); setTimeout(()=>t.classList.remove('highlight'),1500);} return; }
   const b=e.target.closest('[data-mact]'); if(!b) return;
   const m=b.closest('.msg'), id=m.dataset.id, a=b.dataset.mact;
   try{

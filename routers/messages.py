@@ -154,7 +154,10 @@ def message_search(request: Request, q: str = "", db: Session = Depends(get_db))
     return render(request, db, "message_search.html", query=q, results=results)
 
 
-def _load_dialog(db, user, other, after=0, limit=200):
+PAGE = 50  # сколько сообщений рисуем при открытии чата; более старые подгружаются при прокрутке вверх
+
+
+def _load_dialog(db, user, other, after=0, limit=PAGE, before=None):
     q = (db.query(models.Message).options(selectinload(models.Message.msg_reactions), selectinload(models.Message.reply_to))
          .filter(dialog_filter(user.id, other.id), _alive(), _visible_for(user.id)))
     if after:
@@ -165,6 +168,9 @@ def _load_dialog(db, user, other, after=0, limit=200):
         q = q.filter(or_(models.Message.id > after, and_(models.Message.deliver_at != None, models.Message.deliver_at >= recent,
                                                           models.Message.scheduled_pending != True)))
         return q.order_by(models.Message.created_at.asc(), models.Message.id.asc()).all()
+    if before is not None:  # постранично назад от самого старого показанного сообщения
+        q = q.filter(or_(models.Message.created_at < before.created_at,
+                         and_(models.Message.created_at == before.created_at, models.Message.id < before.id)))
     msgs = q.order_by(models.Message.created_at.desc(), models.Message.id.desc()).limit(limit).all()
     return list(reversed(msgs))
 
@@ -191,7 +197,9 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
             return redirect(f"/messages/{alias_owner.username}")
     if not other or other.id == user.id:
         return redirect("/messages")
-    msgs = _load_dialog(db, user, other)
+    unread = db.query(func.count(models.Message.id)).filter(models.Message.sender_id == other.id, models.Message.receiver_id == user.id,
+                                                            models.Message.group_id == None, models.Message.is_read == False).scalar() or 0  # noqa: E711
+    msgs = _load_dialog(db, user, other, limit=min(200, max(PAGE, unread + 10)))  # все непрочитанные видны сразу
     # первое непрочитанное — над ним появится полоска «Новые сообщения»
     first_unread = next((m.id for m in msgs if m.sender_id == other.id and not m.is_read and not m.scheduled_pending), 0)
     _mark_read(db, user, other)
@@ -205,7 +213,7 @@ def conversation_page(username: str, request: Request, db: Session = Depends(get
         st.marked_unread = False
         db.commit()
     return render(request, db, "conversation.html", look=chatstyle.look(db, user, other.id), archived=bool(st and st.archived), sidebar=False, other=other, messages=msgs, can_send=allowed, block_reason=reason, streak=streak,
-                  pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS, starred_ids=_starred_ids(db, user, msgs), first_unread=first_unread,
+                  pinned_msg=pinned_msg, msg_reactions=MSG_REACTIONS, has_older=len(msgs) >= PAGE, starred_ids=_starred_ids(db, user, msgs), first_unread=first_unread,
                   is_muted=db.query(models.MutedChat).filter_by(user_id=user.id, muted_user_id=other.id).first() is not None,
                   is_pinned=db.query(models.PinnedChat).filter_by(user_id=user.id, pinned_user_id=other.id).first() is not None)
 
@@ -382,6 +390,19 @@ def poll_messages(username: str, request: Request, after: int = 0, db: Session =
     return JSONResponse({"ok": True, "html": render_messages(request, user, msgs) if msgs else "", "ids": [m.id for m in msgs],
                          "last_id": max([after] + [m.id for m in msgs]), "read_upto": last_read, "typing": is_typing, "typing_kind": typing_kind,
                          "online": social.is_online(other)})
+
+
+@router.get("/messages/older/{username}")
+def older_messages(username: str, request: Request, before: int = 0, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return JSONResponse({"ok": False}, status_code=401)
+    other = _get_user(db, username)
+    anchor = db.get(models.Message, before) if before else None
+    if not other or not anchor or not ({anchor.sender_id, anchor.receiver_id} == {user.id, other.id}) or anchor.group_id:
+        return JSONResponse({"ok": False}, status_code=404)
+    msgs = _load_dialog(db, user, other, before=anchor)
+    return JSONResponse({"ok": True, "html": render_messages(request, user, msgs) if msgs else "", "more": len(msgs) >= PAGE})
 
 
 @router.get("/messages/fragment/{msg_id}")

@@ -1193,3 +1193,24 @@ def test_growth(alice):
     img = anon.get(f"/og/post/{pid}.png")
     assert img.status_code == 200 and img.headers["content-type"] == "image/png" and len(img.content) > 5000
     assert anon.get("/og/profile/alice.png").status_code == 200
+
+
+def test_chat_pages_older(alice, bob):
+    import re
+    from services import ratelimit
+    for i in range(62):
+        ratelimit.reset()
+        assert alice.post("/messages/send", json={"receiver": "bob", "content": f"сообщение {i}"}, headers=J).json()["ok"]
+    page = alice.get("/messages/bob").text
+    ids = [int(x) for x in re.findall(r'id="msg-(\d+)"', page)]
+    assert len(ids) == 50 and "hasOlder=true" in page and "сообщение 61" in page
+    r = alice.get(f"/messages/older/bob?before={min(ids)}").json()
+    assert r["ok"] and not r["more"] and r["html"].count('id="msg-') == 12 and "сообщение 0<" in r["html"].replace("\n", "")
+    assert bob.get(f"/messages/older/alice?before={min(ids)}").json()["ok"]
+    carol = make_client()
+    register(carol, "carol")
+    assert carol.get(f"/messages/older/bob?before={min(ids)}").status_code == 404
+    # непрочитанные видны все, даже если их больше страницы
+    assert len(re.findall(r'id="msg-\d+"', bob.get("/messages/alice").text)) == 62
+    # подтверждение входа узнаётся из счётчиков
+    assert "la" in alice.get("/api/counters").json()

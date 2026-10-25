@@ -248,6 +248,7 @@ article.post.menu-on { content-visibility: visible; position: relative; z-index:
 .c-row + .c-row { border-top: 1px solid var(--border); }
 .c-row .grow b { display: flex; align-items: center; gap: 4px; }
 @media (max-width: 640px) { .c-cover { height: 110px; } .c-top h1 { font-size: 19px; } }
+@media (max-width: 480px) { .c-top { align-items: flex-start; } .c-top > .grow { flex-basis: 100%; } .c-top h1 { font-size: 18px; overflow-wrap: anywhere; } }
 .c-kind { display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 14px; border: 2px solid var(--border); background: var(--card-2); cursor: pointer; height: 100%; }
 .c-kind .i { color: var(--accent); width: 22px; height: 22px; } .c-kind small { color: var(--text-2); font-size: 12px; line-height: 1.3; }
 input:checked + .c-kind { border-color: var(--accent); background: var(--accent-soft); }
