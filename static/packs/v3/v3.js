@@ -391,8 +391,9 @@
     add('user', text); hist.push({ role: 'user', content: text });
     inp.value = ''; inp.style.height = 'auto';
     const prev = [...hist].reverse().find((h, i) => i > 0 && h.role === 'user');
-    try { const r = await A.api('/ai/chat', { question: text, prev: prev ? prev.content : '' }); add('bot', r.text, r.links); hist.push({ role: 'bot', content: r.text, links: r.links }); tips(r.tips); }
-    catch (e) { hist.pop(); inp.value = text; }
+    const wait = document.createElement('div'); wait.className = 'ai-msg bot ai-typing'; wait.innerHTML = '<i></i><i></i><i></i>'; log.appendChild(wait); log.scrollTop = log.scrollHeight;
+    try { const r = await A.api('/ai/chat', { question: text, prev: prev ? prev.content : '', history: JSON.stringify(hist.slice(-9, -1).map(h => ({ role: h.role, content: h.content }))) }); wait.remove(); add('bot', r.text, r.links); hist.push({ role: 'bot', content: r.text, links: r.links }); tips(r.tips); }
+    catch (e) { wait.remove(); hist.pop(); inp.value = text; }
     save();
   }
   form.addEventListener('submit', e => { e.preventDefault(); send(inp.value); });

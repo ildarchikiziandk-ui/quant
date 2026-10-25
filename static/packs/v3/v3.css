@@ -411,3 +411,7 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .v3-pack b { font-size: 24px; font-weight: 800; color: var(--accent); } .v3-pack span { font-size: 12px; color: var(--text-2); }
 .v3-pack em { font-style: normal; margin-top: 6px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 .v3-pack:disabled { opacity: .55; cursor: default; }
+.ai-typing { display: inline-flex; gap: 5px; padding: 14px 16px !important; }
+.ai-typing i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .45; animation: aiTy 1s infinite ease-in-out; }
+.ai-typing i:nth-child(2) { animation-delay: .15s; } .ai-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes aiTy { 0%, 80%, 100% { transform: translateY(0); opacity: .35; } 40% { transform: translateY(-4px); opacity: .9; } }

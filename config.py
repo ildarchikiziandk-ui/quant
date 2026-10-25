@@ -166,3 +166,11 @@ YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", "")
 YOOKASSA_SECRET = env("YOOKASSA_SECRET", "")
 PLUS_DONATION_MIN, PLUS_DONATION_MAX = 35, 250  # пожертвование за 30 дней Nuvora+, ₽
 SPARK_RUB = 0.25  # 1 Искра ≈ 0,25 ₽
+
+# --- Нува на нейросети GigaChat (Сбер). Без ключа Нува отвечает по справке, как раньше.
+GIGACHAT_AUTH_KEY = env("GIGACHAT_AUTH_KEY", "")  # «Ключ авторизации» из личного кабинета developers.sber.ru
+GIGACHAT_SCOPE = env("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
+GIGACHAT_MODEL = env("GIGACHAT_MODEL", "GigaChat-2")
+GIGACHAT_API_URL = env("GIGACHAT_API_URL", "https://api.giga.chat/v1")
+GIGACHAT_CA = env("GIGACHAT_CA", "")  # сертификаты с корневым НУЦ Минцифры (ставит deploy/set-gigachat.sh)
+GIGACHAT_PER_HOUR = int(env("GIGACHAT_PER_HOUR", "40"))  # вопросов в час на человека

@@ -10,8 +10,8 @@
     <div class="ai-msg bot">Привет! Я Нува, помощник {{ brand }}. Подскажу, как что устроено на сайте, придумаю подпись к фото, поздравление или идею для поста.</div>
   </div>
   <div class="chips ai-sugg" id="ai-sugg">{% for t in ["Что ты умеешь?", "Как создать опрос в чате?", "Подпись к фото с моря", "Идея для поста"] %}<button type="button" class="chip" data-ai-q>{{ t }}</button>{% endfor %}</div>
-  <form class="ai-form" id="ai-form"><textarea id="ai-in" rows="1" maxlength="500" placeholder="Спросите Нуву…" data-q="{{ q }}"></textarea><button class="btn" title="Отправить">{{ icon("send", "i in") }}</button></form>
-  <div class="row tiny faint" style="justify-content:space-between;margin-top:8px"><span>Нува отвечает по справке и готовым шаблонам. Понимает опечатки и английскую раскладку.</span><button type="button" class="v3-link tiny" id="ai-clear">Очистить</button></div>
+  <form class="ai-form" id="ai-form"><textarea id="ai-in" rows="1" maxlength="2000" placeholder="Спросите Нуву…" data-q="{{ q }}"></textarea><button class="btn" title="Отправить">{{ icon("send", "i in") }}</button></form>
+  <div class="row tiny faint" style="justify-content:space-between;margin-top:8px"><span>{% if v3_ai_smart() %}Нува думает с помощью нейросети GigaChat и опирается на справку {{ brand }}. Не пишите ей пароли и личные данные.{% else %}Нува отвечает по справке и готовым шаблонам. Понимает опечатки и английскую раскладку.{% endif %}</span><button type="button" class="v3-link tiny" id="ai-clear">Очистить</button></div>
 </div>
 {% endif %}
 {% endblock %}

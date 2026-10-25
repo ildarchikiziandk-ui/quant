@@ -1134,3 +1134,27 @@ def test_share_trace(alice, bob):
     assert n.referred_by == a.id
     s.close()
     assert bob.get(f"/post/{pid}?from=nobody_here").status_code == 200
+
+
+def test_nuva_gigachat(alice, monkeypatch):
+    import config
+    from packs.v3 import gigachat
+    # без ключа — ответ по справке
+    r = alice.post("/ai/chat", json={"question": "Как получить искры?"}, headers=J).json()
+    assert r["ok"] and not r.get("ai")
+    monkeypatch.setattr(config, "GIGACHAT_AUTH_KEY", "test-key")
+    sent = []
+
+    def fake(messages, max_tokens=700, temperature=0.7):
+        sent.append(messages)
+        return "Искры дают за посты и задания дня. А ещё их можно потратить на подарки 🎁"
+    monkeypatch.setattr(gigachat, "_post", fake)
+    r = alice.post("/ai/chat", json={"question": "Как получить искры?", "history": '[{"role":"user","content":"привет"},{"role":"bot","content":"Привет!"}]'}, headers=J).json()
+    assert r["ai"] and "Искры" in r["text"]
+    msgs = sent[-1]
+    assert msgs[0]["role"] == "system" and "Справка Nuvora" in msgs[0]["content"] and "Как получить искры" in msgs[0]["content"]
+    assert [m_["role"] for m_ in msgs[1:]] == ["user", "assistant", "user"]
+    # сбой сервиса — снова справка, без ошибки
+    monkeypatch.setattr(gigachat, "_post", lambda *a, **k: (_ for _ in ()).throw(OSError("down")))
+    r = alice.post("/ai/chat", json={"question": "Как получить искры?"}, headers=J).json()
+    assert r["ok"] and not r.get("ai")

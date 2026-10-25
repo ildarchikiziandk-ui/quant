@@ -1,4 +1,4 @@
-"""Нува — собственный помощник Nuvora, без внешних сервисов и нейросетей (хватает 1 ГБ памяти).
+"""Нува — помощник Nuvora. С ключом GigaChat отвечает нейросетью (packs/v3/gigachat.py), без него — по справке (хватает 1 ГБ памяти).
 
 Как отвечает:
   1. Готовит вопрос: растянутые буквы, английская раскладка, частые ошибки, синонимы, основы слов (стеммер),
@@ -37,6 +37,12 @@ def enabled():
     return True
 
 
+def smart():
+    """Подключена ли нейросеть (для подписи на странице Нувы)."""
+    from . import gigachat
+    return gigachat.enabled()
+
+
 # ---------------------------------------------------------------- словари
 STOP = set("""и в во не что он на я с со как а то все она так его но да ты к у же вы за бы по только ее мне было вот от меня еще нет о из
 ему теперь когда даже ну вдруг ли если уже или ни быть был него до вас нибудь опять уж вам ведь там потом себя ничего ей может они тут где есть надо
@@ -56,7 +62,7 @@ SYNONYMS = {  # начало разговорного слова → слово 
     "забан": "заблокировать", "бан": "заблокировать", "блокир": "заблокировать", "черн": "заблокировать", "игнор": "заблокировать",
     "удали": "удалить", "стере": "удалить", "убра": "удалить", "снест": "удалить",
     "апк": "приложение", "apk": "приложение", "андроид": "приложение", "android": "приложение", "прилож": "приложение",
-    "балл": "очки", "монет": "очки", "поинт": "очки", "бонус": "очки",
+    "балл": "искры", "монет": "искры", "поинт": "искры", "бонус": "искры", "очк": "искры", "искр": "искры",
     "аватар": "профиль", "аватарк": "профиль", "аву": "профиль", "ава": "профиль", "фотк": "фото",
     "обои": "фон", "заставк": "фон", "тем": "оформление",
     "постав": "включить", "подключ": "включить", "активир": "включить",
@@ -469,10 +475,27 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
     if not user:
         return json_error("auth", 401)
     data = await read_payload(request)
-    question = s(data.get("question")).strip()[:500]
+    question = s(data.get("question")).strip()[:2000]
     if not question:
         return json_error("Напишите вопрос")
-    res = answer(question, user, db, prev=s(data.get("prev"))[:500])
+    from . import gigachat
+    from services import ratelimit
+    if gigachat.enabled() and (user.is_owner or ratelimit.hit(f"giga:{user.id}", config.GIGACHAT_PER_HOUR, 3600)):
+        hist = data.get("history")
+        if isinstance(hist, str):
+            try:
+                hist = __import__("json").loads(hist)
+            except ValueError:
+                hist = []
+        q, stems, _ = prepare(question)
+        KB.ensure(db)
+        hits = KB.search(stems, limit=4) if stems else []
+        text = gigachat.chat(question, hist if isinstance(hist, list) else [], user, hits)
+        if text:
+            top = hits[0] if hits and hits[0][0] >= 3.5 else None
+            links = [{"url": top[1]["link"][0], "title": top[1]["link"][1]}] if top and top[1]["link"] else []
+            return JSONResponse({"ok": True, "text": text, "tips": [], "links": links, "found": True, "ai": True})
+    res = answer(question[:500], user, db, prev=s(data.get("prev"))[:500])
     return JSONResponse({"ok": True, **res})
 
 
@@ -486,7 +509,8 @@ async def ai_rewrite(request: Request, db: Session = Depends(get_db)):
     if len(text.strip()) < 3:
         return json_error("Сначала напишите текст")
     if mode == "fix":
-        out = fix_text(text)
+        from . import gigachat
+        out = gigachat.rewrite(text, "fix") or fix_text(text)
         return JSONResponse({"ok": True, "text": out, "same": out == text.strip()})
     if mode == "tags":
         tags = hashtags(text)
