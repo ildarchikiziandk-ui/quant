@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card center" style="padding:28px 18px">
+  {% if p.status == "succeeded" %}<div style="font-size:44px">✨</div><h2>Оплата прошла</h2><p class="muted">{% if p.kind == "plus" %}{{ brand_plus }} активен на 30 дней. Спасибо за поддержку!{% else %}Начислено {{ p.sparks }} Искр.{% endif %}</p>
+  {% elif p.status == "canceled" %}<h2>Платёж отменён</h2><p class="muted">Деньги не списаны. Можно попробовать ещё раз.</p>
+  {% else %}<h2>Ждём подтверждения</h2><p class="muted">Обычно это несколько секунд. Страница обновится сама.</p><script>setTimeout(()=>location.reload(),4000)</script>{% endif %}
+  <div class="row mt" style="justify-content:center"><a class="btn" href="/buy">К покупкам</a><a class="btn ghost" href="/">На главную</a></div>
+</div>
+{% endblock %}

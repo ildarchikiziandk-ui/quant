@@ -303,6 +303,7 @@ async def site_save(request: Request, db: Session = Depends(get_db)):
     site.put(db, "maintenance_text", s(f.get("maintenance_text")).strip()[:300] or site.DEFAULTS["maintenance_text"])
     site.put(db, "calls", bool(f.get("calls")))
     site.put(db, "read_only", bool(f.get("read_only")))
+    site.put(db, "payments_on", bool(f.get("payments_on")))
     site.put(db, "read_only_text", s(f.get("read_only_text")).strip()[:300])
     site.put(db, "phone_check", bool(f.get("phone_check")))
     try:

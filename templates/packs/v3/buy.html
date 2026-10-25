@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Искры и {{ brand_plus }} — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0">{{ icon("sparkle", "i in") }} Искры и {{ brand_plus }}</div></div>
+{% if not on %}<div class="alert info mb">{{ icon("clock", "i in") }} Оплата появится совсем скоро. Пока Искры можно получить за активность, а {{ brand_plus }} — по промокоду или в розыгрыше.</div>{% endif %}
+<div class="card"><div class="card-title">{{ icon("sparkle", "i in") }} {{ brand_plus }} на 30 дней</div>
+  <p class="small muted mb">Поддержите {{ brand }} любой суммой от {{ pmin }} до {{ pmax }} ₽ — и получите {{ brand_plus }} на 30 дней. Сумма не влияет на возможности: сколько не жалко.</p>
+  <form data-buy class="row" style="gap:8px"><input type="hidden" name="kind" value="plus">
+    <input name="amount" type="number" min="{{ pmin }}" max="{{ pmax }}" value="99" inputmode="numeric" style="margin:0;max-width:130px" {% if not on %}disabled{% endif %}><span class="muted">₽</span>
+    <button class="btn" {% if not on %}disabled{% endif %}>Поддержать</button></form>
+  <div class="chips mt">{% for a in [35, 99, 149, 250] %}<button type="button" class="chip" data-amount="{{ a }}" {% if not on %}disabled{% endif %}>{{ a }} ₽</button>{% endfor %}</div>
+</div>
+<div class="card"><div class="card-title">{{ icon("sparkle", "i in") }} Искры <span class="tag-pill" style="margin-left:auto">у вас {{ "∞" if user.is_owner else balance }}</span></div>
+  <p class="small muted mb">Искры тратятся на подарки, рамки и красивые логины. 1 Искра ≈ {{ ("%.2f"|format(rub)).replace(".", ",") }} ₽. Купленные Искры не меняют уровень — он растёт только за активность.</p>
+  <div class="v3-packs">{% for n, price in packs %}<form data-buy><input type="hidden" name="kind" value="sparks"><input type="hidden" name="sparks" value="{{ n }}">
+    <button class="v3-pack" {% if not on %}disabled{% endif %}><b>{{ n }}</b><span>Искр</span><em>{{ price }} ₽</em></button></form>{% endfor %}</div>
+</div>
+{% if history %}<div class="card"><div class="card-title">Покупки</div>{% for p in history %}<div class="row small" style="justify-content:space-between;padding:5px 0;border-top:1px solid var(--border)">
+  <span>{{ brand_plus ~ " · 30 дней" if p.kind == "plus" else p.sparks ~ " Искр" }}</span><span>{{ p.amount }} ₽ · {{ {"pending": "ждёт оплаты", "succeeded": "оплачено", "canceled": "отменён"}.get(p.status, p.status) }}</span></div>{% endfor %}</div>{% endif %}
+<p class="tiny faint center">Оплата через ЮKassa: карта, СБП, SberPay. Данные карты вводятся на странице платёжного сервиса — {{ brand }} их не видит.</p>
+{% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>{ document.querySelector('[name=amount]').value=b.dataset.amount; });
+document.querySelectorAll('form[data-buy]').forEach(f=>f.addEventListener('submit',async e=>{ e.preventDefault();
+  try{ const r=await App.api('/buy',new FormData(f)); if(r.url) location.href=r.url; }catch(er){} }));
+</script>{% endblock %}

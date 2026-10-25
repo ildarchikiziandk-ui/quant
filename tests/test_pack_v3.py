@@ -945,3 +945,49 @@ def test_gift_in_chat(alice, bob):
     # анонимный подарок в чат не попадает
     alice.post("/gifts/bob/send", data={"gift": "heart", "anonymous": "1"}, headers=J)
     assert last_msg().id == m.id
+
+
+def test_payments(owner, alice, monkeypatch):
+    import config
+    from packs.v3 import payments, site
+    # выключено: страница открывается, купить нельзя
+    assert "скоро" in alice.get("/buy").text
+    assert alice.post("/buy", data={"kind": "plus", "amount": "99"}, headers=J).status_code == 400
+    monkeypatch.setattr(config, "YOOKASSA_SHOP_ID", "1")
+    monkeypatch.setattr(config, "YOOKASSA_SECRET", "x")
+    s = db(); site.put(s, "payments_on", True); s.commit(); s.close()
+    calls = []
+
+    def fake(method, path, body=None, key=None):
+        calls.append((method, path, body))
+        if method == "POST":
+            return {"id": f"yk-{len(calls)}", "confirmation": {"confirmation_url": "https://yoomoney.ru/pay"}}
+        return {"status": "succeeded", "paid": True, "amount": {"value": calls[0][2]["amount"]["value"] if calls[0][2] else "0"}}
+    monkeypatch.setattr(payments, "_call", fake)
+    assert alice.post("/buy", data={"kind": "plus", "amount": "20"}, headers=J).status_code == 400  # меньше 35 ₽
+    r = alice.post("/buy", data={"kind": "plus", "amount": "99"}, headers=J).json()
+    assert r["url"].startswith("https://") and calls[-1][2]["amount"]["value"] == "99.00"
+    # подтверждение: уведомлению не верим, статус спрашиваем сами
+    alice.post("/buy/webhook", json={"object": {"id": "yk-1"}})
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    assert a.is_plus and a.plus_until
+    p = s.query(payments.m.Payment).one()
+    assert p.status == "succeeded" and p.applied
+    s.close()
+    alice.post("/buy/webhook", json={"object": {"id": "yk-1"}})  # повторное уведомление — второй раз не начисляем
+    # Искры: 400 штук = 100 ₽, уровень не растёт
+    calls.clear()
+    r = alice.post("/buy", data={"kind": "sparks", "sparks": "400"}, headers=J).json()
+    assert calls[-1][2]["amount"]["value"] == "100.00"
+    s = db()
+    before = s.query(models.User).filter_by(username="alice").one()
+    lvl, total = before.level, before.total_points
+    pid = s.query(payments.m.Payment).order_by(payments.m.Payment.id.desc()).first().id
+    s.close()
+    alice.get(f"/buy/return/{pid}")
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    from services import extras
+    assert extras.balance(a) >= 400 and a.total_points == total and a.level == lvl
+    s.close()

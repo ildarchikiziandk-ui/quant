@@ -13,6 +13,7 @@
 <div class="plus-feats">{% for ic, t, d in items %}<div class="plus-feat"><span class="pi">{{ icon(ic, "i") }}</span><div><b>{{ t }}</b><div class="small muted">{{ d }}</div></div></div>{% endfor %}</div>
 {% endfor %}
 <div class="card mt"><div class="card-title">Как получить?</div>
+  <a class="btn block mb" href="/buy">{{ icon("sparkle", "i in") }} {% if v3_pay_on() %}Поддержать от 35 ₽ — {{ brand_plus }} на 30 дней{% else %}Покупка за пожертвование — скоро{% endif %}</a>
   <p class="small muted mb">Активируйте промокод от администрации или выиграйте подписку в еженедельном розыгрыше, выполняя <a href="/tasks" style="color:var(--link)">задания</a>.</p>
   {% if user %}<form method="post" action="/settings/promocode" class="row"><input name="code" placeholder="Промокод" required style="margin:0;text-transform:uppercase"><button class="btn">Активировать</button></form>
   {% else %}<a href="/register" class="btn">Создать аккаунт</a>{% endif %}

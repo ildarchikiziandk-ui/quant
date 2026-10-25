@@ -246,3 +246,18 @@ class ChatGame(Base):
     winner = Column(Integer, nullable=True)  # id победителя; 0 — ничья
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Оплата: Искры и Nuvora+ (ЮKassa) ------------------------------------------------------------------------
+class Payment(Base):
+    __tablename__ = "v3_payments"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    kind = Column(String(8))  # plus, sparks
+    amount = Column(Integer)  # ₽
+    sparks = Column(Integer, default=0)
+    status = Column(String(12), default="pending")  # pending, succeeded, canceled
+    provider_id = Column(String(64), default="", index=True)
+    applied = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    paid_at = Column(DateTime, nullable=True)

@@ -160,3 +160,9 @@ try:  # версия статики по содержимому: не меняе
     STATIC_V = _sv(os.path.join(BASE_DIR, "static"))
 except Exception:
     STATIC_V = INSTANCE_ID
+
+# --- Оплата (ЮKassa): Искры и Nuvora+. Работает, только когда заданы ключи И оплата включена в админке («Сайт»).
+YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", "")
+YOOKASSA_SECRET = env("YOOKASSA_SECRET", "")
+PLUS_DONATION_MIN, PLUS_DONATION_MAX = 35, 250  # пожертвование за 30 дней Nuvora+, ₽
+SPARK_RUB = 0.25  # 1 Искра ≈ 0,25 ₽
