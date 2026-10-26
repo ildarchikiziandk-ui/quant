@@ -47,9 +47,7 @@ def counters(request: Request, bg: int = 0, db: Session = Depends(get_db)):
         db.commit()
     notif, msgs = unread_counts(user, db)
     reqs = db.query(models.FollowRequest).filter_by(target_id=user.id).count()
-    from packs.v3 import models as v3m  # ждёт ли кто-то подтверждения входа — вместо отдельного опроса каждые 5 секунд
-    la = db.query(v3m.LoginApproval.id).filter_by(user_id=user.id, status="pending").first() is not None
-    return JSONResponse({"ok": True, "notifications": notif, "messages": msgs, "requests": reqs, "la": la})
+    return JSONResponse({"ok": True, "notifications": notif, "messages": msgs, "requests": reqs})
 
 
 @router.get("/me")

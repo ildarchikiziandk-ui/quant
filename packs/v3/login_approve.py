@@ -36,12 +36,8 @@ def _h(raw):
 
 
 def enabled(user):
-    """Включена ли защита: у владельца — пока сам не выключит, у остальных — если включили."""
-    if not user:
-        return False
-    if user.id in set(site.get("login_approve_off") or ()):
-        return False
-    return bool(user.is_owner) or user.id in set(site.get("login_approve_on") or ())
+    """Подтверждение входа на телефоне убрано: из-за него владелец не мог войти. Вход — пароль (и код 2FA)."""
+    return False
 
 
 def set_enabled(db, user, on):

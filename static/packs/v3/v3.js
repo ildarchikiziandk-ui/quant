@@ -520,50 +520,6 @@
   });
 })();
 
-/* Подтверждение входа: на открытой Nuvora (обычно в приложении на телефоне) — окно «Это вы входите?» с «Да» / «Нет» */
-(function () {
-  'use strict';
-  if (!document.body || !document.body.dataset.la) return;
-  let shown = 0, busy = false;
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  async function decide(id, yes, box) {
-    const fd = new FormData(); fd.append('decision', yes ? 'yes' : 'no');
-    try { await App.api('/login-approve/' + id, fd); App.toast(yes ? 'Вход подтверждён' : 'Вход отклонён'); } catch (e) {}
-    if (box) box.remove(); shown = 0;
-  }
-  // кнопки на странице /login-approve
-  document.addEventListener('click', e => {
-    const b = e.target.closest('[data-la-yes],[data-la-no]'); if (!b) return;
-    const card = b.closest('[data-la]'); if (!card || card === document.body) return;
-    decide(card.dataset.la, b.hasAttribute('data-la-yes'), card);
-  });
-  function modal(r) {
-    shown = r.id;
-    const box = document.createElement('div');
-    box.className = 'v3-la-modal';
-    box.innerHTML = `<div class="v3-la-sheet" role="alertdialog" aria-label="Подтверждение входа"><b>Это вы входите?</b>`
-      + `<p class="small muted">Устройство: ${esc(r.device)}<br>IP: ${esc(r.ip)} · ${esc(r.at)} UTC</p>`
-      + `<div class="row" style="gap:8px"><button class="btn" data-y>Да, это я</button><button class="btn soft" data-n>Нет</button></div></div>`;
-    box.querySelector('[data-y]').onclick = () => decide(r.id, true, box);
-    box.querySelector('[data-n]').onclick = () => decide(r.id, false, box);
-    document.body.appendChild(box);
-  }
-  async function check() {
-    if (busy || document.hidden || shown || location.pathname === '/login-approve') return;
-    busy = true;
-    try {
-      const r = await (await fetch('/login-approve/pending', { headers: { 'X-Requested-With': 'fetch' }, cache: 'no-store' })).json();
-      if (r.rows && r.rows.length) modal(r.rows[0]);
-    } catch (e) {}
-    busy = false;
-  }
-  // отдельного частого опроса нет: сервер сообщает о запросе входа вместе со счётчиками (раз в 20 секунд),
-  // а при открытии приложения проверяем сразу
-  check();
-  document.addEventListener('visibilitychange', check);
-  addEventListener('nv:counters', e => { if (e.detail && e.detail.la) check(); });
-})();
-
 /* «Поделился(ась) с вами» и «позвал(а) вас»: добавить в друзья одним нажатием */
 (function () {
   'use strict';

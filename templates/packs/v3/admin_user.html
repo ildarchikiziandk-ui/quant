@@ -58,7 +58,6 @@
     {% if t.two_factor_enabled %}<form method="post" action="/admin/u/{{ t.username }}/disable-2fa" onsubmit="return confirm('Отключить 2FA?')"><button class="btn soft sm">Отключить 2FA</button></form>{% endif %}
     {% if not t.email_verified %}<form method="post" action="/admin/u/{{ t.username }}/verify-email"><button class="btn soft sm">Подтвердить email</button></form>{% endif %}
     <form method="post" action="/admin/u/{{ t.username }}/private"><button class="btn soft sm">{{ "Открыть" if t.is_private else "Закрыть" }} профиль</button></form>
-    {% set la = v3_login_approve(t) %}<form method="post" action="/admin/u/{{ t.username }}/login-approve"><input type="hidden" name="on" value="{{ '' if la else '1' }}"><button class="btn soft sm" title="Вход с нового устройства — только после «Да» на уже открытой Nuvora">{{ "Выключить" if la else "Включить" }} подтверждение входа</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/phone-ask"><button class="btn soft sm">Попросить подтвердить номер</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/posts-lock"><button class="btn soft sm" title="Без публикации постов и без чужих постов: остаются чаты, свой профиль и остальные функции">{{ "Вернуть посты и ленту" if v3_posts_locked(t) else "Только чаты и профиль" }}</button></form>
   </div>
