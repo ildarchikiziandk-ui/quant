@@ -174,7 +174,10 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     err = validate_username(username) or validate_password(password)
     if err:
         return fail(err)
-    if not validate_email(email):
+    bot = username.lower() in config.BOT_USERNAMES and email in ("-", "")
+    if bot:  # помощник без почты: внутренний адрес, письма на него не отправляются
+        email = f"{username.lower()}@bot.invalid"
+    elif not validate_email(email):
         return fail("Некорректный email")
     if password != confirm_password:
         return fail("Пароли не совпадают")
@@ -189,7 +192,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     if db.query(models.User).filter(func.lower(models.User.email) == email).first():
         return fail("Email уже зарегистрирован")
     user = models.User(username=username, email=email, password=auth.hash_password(password), is_verified=True,
-                       name=(name.strip() or username)[:60], email_verified=not config.EMAIL_ENABLED,
+                       name=(name.strip() or ("Claude (ИИ-помощник)" if bot else username))[:60], email_verified=bot or not config.EMAIL_ENABLED,
                        is_owner=(username == config.OWNER_USERNAME and not db.query(models.User.id).filter_by(is_owner=True).first()), pd_consent_at=datetime.utcnow(),
                        pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True)
     tz_key = tz_key if tz_key in timezones.BY_KEY else timezones.iana_map().get(tz.strip()[:64])
@@ -202,8 +205,9 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     from packs.v3.communities import join_official
     join_official(db, user)  # и на официальное сообщество Nuvora
     from packs.v3 import phone
-    phone.on_register(db, user, request)  # выборочно и при подозрении — подтверждение номера
-    if config.EMAIL_ENABLED:
+    if not bot:
+        phone.on_register(db, user, request)  # выборочно и при подозрении — подтверждение номера
+    if config.EMAIL_ENABLED and not bot:
         _send_code(db, email, "register")
     db.add(models.Notification(user_id=user.id, type="system",
                                text=f"Добро пожаловать в {config.BRAND_NAME}! Заполни профиль и выполни первые задания"))
@@ -215,7 +219,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         from packs.v3 import shares
         shares.after_register(db, user, ref)  # на главной предложим добавить того, кто позвал
     db.commit()
-    resp = _finish_login(request, db, user, "/verify" if config.EMAIL_ENABLED else "/welcome")
+    resp = _finish_login(request, db, user, "/verify" if config.EMAIL_ENABLED and not bot else "/welcome")
     resp.delete_cookie("ref")
     return resp
 

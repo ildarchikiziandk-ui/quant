@@ -7,7 +7,7 @@
 <form method="post" action="/register">
   <label class="field"><span>Имя</span><input name="name" value="{{ full_name or '' }}" maxlength="60" placeholder="Как вас называть"></label>
   <label class="field"><span>Логин</span><input name="username" value="{{ username or '' }}" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" placeholder="латиница, цифры и _" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
-  <label class="field"><span>Email</span><input type="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" required></label>
+  <label class="field"><span>Email</span><input type="text" inputmode="email" name="email" value="{{ email or '' }}" autocomplete="email" autocapitalize="none" required></label>
   <div class="form-row">
     <label class="field"><span>Пароль</span><input type="password" name="password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
     <label class="field"><span>Повторите</span><input type="password" name="confirm_password" minlength="8" maxlength="64" autocomplete="new-password" required></label>

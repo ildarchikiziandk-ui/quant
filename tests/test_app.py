@@ -1179,3 +1179,16 @@ def test_pack_slots_render(alice, bob):
     finally:
         for n in names:
             packs.SLOTS[n].remove(f"packs/_selftest/{n}.html")
+
+
+def test_bot_account_without_email():
+    c = make_client()
+    r = c.post("/register", data={"username": "claude_ai", "email": "-", "password": "secret123", "confirm_password": "secret123",
+                                  "agree": "1", "consent": "1", "adult": "1"}, follow_redirects=False)
+    assert r.status_code == 303
+    u = db().query(models.User).filter_by(username="claude_ai").one()
+    assert u.email == "claude_ai@bot.invalid" and u.email_verified and "ИИ" in u.name
+    # обычным логинам почта по-прежнему нужна
+    r = make_client().post("/register", data={"username": "someone1", "email": "-", "password": "secret123", "confirm_password": "secret123",
+                                             "agree": "1", "consent": "1", "adult": "1"})
+    assert "Некорректный email" in r.text

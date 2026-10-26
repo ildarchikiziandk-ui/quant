@@ -60,6 +60,8 @@ if SECRET_KEY == _LEGACY_SECRET:
 TOKEN_DAYS = int(env("TOKEN_DAYS", "30"))
 COOKIE_SECURE = env_bool("COOKIE_SECURE", SITE_URL.startswith("https://"))
 OWNER_USERNAME = env("OWNER_USERNAME", "rubl")
+# аккаунты-помощники (ИИ): регистрируются без почты — в поле email пишут «-»
+BOT_USERNAMES = {u.strip().lower() for u in env("BOT_USERNAMES", "claude_ai").split(",") if u.strip()}
 BETA_CODE = env("BETA_CODE", "")  # если задан — регистрация только по инвайт-коду
 
 # --- Почта ---------------------------------------------------------------
