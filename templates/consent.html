@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Согласие на обработку персональных данных — {{ brand }}{% endblock %}
 {% block content %}
+{% if ui_lang() == "en" %}<div class="alert info small">This document is published in Russian, and the Russian version is the legally binding one. Use your browser's translate feature if needed.</div>{% endif %}
 {% set opn = operator.name or ("Администрация сервиса " ~ brand) %}
 <div class="card legal-doc">
 <h1>Согласие на обработку персональных данных</h1>

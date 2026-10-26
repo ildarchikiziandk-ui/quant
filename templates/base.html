@@ -1,5 +1,5 @@
 {% from "partials/icons.html" import icon %}{% from "partials/macros.html" import avatar, name, user_row %}<!DOCTYPE html>
-<html lang="ru" data-theme="light" data-font="{{ user.font_size if user and user.font_size else 'medium' }}" class="{{ pref_classes(user) if user else '' }}">
+<html lang="{{ html_lang() }}" data-theme="light" data-font="{{ user.font_size if user and user.font_size else 'medium' }}" class="{{ pref_classes(user) if user else '' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -168,10 +168,10 @@
 <div class="cookie-bar small" id="cookie-bar" hidden><span class="grow">Мы используем только необходимые cookie — для входа и защиты аккаунта. <a href="/privacy#cookie" style="text-decoration:underline">Подробнее</a></span><button class="btn sm" onclick="try{localStorage.setItem('nv_cookie_ok','1')}catch(e){};this.parentNode.hidden=true">Понятно</button></div>
 <script>try{if(!localStorage.getItem('nv_cookie_ok'))document.getElementById('cookie-bar').hidden=false}catch(e){}</script>
 <script>window.ICON=function(n,c){return '<svg class="'+(c||'i in')+'" viewBox="0 0 24 24" aria-hidden="true"><use href="/static/icons.svg?v={{ sprite_v() }}#'+n+'"/></svg>'};window.ICON_PLAY=ICON('play');window.ICON_PAUSE=ICON('pause');window.ICON_TICKS=ICON('ticks');</script>
-<script src="/static/js/app.js?v={{ static_v }}"></script>
+<script src="{{ js_src("js/app.js") }}?v={{ static_v }}"></script>
 {% block scripts %}{% endblock %}
-<script src="/static/js/more.js?v={{ static_v }}"></script>
-{% for j in pack_js %}<script src="/static/{{ j }}?v={{ static_v }}"></script>{% endfor %}
+<script src="{{ js_src("js/more.js") }}?v={{ static_v }}"></script>
+{% for j in pack_js %}<script src="{{ js_src(j) }}?v={{ static_v }}"></script>{% endfor %}
 {% for _s in pack_slot("body_end") %}{% include _s %}{% endfor %}
 </body>
 </html>

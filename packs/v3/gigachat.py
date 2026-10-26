@@ -64,12 +64,23 @@ def _post(messages, max_tokens=700, temperature=0.7):
     return (j["choices"][0]["message"]["content"] or "").strip()
 
 
+# язык интерфейса: на английском Нува отвечает по-английски, на древнеславянском — стилизацией под старинную речь
+LANG_NOTE = {
+    "en": "\nВАЖНО: интерфейс у пользователя на английском — отвечай по-английски (English), названия разделов тоже по-английски.",
+    "cu": "\nВАЖНО: пользователь выбрал «древнеславянский» язык интерфейса — отвечай шутливо-торжественной старинной речью "
+          "(аз, еси, сие, зело, дабы, лепо), но так, чтобы смысл был понятен современному читателю.",
+}
+
+
 def chat(question, history, user, kb_hits):
     """Ответ нейросети или None (тогда Нува отвечает по справке)."""
     if not enabled():
         return None
     ref = "\n\n".join(f"### {e['title']}\n{e['text']}" for _, e in kb_hits[:4]) or "(подходящих статей не нашлось)"
-    msgs = [{"role": "system", "content": SYSTEM.format(name=(user.name or user.username) if user else "гость") + "\n\nСправка Nuvora:\n" + ref}]
+    from services import i18n
+    lang_note = LANG_NOTE.get(i18n.current(), "")
+    msgs = [{"role": "system", "content": SYSTEM.format(name=(user.name or user.username) if user else "гость") + lang_note
+             + "\n\nСправка Nuvora:\n" + ref}]
     for h in (history or [])[-8:]:
         role = "assistant" if h.get("role") == "bot" else "user"
         text = str(h.get("content") or "")[:1500]

@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
@@ -66,6 +67,60 @@ class TextGZip(GZipMiddleware):
         await super().__call__(scope, receive, send)
 
 
+class LangMiddleware:
+    """Язык интерфейса из cookie lang. Для английского и древнеславянского переводит тексты ошибок в ответах JSON."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        from http.cookies import SimpleCookie
+        from services import i18n
+        raw = dict(scope.get("headers") or []).get(b"cookie", b"").decode("latin-1")
+        lang = "ru"
+        if "lang=" in raw:
+            c = SimpleCookie()
+            try:
+                c.load(raw)
+                lang = i18n.pick(c["lang"].value if "lang" in c else "")
+            except Exception:  # noqa: BLE001 — кривая cookie: язык по умолчанию
+                lang = "ru"
+        token = i18n.LANG.set(lang)
+        try:
+            if lang == "ru":
+                await self.app(scope, receive, send)
+                return
+            start, chunks = {}, []
+
+            async def wrapped(msg):
+                if msg["type"] == "http.response.start":
+                    hdrs = dict(msg.get("headers") or [])
+                    if b"application/json" in hdrs.get(b"content-type", b"") and b"content-encoding" not in hdrs:
+                        start["msg"] = msg
+                        return
+                    await send(msg)
+                elif "msg" in start:
+                    chunks.append(msg.get("body", b""))
+                    if not msg.get("more_body"):
+                        body = b"".join(chunks)
+                        try:
+                            body = json.dumps(i18n.json_fields(json.loads(body), lang), ensure_ascii=False).encode()
+                        except ValueError:
+                            pass
+                        m = start["msg"]
+                        m["headers"] = [(k, v) for k, v in m.get("headers", []) if k != b"content-length"] + [(b"content-length", str(len(body)).encode())]
+                        await send(m)
+                        await send({"type": "http.response.body", "body": body})
+                else:
+                    await send(msg)
+            await self.app(scope, receive, wrapped)
+        finally:
+            i18n.LANG.reset(token)
+
+
+app.add_middleware(LangMiddleware)
 app.add_middleware(TextGZip, minimum_size=1200, compresslevel=5)
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}

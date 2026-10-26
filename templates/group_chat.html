@@ -50,7 +50,7 @@
 {% endblock %}
 {% block right %}{% endblock %}
 {% block scripts %}
-<script src="/static/js/chat.js?v={{ static_v }}"></script>
+<script src="{{ js_src("js/chat.js") }}?v={{ static_v }}"></script>
 <script>
 (function(){
 const GID={{ group.id }}, box=document.getElementById('box'); let last={{ messages[-1].id if messages else 0 }};

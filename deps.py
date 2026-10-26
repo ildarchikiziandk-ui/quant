@@ -42,6 +42,65 @@ env.globals.update(
     min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, dname=chatstyle.name_of, custom_name=chatstyle.custom_name, wallpapers=chatstyle.WALLPAPERS, bubbles=chatstyle.BUBBLES, chat_fonts=chatstyle.FONTS, streak_level=streaks.level, emo=text.emoji_img,
 )
 
+# ---------------------------------------------------------------- языки интерфейса
+from jinja2 import FileSystemLoader  # noqa: E402
+from markupsafe import Markup  # noqa: E402
+
+from services import i18n  # noqa: E402
+
+
+class NoTr(str):
+    """Значение {{ … }}, которое нельзя переводить: поле формы, данные для JS."""
+
+
+class _TrLoader(FileSystemLoader):
+    """Отдаёт шаблон уже переведённым: текст из самого шаблона — по словарю, вставки {{ … }} — как есть."""
+    def __init__(self, lang):
+        super().__init__("templates")
+        self.lang = lang
+
+    def get_source(self, environment, template):
+        src, path, up = super().get_source(environment, template)
+        if not i18n.skip_template(template):
+            src = i18n.template(src, i18n.translator(self.lang), notr="notr")
+        return src, path, up
+
+
+def _finalize(v):
+    """Строки из Python ({{ p.label }}) переводятся, если это фраза интерфейса; тексты людей не совпадут со словарём."""
+    if type(v) is str and i18n.CYR.search(v):
+        return i18n.phrase(v)
+    return v
+
+
+env.filters["notr"] = lambda v: NoTr(v) if type(v) is str else v
+_envs = {"ru": env}
+for _lang in i18n.LANGS:
+    if _lang != "ru":
+        _e = env.overlay(loader=_TrLoader(_lang), finalize=_finalize, cache_size=800)
+        _envs[_lang] = _e
+_base_get_template = env.get_template
+
+
+def _get_template(name, *a, **kw):
+    lang = i18n.current()
+    if lang == "ru":
+        return _base_get_template(name, *a, **kw)
+    return _envs[lang].get_template(name, *a, **kw)
+
+
+env.get_template = _get_template  # TemplateResponse и get_template() берут шаблон на языке запроса
+
+
+def _js_src(path):
+    """Адрес скрипта: на русском — как есть (его кэширует и встраивает приложение), на других языках — переведённый."""
+    lang = i18n.current()
+    return f"/static/{path}" if lang == "ru" else f"/i18n/{lang}/static/{path}"
+
+
+env.globals.update(js_src=_js_src, ui_lang=i18n.current, html_lang=lambda: i18n.HTML_LANG[i18n.current()], ui_langs=i18n.LANGS,
+                   tr=lambda s: Markup(i18n.phrase(s)) if isinstance(s, Markup) else i18n.phrase(s))
+
 import packs as _packs  # noqa: E402
 env.globals.update(sprite_v=lambda: icons.SPRITE_V or config.STATIC_V, pack_slot=_packs.slot, pack_css=_packs.CSS, pack_js=_packs.JS, pack_menu=_packs.menu_groups)
 env.globals.update(_packs.GLOBALS)  # пустой до загрузки модулей — дополняется в load_globals()

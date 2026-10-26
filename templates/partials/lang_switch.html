@@ -1,0 +1,2 @@
+{# Переключатель языка: названия языков всегда на своём языке #}
+<div class="row wrap lang-switch" style="gap:6px">{% for code, label in ui_langs.items() %}<a class="chip{% if ui_lang() == code %} active{% endif %}" href="/lang/{{ code }}?next={{ (request.url.path ~ ('?' ~ request.url.query if request.url.query else ''))|urlencode }}" hreflang="{{ code }}" lang="{{ code }}">{{ label|notr }}</a>{% endfor %}</div>

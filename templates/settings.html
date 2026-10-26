@@ -136,6 +136,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 {% if push_enabled %}<div class="card"><div class="card-title">Push-уведомления на этом устройстве</div><p class="small muted mb">Получайте уведомления, даже когда сайт закрыт.</p><button class="btn soft" onclick="window.enablePush ? enablePush() : App.toast('Браузер не поддерживает push', true)">{{ icon("bell", "i in") }} Включить push</button></div>{% endif %}
 
 {% elif section == "appearance" %}
+<div class="card"><div class="card-title">Язык · Language</div>{% include "partials/lang_switch.html" %}</div>
 <form class="card" method="post" action="/settings/appearance">
   <div class="card-title">Тема</div>
   <div class="row wrap mb">{% for v, l in [("light","Светлая"),("dark","Тёмная"),("auto","Как в системе")] %}<label class="chip {% if user.theme == v %}active{% endif %}"><input type="radio" name="theme" value="{{ v }}" class="hidden" {% if user.theme == v %}checked{% endif %} onchange="try{localStorage.setItem('theme','{{ v }}')}catch(e){};this.form.submit()">{{ l }}</label>{% endfor %}</div>

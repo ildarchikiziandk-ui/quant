@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% if ui_lang() == "en" %}<div class="alert info small">This document is published in Russian, and the Russian version is the legally binding one. Use your browser's translate feature if needed.</div>{% endif %}
 <div class="card" style="max-width: 720px; margin: 0 auto;">
     <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 6px;">Пользовательское соглашение {{ brand }}</h1>
     <p style="color: var(--text-2); font-size: 13px; margin-bottom: 24px;">Последнее обновление: октябрь 2026</p>

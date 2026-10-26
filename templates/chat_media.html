@@ -17,4 +17,4 @@
 <div class="card flat">{% for url, m in links %}<a class="row" href="{{ url }}" target="_blank" rel="noopener nofollow" style="gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">{{ icon("link") }}<span class="grow ellipsis">{{ url }}</span><span class="tiny faint">{{ m.created_at|lt("%d.%m") }}</span></a>{% else %}<div class="empty" style="padding:30px">Ссылок пока нет</div>{% endfor %}</div>
 {% endif %}
 {% endblock %}
-{% block scripts %}<script src="/static/js/chat.js?v={{ static_v }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ js_src("js/chat.js") }}?v={{ static_v }}"></script>{% endblock %}

@@ -128,10 +128,44 @@ def _plural(n, one, few, many):
 
 
 def plural(n, one, few, many):
+    from services import i18n
+    if i18n.current() == "en":  # в английском две формы; слова уже переведены шаблоном
+        return f"{n} {one if abs(n) == 1 else many}"
     return f"{n} {_plural(n, one, few, many)}"
 
 
+EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def _timeago_en(dt):
+    if not dt:
+        return "long ago"
+    sec = int((datetime.utcnow() - dt).total_seconds())
+    if sec < 0:
+        return "scheduled"
+    if sec < 45:
+        return "just now"
+    for size, word in ((3600, None), (86400, "hour"), (86400 * 7, "day")):
+        if sec < size:
+            n = max(1, sec // 60) if word is None else sec // (3600 if word == "hour" else 86400)
+            w = word or "minute"
+            return "yesterday" if w == "day" and n == 1 else f"{n} {w}{'' if n == 1 else 's'} ago"
+    if dt.year == datetime.utcnow().year:
+        return f"{EN_MONTHS[dt.month - 1]} {dt.day}"
+    return f"{EN_MONTHS[dt.month - 1]} {dt.day}, {dt.year}"
+
+
 def timeago(dt):
+    from services import i18n
+    lang = i18n.current()
+    if lang == "en":
+        return _timeago_en(dt)
+    if lang == "cu":
+        return i18n.slavonic(_timeago_ru(dt))
+    return _timeago_ru(dt)
+
+
+def _timeago_ru(dt):
     if not dt:
         return "давно"
     sec = int((datetime.utcnow() - dt).total_seconds())

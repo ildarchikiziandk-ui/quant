@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 import config
@@ -183,3 +183,27 @@ def download_promo(name: str):
     if not os.path.isfile(path):
         return PlainTextResponse("Not found", status_code=404)
     return FileResponse(path, media_type="video/mp4", filename=name)
+
+
+# ---------------------------------------------------------------- языки интерфейса
+@router.get("/lang/{code}")
+def set_language(code: str, request: Request, next: str = "/"):
+    from deps import safe_next
+    from services import i18n
+    resp = RedirectResponse(safe_next(next), status_code=303)
+    resp.set_cookie(i18n.COOKIE, i18n.pick(code), max_age=365 * 86400, samesite="lax")
+    return resp
+
+
+@router.get("/i18n/{lang}/static/{path:path}")
+def translated_js(lang: str, path: str):
+    """Скрипты сайта с переведёнными надписями. Файл тот же, что /static/…, перевод кэшируется в памяти."""
+    import os
+    from services import i18n
+    full = os.path.realpath(os.path.join(config.BASE_DIR, "static", path))
+    root = os.path.realpath(os.path.join(config.BASE_DIR, "static"))
+    secret_off = not config.SECRET_CHATS_ENABLED and path in ("js/gost.js", "js/secret.js")
+    if lang not in i18n.LANGS or secret_off or not full.startswith(root + os.sep) or not full.endswith(".js") or not os.path.isfile(full):
+        return Response(status_code=404)
+    body = i18n.js_file(full, lang, os.path.getmtime(full)) if lang != "ru" else open(full, encoding="utf-8").read()
+    return Response(body, media_type="application/javascript", headers={"Cache-Control": "public, max-age=31536000, immutable"})

@@ -1,5 +1,6 @@
 {% extends "bare.html" %}
-{% block title %}Вход — {{ brand }}{% endblock %}
+{% block title %}Вход — {{ brand }}<div class="mt" style="display:flex;justify-content:center">{% include "partials/lang_switch.html" %}</div>
+{% endblock %}
 {% block card %}
 <h1 class="center" style="font-size:20px;font-weight:800;margin-bottom:4px">С возвращением!</h1>
 <p class="center muted small mb">Войдите, чтобы продолжить</p>

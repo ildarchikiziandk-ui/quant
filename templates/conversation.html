@@ -92,7 +92,7 @@
 {% endblock %}
 {% block right %}{% endblock %}
 {% block scripts %}
-<script src="/static/js/chat.js?v={{ static_v }}"></script>
+<script src="{{ js_src("js/chat.js") }}?v={{ static_v }}"></script>
 <script>
 (function(){
 const OTHER = {{ other.username|tojson }};
