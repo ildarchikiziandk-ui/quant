@@ -271,7 +271,7 @@ def rank(db, user, pool, fids):
             if p.user_id in prof["not_authors"]:
                 score *= 0.3
         if p.id in liked:
-            score *= 0.25
+            score *= 0.001  # уже лайкнутое остаётся в ленте, но после всего нового
         if reports.get(p.id):
             score *= 0.6 ** min(3, reports[p.id])
         if fatigue.get(p.user_id) and (not prof or prof["authors"].get(p.user_id, 0) <= 0) and not close:
@@ -335,23 +335,13 @@ def apply_filters(q, user):
 
 
 def post_filter(db, user, posts):
-    """Фильтры, которые проще проверить в Python: скрытые слова, уже лайкнутое, авторы, скрытые из поиска."""
+    """Фильтры, которые проще проверить в Python: скрытые слова. Лайкнутое не скрывается — оно уходит вниз ленты."""
     if not user:
         return posts
     words = prefs.muted_words(user)
-    liked = set()
-    if prefs.get(user, "feed_hide_liked"):
-        liked = {r.post_id for r in db.query(models.Like.post_id).filter(models.Like.user_id == user.id,
-                                                                         models.Like.post_id.in_([p.id for p in posts] or [-1]))}
-    out = []
-    for p in posts:
-        text = ((p.content or "") + " " + (p.original_comment or "")).lower()
-        if words and any(w in text for w in words):
-            continue
-        if p.id in liked:
-            continue
-        out.append(p)
-    return out
+    if not words:
+        return posts
+    return [p for p in posts if not any(w in ((p.content or "") + " " + (p.original_comment or "")).lower() for w in words)]
 
 
 def guests_hidden_filter(q, user):

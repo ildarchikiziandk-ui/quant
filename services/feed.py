@@ -36,7 +36,12 @@ def get_feed(db, user, tab="foryou", page=1):
         if tags:  # подписки на темы: посты с этими хэштегами тоже попадают в ленту
             from sqlalchemy import or_
             cond = or_(cond, *[models.Post.content.ilike(f"%#{t}%") for t in tags])
-        posts = (q.filter(cond).order_by(models.Post.created_at.desc())
+        # лайкнутые посты не пропадают, а уходят вниз: сначала всё нелайкнутое по времени, потом лайкнутое
+        # (только что лайкнутое не трогаем 30 минут — иначе при подгрузке следующей страницы пост пропал бы из-за сдвига)
+        from sqlalchemy import or_ as _or2
+        liked = db.query(models.Like.post_id).filter(models.Like.user_id == user.id, _or2(
+            models.Like.created_at == None, models.Like.created_at < now - timedelta(minutes=30)))  # noqa: E711
+        posts = (q.filter(cond).order_by(models.Post.id.in_(liked).asc(), models.Post.created_at.desc())
                  .offset((page - 1) * per).limit(per * 2 + 1).all())
         posts = recommend.post_filter(db, user, posts)
         return posts[:per], len(posts) > per, {}

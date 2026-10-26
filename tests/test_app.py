@@ -1192,3 +1192,17 @@ def test_bot_account_without_email():
     r = make_client().post("/register", data={"username": "someone1", "email": "-", "password": "secret123", "confirm_password": "secret123",
                                              "agree": "1", "consent": "1", "adult": "1"})
     assert "Некорректный email" in r.text
+
+
+def test_liked_posts_sink_in_feed(alice, bob):
+    from datetime import datetime, timedelta
+    ids = [create_post(bob, f"пост {i}") for i in range(3)]
+    bob.post("/follow/alice", headers=J); alice.post("/follow/bob", headers=J)
+    alice.post(f"/like/{ids[-1]}", headers=J)  # самый новый
+    s = db()
+    for lk in s.query(models.Like).all():
+        lk.created_at = datetime.utcnow() - timedelta(hours=2)
+    s.commit(); s.close()
+    page = alice.get("/?tab=following").text
+    order = [int(x) for x in __import__("re").findall(r'id="post-(\d+)"', page) if int(x) in ids]
+    assert order[-1] == ids[-1] and len(order) == 3  # лайкнутый на месте, но в конце
