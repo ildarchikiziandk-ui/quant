@@ -8,7 +8,7 @@
 """
 import hashlib
 import os
-import textwrap
+import re
 from datetime import datetime, timedelta
 from xml.sax.saxutils import escape
 
@@ -29,6 +29,7 @@ INVITE_NOW, INVITE_LATER, FRIEND_GIFT = 20, 80, 25
 PLUS_EVERY, PLUS_DAYS = 5, 7
 FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "og_fonts")
 OG_DIR = os.path.join(config.UPLOAD_DIR, "og")
+OG_VERSION = "2:"  # меняется вместе с видом карточки — старые картинки перерисуются
 
 
 # ---------------------------------------------------------------- приглашения
@@ -108,24 +109,42 @@ def _font(name, size):
     return ImageFont.truetype(os.path.join(FONTS, name), size)
 
 
+_EMOJI = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u200D\u2B00-\u2BFF]+")
+
+
+def _clean(text):
+    """Для картинки: без эмодзи (в шрифте их нет — были бы квадратики) и без пустых строк."""
+    text = _EMOJI.sub("", text or "")
+    lines = [" ".join(x.split()) for x in text.split("\n")]
+    return "\n".join(x for x in lines if x)
+
+
 def _wrap(draw, text, font, width, lines):
-    out = []
-    for para in (text or "").split("\n"):
-        for chunk in textwrap.wrap(para, 60) or [""]:
-            words, cur = chunk.split(" "), ""
-            for w in words:
-                t = (cur + " " + w).strip()
-                if draw.textlength(t, font=font) <= width:
-                    cur = t
-                else:
-                    out.append(cur)
-                    cur = w
+    out, words_left = [], False
+    paras = _clean(text).split("\n")
+    for pi, para in enumerate(paras):
+        cur = ""
+        words = para.split(" ")
+        for wi, w in enumerate(words):
+            t = (cur + " " + w).strip()
+            if draw.textlength(t, font=font) <= width:
+                cur = t
+                continue
             out.append(cur)
+            cur = w
+            if len(out) >= lines:
+                words_left = True
+                break
         if len(out) >= lines:
+            words_left = words_left or pi < len(paras) - 1
             break
-    out = [x for x in out if x is not None][:lines]
-    if len(out) == lines and len(" ".join(out)) < len(text or ""):
-        out[-1] = out[-1].rstrip(" .,") + "…"
+        out.append(cur)
+        if len(out) >= lines:
+            words_left = pi < len(paras) - 1
+            break
+    out = out[:lines]
+    if words_left and out:
+        out[-1] = out[-1].rstrip(" .,:;—") + "…"
     return out
 
 
@@ -144,14 +163,15 @@ def _card(path, title, subtitle, body, badge="Nuvora"):
         im.paste(logo, (W - 48 - 40 - 88, H - 48 - 40 - 88), logo)
     except OSError:
         pass
-    d.text((96, 92), title[:40], font=_font("unbounded-700.ttf", 46), fill=(23, 32, 44))
+    d.text((96, 92), _clean(title)[:40], font=_font("unbounded-700.ttf", 46), fill=(23, 32, 44))
     if subtitle:
         d.text((96, 158), subtitle[:60], font=_font("onest-500.ttf", 30), fill=(31, 111, 184))
-    y = 230
-    f = _font("onest-500.ttf", 40)
-    for line in _wrap(d, body, f, W - 96 * 2 - 40, 6 if subtitle else 7):
+    # текст не должен наезжать на подпись nvra.ru внизу (она на y≈498)
+    y = 226 if subtitle else 176
+    f = _font("onest-500.ttf", 38)
+    for line in _wrap(d, body, f, W - 96 * 2 - 140, 5 if subtitle else 6):
         d.text((96, y), line, font=f, fill=(40, 46, 56))
-        y += 54
+        y += 52
     d.text((96, H - 48 - 40 - 44), "nvra.ru", font=_font("onest-800.ttf", 34), fill=(31, 111, 184))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp.png"
@@ -161,7 +181,7 @@ def _card(path, title, subtitle, body, badge="Nuvora"):
 
 def _cached(key, render):
     os.makedirs(OG_DIR, exist_ok=True)
-    path = os.path.join(OG_DIR, hashlib.sha1(key.encode()).hexdigest()[:20] + ".png")
+    path = os.path.join(OG_DIR, hashlib.sha1((OG_VERSION + key).encode()).hexdigest()[:20] + ".png")
     if not os.path.isfile(path):
         render(path)
     return FileResponse(path, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
