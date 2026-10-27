@@ -37,6 +37,8 @@ EOS
   ( crontab -l 2>/dev/null | grep -v duckdns/update.sh; echo "*/5 * * * * /opt/duckdns/update.sh >/dev/null 2>&1" ) | crontab -
 fi
 
+# подождать, если apt занят автообновлениями (частая история на свежем сервере)
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/99nuvora-lock 2>/dev/null || true
 echo "==> 2/6 Ставлю пакеты (python, git)"
 apt-get update -qq
 apt-get install -y -qq python3 python3-venv python3-pip git curl cron >/dev/null

@@ -31,8 +31,10 @@ $SSH true
 
 echo "==> 2/6 Код на новом сервере (ветка $BRANCH)"
 command -v rsync >/dev/null || apt-get install -y -qq rsync >/dev/null
-$SSH "export DEBIAN_FRONTEND=noninteractive; apt-get update -qq && apt-get install -y -qq git rsync >/dev/null
-      [ -d $APP_DIR/.git ] || git clone -q -b $BRANCH $REPO $APP_DIR"
+$SSH "export DEBIAN_FRONTEND=noninteractive; echo 'DPkg::Lock::Timeout \"900\";' > /etc/apt/apt.conf.d/99nuvora-lock
+      echo '   (если сервер сейчас ставит автообновления — подожду, до 15 минут)'; apt-get update -qq && apt-get install -y -qq git rsync >/dev/null
+      [ -d $APP_DIR/.git ] || git clone -q -b $BRANCH $REPO $APP_DIR
+      git config --global --add safe.directory $APP_DIR; git -C $APP_DIR fetch -q origin $BRANCH && git -C $APP_DIR checkout -q -f -B $BRANCH origin/$BRANCH"
 
 COPY=(.env uploads)
 [ -d "$APP_DIR/school/data" ] && COPY+=(school/data school/.env)

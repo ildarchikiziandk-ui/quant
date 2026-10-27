@@ -21,6 +21,8 @@ PY
   fi
 }
 
+# подождать, если apt занят автообновлениями (частая история на свежем сервере)
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/99nuvora-lock 2>/dev/null || true
 echo "==> Устанавливаю coturn"
 command -v turnserver >/dev/null || { apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq coturn >/dev/null; }
 

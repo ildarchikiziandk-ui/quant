@@ -9,6 +9,8 @@ DOMAIN="${1:?Укажите домен, например: nvra.ru}"
 rm -f /etc/apt/sources.list.d/caddy-stable.list /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 systemctl disable --now caddy >/dev/null 2>&1 || true
 
+# подождать, если apt занят автообновлениями (частая история на свежем сервере)
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/99nuvora-lock 2>/dev/null || true
 echo "==> Ставлю nginx и certbot"
 apt-get update -qq
 apt-get install -y -qq nginx certbot python3-certbot-nginx >/dev/null
