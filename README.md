@@ -216,7 +216,7 @@ pip install numpy scipy && python tools/train_moderation.py train.tsv dev.tsv
 2. На [duckdns.org](https://www.duckdns.org) войдите, создайте поддомен (например, `quantru`) и скопируйте токен.
 3. На сервере:
    ```bash
-   git clone -b claude/happy-wozniak-vvu5w4 https://github.com/ildarchikiziandk-ui/quant.git
+   git clone -b ildarrr https://github.com/ildarchikiziandk-ui/quant.git
    sudo bash quant/deploy/install.sh quantru ВАШ_ТОКЕН      # DuckDNS
    sudo bash quant/deploy/install.sh nvra.ru                # или свой домен (A-записи @ и www → IP сервера)
    ```

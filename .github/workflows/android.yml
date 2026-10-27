@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [main, claude/happy-wozniak-vvu5w4]
+    branches: [main, ildarrr]
     paths:
       - "android/**"
       - ".github/workflows/android.yml"

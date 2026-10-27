@@ -8,7 +8,7 @@ export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1  
 
 ARG="${1:?Укажите домен, например: nvra.ru}"
 TOKEN="${2:-}"
-BRANCH="${BRANCH:-claude/happy-wozniak-vvu5w4}"
+BRANCH="${BRANCH:-ildarrr}"
 APP_DIR=/opt/nuvora
 REPO="https://github.com/ildarchikiziandk-ui/quant.git"
 

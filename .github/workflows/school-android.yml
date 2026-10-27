@@ -2,7 +2,7 @@ name: School APK
 
 on:
   push:
-    branches: [main, claude/happy-wozniak-vvu5w4]
+    branches: [main, ildarrr]
     paths:
       - "school/android/**"
       - ".github/workflows/school-android.yml"

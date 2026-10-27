@@ -9,6 +9,7 @@ trap 'echo "Скрипт остановился на строке $LINENO — п
 NEW="${1:?Укажите IP нового сервера: bash deploy/migrate.sh 1.2.3.4}"
 APP_DIR=/opt/nuvora
 BRANCH=$(git -C "$APP_DIR" rev-parse --abbrev-ref HEAD)
+[ "$BRANCH" = "main" ] || BRANCH=ildarrr
 REPO="https://github.com/ildarchikiziandk-ui/quant.git"
 # домен: из настроек приложения, иначе из nginx, иначе второй аргумент
 DOMAIN="${2:-}"
