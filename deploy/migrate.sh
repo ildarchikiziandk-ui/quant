@@ -49,7 +49,9 @@ cd "$APP_DIR"
 rsync -aR --delete --info=stats1 -e "ssh -o StrictHostKeyChecking=accept-new" "${COPY[@]}" quant.db* "root@$NEW:$APP_DIR/"
 [ -d /etc/letsencrypt/live ] && rsync -a -e "ssh -o StrictHostKeyChecking=accept-new" /etc/letsencrypt/ "root@$NEW:/etc/letsencrypt/"
 echo "==> 5/6 Установка на новом сервере"
-$SSH "BRANCH=$BRANCH bash $APP_DIR/deploy/install.sh $DOMAIN && bash $APP_DIR/deploy/set-calls.sh"
+$SSH "BRANCH=$BRANCH bash $APP_DIR/deploy/install.sh $DOMAIN"
+# звонки работают и без ретранслятора — его поломка не должна останавливать переезд
+$SSH "bash $APP_DIR/deploy/set-calls.sh" || echo "Ретранслятор звонков не запустился (сайт это не ломает). Пришлите вывод: journalctl -u coturn -n 30 --no-pager"
 if [ -d "$APP_DIR/school/data" ]; then
   SCHOOL=$(grep -E '^SCHOOL_SITE_URL=' "$APP_DIR/school/.env" | cut -d= -f2- | sed -E 's#^https?://##; s#/.*$##' || true)
   $SSH "bash $APP_DIR/deploy/school.sh ${SCHOOL:-school.$DOMAIN}" || echo "Школа не настроилась — повторите на новом сервере: bash $APP_DIR/deploy/school.sh"

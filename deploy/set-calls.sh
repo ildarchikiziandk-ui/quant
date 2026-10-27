@@ -63,7 +63,7 @@ simple-log
 CONF
 [ -f /etc/default/coturn ] && sed -i 's/^#\?TURNSERVER_ENABLED=.*/TURNSERVER_ENABLED=1/' /etc/default/coturn
 systemctl enable -q coturn
-systemctl restart coturn
+systemctl restart coturn || { journalctl -u coturn -n 30 --no-pager || true; exit 1; }
 
 if command -v ufw >/dev/null && ufw status | grep -q active; then
   ufw allow 3478 >/dev/null
