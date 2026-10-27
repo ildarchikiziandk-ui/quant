@@ -17,7 +17,8 @@
 </div>
 {% if history %}<div class="card"><div class="card-title">Покупки</div>{% for p in history %}<div class="row small" style="justify-content:space-between;padding:5px 0;border-top:1px solid var(--border)">
   <span>{{ brand_plus ~ " · 30 дней" if p.kind == "plus" else p.sparks ~ " Искр" }}</span><span>{{ p.amount }} ₽ · {{ {"pending": "ждёт оплаты", "succeeded": "оплачено", "canceled": "отменён"}.get(p.status, p.status) }}</span></div>{% endfor %}</div>{% endif %}
-<p class="tiny faint center">Оплата через ЮKassa: карта, СБП, SberPay. Данные карты вводятся на странице платёжного сервиса — {{ brand }} их не видит.</p>
+<p class="tiny faint center">Оплата через ЮKassa: карта, СБП, SberPay. Данные карты вводятся на странице платёжного сервиса — {{ brand }} их не видит.<br>
+Разовый платёж, без автопродления и скрытых комиссий: вы платите ровно ту сумму, что видите. <a href="/refund">Условия возврата</a></p>
 {% endblock %}
 {% block scripts %}<script>
 document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>{ document.querySelector('[name=amount]').value=b.dataset.amount; });

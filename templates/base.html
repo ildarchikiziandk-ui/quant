@@ -32,6 +32,7 @@
 {% for c in pack_css %}<link rel="stylesheet" href="/static/{{ c }}?v={{ static_v }}">{% endfor %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+<a class="skip-link" href="#main">Перейти к содержимому</a>
 <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18181b"/><stop offset="1" stop-color="#18181b"/></linearGradient></defs></svg>
 {% block body %}
 <div class="mobile-top">
@@ -71,12 +72,12 @@
     <div class="nav-cta"><a href="/register" class="btn block">{{ icon("sparkle") }}<span class="lbl">Регистрация</span></a></div>
     {% endif %}
     <div style="margin-top:auto;padding:14px" class="tiny faint nav-label">
-      <a href="/about">О проекте</a> · <a href="/terms">Правила</a> · <a href="/privacy">Конфиденциальность</a> · <a href="/support">Поддержка</a><br><a href="{{ android_apk_url }}">{{ icon("smartphone", "i in") }} Приложение для Android</a><br>
+      <a href="/about">О проекте</a> · <a href="/terms">Правила</a> · <a href="/privacy">Конфиденциальность</a> · <a href="/refund">Возврат</a> · <a href="/support">Поддержка</a><br><a href="{{ android_apk_url }}">{{ icon("smartphone", "i in") }} Приложение для Android</a><br>
       <button onclick="toggleTheme()" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:inherit">{{ icon("contrast", "i in") }} Сменить тему</button> · <span>© {{ utcnow().year }} {{ brand }}</span>
     </div>
   </nav>
 
-  <main class="main">
+  <main class="main" id="main" tabindex="-1">
     <div class="card row hidden" id="app-banner" style="gap:12px"><img src="/static/brand/logo-180.png" alt="" style="width:42px;height:42px;border-radius:12px"><div class="grow"><b>{{ brand }} для Android</b><div class="small muted">Быстрее, с уведомлениями о сообщениях</div></div><a class="btn sm" href="{{ android_apk_url }}">Скачать</a><button class="icon-btn" onclick="document.getElementById('app-banner').classList.add('hidden');try{localStorage.setItem('hide-app-banner','1')}catch(e){}">{{ icon("x", "i in") }}</button></div>
     <script>(function(){var u=navigator.userAgent;var h=false;try{h=localStorage.getItem('hide-app-banner')}catch(e){}if(/Android/i.test(u)&&!/NuvoraApp/.test(u)&&!h)document.getElementById('app-banner').classList.remove('hidden');if(/NuvoraApp/.test(u))document.documentElement.classList.add('in-app');})();</script>
     <div class="card row hidden" id="ios-banner" style="gap:12px"><img src="/static/brand/logo-180.png" alt="" style="width:42px;height:42px;border-radius:12px"><div class="grow"><b>{{ brand }} на iPhone</b><div class="small muted">«Поделиться» → «На экран Домой» — и это приложение</div></div><a class="btn sm" href="/app#ios">Как</a><button class="icon-btn" onclick="document.getElementById('ios-banner').classList.add('hidden');try{localStorage.setItem('hide-ios-banner','1')}catch(e){}">{{ icon("x", "i in") }}</button></div>
@@ -144,7 +145,7 @@
       <a class="chip" style="margin:0" href="/stats">{{ icon("chart", "i in") }} Статистика</a><a class="chip" style="margin:0" href="/shop">{{ icon("bag", "i in") }} Магазин</a>
       <a class="chip" style="margin:0" href="/top">{{ icon("trophy", "i in") }} Топ недели</a><a class="chip" style="margin:0" href="/people/city">{{ icon("map", "i in") }} Люди рядом</a>
       <a class="chip" style="margin:0" href="/archive">{{ icon("archive", "i in") }} Архив</a><a class="chip" style="margin:0" href="/invite">{{ icon("handshake", "i in") }} Пригласить</a></div></div>{% endif %}
-    <div class="tiny faint" style="padding:0 6px"><a href="/about">О {{ brand }}</a> · <a href="/terms">Правила</a> · <a href="/privacy">Конфиденциальность</a> · <a href="/leaderboard">Рейтинг</a> · <a href="/support">Поддержка</a> · Нажмите <span class="kbd">?</span> для горячих клавиш</div>
+    <div class="tiny faint" style="padding:0 6px"><a href="/about">О {{ brand }}</a> · <a href="/terms">Правила</a> · <a href="/privacy">Конфиденциальность</a> · <a href="/refund">Возврат</a> · <a href="/licenses">Лицензии</a> · <a href="/leaderboard">Рейтинг</a> · <a href="/support">Поддержка</a> · Нажмите <span class="kbd">?</span> для горячих клавиш</div>
   </aside>
   {% endblock %}
 </div>

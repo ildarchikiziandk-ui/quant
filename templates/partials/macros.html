@@ -45,18 +45,20 @@
 
 {% macro media_block(p) -%}
 {%- set items = p.media_items|sort(attribute="position") -%}
+{#- подпись для экранных дикторов и поисковиков: начало текста поста или «Фото от @автора» -#}
+{%- set alt_text = ((p.content or "")|striptags|replace("**", "")|replace("__", "")|trim|truncate(120, True, "…")) or ("Фото от @" ~ (p.author.username if p.author else "пользователя")) -%}
 {%- if items|length > 1 -%}
 <div class="media-grid {% if items|length == 2 %}n2{% elif items|length == 3 %}n3{% elif items|length == 4 %}n4{% else %}nmany{% endif %}">
   {%- for it in items[:4] %}
   {%- if it.media_type == "video" %}<video src="{{ it.media_url }}" controls playsinline preload="metadata"></video>
-  {%- else %}<img src="{{ it.media_url }}" alt="" loading="lazy" data-zoom>{% endif %}
+  {%- else %}<img src="{{ it.media_url }}" alt="{{ alt_text }}{% if items|length > 1 %} ({{ loop.index }} из {{ items|length }}){% endif %}" loading="lazy" data-zoom>{% endif %}
   {%- endfor %}
 </div>
 {%- if items|length > 4 %}<div class="tiny muted mb">+ ещё {{ items|length - 4 }} в посте</div>{% endif %}
 {%- elif p.image -%}
 <div class="media">
   {%- if p.media_type == "video" %}<video src="{{ p.image }}" controls playsinline preload="metadata"></video>
-  {%- else %}<img src="{{ p.image }}" alt="" loading="lazy" data-zoom>{% endif %}
+  {%- else %}<img src="{{ p.image }}" alt="{{ alt_text }}" loading="lazy" data-zoom>{% endif %}
 </div>
 {%- endif -%}
 {%- endmacro %}

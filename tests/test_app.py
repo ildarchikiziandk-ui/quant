@@ -301,7 +301,7 @@ def test_promocode_and_admin(owner, alice):
 def test_support_and_requests(owner, alice, anon):
     r = alice.post("/support", data={"subject": "Ошибка на сайте", "message": "Помогите"})
     assert "отправлено" in r.text
-    r = anon.post("/support", data={"subject": "Другое", "message": "Привет", "email": "x@example.com"})
+    r = anon.post("/support", data={"subject": "Другое", "message": "Привет", "email": "x@example.com", "consent": "1"})
     assert "отправлено" in r.text
     s = db()
     n = s.query(models.Notification).filter_by(type="support").first()
@@ -1206,3 +1206,19 @@ def test_liked_posts_sink_in_feed(alice, bob):
     page = alice.get("/?tab=following").text
     order = [int(x) for x in __import__("re").findall(r'id="post-(\d+)"', page) if int(x) in ids]
     assert order[-1] == ids[-1] and len(order) == 3  # лайкнутый на месте, но в конце
+
+
+def test_compliance_pages_and_accessibility(alice, anon):
+    for url, text in (("/refund", "Автопродления нет"), ("/licenses", "CC BY 4.0"), ("/privacy", "GigaChat")):
+        r = anon.get(url)
+        assert r.status_code == 200 and text.lower() in r.text.lower(), url
+    assert "ЮKassa" in anon.get("/privacy").text and "<code>ref</code>" in anon.get("/privacy").text
+    page = alice.get("/")
+    assert 'class="skip-link" href="#main"' in page.text and 'id="main"' in page.text
+    assert 'href="/refund"' in page.text
+    # гость в поддержке без согласия — нельзя
+    r = anon.post("/support", data={"email": "g@example.com", "subject": "Другое", "message": "Помогите"})
+    assert "согласие" in r.text.lower()
+    # у фото в посте есть описание для экранных дикторов
+    pid = create_post(alice, "Закат над морем", files=[("media", ("a.png", png_bytes(), "image/png"))])
+    assert 'alt="Закат над морем"' in alice.get(f"/post/{pid}").text

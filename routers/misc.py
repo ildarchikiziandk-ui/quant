@@ -29,6 +29,8 @@ async def support_submit(request: Request, db: Session = Depends(get_db)):
         return render(request, db, "support.html", error="Заполните тему и сообщение")
     if not email:
         return render(request, db, "support.html", error="Укажите email для ответа")
+    if not user and not form.get("consent"):
+        return render(request, db, "support.html", error="Нужно согласие на обработку данных для ответа")
     ip = request.client.host if request.client else "?"
     if not ratelimit.hit(f"support:{user.id if user else ip}", 5, 3600):
         return render(request, db, "support.html", error="Слишком много обращений, попробуйте позже")
@@ -145,6 +147,16 @@ def service_worker():
 def robots():
     return ("User-agent: *\nDisallow: /settings\nDisallow: /messages\nDisallow: /admin\nDisallow: /api/\nDisallow: /secret\n"
             f"Sitemap: {config.SITE_URL}/sitemap.xml\n")
+
+
+@router.get("/refund")
+def refund_page(request: Request, db: Session = Depends(get_db)):
+    return render(request, db, "refund.html")
+
+
+@router.get("/licenses")
+def licenses_page(request: Request, db: Session = Depends(get_db)):
+    return render(request, db, "licenses.html")
 
 
 @router.get("/privacy")

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Лицензии — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card legal-doc">
+<h1>Лицензии и авторы</h1>
+<p class="muted small">{{ brand }} использует открытые материалы — вот их авторы и лицензии.</p>
+<h3>Эмодзи</h3>
+<p><b>Twemoji</b> — © Twitter, Inc. и другие авторы, лицензия <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>.
+Источник: <a href="https://github.com/jdecked/twemoji" rel="noopener" target="_blank">github.com/jdecked/twemoji</a>. Изображения используются без изменений.</p>
+<h3>Шрифты</h3>
+<p><b>Onest</b> — © The Onest Project Authors; <b>Unbounded</b> — © The Unbounded Project Authors. Оба распространяются по лицензии
+<a href="https://openfontlicense.org" rel="noopener" target="_blank">SIL Open Font License 1.1</a> (тексты лицензий: <a href="/static/fonts/OFL-Onest.txt">Onest</a>, <a href="/static/fonts/OFL-Unbounded.txt">Unbounded</a>).</p>
+<h3>Иконки, логотип и стикеры</h3>
+<p>Иконки интерфейса, логотип с китом и наборы стикеров («Кит Нуви», «Кот Мур», «Капибара Капи») нарисованы для {{ brand }}. Их нельзя использовать отдельно от сервиса без разрешения.</p>
+<h3>Контент пользователей</h3>
+<p>Права на посты, фото и видео принадлежат их авторам. Если ваш материал опубликован без разрешения — напишите в <a href="/support">поддержку</a>, мы его уберём.</p>
+</div>
+{% endblock %}

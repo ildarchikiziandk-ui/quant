@@ -8,6 +8,7 @@
   {% if not user %}<label class="field"><span>Email для ответа</span><input type="email" name="email" required></label>{% endif %}
   <label class="field"><span>Тема</span><select name="subject">{% for s in ["Не могу войти", "Ошибка на сайте", "Жалоба на пользователя", "Вопрос о " ~ brand_plus, "Предложение по улучшению", "Другое"] %}<option>{{ s }}</option>{% endfor %}</select></label>
   <label class="field"><span>Сообщение</span><textarea name="message" maxlength="3000" required style="min-height:140px"></textarea></label>
+  {% if not user %}<label class="check"><input type="checkbox" name="consent" value="1" required><span class="small">Согласен(на) на обработку email и текста обращения для ответа на него — по <a href="/privacy">политике конфиденциальности</a></span></label>{% endif %}
   <button class="btn">Отправить</button>
 </form>
 <div class="card"><div class="card-title">Частые вопросы</div>
