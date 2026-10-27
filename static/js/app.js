@@ -760,3 +760,14 @@ document.addEventListener('click', (e) => { const s = e.target.closest('.spoiler
     }
   }
 })();
+
+// «Принимаю все условия»: одна галочка отмечает все согласия, а они остаются отдельными документами
+(function () {
+  const all = document.getElementById('agree-all');
+  if (!all) return;
+  const subs = () => [...document.querySelectorAll('.agree-list input[type=checkbox]')];
+  const sync = () => { const s = subs(); all.checked = s.length > 0 && s.every(x => x.checked); };
+  all.addEventListener('change', () => subs().forEach(x => { x.checked = all.checked; }));
+  document.addEventListener('change', e => { if (e.target.closest('.agree-list')) sync(); });
+  sync();
+})();

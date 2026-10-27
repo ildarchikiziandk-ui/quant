@@ -8,9 +8,14 @@
   <label class="field"><span>Логин</span><input name="username" value="{{ user.username }}" maxlength="30" pattern="[A-Za-z0-9_]{3,30}" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
   <label class="field"><span>Часовой пояс</span><select name="tz_key" id="reg-tz-key">{% for k, label in tz_options %}<option value="{{ k }}" {% if k == tz_key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
   <script>(function(){var map={{ tz_map|tojson }},z='';try{z=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}if(map[z]&&!{{ 'true' if user.prefs and 'timezone' in user.prefs else 'false' }})document.getElementById('reg-tz-key').value=map[z];})();</script>
-  <label class="check"><input type="checkbox" name="consent" value="1" required {% if user.pd_consent_at %}checked{% endif %}><span class="small">Даю <a href="/consent" target="_blank" style="color:var(--link);font-weight:600">согласие на обработку персональных данных</a> в соответствии с <a href="/privacy" target="_blank" style="color:var(--link);font-weight:600">политикой конфиденциальности</a> и принимаю <a href="/terms" target="_blank" style="color:var(--link);font-weight:600">соглашение</a></span></label>
-  <label class="check"><input type="checkbox" name="public" value="1" required {% if user.public_consent_at %}checked{% endif %}><span class="small">Даю отдельное <a href="/consent/public" target="_blank" style="color:var(--link);font-weight:600">согласие на распространение</a> данных профиля и публикаций</span></label>
-  <label class="check"><input type="checkbox" name="adult" value="1" required {% if user.age_confirmed %}checked{% endif %}><span class="small">Мне исполнилось {{ min_age }} лет</span></label>
+  <div class="agree-all">
+    <label class="check agree-main"><input type="checkbox" id="agree-all" required><span><b>Принимаю все условия</b><small>Отдельные документы и согласия — ниже</small></span></label>
+    <details class="agree-list"><summary>Что входит</summary>
+  <label class="check sub"><input type="checkbox" name="consent" value="1" {% if user.pd_consent_at %}checked{% endif %}><span class="small">Даю <a href="/consent" target="_blank" style="color:var(--link);font-weight:600">согласие на обработку персональных данных</a> в соответствии с <a href="/privacy" target="_blank" style="color:var(--link);font-weight:600">политикой конфиденциальности</a> и принимаю <a href="/terms" target="_blank" style="color:var(--link);font-weight:600">соглашение</a></span></label>
+  <label class="check sub"><input type="checkbox" name="public" value="1" {% if user.public_consent_at %}checked{% endif %}><span class="small">Даю отдельное <a href="/consent/public" target="_blank" style="color:var(--link);font-weight:600">согласие на распространение</a> данных профиля и публикаций</span></label>
+  <label class="check sub"><input type="checkbox" name="adult" value="1" {% if user.age_confirmed %}checked{% endif %}><span class="small">Мне исполнилось {{ min_age }} лет</span></label>
+    </details>
+  </div>
   <button class="btn block mt">Продолжить</button>
 </form>
 {% endblock %}

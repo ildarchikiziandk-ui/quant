@@ -287,3 +287,32 @@ input:checked + .c-kind { border-color: var(--accent); background: var(--accent-
 .skip-link:focus { top: 12px; }
 :focus-visible { outline: 3px solid var(--whale); outline-offset: 2px; }
 main:focus { outline: none; }
+
+/* ---- галочки: свои, мягкие, в цвет бренда ---- */
+input[type=checkbox] { -webkit-appearance: none; appearance: none; flex: none; width: 22px; height: 22px; margin: 1px 0 0;
+  border: 2px solid var(--border-2); border-radius: 7px; background: var(--card) center / 14px no-repeat; cursor: pointer;
+  transition: background-color .15s, border-color .15s, transform .12s; vertical-align: -5px; }
+input[type=checkbox]:hover { border-color: var(--whale); }
+input[type=checkbox]:active { transform: scale(.9); }
+input[type=checkbox]:checked { background-color: var(--whale); border-color: var(--whale);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E"); }
+input[type=checkbox]:disabled { opacity: .5; cursor: default; }
+.check { align-items: center; }
+.check input { margin-top: 0; }
+.check:has(small) { align-items: flex-start; } .check:has(small) input { margin-top: 2px; }
+/* тумблеры в настройках */
+.check.sw { flex-direction: row-reverse; justify-content: space-between; gap: 14px; }
+.check.sw input { width: 46px; height: 28px; border-radius: 99px; border: none; background: var(--border-2); position: relative; margin-top: 2px; }
+.check.sw input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .18s cubic-bezier(.3, .7, .4, 1.2); }
+.check.sw input:checked { background: var(--whale); background-image: none; }
+.check.sw input:checked::after { transform: translateX(18px); }
+.check.sw span { flex: 1; min-width: 0; }
+/* одна общая галочка согласий при регистрации */
+.agree-all { border: 1px solid var(--border); border-radius: 16px; padding: 4px 14px 6px; margin: 12px 0 4px; background: var(--card-2); }
+.agree-all .check.agree-main b { font-size: 15px; }
+.agree-list summary { cursor: pointer; font-size: 13px; color: var(--link); padding: 2px 0 6px 34px; list-style: none; }
+.agree-list summary::-webkit-details-marker { display: none; }
+.agree-list summary::after { content: " ▾"; } .agree-list[open] summary::after { content: " ▴"; }
+.agree-list .check.sub { padding: 6px 0 6px 12px; }
+.agree-list .check.sub input { width: 18px; height: 18px; border-radius: 6px; background-size: 11px; }

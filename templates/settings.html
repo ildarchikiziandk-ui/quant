@@ -192,7 +192,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 <form class="card" method="post" action="/settings/prefs/plus">
   <div class="card-title">Возможности {{ brand_plus }}</div>
   {% for group, items in pref_groups %}{% if group %}<div class="pref-group">{{ group }}</div>{% endif %}
-  {% for p in items %}<label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>{% endfor %}{% endfor %}
+  {% for p in items %}<label class="check sw"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>{% endfor %}{% endfor %}
   <div class="row mt" style="gap:8px"><button class="btn">Сохранить</button></div>
 </form>
 {% endif %}
@@ -235,7 +235,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
     {% if group %}<div class="pref-group">{{ group }}</div>{% endif %}
     {% for p in items %}
       {% if p.kind == "bool" %}
-      <label class="check"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>
+      <label class="check sw"><input type="checkbox" name="{{ p.key }}" {% if pref_values[p.key] %}checked{% endif %}><span><b>{{ p.label }}</b>{% if p.desc %}<small>{{ p.desc }}</small>{% endif %}</span></label>
       {% elif p.kind == "select" %}
       <label class="field"><span>{{ p.label }}{% if p.desc %} <span class="faint">— {{ p.desc }}</span>{% endif %}</span><select name="{{ p.key }}" id="pref-{{ p.key }}">{% for v, l in p.options %}<option value="{{ v }}" {% if pref_values[p.key] == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
       {% if p.key == "timezone" %}<div class="row mb" style="gap:8px"><button type="button" class="btn soft sm" id="tz-detect">{{ icon("compass", "i in") }} Определить по устройству</button><span class="small muted" id="tz-now"></span></div>
