@@ -152,7 +152,7 @@ def register_page(request: Request, db: Session = Depends(get_db)):
 @router.post("/register")
 def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...),
              confirm_password: str = Form(...), agree: str = Form(""), consent: str = Form(""), adult: str = Form(""), beta_code: str = Form(""), name: str = Form(""),
-             tz: str = Form(""), tz_key: str = Form(""), ref: str = Form(""), db: Session = Depends(get_db)):
+             tz: str = Form(""), tz_key: str = Form(""), ref: str = Form(""), public: str = Form(""), db: Session = Depends(get_db)):
     username, email = username.strip().lstrip("@"), email.strip().lower()
     form = {"username": username, "email": email, "full_name": name, "beta": bool(config.BETA_CODE), "tz_key": tz_key, **_tz_ctx()}
 
@@ -180,6 +180,8 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         return fail("Нужно принять пользовательское соглашение")
     if not consent:
         return fail("Нужно дать согласие на обработку персональных данных")
+    if not public:
+        return fail("Нужно согласие на распространение данных профиля — без него профиль и посты нельзя показывать другим")
     if not adult:
         return fail(f"Регистрация доступна с {config.MIN_AGE} лет")
     if handles_owner(db, username):
@@ -189,7 +191,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     user = models.User(username=username, email=email, password=auth.hash_password(password), is_verified=True,
                        name=(name.strip() or ("Claude (ИИ-помощник)" if bot else username))[:60], email_verified=bot or not config.EMAIL_ENABLED,
                        is_owner=(username == config.OWNER_USERNAME and not db.query(models.User.id).filter_by(is_owner=True).first()), pd_consent_at=datetime.utcnow(),
-                       pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True)
+                       pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True, public_consent_at=datetime.utcnow())
     tz_key = tz_key if tz_key in timezones.BY_KEY else timezones.iana_map().get(tz.strip()[:64])
     if tz_key:  # пояс выбран при регистрации (по умолчанию — определённый браузером)
         user.prefs = json.dumps({"timezone": tz_key}, ensure_ascii=False)
@@ -441,7 +443,7 @@ def signup_finish_page(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/signup/finish")
 def signup_finish(request: Request, username: str = Form(""), tz_key: str = Form(""), consent: str = Form(""),
-                  adult: str = Form(""), db: Session = Depends(get_db)):
+                  adult: str = Form(""), public: str = Form(""), db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return redirect("/login")
@@ -466,6 +468,9 @@ def signup_finish(request: Request, username: str = Form(""), tz_key: str = Form
         data = dict(prefs._raw(user))
         data["timezone"] = tz_key
         user.prefs = json.dumps(data, ensure_ascii=False)
+    if not public:
+        return fail("Нужно согласие на распространение данных профиля")
     user.pd_consent_at, user.pd_consent_version, user.age_confirmed = datetime.utcnow(), legal.CONSENT_VERSION, True
+    user.public_consent_at = datetime.utcnow()
     db.commit()
     return redirect("/welcome")

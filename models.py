@@ -90,6 +90,7 @@ class User(Base):
     is_paused = Column(Boolean, default=False)
     pd_consent_at = Column(DateTime, nullable=True)  # согласие на обработку персональных данных (152-ФЗ ст. 9)
     pd_consent_version = Column(String(20), default="")
+    public_consent_at = Column(DateTime, nullable=True)  # согласие на распространение ПДн (152-ФЗ ст. 10.1) — отдельный документ
     age_confirmed = Column(Boolean, default=False)
     yandex_id = Column(String(32), nullable=True, index=True)  # вход через Яндекс ID
     last_spin2 = Column(String(10), default="")  # второе вращение колеса (Plus)

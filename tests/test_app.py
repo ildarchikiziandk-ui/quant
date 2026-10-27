@@ -35,9 +35,9 @@ def test_404_page(anon):
 
 
 def test_register_validation(anon):
-    r = anon.post("/register", data={"username": "ab", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1"})
+    r = anon.post("/register", data={"username": "ab", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "public": "1", "adult": "1"})
     assert "минимум 3" in r.text
-    r = anon.post("/register", data={"username": "goodname", "email": "x@y.z", "password": "short", "confirm_password": "short", "agree": "1", "consent": "1", "adult": "1"})
+    r = anon.post("/register", data={"username": "goodname", "email": "x@y.z", "password": "short", "confirm_password": "short", "agree": "1", "consent": "1", "public": "1", "adult": "1"})
     assert "минимум 8" in r.text
 
 
@@ -367,7 +367,7 @@ def test_infinite_feed(alice):
 def test_register_form_keeps_name_and_no_macro_leak(anon):
     r = anon.get("/register")
     assert "Macro" not in r.text
-    r = anon.post("/register", data={"username": "ab", "name": "Иван", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1"})
+    r = anon.post("/register", data={"username": "ab", "name": "Иван", "email": "x@y.z", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "public": "1", "adult": "1"})
     assert 'value="Иван"' in r.text and "Macro" not in r.text
 
 
@@ -396,7 +396,7 @@ def test_email_verification_required(monkeypatch, anon):
     sent = {}
     monkeypatch.setattr(config, "EMAIL_ENABLED", True)
     monkeypatch.setattr(mailer, "send", lambda to, subj, body: sent.setdefault("body", body) or True)
-    r = anon.post("/register", data={"username": "veri", "email": "veri@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1"}, follow_redirects=False)
+    r = anon.post("/register", data={"username": "veri", "email": "veri@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "public": "1", "adult": "1"}, follow_redirects=False)
     assert r.headers["location"] == "/verify"
     assert anon.post("/post/create", data={"content": "hi"}, headers=J).status_code == 403
     code = re.search(r"letter-spacing:8px;\">(\d{6})<", sent["body"]).group(1)
@@ -548,7 +548,7 @@ def test_timezones(alice, bob):
     # пояс определяется при регистрации
     c = make_client()
     c.post("/register", data={"username": "krsk", "email": "krsk@example.com", "password": "secret123", "confirm_password": "secret123",
-                              "agree": "1", "consent": "1", "adult": "1", "name": "K", "tz": "Asia/Krasnoyarsk"}, follow_redirects=False)
+                              "agree": "1", "consent": "1", "public": "1", "adult": "1", "name": "K", "tz": "Asia/Krasnoyarsk"}, follow_redirects=False)
     s = db()
     from services import prefs
     assert prefs.get(s.query(models.User).filter_by(username="krsk").first(), "timezone") == "krasnoyarsk"
@@ -632,7 +632,7 @@ def test_invite_and_interests(alice, bob):
     assert r.headers["location"].startswith("/register?ref=alice")
     before = db().query(models.User).filter_by(username="alice").first().total_points
     c.post("/register", data={"username": "newbie", "email": "newbie@example.com", "password": "secret123", "confirm_password": "secret123",
-                              "agree": "1", "consent": "1", "adult": "1", "name": "N", "ref": "alice"}, follow_redirects=False)
+                              "agree": "1", "consent": "1", "public": "1", "adult": "1", "name": "N", "ref": "alice"}, follow_redirects=False)
     s = db()
     nb = s.query(models.User).filter_by(username="newbie").first()
     me = s.query(models.User).filter_by(username="alice").first()
@@ -858,7 +858,7 @@ def test_secret_chats_server_sees_only_ciphertext(alice, bob, monkeypatch):
 def test_russian_law_compliance(anon, owner):
     base = {"username": "kid", "email": "kid@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1"}
     assert "согласие на обработку" in anon.post("/register", data=base).text
-    assert "Регистрация доступна с 14" in anon.post("/register", data={**base, "consent": "1"}).text
+    assert "Регистрация доступна с 14" in anon.post("/register", data={**base, "consent": "1", "public": "1"}).text
     for url in ["/privacy", "/consent"]:
         r = anon.get(url)
         assert r.status_code == 200 and "152-ФЗ" in r.text
@@ -904,7 +904,7 @@ def test_chat_streaks_and_deleted_messages(alice, bob):
 
 def test_signup_timezone_and_finish(anon):
     r = anon.post("/register", data={"username": "nsk", "email": "nsk@example.com", "password": "secret123", "confirm_password": "secret123",
-                                     "agree": "1", "consent": "1", "adult": "1", "tz_key": "novosibirsk"}, follow_redirects=False)
+                                     "agree": "1", "consent": "1", "public": "1", "adult": "1", "tz_key": "novosibirsk"}, follow_redirects=False)
     assert r.status_code == 303
     s = db()
     u = s.query(models.User).filter_by(username="nsk").one()
@@ -914,7 +914,7 @@ def test_signup_timezone_and_finish(anon):
     s.close()
     assert "Почти готово" in anon.get("/signup/finish").text
     assert "согласие" in anon.post("/signup/finish", data={"username": "nsk", "tz_key": "krasnoyarsk"}).text
-    r = anon.post("/signup/finish", data={"username": "nsk2", "tz_key": "krasnoyarsk", "consent": "1", "adult": "1"}, follow_redirects=False)
+    r = anon.post("/signup/finish", data={"username": "nsk2", "tz_key": "krasnoyarsk", "consent": "1", "public": "1", "adult": "1"}, follow_redirects=False)
     assert r.status_code == 303
     s = db()
     u = s.query(models.User).filter_by(email="nsk@example.com").one()
@@ -1184,13 +1184,13 @@ def test_pack_slots_render(alice, bob):
 def test_bot_account_without_email():
     c = make_client()
     r = c.post("/register", data={"username": "claude_ai", "email": "-", "password": "secret123", "confirm_password": "secret123",
-                                  "agree": "1", "consent": "1", "adult": "1"}, follow_redirects=False)
+                                  "agree": "1", "consent": "1", "public": "1", "adult": "1"}, follow_redirects=False)
     assert r.status_code == 303
     u = db().query(models.User).filter_by(username="claude_ai").one()
     assert u.email == "claude_ai@bot.invalid" and u.email_verified and "ИИ" in u.name
     # обычным логинам почта по-прежнему нужна
     r = make_client().post("/register", data={"username": "someone1", "email": "-", "password": "secret123", "confirm_password": "secret123",
-                                             "agree": "1", "consent": "1", "adult": "1"})
+                                             "agree": "1", "consent": "1", "public": "1", "adult": "1"})
     assert "Некорректный email" in r.text
 
 
@@ -1222,3 +1222,17 @@ def test_compliance_pages_and_accessibility(alice, anon):
     # у фото в посте есть описание для экранных дикторов
     pid = create_post(alice, "Закат над морем", files=[("media", ("a.png", png_bytes(), "image/png"))])
     assert 'alt="Закат над морем"' in alice.get(f"/post/{pid}").text
+
+
+def test_public_consent_separate(alice, anon):
+    page = anon.get("/consent/public").text
+    assert "ст. 10.1" in page and "Настройки → Приватность" in page
+    base = {"username": "nopublic", "email": "np@example.com", "password": "secret123", "confirm_password": "secret123",
+            "agree": "1", "consent": "1", "adult": "1"}
+    assert "согласие на распространение" in anon.post("/register", data=base).text
+    assert db().query(models.User).filter_by(username="nopublic").first() is None
+    # старые аккаунты видят просьбу дать согласие, пока не согласятся
+    s = db(); u = s.query(models.User).filter_by(username="alice").one(); u.public_consent_at = None; s.commit(); s.close()
+    assert "/consent/public/accept" in alice.get("/").text
+    alice.post("/consent/public/accept")
+    assert "/consent/public/accept" not in alice.get("/").text

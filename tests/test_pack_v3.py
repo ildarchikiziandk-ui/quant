@@ -335,7 +335,7 @@ def test_ui_declutter(alice):
 def test_beautiful_handles(alice, owner):
     from services import handles
     c = make_client()
-    form = {"email": "x@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "adult": "1", "name": "X"}
+    form = {"email": "x@example.com", "password": "secret123", "confirm_password": "secret123", "agree": "1", "consent": "1", "public": "1", "adult": "1", "name": "X"}
     r = c.post("/register", data={**form, "username": "Love"}, follow_redirects=False)
     assert r.status_code != 303 and "зарезервирован" in r.text
     r = c.post("/register", data={**form, "username": "fox"}, follow_redirects=False)
@@ -455,7 +455,7 @@ def test_owner_admin_powers(owner, alice, bob):
     assert bob.get("/handles", follow_redirects=False).status_code == 303 and bob.get("/games").status_code == 200
     c = make_client()
     r = c.post("/register", data={"username": "newbie", "email": "n@example.com", "password": "secret123", "confirm_password": "secret123",
-                                  "agree": "1", "consent": "1", "adult": "1", "name": "N"}, follow_redirects=False)
+                                  "agree": "1", "consent": "1", "public": "1", "adult": "1", "name": "N"}, follow_redirects=False)
     assert r.status_code != 303 and "закрыта" in r.text
     owner.post("/admin/site/save", data={"on": [p for p, _ in site.SECTIONS], "registration": "1", "maintenance": "1", "maintenance_text": "Чиним"})
     site._cache["t"] = 0

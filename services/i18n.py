@@ -25,7 +25,7 @@ LANG: ContextVar[str] = ContextVar("lang", default="ru")
 
 CYR = re.compile(r"[А-Яа-яЁё]")
 # остаются на русском: юридические документы (действуют на русском языке) и админка (только для владельца)
-SKIP_TEMPLATES = ("terms.html", "privacy.html", "consent.html", "refund.html", "admin", "packs/v3/admin", "packs/v3/nuva_admin")
+SKIP_TEMPLATES = ("terms.html", "privacy.html", "consent.html", "consent_public.html", "refund.html", "admin", "packs/v3/admin", "packs/v3/nuva_admin")
 
 
 def skip_template(name):

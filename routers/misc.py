@@ -164,6 +164,25 @@ def privacy_page(request: Request, db: Session = Depends(get_db)):
     return render(request, db, "privacy.html")
 
 
+@router.get("/consent/public")
+def consent_public_page(request: Request, db: Session = Depends(get_db)):
+    return render(request, db, "consent_public.html")
+
+
+@router.post("/consent/public/accept")
+def consent_public_accept(request: Request, db: Session = Depends(get_db)):
+    """Отдельное согласие на распространение (ст. 10.1 152-ФЗ) — для тех, кто зарегистрировался раньше."""
+    from datetime import datetime
+    user = current_user(request, db)
+    if not user:
+        return login_redirect(request)
+    user.public_consent_at = datetime.utcnow()
+    db.commit()
+    if request.headers.get("x-requested-with"):
+        return {"ok": True}
+    return redirect("/")
+
+
 @router.get("/consent")
 def consent_page(request: Request, db: Session = Depends(get_db)):
     return render(request, db, "consent.html")
