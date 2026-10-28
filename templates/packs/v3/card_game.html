@@ -31,6 +31,14 @@
       {% for r in range(rows) %}{% set i = r * cols + c %}<i class="{{ cells[i] if cells[i] != '.' }}{% if i in line %} win{% endif %}{% if i == last %} last{% endif %}"></i>{% endfor %}</button>{% endfor %}
   </div>
   <div class="v3-card-foot"><span>{% if done %}{{ result() }}{% elif my_turn %}<b>Ваш ход</b> — нажмите на столбец{% else %}Ход соперника…{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}">Сыграть ещё</button>{% endif %}</div>
+{%- elif g.kind == "sea" %}
+  <div class="v3-card-head">{{ icon_svg("target", "i in") }} <span>Морской бой · {{ n }}×{{ n }}</span></div>
+  <div class="v3-ttt-who"><span>{{ an }}: <b>{{ enemy_left if side == "b" else mine_left }}</b> из {{ fleet }}</span><span>{{ bn }}: <b>{{ enemy_left if side != "b" else mine_left }}</b> из {{ fleet }}</span></div>
+  <div class="tiny v3-sea-cap">{% if done %}Флот соперника{% else %}Стреляйте по полю соперника{% endif %}</div>
+  <div class="v3-sea" style="--n:{{ n }}">{% for c in enemy %}<button type="button" class="{{ c }}{% if loop.index0 == last_enemy %} last{% endif %}" data-v3-gmove="{{ g.id }}" data-v="{{ loop.index0 }}" aria-label="{{ loop.index0 // n + 1 }}:{{ loop.index0 % n + 1 }}"{% if not my_turn or c %} disabled{% endif %}></button>{% endfor %}</div>
+  {% if side %}<div class="tiny v3-sea-cap">Ваш флот</div>
+  <div class="v3-sea mini" style="--n:{{ n }}">{% for c in mine %}<i class="{{ c }}{% if loop.index0 == last_mine %} last{% endif %}"></i>{% endfor %}</div>{% endif %}
+  <div class="v3-card-foot"><span>{% if done %}{{ result() }}{% elif again %}<b>Попадание!</b> Стреляйте ещё{% elif my_turn %}<b>Ваш ход</b> — выберите клетку{% else %}Ход соперника…{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}">Сыграть ещё</button>{% endif %}</div>
 {%- else %}
   <div class="v3-card-head">{{ icon_svg("type", "i in") }} <span>Виселица · загадал(а) {{ an }}</span></div>
   <div class="v3-hang-top"><span class="v3-hang-lives" title="Ошибок: {{ misses }} из {{ lives }}">{% for i in range(lives) %}<i class="{{ 'gone' if i < misses }}"></i>{% endfor %}</span><span class="tiny">ошибок {{ misses }}/{{ lives }}</span></div>

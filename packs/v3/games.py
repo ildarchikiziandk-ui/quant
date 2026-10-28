@@ -1,4 +1,10 @@
-"""Игры 3.0: «Словечко» (слово дня из 5 букв за 6 попыток) и 2048 с таблицей рекордов."""
+"""Игры 3.0: «Словечко» (слово дня из 5 букв за 6 попыток), 2048 с таблицей рекордов и «Игры без интернета».
+
+«Игры без интернета» (/games/offline) целиком работают в браузере: каждая игра — файл static/packs/v3/offline/<id>.js,
+общий каркас — offline/core.js. Сервер только отдаёт страницу и словари; сервис-воркер кладёт всё это в кэш заранее.
+Игра по локальной сети (Wi‑Fi без интернета) браузеру недоступна — он не умеет искать устройства рядом; для неё нужна
+нативная часть Android-приложения (поиск через NSD/Wi‑Fi Direct и мост в WebView). Пока есть бот и игра вдвоём на одном телефоне.
+"""
 import json
 import zlib
 from datetime import datetime
@@ -16,8 +22,12 @@ from services import gamification, social
 from . import models as m
 from .common import router, s, today
 
+# игры без интернета: порядок = порядок карточек на странице (одиночные игры каркас сам ставит в конец)
+OFFLINE_GAMES = ("ttt", "c4", "sea", "checkers", "reversi", "dots", "nim", "hang", "rps",
+                 "g2048", "mines", "snake", "sudoku", "fifteen", "word")
+
 # Слова дня: обычные существительные из 5 букв (без «ё» — её приравниваем к «е»)
-WORDS = """абзац аванс автор акула алмаз альбом ангел арбуз арена атлас афиша багаж бакен балет банан баран барин бархат башня
+_RAW = """абзац аванс автор акула алмаз альбом ангел арбуз арена атлас афиша багаж бакен балет банан баран барин бархат башня
 бегун белка берег бетон билет бизон блеск блюдо бочка бревно бровь брюки бублик буква булка бурав бутон быстро вагон
 вафля ведро веник верба весна ветер вечер вилка винт вишня влага вожак вокал волна ворон вывод гамак гараж гвоздь гений
 гитара глина globe голос город горох грант гроза груша гусар дверь девиз демон дождь доска дрова дубок дудка дятел
@@ -33,8 +43,10 @@ WORDS = """абзац аванс автор акула алмаз альбом �
 скала сказ скрип слива слово сокол сосна спорт стакан стена стиль стол страх струя судно сумка сфера сцена табак талант
 танец тапок тарел театр текст тепло тесто тигр толпа топор торт трава тренд труба туман тыква уголь узник улица успех
 утюг факел фасад ферма фильм флаг форма фраза фрукт халат хвост хлеб холод хомяк хорда хребет цапля цветок цирк чайка
-чашка шапка шарик шахта шифр шишка шкаф школа шорты шторм штрих шутка щенок экран эскиз юрист якорь ягода яхта""".split()
-WORDS = sorted({w.replace("ё", "е") for w in WORDS if len(w) == 5 and all("а" <= ch <= "я" for ch in w.replace("ё", "е"))})
+чашка шапка шарик шахта шифр шишка шкаф школа шорты шторм штрих шутка щенок экран эскиз юрист якорь ягода яхта"""
+_ALL = {w.replace("ё", "е") for w in _RAW.split() if all("а" <= ch <= "я" for ch in w.replace("ё", "е"))}
+WORDS = sorted(w for w in _ALL if len(w) == 5)
+HANG_WORDS = sorted(w for w in _ALL if 4 <= len(w) <= 10)  # бот загадывает их в офлайн-«Виселице»
 
 
 def word_of(day):
@@ -143,3 +155,29 @@ async def g2048_score(request: Request, db: Session = Depends(get_db)):
         row.best, row.updated_at = sc, datetime.utcnow()
     db.commit()
     return JSONResponse({"ok": True, "best": row.best, "record": new})
+
+
+# ---------------------------------------------------------------- игры без интернета
+def offline_files():
+    """Скрипты и стили раздела (пути внутри /static)."""
+    return ["packs/v3/offline/offline.css", "packs/v3/offline/core.js"] + [f"packs/v3/offline/{g}.js" for g in OFFLINE_GAMES]
+
+
+def offline_precache():
+    """Что сервис-воркер скачивает заранее, чтобы раздел открылся без сети: страница, её стили, скрипты, иконки и шрифты."""
+    import config
+    import packs
+    from services import icons
+    v = config.STATIC_V
+    files = ["css/app.css", "css/v3.css", "js/app.js", "js/more.js", *packs.CSS, *packs.JS, *offline_files()]
+    out = ["/games/offline"] + [f"/static/{f}?v={v}" for f in dict.fromkeys(files)]
+    out.append(f"/static/icons.svg?v={icons.SPRITE_V or v}")
+    out += ["/static/fonts/onest-cyrillic-wght-normal.woff2", "/static/fonts/unbounded-cyrillic-wght-normal.woff2"]
+    return out
+
+
+@router.get("/games/offline")
+def offline_games(request: Request, db: Session = Depends(get_db)):
+    """Открывается и без входа: игры не трогают аккаунт, а страницу должно быть можно положить в кэш."""
+    data = {"words5": WORDS, "words": HANG_WORDS}  # раскладка клавиатуры — в шаблоне, как в «Словечке»
+    return render(request, db, "packs/v3/games_offline.html", og_files=offline_files(), og_data=data)

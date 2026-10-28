@@ -1,4 +1,4 @@
-"""Готовит файлы сайта для APK: стили, скрипты, иконки, эмодзи, подарки и офлайн-экран.
+"""Готовит файлы сайта для APK: стили, скрипты (в том числе игр без интернета), иконки, эмодзи, подарки и офлайн-экран.
 
 Запуск (из корня репозитория, перед сборкой APK):  python3 tools/bundle_app.py
 Кладёт всё в android/app/src/main/assets/www и пишет manifest.json:
@@ -52,6 +52,8 @@ def main():
     except ImportError as e:  # без markupsafe спрайт не собрать — приложение возьмёт его из сети
         print("спрайт пропущен:", e)
 
+    # офлайн-экран; «Игры без интернета» (static/packs/v3/offline) уже встроены вместе со всем static/packs,
+    # а саму страницу /games/offline кладёт в кэш сервис-воркер
     shutil.copyfile(os.path.join(ROOT, "templates", "offline.html"), os.path.join(OUT, "offline.html"))
     with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump({"version": version, "files": files}, f, ensure_ascii=False, separators=(",", ":"))

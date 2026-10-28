@@ -29,7 +29,7 @@
   // живые карточки (открытый опрос, идущая партия) обновляются сами, пока чат открыт
   setInterval(() => { if (document.hidden) return; $$('.v3-live').slice(-6).forEach(c => { const r = c.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) refreshCard(c); }); }, 3500);
 
-  // игры: «Камень, ножницы, бумага», «Кости», «Четыре в ряд», «Виселица»
+  // игры: «Камень, ножницы, бумага», «Кости», «Четыре в ряд», «Виселица», «Морской бой»
   on('[data-v3-gmove]', async b => {
     const card = b.closest('.v3-card'); card?.querySelectorAll('[data-v3-gmove]').forEach(x => x.disabled = true);
     try { await A.api(`/v3/game/${b.dataset.v3Gmove}/move`, { v: b.dataset.v }); } catch (e) {}
@@ -50,7 +50,7 @@
   });
   const GAMES = [['ttt', 'grid', 'Крестики-нолики', 'по очереди, три в ряд'], ['c4', 'layers', 'Четыре в ряд', 'фишки падают вниз, нужно четыре подряд'],
     ['rps', 'wave', 'Камень, ножницы, бумага', 'до двух побед'], ['dice', 'dice', 'Кости', 'у кого больше на двух кубиках'],
-    ['hang', 'type', 'Виселица', 'вы загадываете слово, друг угадывает']];
+    ['hang', 'type', 'Виселица', 'вы загадываете слово, друг угадывает'], ['sea', 'target', 'Морской бой', 'поле 8×8, флот расставится сам']];
   // «+» в переписке: опрос или игра
   on('[data-v3-attach]', b => {
     const u = b.dataset.v3Attach;

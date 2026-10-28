@@ -4,12 +4,15 @@ const MEDIA_MAX = 400;
 const PAGES_CACHE = 'pages-v1';  // последние открытые страницы — их видно без интернета
 const PAGES_MAX = 40;
 // какие страницы сохраняем для офлайна (личные, но только на этом устройстве; стираются при выходе из аккаунта)
-const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word)?$|help$|ai$|capsule$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
+const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word|\/offline)?$|help$|ai$|capsule$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
 const BRAND = '__BRAND__';
 const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/offline'];
+// «Игры без интернета»: страница, её скрипты, стили, иконки и шрифты скачиваются сразу (список подставляет сервер)
+const OFFLINE = [/*__OFFLINE__*/];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE)).catch(() => {}));
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE).catch(() => {})
+    .then(() => Promise.all(OFFLINE.map(u => c.add(u).catch(() => {}))))));  // одна неудача не мешает остальным
   self.skipWaiting();
 });
 
@@ -25,8 +28,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
   if (req.headers.has('range') || url.pathname.startsWith('/static/promo/') || url.pathname.startsWith('/download/')) return;  // видео и скачивания — напрямую
-  if (url.pathname.startsWith('/static/')) {
-    // статика: сначала кэш, потом сеть
+  if (url.pathname.startsWith('/static/') || (url.pathname.startsWith('/i18n/') && url.search)) {
+    // статика (и переведённые скрипты с ?v=): сначала кэш, потом сеть
     e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => {
       if (res.status === 200) { const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(req, copy)); } return res;
     })));
@@ -52,7 +55,8 @@ self.addEventListener('fetch', e => {
         return res;
       } catch (err) {
         const c = await caches.open(PAGES_CACHE);
-        return (await c.match(url.pathname + url.search)) || (await c.match(url.pathname)) || (await caches.match('/offline')) || Response.error();
+        const games = url.pathname === '/games/offline' && await caches.match('/games/offline', { cacheName: CACHE_NAME });  // свежая, под текущую статику
+        return games || (await c.match(url.pathname + url.search)) || (await c.match(url.pathname)) || (await caches.match('/offline')) || Response.error();
       }
     })());
   }

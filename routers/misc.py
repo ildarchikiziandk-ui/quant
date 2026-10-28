@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
@@ -140,6 +142,11 @@ def manifest():
 def service_worker():
     with open("static/sw.js", encoding="utf-8") as f:
         body = f.read().replace("__BRAND__", config.BRAND_NAME).replace("__VERSION__", config.STATIC_V)
+    try:  # «Игры без интернета» (packs/v3): что положить в кэш заранее
+        from packs.v3.games import offline_precache
+        body = body.replace("/*__OFFLINE__*/", ",".join(json.dumps(u) for u in offline_precache()))
+    except ImportError:
+        pass
     return PlainTextResponse(body, media_type="application/javascript", headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"})
 
 

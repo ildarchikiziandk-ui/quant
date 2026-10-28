@@ -223,7 +223,7 @@ def card(msg, user):
                 return ""
             html = templates.get_template("packs/v3/card_gift.html").render(g=g, info=info, msg=msg, user=user,
                                                                              sender=db.get(models.User, g.from_user_id), to=db.get(models.User, g.to_user_id))
-        elif kind in ("rps", "dice", "c4", "hang"):
+        elif kind in ("rps", "dice", "c4", "hang", "sea"):
             from .chat_games import view
             g = db.get(m.ChatGame, oid)
             if not g:

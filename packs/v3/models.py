@@ -234,11 +234,11 @@ class LoginApproval(Base):
     decided_at = Column(DateTime, nullable=True)
 
 
-# --- Игры в переписке: камень-ножницы-бумага, кости, четыре в ряд, виселица ------------------------------------
+# --- Игры в переписке: камень-ножницы-бумага, кости, четыре в ряд, виселица, морской бой ------------------------------------
 class ChatGame(Base):
     __tablename__ = "v3_chat_games"
     id = Column(Integer, primary_key=True)
-    kind = Column(String(8), index=True)  # rps, dice, c4, hang
+    kind = Column(String(8), index=True)  # rps, dice, c4, hang, sea
     a_id = Column(Integer, ForeignKey("users.id"), index=True)  # кто предложил игру
     b_id = Column(Integer, ForeignKey("users.id"), index=True)
     state = Column(Text, default="{}")

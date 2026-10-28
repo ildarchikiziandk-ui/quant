@@ -19,6 +19,7 @@ SKIP_PY = {"services/profanity.py", "services/moderation.py", "packs/v3/nuva_lan
            "routers/admin.py"}
 JS = ["static/js/app.js", "static/js/more.js", "static/js/chat.js", "static/js/secret.js", "static/js/gost.js",
       "static/packs/v3/v3.js", "static/packs/v3/calls.js", "static/packs/v3/media.js"]
+JS += sorted(os.path.relpath(p, ROOT).replace(os.sep, "/") for p in glob.glob(os.path.join(ROOT, "static", "packs", "v3", "offline", "*.js")))  # игры без интернета
 
 
 def collect():

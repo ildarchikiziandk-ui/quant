@@ -3,7 +3,9 @@
 - rps  — «Камень, ножницы, бумага»: до двух побед, выбор соперника виден только когда оба выбрали;
 - dice — «Кости»: каждый бросает два кубика, у кого больше — тот победил;
 - c4   — «Четыре в ряд»: поле 7×6, фишка падает вниз, побеждает четыре подряд;
-- hang — «Виселица»: один загадывает слово, другой угадывает буквы, 6 ошибок — проигрыш.
+- hang — «Виселица»: один загадывает слово, другой угадывает буквы, 6 ошибок — проигрыш;
+- sea  — «Морской бой»: поле 8×8 (помещается в пузырь на телефоне), флот расставляет сервер случайно;
+         корабли соперника в карточку не попадают, пока их не подбили или игра не кончилась; попал — стреляй ещё.
 """
 import json
 import random
@@ -24,13 +26,16 @@ from . import models as m
 from .chat import _send_special
 from .common import router, s
 
-KINDS = ("rps", "dice", "c4", "hang")
+KINDS = ("rps", "dice", "c4", "hang", "sea")
 RPS = {"r": "✊", "p": "✋", "s": "✌️"}
 RPS_BEATS = {"r": "s", "s": "p", "p": "r"}
 RPS_WINS = 2
 COLS, ROWS = 7, 6
 HANG_LIVES = 6
 ALPHABET = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
+SEA_N = 8
+SEA_FLEET = (4, 3, 3, 2, 2, 1, 1)  # 16 клеток из 64; корабли не касаются друг друга даже углами
+_rng = random.SystemRandom()  # расстановка честная: не угадать по зерну генератора
 
 
 def _load(g):
@@ -50,6 +55,62 @@ def _word(raw):
     return w if re.fullmatch(f"[{ALPHABET}]{{3,14}}", w) else ""
 
 
+def _halo(cells):
+    """Клетки корабля и всё вокруг него (соседи по сторонам и углам)."""
+    out = set()
+    for x in cells:
+        r, c = divmod(x, SEA_N)
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                if 0 <= r + dr < SEA_N and 0 <= c + dc < SEA_N:
+                    out.add((r + dr) * SEA_N + c + dc)
+    return out
+
+
+def sea_fleet(rng=_rng):
+    """Случайная расстановка флота: список кораблей, корабль — список номеров клеток (ряд * 8 + столбец)."""
+    while True:
+        busy, ships = set(), []
+        for size in SEA_FLEET:
+            for _ in range(300):
+                horiz = rng.random() < .5
+                r = rng.randrange(SEA_N - (0 if horiz else size - 1))
+                c = rng.randrange(SEA_N - (size - 1 if horiz else 0))
+                cells = [r * SEA_N + c + k if horiz else (r + k) * SEA_N + c for k in range(size)]
+                if not busy.intersection(cells):
+                    ships.append(cells)
+                    busy |= _halo(cells)
+                    break
+            else:
+                break  # не влез — расставляем заново
+        else:
+            return ships
+
+
+def _sea_board(st, owner, shooter, reveal):
+    """Поле игрока owner глазами shooter: "" — неизвестно, m — мимо, h — ранен, s — потоплен,
+    x — пусто рядом с потопленным, o — целый корабль (только своё поле или после конца игры)."""
+    shots = set(st["shots"][shooter])
+    cells = [""] * (SEA_N * SEA_N)
+    for x in shots:
+        cells[x] = "m"
+    afloat = 0
+    for ship in st["ships"][owner]:
+        sunk = all(x in shots for x in ship)
+        afloat += not sunk
+        if sunk:
+            for x in _halo(ship):
+                if not cells[x]:
+                    cells[x] = "x"
+        for x in ship:
+            cells[x] = ("s" if sunk else "h") if x in shots else "o" if reveal else ""
+    return cells, afloat
+
+
+def _first_turn(kind, user, other):
+    return user.id if kind in ("c4", "sea") else other.id if kind == "hang" else None
+
+
 def new_state(kind, word=""):
     if kind == "rps":
         return {"a": [], "b": []}
@@ -57,6 +118,8 @@ def new_state(kind, word=""):
         return {"a": None, "b": None}
     if kind == "c4":
         return {"board": "." * (COLS * ROWS), "last": -1}
+    if kind == "sea":
+        return {"ships": {"a": sea_fleet(), "b": sea_fleet()}, "shots": {"a": [], "b": []}, "last": None}
     return {"word": word, "guessed": ""}
 
 
@@ -80,8 +143,7 @@ async def create_game(username: str, request: Request, db: Session = Depends(get
     err = _precheck(db, user, other)
     if err:
         return err
-    g = m.ChatGame(kind=kind, a_id=user.id, b_id=other.id, state="{}",
-                   turn=user.id if kind == "c4" else other.id if kind == "hang" else None)
+    g = m.ChatGame(kind=kind, a_id=user.id, b_id=other.id, state="{}", turn=_first_turn(kind, user, other))
     _save(g, new_state(kind, word))
     db.add(g)
     db.flush()
@@ -183,6 +245,27 @@ async def game_move(game_id: int, request: Request, db: Session = Depends(get_db
             g.winner = g.b_id
         elif _hang_misses(st) >= HANG_LIVES:
             g.winner = g.a_id
+    elif g.kind == "sea":
+        if g.turn != user.id:
+            return json_error("Сейчас ход соперника")
+        try:
+            i = int(v)
+        except ValueError:
+            return json_error("Неверная клетка")
+        if not 0 <= i < SEA_N * SEA_N or i in st["shots"][side]:
+            return json_error("Сюда уже стреляли")
+        st["shots"][side].append(i)
+        st["last"] = {"by": side, "i": i}
+        enemy = st["ships"][other_side]
+        hit = any(i in ship for ship in enemy)
+        shots = set(st["shots"][side])
+        if all(x in shots for ship in enemy for x in ship):
+            g.winner = user.id
+        elif not hit:  # попал — стреляешь ещё, промахнулся — ход соперника
+            g.turn = g.b_id if side == "a" else g.a_id
+        _save(g, st)
+        db.commit()
+        return JSONResponse({"ok": True, "winner": g.winner, "hit": hit})
     _save(g, st)
     db.commit()
     return JSONResponse({"ok": True, "winner": g.winner})
@@ -205,8 +288,7 @@ async def game_rematch(game_id: int, request: Request, db: Session = Depends(get
     err = _precheck(db, user, other)
     if err:
         return err
-    ng = m.ChatGame(kind=g.kind, a_id=user.id, b_id=other.id, state="{}",
-                    turn=user.id if g.kind == "c4" else other.id if g.kind == "hang" else None)
+    ng = m.ChatGame(kind=g.kind, a_id=user.id, b_id=other.id, state="{}", turn=_first_turn(g.kind, user, other))
     _save(ng, new_state(g.kind, word))
     db.add(ng)
     db.flush()
@@ -240,6 +322,18 @@ def view(db, g, user):
         d["cols"], d["rows"] = COLS, ROWS
         d["my_turn"] = g.turn == me and not d["done"]
         d["full"] = [st["board"][c] != "." for c in range(COLS)]
+    elif g.kind == "sea":
+        foe = "b" if side == "a" else "a"
+        me_side = side or "a"  # посторонний видит поле без кораблей
+        d["enemy"], d["enemy_left"] = _sea_board(st, foe, me_side, d["done"])
+        d["mine"], d["mine_left"] = _sea_board(st, me_side, foe, bool(side) or d["done"])
+        d["n"] = SEA_N
+        d["my_turn"] = bool(side) and g.turn == me and not d["done"]
+        last = st.get("last") or {}
+        d["last_enemy"] = last.get("i", -1) if last.get("by") == side else -1  # мой последний выстрел
+        d["last_mine"] = last.get("i", -1) if last and last.get("by") != side else -1
+        d["again"] = d["my_turn"] and d["last_enemy"] >= 0 and d["enemy"][d["last_enemy"]] in ("h", "s")
+        d["fleet"] = len(SEA_FLEET)
     else:
         word, guessed = st["word"], st["guessed"]
         show_all = d["done"] or me == g.a_id

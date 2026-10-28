@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Игры без интернета — {{ brand }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/packs/v3/offline/offline.css?v={{ static_v }}">{% endblock %}
+{% block content %}
+<div class="og-app" id="og-app">
+  <div class="og-home" id="og-home">
+    <div class="page-head"><a href="/games" class="back-link" aria-label="Назад">{{ icon("back") }}</a><div class="page-title grow" style="margin:0">Игры без интернета</div></div>
+    <div class="og-note card">{{ icon("download", "i in") }}<div class="grow"><b>Работают без сети</b><div class="small muted">Откройте раздел один раз — дальше он запускается и в самолёте. Играйте с ботом или вдвоём на одном телефоне.</div></div></div>
+    <div id="og-list"><noscript><div class="card small muted">Для игр нужен JavaScript.</div></noscript></div>
+    <p class="tiny faint center mt">Игра с другом по Wi‑Fi без интернета появится в приложении для Android.</p>
+  </div>
+  <div class="og-play" id="og-play" hidden></div>
+</div>
+<script type="application/json" id="og-data">{{ dict(og_data, kb=["йцукенгшщзхъ", "фывапролджэ", "ячсмитьбю"])|tojson }}</script>
+{% endblock %}
+{% block scripts %}{% for f in og_files if f.endswith(".js") %}<script src="{{ js_src(f) }}?v={{ static_v }}" defer></script>{% endfor %}{% endblock %}

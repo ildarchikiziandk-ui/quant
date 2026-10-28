@@ -390,6 +390,19 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .v3-game .v3-ttt-who > span:last-child { text-align: right; }
 .v3-hang-top { gap: 8px; } .v3-hang-kb { width: 100%; }
 .v3-game .v3-card-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* морской бой: поле соперника — кнопки, своё — уменьшенная копия */
+.v3-sea { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 2px; width: 100%; max-width: 260px; align-self: center; padding: 3px; border-radius: 10px; background: color-mix(in srgb, var(--brand) 16%, transparent); }
+.v3-sea.mini { max-width: 150px; gap: 1px; padding: 2px; border-radius: 7px; }
+.v3-sea > * { aspect-ratio: 1; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: color-mix(in srgb, var(--card) 80%, transparent); color: inherit; font: inherit; }
+.v3-sea.mini > * { border-radius: 2px; }
+.v3-sea button:not(:disabled) { cursor: pointer; } .v3-sea button:not(:disabled):hover { background: color-mix(in srgb, var(--brand) 30%, var(--card)); }
+.v3-sea .o { background: color-mix(in srgb, var(--text) 45%, transparent); }
+.v3-sea .m::after, .v3-sea .x::after { content: ""; width: 26%; aspect-ratio: 1; border-radius: 50%; background: var(--text-2); }
+.v3-sea .x { background: color-mix(in srgb, var(--card) 55%, transparent); } .v3-sea .x::after { opacity: .45; }
+.v3-sea .h { background: #e0475a; } .v3-sea .s { background: #8f2633; }
+.v3-sea .h::after, .v3-sea .s::after { content: ""; width: 46%; height: 46%; background: linear-gradient(45deg, transparent 42%, #fff 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, #fff 42% 58%, transparent 58%); }
+.v3-sea .last { box-shadow: 0 0 0 2px var(--bookmark); }
+.v3-sea-cap { opacity: .75; font-weight: 600; text-align: center; }
 
 /* подарок в переписке */
 .v3-gift { color: inherit; text-decoration: none; }
