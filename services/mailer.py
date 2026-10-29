@@ -55,6 +55,8 @@ def _send_sync(to_email, subject, body):
         msg = MIMEMultipart()
         msg["From"] = formataddr((str(Header(config.BRAND_NAME, "utf-8")), config.SMTP_USER))
         msg["To"] = to_email
+        if config.BRAND_EMAIL and config.BRAND_EMAIL != config.SMTP_USER:
+            msg["Reply-To"] = config.BRAND_EMAIL  # ответы на письма с кодами идут в ящик для вопросов
         msg["Subject"] = Header(subject, "utf-8")
         msg.attach(MIMEText(body, "html", "utf-8"))
         if config.SMTP_PORT == 465:

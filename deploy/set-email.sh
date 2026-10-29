@@ -42,7 +42,12 @@ PY
 set_var SMTP_HOST "$HOST"
 set_var SMTP_USER "$USER_EMAIL"
 set_var SMTP_PASSWORD "$PASS"
-set_var BRAND_EMAIL "$USER_EMAIL"
+# ящик для вопросов отдельный: support@ домена; меняем только заглушку или адрес-отправитель
+CUR=$(grep -E '^BRAND_EMAIL=' "$ENV" | cut -d= -f2- || true)
+if [ -z "$CUR" ] || [[ "$CUR" == *example.* ]] || [ "$CUR" = "$USER_EMAIL" ]; then
+  SITE=$(grep -E '^SITE_URL=' "$ENV" | cut -d= -f2- | sed -E 's#^https?://##; s#/.*$##; s#:.*$##' || true)
+  [ -n "$SITE" ] && set_var BRAND_EMAIL "support@$SITE"
+fi
 chown nuvora:nuvora "$ENV"; chmod 600 "$ENV"
 
 cd "$APP_DIR"

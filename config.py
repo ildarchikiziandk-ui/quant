@@ -40,9 +40,14 @@ APP_VERSION = "3.1"
 DISABLED_FEATURES = [p for p in env("DISABLED_FEATURES", "/random,/guests,/notes,/memories,/wheel,/questions,/ask").split(",") if p.strip()]  # номер версии сайта — показывается в «Что нового»
 BRAND_TAGLINE = env("BRAND_TAGLINE", "Соцсеть, где светятся идеи")
 BRAND_PLUS = env("BRAND_PLUS", f"{BRAND_NAME}+")
-BRAND_EMAIL = env("BRAND_EMAIL", "support@example.com")
 BRAND_COLOR = env("BRAND_COLOR", "#18181b")
 SITE_URL = env("SITE_URL", "http://localhost:8000").rstrip("/")
+_SITE_HOST = SITE_URL.split("//")[-1].split("/")[0].split(":")[0]
+_MAIL_HOST = _SITE_HOST if "." in _SITE_HOST else "nvra.ru"
+# Почта для вопросов (показывается на сайте и в документах); заглушка example.* из старых .env не считается
+BRAND_EMAIL = env("BRAND_EMAIL", "")
+if not BRAND_EMAIL or "example." in BRAND_EMAIL:
+    BRAND_EMAIL = f"support@{_MAIL_HOST}"
 ANDROID_REPO = env("ANDROID_REPO", "ildarchikiziandk-ui/quant")  # где CI публикует сборки APK (GitHub Releases)
 # Ссылка «Скачать приложение»: сайт сам раздаёт последний APK (берёт его с GitHub и хранит копию у себя)
 ANDROID_APK_URL = env("ANDROID_APK_URL", "/download/android.apk")
@@ -96,7 +101,9 @@ SECRET_RETAIN_DAYS = int(env("SECRET_RETAIN_DAYS", "0"))
 OPERATOR_NAME = env("OPERATOR_NAME", "")      # ФИО (самозанятый/ИП) или название организации
 OPERATOR_INN = env("OPERATOR_INN", "")
 OPERATOR_ADDRESS = env("OPERATOR_ADDRESS", "")
-OPERATOR_EMAIL = env("OPERATOR_EMAIL", "") or BRAND_EMAIL
+OPERATOR_EMAIL = env("OPERATOR_EMAIL", "")
+if not OPERATOR_EMAIL or "example." in OPERATOR_EMAIL:
+    OPERATOR_EMAIL = BRAND_EMAIL
 SERVER_LOCATION = env("SERVER_LOCATION", "")  # например «Россия, Москва» — для 152-ФЗ ст. 18 ч. 5 (локализация)
 MIN_AGE = int(env("MIN_AGE", "14"))
 
@@ -135,7 +142,9 @@ def _auto_vapid():
 
 if not (VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY) and env_bool("VAPID_AUTO", True):
     VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY = _auto_vapid()
-VAPID_EMAIL = env("VAPID_EMAIL", f"mailto:{BRAND_EMAIL}")
+VAPID_EMAIL = env("VAPID_EMAIL", "")
+if not VAPID_EMAIL or "example." in VAPID_EMAIL:
+    VAPID_EMAIL = f"mailto:{BRAND_EMAIL}"
 
 # --- Яндекс OAuth --------------------------------------------------------
 YANDEX_CLIENT_ID = env("YANDEX_CLIENT_ID", "")
