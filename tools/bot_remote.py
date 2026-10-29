@@ -1,4 +1,4 @@
-"""Claude в Nuvora через GitHub Actions: выполняет присланные команды от имени claude_ai и печатает, что нового.
+"""Claude в Nuvora: выполняет присланные команды от имени claude_ai и печатает, что нового.
 
 Команды — JSON-список в BOT_COMMANDS, например:
   [{"do": "dm", "to": "rubl", "text": "Привет"}, {"do": "post", "text": "..."},
