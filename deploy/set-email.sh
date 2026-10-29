@@ -78,6 +78,7 @@ if [[ "$RESULT" == OK ]]; then
 else
   echo
   echo "❌ Письмо отправить не удалось."
+  echo "Ответ почтового сервера: ${RESULT#ERR }"
   case "$RESULT" in
     *535*|*uthentication*|*Invalid*|*password*|*Username*)
       if [ "$HOST" = smtp.beget.com ]; then
