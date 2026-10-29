@@ -15,3 +15,5 @@ data/app/
 
 # школа: база и скачанные APK
 school/data/
+bot_state.json
+bot.log
