@@ -72,8 +72,7 @@ def user_card(username: str, request: Request, ok: str = "", err: str = "", db: 
                purchases=db.query(m.HandlePurchase).filter_by(user_id=uid).order_by(m.HandlePurchase.id.desc()).all())
     if me.is_owner:  # личные данные — только владельцу
         ctx["sessions"] = db.query(models.UserSession).filter_by(user_id=uid).order_by(models.UserSession.last_active.desc()).limit(20).all()
-    from . import phone
-    return render(request, db, "packs/v3/admin_user.html", sidebar=False, phone_check=phone.status_of(db, t), **ctx)
+    return render(request, db, "packs/v3/admin_user.html", sidebar=False, **ctx)
 
 
 ACTIONS = {}
@@ -191,13 +190,6 @@ def _verify_email(db, me, t, f):
     return "Email отмечен подтверждённым", False
 
 
-@action("phone-ask")
-def _phone_ask(db, me, t, f):
-    from . import phone
-    phone.require(db, t, "просьба администрации", force=True)
-    return "При следующем заходе попросим подтвердить номер в боте MAX (можно пропустить кнопкой «Нет MAX»)", False
-
-
 @action("posts-lock")
 def _posts_lock(db, me, t, f):
     from .accounts import posts_locked, set_locked
@@ -283,8 +275,7 @@ def site_page(request: Request, ok: str = "", db: Session = Depends(get_db)):
     owners = {u.id: u for u in db.query(models.User).filter(models.User.id.in_([g.owner_id for g, _ in groups] or [0]))}
     return render(request, db, "packs/v3/admin_site.html", sidebar=False, ok=ok, sections=site.SECTIONS, disabled=set(site.disabled()),
                   registration=site.get("registration"), maintenance=site.get("maintenance"), maintenance_text=site.get("maintenance_text"),
-                  calls=site.get("calls"), phone_check=site.get("phone_check"), phone_every=site.get("phone_every"),
-                  bot_ready=bool(config.MAX_BOT_TOKEN and config.MAX_BOT_USERNAME), bot=config.MAX_BOT_USERNAME, packs=stickers.PACKS, packs_off=set(site.get("sticker_packs_off") or []),
+                  calls=site.get("calls"), packs=stickers.PACKS, packs_off=set(site.get("sticker_packs_off") or []),
                   banned_ips="\n".join(site.get("banned_ips") or []), reserved="\n".join(site.get("reserved_handles") or []),
                   my_ip=request.client.host if request.client else "",
                   groups=groups, owners=owners, users_n=db.query(models.User).filter(models.User.is_blocked != True).count())
@@ -305,11 +296,6 @@ async def site_save(request: Request, db: Session = Depends(get_db)):
     site.put(db, "read_only", bool(f.get("read_only")))
     site.put(db, "payments_on", bool(f.get("payments_on")))
     site.put(db, "read_only_text", s(f.get("read_only_text")).strip()[:300])
-    site.put(db, "phone_check", bool(f.get("phone_check")))
-    try:
-        site.put(db, "phone_every", max(1, min(1000, int(s(f.get("phone_every")) or 20))))
-    except ValueError:
-        pass
     on_packs = set(f.getlist("pack"))
     site.put(db, "sticker_packs_off", [pid for pid, _, _ in stickers.PACKS if pid not in on_packs])
     # блокировка по IP: адреса и подсети (1.2.3.4, 10.0.0.0/8); свой текущий адрес заблокировать нельзя

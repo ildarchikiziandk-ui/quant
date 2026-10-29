@@ -67,9 +67,7 @@ def _finish_login(request, db, user, next_url="/", approved=False):
     resp = redirect(safe_next(next_url))
     auth.set_auth_cookie(resp, token)
     resp.delete_cookie("pending_2fa")
-    from packs.v3 import phone
-    if phone.pending(db, user):  # ждёт подтверждения номера — сайт сам откроет страницу проверки
-        resp.set_cookie(phone.COOKIE, "1", max_age=30 * 86400, samesite="lax", secure=config.COOKIE_SECURE)
+    resp.delete_cookie("pv")  # от прежней проверки номера
     return resp
 
 
@@ -201,9 +199,6 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
     follow_owner(db, user)  # все подписаны на владельца по умолчанию
     from packs.v3.communities import join_official
     join_official(db, user)  # и на официальное сообщество Nuvora
-    from packs.v3 import phone
-    if not bot:
-        phone.on_register(db, user, request)  # выборочно и при подозрении — подтверждение номера
     if config.EMAIL_ENABLED and not bot:
         _send_code(db, email, "register")
     db.add(models.Notification(user_id=user.id, type="system",
@@ -397,8 +392,6 @@ async def yandex_callback(request: Request, code: str = "", state: str = "", db:
         follow_owner(db, user)
         from packs.v3.communities import join_official
         join_official(db, user)
-        from packs.v3 import phone
-        phone.on_register(db, user, request)
         new = True
     if user.two_factor_enabled and user.two_factor_secret:
         pending = auth.create_token({"uid": user.id, "purpose": "2fa", "exp": datetime.utcnow() + timedelta(minutes=5)})

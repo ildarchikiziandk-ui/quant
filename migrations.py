@@ -175,6 +175,11 @@ def run():
             print(f"[migrations] добавлены колонки: {', '.join(added)}")
     except Exception as e:  # миграция не должна валить запуск
         print(f"[migrations] warning: {e}")
+    try:  # проверку номера через MAX убрали — номера не храним
+        with engine.begin() as conn:
+            conn.exec_driver_sql("DROP TABLE IF EXISTS v3_phone_checks")
+    except Exception as e:
+        print(f"[migrations] v3_phone_checks: {e}")
     try:
         n = encrypt_existing_messages()
         if n:

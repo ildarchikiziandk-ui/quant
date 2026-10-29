@@ -224,11 +224,6 @@ def _deliver(db, user, other, msg):
     gamification.complete_task(user, db, "message")
     if msg.scheduled_pending:  # отложенное: уведомление придёт, когда сообщение будет доставлено
         return JSONResponse({"ok": True, "id": msg.id, "scheduled": True})
-    from packs.v3 import phone
-    if phone.on_message(db, user):  # новый аккаунт пишет многим незнакомым — просим подтвердить номер
-        resp = JSONResponse({"ok": True, "id": msg.id})
-        resp.set_cookie(phone.COOKIE, "1", max_age=30 * 86400, samesite="lax")
-        return resp
     st = chatstyle.setting(db, other, user.id)
     if st and st.archived:  # новое сообщение возвращает чат из архива
         st.archived = False
@@ -251,11 +246,6 @@ def _precheck(db, user, other):
         return json_error(reason, 403)
     if not ratelimit.hit(f"msg:{user.id}", 40, 60):
         return json_error("Слишком много сообщений, подождите", 429)
-    from packs.v3 import phone
-    if phone.pending(db, user):
-        r = json_error("Подтвердите номер телефона, чтобы писать сообщения — откройте любую страницу сайта", 403)
-        r.set_cookie(phone.COOKIE, "1", max_age=30 * 86400, samesite="lax")
-        return r
     return None
 
 
