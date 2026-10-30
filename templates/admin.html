@@ -116,11 +116,12 @@
   <div class="row wrap">{% for w in stop_words %}<form method="post" action="/admin/stopwords/{{ w.id }}/delete"><button class="chip">{{ w.word }} {{ icon("x", "i in") }}</button></form>{% else %}<span class="muted small">Список пуст</span>{% endfor %}</div></div>
 
 {% elif tab == "plus" and is_owner %}
+<div class="card row wrap" style="justify-content:space-between;align-items:center"><div><div class="card-title" style="margin:0">{{ icon("gift", "i in") }} Подарочные сертификаты</div><div class="small muted">Красивая картинка с кодом, QR и вашей подписью</div></div><a class="btn" href="/admin/certificates">Создать сертификат</a></div>
 <form class="card" method="post" action="/admin/create_promo"><div class="card-title">Новый промокод</div>
   <div class="form-row"><label class="field"><span>Код (пусто — случайный)</span><input name="code" style="text-transform:uppercase"></label><label class="field"><span>Дней</span><input name="days" type="number" value="30" min="1"></label><label class="field"><span>Активаций</span><input name="max_uses" type="number" value="1" min="1"></label></div>
   <button class="btn">Создать</button></form>
 <div class="card table-wrap"><table class="table"><tr><th>Код</th><th>Дней</th><th>Использовано</th><th>Статус</th><th></th></tr>
-{% for p in promocodes %}<tr><td><span class="kbd">{{ p.code }}</span></td><td>{{ p.days }}</td><td>{{ p.uses }}/{{ p.max_uses }}</td><td>{{ "активен" if p.is_active else "выкл" }}</td><td><form method="post" action="/admin/promo/{{ p.id }}/toggle"><button class="btn ghost sm">{{ "Выключить" if p.is_active else "Включить" }}</button></form></td></tr>{% endfor %}
+{% for p in promocodes %}<tr><td><span class="kbd">{{ p.code }}</span></td><td>{{ p.days }}</td><td>{{ p.uses }}/{{ p.max_uses }}</td><td>{{ "активен" if p.is_active else "выкл" }}</td><td class="row"><a class="btn ghost sm" href="/admin/certificates?made={{ p.id }}">Сертификат</a><form method="post" action="/admin/promo/{{ p.id }}/toggle"><button class="btn ghost sm">{{ "Выключить" if p.is_active else "Включить" }}</button></form></td></tr>{% endfor %}
 </table></div>
 
 {% elif tab == "content" and is_owner %}

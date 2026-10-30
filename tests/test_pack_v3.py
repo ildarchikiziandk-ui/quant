@@ -1118,3 +1118,20 @@ def test_chat_pages_older(alice, bob):
     assert carol.get(f"/messages/older/bob?before={min(ids)}").status_code == 404
     # непрочитанные видны все, даже если их больше страницы
     assert len(re.findall(r'id="msg-\d+"', bob.get("/messages/alice").text)) == 62
+
+
+def test_gift_certificates(owner, alice):
+    page = owner.get("/admin/certificates")
+    assert page.status_code == 200 and "Новый сертификат" in page.text
+    assert alice.get("/admin/certificates", follow_redirects=False).status_code in (302, 303)
+    r = owner.post("/admin/certificates/new", data={"days": "35", "recipient": "Твану"}, follow_redirects=False)
+    assert r.status_code in (302, 303)
+    pid = int(r.headers["location"].split("made=")[1])
+    s = db()
+    p = s.get(models.Promocode, pid)
+    assert p.days == 35 and p.max_uses == 1 and p.note == "Твану" and len(p.code) == 8
+    png = owner.get(f"/admin/certificates/{pid}.png")
+    assert png.status_code == 200 and png.content[:4] == b"\x89PNG"
+    assert alice.get(f"/admin/certificates/{pid}.png").status_code == 404
+    assert p.code in owner.get(f"/plus?code={p.code}").text  # QR ведёт на страницу с уже вписанным кодом
+    s.close()

@@ -415,6 +415,7 @@ class Promocode(Base):
     max_uses = Column(Integer, default=1)
     uses = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
+    note = Column(String, default="")  # кому — для подарочного сертификата
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Story(Base):
