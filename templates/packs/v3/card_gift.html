@@ -2,6 +2,6 @@
 <a class="v3-card v3-gift" href="/gifts/{{ to.username if to else '' }}">
   <div class="v3-card-head">{{ icon_svg("gift", "i in") }} <span>{% if mine %}Вы подарили{% else %}Подарок для вас{% endif %}</span></div>
   <div class="v3-gift-body"><img src="/static/gifts/{{ g.gift_code }}.svg" alt="" width="96" height="96" loading="lazy">
-    <div><b>{{ info[2] }}</b>{% if g.message %}<div class="v3-gift-msg">«{{ g.message }}»</div>{% endif %}
+    <div><b>{{ info[2] }}</b>{% if kind == "limited" and num %} <span class="tiny">№{{ num }}</span>{% elif kind == "founder" %} <span class="tiny">· от создателя</span>{% endif %}{% if g.message %}<div class="v3-gift-msg">«{{ g.message }}»</div>{% endif %}
       <div class="tiny" style="opacity:.75">{% if mine %}для {{ dname(to) if to else "" }}{% else %}от {{ dname(sender) if sender else "" }}{% endif %}</div></div></div>
 </a>

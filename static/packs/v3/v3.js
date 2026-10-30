@@ -70,7 +70,7 @@
   async function giftForm(u) {
     let r; try { r = await A.get('/v3/gifts'); } catch (e) { return; }
     const md = A.modal('Подарок', `<div class="small muted mb">У вас ${r.balance} искр. Подарок появится в переписке и в профиле получателя.</div>
-      <div class="v3-giftpick">${r.gifts.map(g => `<button type="button" data-g="${g.code}"${g.plus && !r.plus ? ' disabled title="Только с Nuvora+"' : ''}><img src="/static/gifts/${g.code}.svg" alt=""><b>${g.name}</b><span>${g.price} искр${g.plus ? ' · Plus' : ''}</span></button>`).join('')}</div>
+      <div class="v3-giftpick">${r.gifts.map(g => `<button type="button" data-g="${g.code}" class="gk-${g.kind}"${g.off ? ` disabled title="${g.note}"` : g.plus && !r.plus ? ' disabled title="Только с Nuvora+"' : ''}><img src="/static/gifts/${g.code}.svg" alt=""><b>${g.name}</b><span>${g.kind === 'founder' ? 'только вы' : g.price + ' искр'}${g.plus ? ' · Plus' : ''}${g.kind === 'limited' ? ' · лимит' : ''}${g.note ? ' · ' + g.note : ''}</span></button>`).join('')}</div>
       <input id="v3-gmsg" maxlength="140" placeholder="Подпись (необязательно)" class="mt"><button class="btn block mt" id="v3-ggo" disabled>Подарить</button>`);
     let pick = '';
     $$('[data-g]', md).forEach(b => b.onclick = () => { $$('[data-g]', md).forEach(x => x.classList.remove('on')); b.classList.add('on'); pick = b.dataset.g; $('#v3-ggo', md).disabled = false; });

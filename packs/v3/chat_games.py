@@ -355,7 +355,12 @@ def gifts_list(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return json_error("auth", 401)
-    items = [{"code": c, "name": n, "price": plus.gift_price(user, p), "plus": c in plus.EXCLUSIVE_GIFTS}
-             for c, _e, n, p in extras.GIFTS]
+    items = []
+    for c, _e, n, p in extras.GIFTS:
+        ok, note, left = extras.gift_state(db, c, user)
+        if not ok and (note == "Ещё не вышел" or extras.KIND.get(c) == "founder"):
+            continue
+        items.append({"code": c, "name": n, "price": plus.gift_price(user, p), "plus": c in plus.EXCLUSIVE_GIFTS,
+                      "kind": extras.KIND.get(c), "off": not ok, "note": note or (f"осталось {left}" if left is not None else "")})
     bal = extras.balance(user)
     return JSONResponse({"ok": True, "gifts": items, "balance": "∞" if user.is_owner else bal, "plus": plus.active(user)})

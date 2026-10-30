@@ -221,7 +221,7 @@ def card(msg, user):
             info = extras.GIFT_BY_CODE.get(g.gift_code) if g else None
             if not g or not info:
                 return ""
-            html = templates.get_template("packs/v3/card_gift.html").render(g=g, info=info, msg=msg, user=user,
+            html = templates.get_template("packs/v3/card_gift.html").render(g=g, info=info, msg=msg, user=user, kind=extras.KIND.get(g.gift_code), num=extras.serial(db, g),
                                                                              sender=db.get(models.User, g.from_user_id), to=db.get(models.User, g.to_user_id))
         elif kind in ("rps", "dice", "c4", "hang", "sea"):
             from .chat_games import view

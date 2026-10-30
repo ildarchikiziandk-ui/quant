@@ -321,3 +321,12 @@ input[type=checkbox]:disabled { opacity: .5; cursor: default; }
 .agree-list summary::after { content: " ▾"; } .agree-list[open] summary::after { content: " ▴"; }
 .agree-list .check.sub { padding: 6px 0 6px 12px; }
 .agree-list .check.sub input { width: 18px; height: 18px; border-radius: 6px; background-size: 11px; }
+
+/* полки подарков */
+.gift-shelf { margin-top: 10px; }
+.gift-shelf-t { font-weight: 700; font-size: 14px; margin: 6px 2px 8px; display: flex; align-items: center; gap: 6px; }
+.gift .ge { width: 52px; height: 52px; }
+.gift.g-premium { background: linear-gradient(180deg, color-mix(in srgb, #f6b40e 12%, var(--card)), var(--card)); }
+.gift.g-limited { background: linear-gradient(180deg, color-mix(in srgb, #8b5cf6 12%, var(--card)), var(--card)); }
+.gift.g-founder { background: linear-gradient(180deg, color-mix(in srgb, #f6b40e 22%, var(--card)), color-mix(in srgb, var(--whale) 10%, var(--card))); }
+.gift-plus.lim { background: linear-gradient(135deg, #a78bfa, #6d28d9); }

@@ -428,3 +428,6 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .ai-typing i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .45; animation: aiTy 1s infinite ease-in-out; }
 .ai-typing i:nth-child(2) { animation-delay: .15s; } .ai-typing i:nth-child(3) { animation-delay: .3s; }
 @keyframes aiTy { 0%, 80%, 100% { transform: translateY(0); opacity: .35; } 40% { transform: translateY(-4px); opacity: .9; } }
+.v3-giftpick button.gk-premium { background: color-mix(in srgb, #f6b40e 12%, var(--card-2)); }
+.v3-giftpick button.gk-limited { background: color-mix(in srgb, #8b5cf6 12%, var(--card-2)); }
+.v3-giftpick button.gk-founder { background: linear-gradient(180deg, color-mix(in srgb, #f6b40e 22%, var(--card-2)), color-mix(in srgb, #1f6fb8 12%, var(--card-2))); }

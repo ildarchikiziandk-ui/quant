@@ -1,6 +1,6 @@
 """Nuvora 3.x: модули чатов, игр, помощника Нувы, красивых логинов и безопасности."""
 from . import models  # noqa: F401  таблицы
-from . import account, accounts, admin_more, albums, admin_plus, admin_tools, ai, appupdate, calls, capsule, certificates, chat, chat_games, communities, dayyot, feed, games, handles_shop, login_approve, media, payments, shares, growth, people, stickers  # noqa: F401  маршруты регистрируются на общем router
+from . import account, accounts, admin_more, albums, admin_plus, admin_tools, ai, appupdate, gift_drops, calls, capsule, certificates, chat, chat_games, communities, dayyot, feed, games, handles_shop, login_approve, media, payments, shares, growth, people, stickers  # noqa: F401  маршруты регистрируются на общем router
 from .common import router  # noqa: F401
 from . import site
 

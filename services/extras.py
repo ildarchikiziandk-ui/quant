@@ -7,13 +7,70 @@ from sqlalchemy import func
 import models
 
 # --- Подарки за искры --------------------------------------------------------------------------------------
-GIFTS = [
-    ("heart", "❤️", "Сердечко", 5), ("rose", "🌹", "Роза", 10), ("coffee", "☕", "Кофе", 12), ("cake", "🎂", "Тортик", 20),
-    ("bear", "🧸", "Мишка", 25), ("star", "⭐", "Звезда", 30), ("fire", "🔥", "Огонь", 35), ("balloon", "🎈", "Шарик", 15),
-    ("trophy", "🏆", "Кубок", 60), ("crown", "👑", "Корона", 100), ("diamond", "💎", "Бриллиант", 150), ("rocket", "🚀", "Ракета", 250),
-    ("whale", "🐋", "Кит Nuvora", 75), ("aurora", "✨", "Северное сияние", 120),  # только для Nuvora+
+# (код, эмодзи для текста, название, цена в искрах). Картинки — static/gifts/<код>.svg (рисует tools/gift_art.py).
+REGULAR = [
+    ("heart", "❤️", "Сердечко", 10), ("rose", "🌹", "Роза", 20), ("coffee", "☕", "Кофе", 24), ("balloon", "🎈", "Шарик", 30),
+    ("cake", "🎂", "Тортик", 40), ("bear", "🧸", "Мишка", 50), ("star", "⭐", "Звезда", 60), ("fire", "🔥", "Огонь", 70),
+    ("trophy", "🏆", "Кубок", 120), ("whale", "🐋", "Кит Nuvora", 150), ("crown", "👑", "Корона", 200), ("aurora", "✨", "Северное сияние", 240),
+    ("diamond", "💎", "Бриллиант", 300), ("rocket", "🚀", "Ракета", 500),
 ]
+# «Коллекция» — дорогие подарки, доступны всегда
+PREMIUM = [
+    ("castle", "🏰", "Замок", 1000), ("unicorn", "🦄", "Единорог", 1500), ("yacht", "⛵", "Яхта", 2000),
+    ("planet", "🪐", "Планета", 2500), ("golden_whale", "🐳", "Золотой кит", 3500), ("phoenix", "🔥", "Феникс", 5000),
+]
+# Лимитированные — по одному на месяц. Скрыты, пока владелец не «дропнет» их в админке (/admin/gifts).
+LIMITED = [
+    ("snowglobe", "🔮", "Снежный шар", 400, "ноябрь 2026"), ("xmas_tree", "🎄", "Новогодняя ёлка", 600, "декабрь 2026"),
+    ("snowman", "⛄", "Снеговик", 450, "январь 2027"), ("valentine", "💌", "Валентинка", 500, "февраль 2027"),
+    ("mimosa", "🌼", "Мимоза", 400, "март 2027"), ("cosmonaut", "👨‍🚀", "Космонавт", 600, "апрель 2027"),
+    ("lilac", "💜", "Сирень", 400, "май 2027"), ("icecream", "🍦", "Мороженое", 400, "июнь 2027"),
+    ("watermelon", "🍉", "Арбуз", 450, "июль 2027"), ("shooting_star", "🌠", "Звездопад", 550, "август 2027"),
+    ("maple", "🍁", "Кленовый лист", 400, "сентябрь 2027"), ("pumpkin", "🎃", "Тыква", 500, "октябрь 2027"),
+]
+FOUNDER = ("founder", "🏅", "Подарок от создателя", 0)  # дарить может только основатель сайта
+LIMITED_SUPPLY = 100  # тираж по умолчанию при дропе
+
+GIFTS = REGULAR + PREMIUM + [g[:4] for g in LIMITED] + [FOUNDER]
 GIFT_BY_CODE = {g[0]: g for g in GIFTS}
+KIND = {**{g[0]: "regular" for g in REGULAR}, **{g[0]: "premium" for g in PREMIUM}, **{g[0]: "limited" for g in LIMITED}, FOUNDER[0]: "founder"}
+LIMITED_MONTH = {g[0]: g[4] for g in LIMITED}
+
+
+def drops():
+    """Состояние лимитированных: {код: {"on": bool, "supply": int}} — меняется в админке."""
+    from packs.v3 import site
+    return site.get("gift_drops") or {}
+
+
+def sold(db, code):
+    return db.query(func.count(models.UserGift.id)).filter(models.UserGift.gift_code == code).scalar() or 0
+
+
+def is_founder(user):
+    return bool(user and user.is_owner and not user.co_owner)
+
+
+def gift_state(db, code, user=None):
+    """Можно ли сейчас дарить: (можно, причина/подпись, сколько осталось или None)."""
+    kind = KIND.get(code)
+    if kind == "founder":
+        return is_founder(user), ("Дарить может только создатель Nuvora" if not is_founder(user) else ""), None
+    if kind == "limited":
+        st = drops().get(code) or {}
+        if not st.get("on"):
+            return False, "Ещё не вышел" if not st.get("ever") else "Продажи закрыты", 0
+        supply = int(st.get("supply") or 0)
+        if supply:
+            left = max(0, supply - sold(db, code))
+            return left > 0, ("Распродан" if not left else ""), left
+        return True, "", None
+    return True, "", None
+
+
+def serial(db, ug):
+    """Номер экземпляра лимитированного подарка: «№12»."""
+    return db.query(func.count(models.UserGift.id)).filter(models.UserGift.gift_code == ug.gift_code, models.UserGift.id <= ug.id).scalar() or 1
 
 
 OWNER_BALANCE = 10 ** 9  # у владельца искры бесконечные: показываются как «∞», траты их не уменьшают

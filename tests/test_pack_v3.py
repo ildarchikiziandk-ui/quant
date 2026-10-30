@@ -1153,3 +1153,31 @@ def test_co_owner(owner, alice):
     s = db(); assert not s.query(models.User).filter_by(username="owner").one().co_owner; s.close()
     owner.post("/admin/u/alice/coowner")
     s = db(); a = s.query(models.User).filter_by(username="alice").one(); assert not a.is_owner and not a.co_owner; s.close()
+
+
+def test_gift_drops(owner, alice, bob):
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    a.total_points = 5000
+    s.commit()
+    s.close()
+    # лимитированный не виден и не дарится, пока владелец не выпустил
+    assert "snowglobe" not in alice.get("/gifts/bob").text
+    assert alice.post("/gifts/bob/send", data={"gift": "snowglobe"}, headers=J).json()["ok"] is False
+    assert alice.get("/admin/gifts", follow_redirects=False).status_code in (302, 303)
+    assert "Ещё не выпущен" in owner.get("/admin/gifts").text
+    owner.post("/admin/gifts/snowglobe", data={"supply": "1", "announce": "1"})
+    assert "snowglobe" in alice.get("/gifts/bob").text
+    assert alice.post("/gifts/bob/send", data={"gift": "snowglobe"}, headers=J).json()["ok"]
+    assert "№1" in bob.get("/gifts/bob").text
+    r = alice.post("/gifts/bob/send", data={"gift": "snowglobe"}, headers=J).json()
+    assert r["ok"] is False and "Распродан" in r["error"]
+    owner.post("/admin/gifts/snowglobe", data={"action": "stop"})
+    assert "Снят с продажи" in owner.get("/admin/gifts").text
+    # коллекция всегда в продаже
+    assert alice.post("/gifts/bob/send", data={"gift": "castle"}, headers=J).json()["ok"]
+    # подарок от создателя — только у основателя, не у совладельца и не у обычных людей
+    assert alice.post("/gifts/bob/send", data={"gift": "founder"}, headers=J).json()["ok"] is False
+    assert "founder" not in alice.get("/gifts/bob").text
+    assert owner.post("/gifts/bob/send", data={"gift": "founder"}, headers=J).json()["ok"]
+    assert "от создателя" in bob.get("/gifts/bob").text

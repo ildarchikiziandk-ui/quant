@@ -117,6 +117,7 @@
 
 {% elif tab == "plus" and is_owner %}
 <div class="card row wrap" style="justify-content:space-between;align-items:center"><div><div class="card-title" style="margin:0">{{ icon("gift", "i in") }} Подарочные сертификаты</div><div class="small muted">Красивая картинка с кодом, QR и вашей подписью</div></div><a class="btn" href="/admin/certificates">Создать сертификат</a></div>
+<div class="card row wrap" style="justify-content:space-between;align-items:center"><div><div class="card-title" style="margin:0">{{ icon("gift", "i in") }} Лимитированные подарки</div><div class="small muted">Выпустить подарок месяца или снять с продажи</div></div><a class="btn" href="/admin/gifts">Открыть</a></div>
 <form class="card" method="post" action="/admin/create_promo"><div class="card-title">Новый промокод</div>
   <div class="form-row"><label class="field"><span>Код (пусто — случайный)</span><input name="code" style="text-transform:uppercase"></label><label class="field"><span>Дней</span><input name="days" type="number" value="30" min="1"></label><label class="field"><span>Активаций</span><input name="max_uses" type="number" value="1" min="1"></label></div>
   <button class="btn">Создать</button></form>

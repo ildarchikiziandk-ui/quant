@@ -251,8 +251,22 @@ def gifts_page(username: str, request: Request, db: Session = Depends(get_db)):
     if not pu:
         return redirect("/")
     received = db.query(models.UserGift).filter_by(to_user_id=pu.id).order_by(models.UserGift.created_at.desc()).limit(100).all()
-    return render(request, db, "gifts.html", profile_user=pu, received=received, gifts=extras.GIFTS, gift_by=extras.GIFT_BY_CODE,
-                  balance=extras.balance(user) if user else 0)
+    shelves = []
+    for title, kind, items in (("Подарки", "regular", extras.REGULAR), ("Коллекция", "premium", extras.PREMIUM),
+                               ("Лимитированные", "limited", [g[:4] for g in extras.LIMITED]), ("От создателя", "founder", [extras.FOUNDER])):
+        row = []
+        for g in items:
+            ok, note, left = extras.gift_state(db, g[0], user)
+            if kind == "limited" and not ok and note == "Ещё не вышел":
+                continue  # будущие лимитки не показываем, чтобы был сюрприз
+            if kind == "founder" and not ok:
+                continue
+            row.append({"g": g, "ok": ok, "note": note, "left": left, "month": extras.LIMITED_MONTH.get(g[0], "")})
+        if row:
+            shelves.append((title, kind, row))
+    serials = {ug.id: extras.serial(db, ug) for ug in received if extras.KIND.get(ug.gift_code) == "limited"}
+    return render(request, db, "gifts.html", profile_user=pu, received=received, shelves=shelves, gift_by=extras.GIFT_BY_CODE,
+                  gift_kind=extras.KIND, serials=serials, balance=extras.balance(user) if user else 0)
 
 
 @router.post("/gifts/{username}/send")
@@ -268,6 +282,9 @@ async def gift_send(username: str, request: Request, db: Session = Depends(get_d
     if not g:
         return json_error("Такого подарка нет")
     from services import plus
+    ok, note, _left = extras.gift_state(db, g[0], user)
+    if not ok:
+        return json_error(note or "Этот подарок сейчас недоступен")
     if g[0] in plus.EXCLUSIVE_GIFTS and not plus.active(user):
         return json_error("Этот подарок доступен только с Nuvora+")
     price = plus.gift_price(user, g[3])

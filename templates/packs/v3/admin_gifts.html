@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Подарки — {{ brand }}{% endblock %}
+{% block content %}
+<div class="row mb"><a href="/admin?tab=plus" class="btn ghost sm">{{ icon("back", "i in") }} Админ-панель</a></div>
+<div class="page-title">{{ icon("gift", "i in") }} Лимитированные подарки</div>
+{% if ok %}<div class="card" style="border-color:var(--accent)">{{ ok }}</div>{% endif %}
+<p class="small muted">Подарки на год вперёд — по одному на месяц. Пока вы их не выпустили, люди их не видят. «Дропнуть» — подарок появляется в магазине; тираж — сколько штук можно продать (0 — без ограничения). У каждого проданного есть номер: №1, №2…</p>
+
+{% for r in rows %}
+<div class="card row wrap gift-drop" style="align-items:center;gap:14px">
+  <img src="/static/gifts/{{ r.code }}.svg" alt="" width="64" height="64">
+  <div style="flex:1;min-width:180px">
+    <div class="card-title" style="margin:0">{{ r.name }}</div>
+    <div class="small muted">{{ r.month }} · {{ r.price }} Искр</div>
+    <div class="small">
+      {% if r.on %}<b style="color:var(--accent)">В продаже</b> с {{ r.since }} · продано {{ r.sold }}{% if r.supply %} из {{ r.supply }}{% if r.sold >= r.supply %} — <b>распродан</b>{% endif %}{% endif %}
+      {% elif r.ever %}Снят с продажи · продано {{ r.sold }}
+      {% else %}Ещё не выпущен{% endif %}
+    </div>
+  </div>
+  <form method="post" action="/admin/gifts/{{ r.code }}" class="row wrap" style="gap:8px;align-items:center">
+    {% if r.on %}
+      <button class="btn ghost" name="action" value="stop">Снять с продажи</button>
+    {% else %}
+      <label class="small">Тираж <input name="supply" type="number" min="0" max="100000" value="{{ r.supply or default_supply }}" style="width:90px;margin:0"></label>
+      <label class="small"><input type="checkbox" name="announce" value="1"> сообщить всем</label>
+      <button class="btn">{{ "Вернуть в продажу" if r.ever else "Дропнуть" }}</button>
+    {% endif %}
+  </form>
+</div>
+{% endfor %}
+
+<div class="card">
+  <div class="card-title">Всегда в продаже — коллекция</div>
+  <div class="row wrap" style="gap:12px">{% for g in premium %}<div class="small" style="text-align:center;width:96px"><img src="/static/gifts/{{ g[0] }}.svg" alt="" width="56" height="56"><br>{{ g[2] }}<br><span class="muted">{{ g[3] }} Искр</span></div>{% endfor %}</div>
+</div>
+<div class="card row" style="gap:14px;align-items:center">
+  <img src="/static/gifts/{{ founder[0] }}.svg" alt="" width="64" height="64">
+  <div><div class="card-title" style="margin:0">{{ founder[2] }}</div><div class="small muted">Дарить можете только вы, бесплатно. Уже подарено: {{ founder_sold }}. Найдёте в «Подарки» на странице человека.</div></div>
+</div>
+{% endblock %}
