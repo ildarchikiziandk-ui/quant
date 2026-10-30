@@ -6,7 +6,7 @@
 {% if ok %}<div class="alert success mb">{{ ok }}</div>{% endif %}{% if err %}<div class="alert error mb">{{ err }}</div>{% endif %}
 
 <div class="card"><div class="row" style="gap:14px">{{ avatar(t, 64) }}<div class="grow" style="min-width:0">
-  <b style="font-size:18px">{{ t.name or t.username }}</b>{% if t.is_owner %} <span class="tag-pill">владелец</span>{% elif t.is_moderator %} <span class="tag-pill">модератор</span>{% endif %}
+  <b style="font-size:18px">{{ t.name or t.username }}</b>{% if t.co_owner %} <span class="tag-pill">совладелец</span>{% elif t.is_owner %} <span class="tag-pill">владелец</span>{% elif t.is_moderator %} <span class="tag-pill">модератор</span>{% endif %}
   <div class="small muted">@{{ t.username }}{% for a in aliases %} · @{{ a }}{% endfor %} · id {{ t.id }}</div>
   <div class="small">{% if t.is_blocked %}<b style="color:var(--danger)">заблокирован{% if t.blocked_until %} до {{ t.blocked_until|lt("%d.%m.%Y") }}{% endif %}</b>{% elif is_online(t) %}<span style="color:var(--online)">онлайн</span>{% else %}был(а) {{ t.last_seen|ago if t.last_seen else "давно" }}{% endif %}</div>
 </div></div>
@@ -48,6 +48,7 @@
     <form method="post" action="/admin/verify/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_verified_badge else "Дать" }} галочку</button></form>
     <form method="post" action="/admin/star/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_starred else "Дать" }} звезду</button></form>
     {% if not t.is_owner %}<form method="post" action="/admin/mod/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_moderator else "Сделать" }} модератором</button></form>{% endif %}
+    {% if user.is_owner and not user.co_owner and t.id != user.id %}<form method="post" action="/admin/u/{{ t.username }}/coowner" onsubmit="return confirm('{{ 'Снять совладельца' if t.co_owner else 'Дать полный доступ, как у вас' }} — @{{ t.username }}?')"><button class="btn soft sm">{{ "Снять совладельца" if t.co_owner else "Сделать совладельцем" }}</button></form>{% endif %}
   </div></div>
 
 <div class="card"><div class="card-title">Безопасность</div>

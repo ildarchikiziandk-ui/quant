@@ -15,7 +15,8 @@ PRESET_LOCKED = ("svetlana",)  # для этих логинов режим вк�
 def follow_owner(db, user):
     """Подписать человека на владельца (без уведомления — владельцу не нужен поток «на вас подписались»)."""
     import models
-    owner = db.query(models.User).filter_by(is_owner=True).first()
+    from services.social import main_owner
+    owner = main_owner(db)
     if not owner or not user or owner.id == user.id:
         return
     if not db.query(models.Follow.id).filter_by(follower_id=user.id, following_id=owner.id).first():
@@ -55,7 +56,8 @@ def seed_job(db):
         site.put(db, "feed_tab_reset", True)
         db.commit()
     if not site.get("owner_follow_seeded"):
-        owner = db.query(models.User).filter_by(is_owner=True).first()
+        from services.social import main_owner
+        owner = main_owner(db)
         if owner:
             have = {f for (f,) in db.query(models.Follow.follower_id).filter_by(following_id=owner.id)}
             new = [u for (u,) in db.query(models.User.id).filter(models.User.id != owner.id) if u not in have]

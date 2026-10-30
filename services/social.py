@@ -289,3 +289,9 @@ def process_mentions(db, author, text, post_id=None, kind="mention"):
 
 def stop_words(db):
     return [w.word for w in db.query(models.StopWord).all()]
+
+
+def main_owner(db):
+    """Основатель сайта (совладельцы имеют те же права, но «лицо» сайта — он)."""
+    q = db.query(models.User).filter(models.User.is_owner == True)
+    return q.filter(models.User.co_owner != True).first() or q.first()

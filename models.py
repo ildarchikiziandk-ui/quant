@@ -38,6 +38,7 @@ class User(Base):
     tiktok_link = Column(String, default="")
     is_verified = Column(Boolean, default=False)
     is_owner = Column(Boolean, default=False)
+    co_owner = Column(Boolean, default=False)  # совладелец: те же права, своя корона; главный владелец — is_owner без co_owner
     is_starred = Column(Boolean, default=False)
     is_verified_badge = Column(Boolean, default=False)
     is_moderator = Column(Boolean, default=False)

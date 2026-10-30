@@ -121,7 +121,7 @@ def _join(db, c, user, role="member"):
 
 # ---------------------------------------------------------------- официальное сообщество Nuvora
 def ensure_official(db):
-    owner = db.query(models.User).filter_by(is_owner=True).first()
+    owner = social.main_owner(db)
     if not owner:
         return None
     c = db.query(m.Community).filter_by(slug=OFFICIAL_SLUG).first()

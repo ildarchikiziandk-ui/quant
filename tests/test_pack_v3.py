@@ -1135,3 +1135,21 @@ def test_gift_certificates(owner, alice):
     assert alice.get(f"/admin/certificates/{pid}.png").status_code == 404
     assert p.code in owner.get(f"/plus?code={p.code}").text  # QR ведёт на страницу с уже вписанным кодом
     s.close()
+
+
+def test_co_owner(owner, alice):
+    r = owner.post("/admin/u/alice/coowner", follow_redirects=False)
+    assert r.status_code in (302, 303)
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    assert a.is_owner and a.co_owner
+    from services.social import main_owner
+    assert main_owner(s).username == "owner"  # «лицо» сайта не меняется
+    s.close()
+    assert "Совладелец" in owner.get("/profile/alice").text and "Основатель" in owner.get("/profile/owner").text
+    assert alice.get("/admin/certificates").status_code == 200  # полный доступ
+    # совладелец не может снять основателя и назначать других
+    alice.post("/admin/u/owner/coowner")
+    s = db(); assert not s.query(models.User).filter_by(username="owner").one().co_owner; s.close()
+    owner.post("/admin/u/alice/coowner")
+    s = db(); a = s.query(models.User).filter_by(username="alice").one(); assert not a.is_owner and not a.co_owner; s.close()

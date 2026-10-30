@@ -147,7 +147,7 @@ def seed_owner_aliases(db):
     _seeded.append(1)
     import config
     owner = db.query(models.User).filter(func.lower(models.User.username) == (config.OWNER_USERNAME or "").lower()).first() \
-        or db.query(models.User).filter_by(is_owner=True).first()
+        or social.main_owner(db)
     if not owner:
         return
     for name in OWNER_ALIASES:

@@ -122,6 +122,11 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 .gift.excl { background: color-mix(in srgb, var(--whale) 7%, var(--card)); }
 .owner-pill { background: color-mix(in srgb, #c98a1b 16%, var(--card)); color: #7a4f0a; }
 [data-theme="dark"] .owner-pill { background: color-mix(in srgb, #c98a1b 22%, var(--card)); color: #f0c97a; }
+.owner-pill.co { background: color-mix(in srgb, #5b82b0 16%, var(--card)); color: #2c4f7a; }
+[data-theme="dark"] .owner-pill.co { background: color-mix(in srgb, #8fb0d6 20%, var(--card)); color: #c9dbf0; }
+.owner-pill .crown-ic { flex: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
+.badge.crown-b { width: auto; height: auto; background: none; box-shadow: none; display: inline-flex; vertical-align: -3px; }
+.badge.crown-b .crown-ic { filter: drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
 .t-follow, .t-follow_accept, .t-follow_request { color: var(--whale); }
 
 @media (prefers-reduced-motion: reduce) { .card.post { transition: none; } }

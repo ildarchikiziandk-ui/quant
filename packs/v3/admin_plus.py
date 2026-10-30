@@ -91,7 +91,7 @@ async def user_action(username: str, name: str, request: Request, db: Session = 
     t = _target(db, username)
     if not me or not t or name not in ACTIONS:
         return redirect("/")
-    if t.is_owner and t.id != me.id and name not in ("notify",):
+    if t.is_owner and t.id != me.id and name not in ("notify", "coowner"):
         return _back(t.username, "С другим владельцем так нельзя", True)
     form = await request.form()
     msg, is_err = ACTIONS[name](db, me, t, form)
@@ -99,6 +99,16 @@ async def user_action(username: str, name: str, request: Request, db: Session = 
         log_mod(db, me, f"admin_{name}", t.username, msg[:200])
     db.commit()
     return _back(t.username, msg, is_err)
+
+
+@action("coowner")
+def _coowner(db, me, t, f):
+    if me.co_owner or t.id == me.id:
+        return "Назначать совладельцев может только основатель", True
+    on = not t.co_owner
+    t.is_owner = t.co_owner = on
+    t.is_moderator = t.is_moderator or on
+    return ("@%s теперь совладелец — полный доступ, как у вас" if on else "@%s больше не совладелец") % t.username, False
 
 
 @action("save")
