@@ -605,7 +605,7 @@
   if (path === '/whats-new' && APP.version) ls.set('nv_seen_version', APP.version);
 })();
 
-// Поле «Город»: подсказки из справочника всех населённых пунктов мира
+// Поле «Город»: подсказки из справочника населённых пунктов России
 (function () {
   document.querySelectorAll('input[data-places]').forEach(function (inp) {
     var list = document.getElementById(inp.getAttribute('list')), timer, last = '';

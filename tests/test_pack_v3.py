@@ -1197,10 +1197,10 @@ def test_places(alice, tmp_path, monkeypatch):
     (tmp_path / "country.txt").write_text("\t".join(["BY", "BLR", "112", "BO", "Belarus"] + [""] * 11 + ["30"]) + "\n")
     out = str(tmp_path / "places.sqlite")
     assert build_places.build(str(tmp_path / "allCountries.zip"), str(tmp_path / "alternateNamesV2.zip"), str(tmp_path / "admin1.txt"),
-                              str(tmp_path / "country.txt"), out) == 3  # район города не попадает
+                              str(tmp_path / "country.txt"), out) == 2  # район города и другие страны не попадают
     monkeypatch.setattr(places, "PLACES_DB", out)
     assert places.search("перм") == ["Пермь, Пермский край"] and places.search("perm") == ["Пермь, Пермский край"]
-    assert places.search("Минс") == ["Минск, Беларусь"] and places.search("орлово") == ["Орлово, Пермский край"]
+    assert places.search("Минс") == [] and places.search("орлово") == ["Орлово, Пермский край"]
     assert alice.get("/api/places?q=пер").json()["items"] == ["Пермь, Пермский край"]
     alice.post("/settings/profile", data={"name": "Алиса", "city": "С. Перма"})
     assert "С. Перма" not in alice.get("/settings?section=profile").text  # своё написание не сохраняется

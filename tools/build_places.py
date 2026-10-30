@@ -1,9 +1,8 @@
-"""Собирает справочник населённых пунктов мира (города, сёла, посёлки, деревни) для поля «Город».
+"""Собирает справочник населённых пунктов России (города, сёла, посёлки, деревни) для поля «Город».
 
 Источник — GeoNames (бесплатно, CC BY 4.0): https://download.geonames.org/export/dump/
-Скачивает ~600 МБ архивов, работает 10–30 минут, на выходе places.sqlite (~1 ГБ) рядом с сайтом.
-Названия — по-русски, где есть; иначе — как пишут на месте. Подпись: «Ивановка, Амурская область»,
-для других стран — с названием страны: «Минск, Беларусь».
+Скачивает ~30 МБ, работает пару минут, на выходе places.sqlite (~30 МБ) рядом с сайтом.
+Названия — по-русски. Подпись: «Ивановка, Амурская область».
 
 Запуск на сервере: python tools/build_places.py   (или bash deploy/places.sh)
 """
@@ -25,7 +24,7 @@ HOME = "RU"  # для своей страны регион пишем без н�
 
 
 def fetch(name, work):
-    path = os.path.join(work, name)
+    path = os.path.join(work, name.replace("/", "-"))
     if not os.path.exists(path):
         print("скачиваю", name, flush=True)
         urllib.request.urlretrieve(BASE + name, path + ".part")
@@ -36,7 +35,8 @@ def fetch(name, work):
 def lines(path, inner=None):
     if path.endswith(".zip"):
         with zipfile.ZipFile(path) as z:
-            with z.open(inner or os.path.basename(path)[:-4] + ".txt") as f:
+            inner = inner or next(n for n in z.namelist() if n.endswith(".txt") and not n.lower().startswith(("readme", "iso")))
+            with z.open(inner) as f:
                 for raw in io.TextIOWrapper(f, encoding="utf-8"):
                     if not raw.startswith("#"):
                         yield raw.rstrip("\n").split("\t")
@@ -50,7 +50,7 @@ def lines(path, inner=None):
 def russian_names(path):
     """geonameid → русское название (предпочтительное, если отмечено)."""
     ru, pref = {}, set()
-    for c in lines(path, "alternateNamesV2.txt"):
+    for c in lines(path):
         if len(c) < 8 or c[2] != "ru" or c[6] == "1" or c[7] == "1":  # без разговорных и исторических
             continue
         gid = int(c[1])
@@ -83,7 +83,7 @@ def build(all_countries, alt_names, admin1, country_info, out):
     db.execute("CREATE TABLE names (key TEXT, pop INTEGER, id INTEGER)")
     n, batch_p, batch_n = 0, [], []
     for c in lines(all_countries):
-        if len(c) < 15 or c[6] != "P" or c[7] in SKIP_CODES:
+        if len(c) < 15 or c[6] != "P" or c[7] in SKIP_CODES or c[8] != HOME:  # только Россия
             continue
         gid, cc = int(c[0]), c[8]
         name = ru.get(gid)
@@ -126,7 +126,7 @@ def build(all_countries, alt_names, admin1, country_info, out):
 def main():
     work = os.path.join(os.path.dirname(PLACES_DB), "places-download")
     os.makedirs(work, exist_ok=True)
-    files = [fetch(f, work) for f in ("allCountries.zip", "alternateNamesV2.zip", "admin1CodesASCII.txt", "countryInfo.txt")]
+    files = [fetch(f, work) for f in (HOME + ".zip", "alternatenames/" + HOME + ".zip", "admin1CodesASCII.txt", "countryInfo.txt")]
     build(*files, PLACES_DB)
     for f in os.listdir(work):
         os.remove(os.path.join(work, f))
