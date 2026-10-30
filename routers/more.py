@@ -325,7 +325,7 @@ def top_week(request: Request, period: str = "week", db: Session = Depends(get_d
 @router.get("/people/city")
 def city_people(request: Request, city: str = "", db: Session = Depends(get_db)):
     user = current_user(request, db)
-    city = (city or (user.city if user else "") or "").strip()[:60]
+    city = (city or (user.city if user else "") or "").strip()[:120]
     people = []
     if city:
         hidden = social.blocked_ids(db, user) | ({user.id} if user else set())

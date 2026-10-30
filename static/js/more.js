@@ -604,3 +604,23 @@
   });
   if (path === '/whats-new' && APP.version) ls.set('nv_seen_version', APP.version);
 })();
+
+// Поле «Город»: подсказки из справочника всех населённых пунктов мира
+(function () {
+  document.querySelectorAll('input[data-places]').forEach(function (inp) {
+    var list = document.getElementById(inp.getAttribute('list')), timer, last = '';
+    if (!list) return;
+    inp.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = inp.value.trim();
+      if (q.length < 2 || q === last) return;
+      timer = setTimeout(function () {
+        last = q;
+        fetch('/api/places?q=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
+          list.innerHTML = '';
+          (d.items || []).forEach(function (label) { var o = document.createElement('option'); o.value = label; list.appendChild(o); });
+        }).catch(function () {});
+      }, 250);
+    });
+  });
+})();

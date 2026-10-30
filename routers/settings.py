@@ -15,7 +15,7 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.auth_routes import validate_password, validate_username
 from routers.posts import purge_post, read_payload, wants_json
-from services import extras, gamification, prefs, recommend, social, timezones
+from services import extras, gamification, places, prefs, recommend, social, timezones
 from services.uploads import delete_file, save_file
 
 router = APIRouter()
@@ -123,8 +123,10 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
     from services import plus
     user.bio = _clean(form, "bio", plus.limit(user, "bio"))
     user.website = _clean_url(_clean(form, "website", 100))
-    user.city = _clean(form, "city", 60)
-    user.work = _clean(form, "work", 80)
+    city, city_err = _clean(form, "city", 120), ""
+    if city and city != user.city and not places.exists(city):
+        city, city_err = user.city, "Город не сохранён: выберите его из подсказок под полем"
+    user.city = city
     bday = _clean(form, "birthday", 10)
     user.birthday = bday if re.match(r"^\d{4}-\d{2}-\d{2}$", bday) else ""
     user.telegram_link = _clean(form, "telegram_link", 100)
@@ -133,7 +135,14 @@ async def settings_profile(request: Request, db: Session = Depends(get_db)):
     user.interests = ", ".join(extras.parse_interests(form.get("interests") or ""))
     db.commit()
     recommend.invalidate(user.id)
+    if city_err:
+        return _settings(request, db, user, "profile", error=city_err)
     return _settings(request, db, user, "profile", success="Профиль сохранён")
+
+
+@router.get("/api/places")
+def places_suggest(q: str = ""):
+    return JSONResponse({"items": places.search(q[:60]), "strict": places.available()})
 
 
 @router.post("/settings/username")

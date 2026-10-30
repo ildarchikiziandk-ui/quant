@@ -17,3 +17,7 @@ data/app/
 school/data/
 bot_state.json
 bot.log
+places.sqlite
+places.sqlite.part
+places-download/
+places.log

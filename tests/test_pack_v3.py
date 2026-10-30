@@ -1181,3 +1181,28 @@ def test_gift_drops(owner, alice, bob):
     assert "founder" not in alice.get("/gifts/bob").text
     assert owner.post("/gifts/bob/send", data={"gift": "founder"}, headers=J).json()["ok"]
     assert "от создателя" in bob.get("/gifts/bob").text
+
+
+def test_places(alice, tmp_path, monkeypatch):
+    import zipfile
+    from services import places
+    from tools import build_places
+    row = lambda gid, name, alts, cc, a1, pop, code="PPL": "\t".join([str(gid), name, name, alts, "0", "0", "P", code, cc, "", a1, "", "", "", str(pop)] + [""] * 4)
+    with zipfile.ZipFile(tmp_path / "allCountries.zip", "w") as z:
+        z.writestr("allCountries.txt", "\n".join([row(1, "Perm", "Пермь,Perm", "RU", "90", 1000000), row(2, "Orlovo", "Орлово", "RU", "90", 0),
+                                                  row(3, "Minsk", "", "BY", "5", 2000000), row(4, "Perm District", "", "RU", "90", 5, "PPLX")]))
+    with zipfile.ZipFile(tmp_path / "alternateNamesV2.zip", "w") as z:
+        z.writestr("alternateNamesV2.txt", "1\t3\tru\tМинск\t1\t\t\t\t\t\n2\t20\tru\tПермский край\t\t\t\t\t\t\n3\t30\tru\tБеларусь\t\t\t\t\t\t\n")
+    (tmp_path / "admin1.txt").write_text("RU.90\tPerm Krai\tPerm Krai\t20\nBY.5\tMinsk City\tMinsk City\t21\n")
+    (tmp_path / "country.txt").write_text("\t".join(["BY", "BLR", "112", "BO", "Belarus"] + [""] * 11 + ["30"]) + "\n")
+    out = str(tmp_path / "places.sqlite")
+    assert build_places.build(str(tmp_path / "allCountries.zip"), str(tmp_path / "alternateNamesV2.zip"), str(tmp_path / "admin1.txt"),
+                              str(tmp_path / "country.txt"), out) == 3  # район города не попадает
+    monkeypatch.setattr(places, "PLACES_DB", out)
+    assert places.search("перм") == ["Пермь, Пермский край"] and places.search("perm") == ["Пермь, Пермский край"]
+    assert places.search("Минс") == ["Минск, Беларусь"] and places.search("орлово") == ["Орлово, Пермский край"]
+    assert alice.get("/api/places?q=пер").json()["items"] == ["Пермь, Пермский край"]
+    alice.post("/settings/profile", data={"name": "Алиса", "city": "С. Перма"})
+    assert "С. Перма" not in alice.get("/settings?section=profile").text  # своё написание не сохраняется
+    alice.post("/settings/profile", data={"name": "Алиса", "city": "Орлово, Пермский край"})
+    assert "Орлово, Пермский край" in alice.get("/profile/alice").text

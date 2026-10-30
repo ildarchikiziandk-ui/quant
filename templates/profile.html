@@ -71,7 +71,6 @@
     {% if pu_interests %}<div class="row wrap mt" style="gap:6px">{% for t in pu_interests %}<a class="chip" style="margin:0;padding:4px 10px;font-size:12.5px" href="/interests/{{ t }}">#{{ t }}</a>{% endfor %}</div>{% endif %}
     <div class="profile-links">
       {% if pu.city %}<span>{{ icon("map") }} {{ pu.city }}</span>{% endif %}
-      {% if pu.work %}<span>{{ icon("bag") }} {{ pu.work }}</span>{% endif %}
       {% if pu.website %}<span>{{ icon("link") }} <a href="{{ pu.website }}" target="_blank" rel="noopener nofollow">{{ pu.website.replace('https://','').replace('http://','')[:40] }}</a></span>{% endif %}
       {% if pu.birthday and (me or not pref(pu, "hide_birthday")) and bday_in is not none and bday_in <= 30 %}<span>{{ icon("cake") }} {% if bday_in == 0 %}<b style="color:var(--accent,#db2777)">сегодня день рождения!</b>{% else %}день рождения через {{ plural(bday_in, "день", "дня", "дней") }}{% endif %}</span>{% endif %}
     </div>

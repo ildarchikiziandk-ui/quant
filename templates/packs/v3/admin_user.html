@@ -31,7 +31,7 @@
 {% if is_owner %}
 <form class="card" method="post" action="/admin/u/{{ t.username }}/save"><div class="card-title">Изменить профиль</div>
   <div class="form-row"><label class="field"><span>Имя</span><input name="name" maxlength="60" value="{{ t.name or '' }}"></label><label class="field"><span>Логин</span><input name="username" maxlength="30" value="{{ t.username }}" required></label></div>
-  <div class="form-row"><label class="field"><span>Email</span><input name="email" maxlength="120" value="{{ t.email or '' }}"></label><label class="field"><span>Город</span><input name="city" maxlength="60" value="{{ t.city or '' }}"></label></div>
+  <div class="form-row"><label class="field"><span>Email</span><input name="email" maxlength="120" value="{{ t.email or '' }}"></label><label class="field"><span>Город</span><input name="city" maxlength="120" value="{{ t.city or '' }}"></label></div>
   <label class="field"><span>О себе</span><textarea name="bio" rows="2" maxlength="600">{{ t.bio or '' }}</textarea></label>
   <button class="btn">Сохранить</button><span class="tiny faint"> Логин можно поставить любой, в том числе заповедный или платный.</span></form>
 

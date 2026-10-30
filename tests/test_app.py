@@ -1120,7 +1120,7 @@ def test_v2_server_features(alice, bob):
     assert bob.post("/settings/backup/reset", headers=J).json()["ok"]
     # работа в профиле, календарь
     alice.post("/settings/profile", data={"name": "Alice", "work": "Дизайнер в студии"})
-    assert "Дизайнер в студии" in bob.get("/profile/alice").text
+    assert "Дизайнер в студии" not in bob.get("/profile/alice").text  # поле «Работа или учёба» убрано
     assert bob.get("/calendar/birthdays.ics").text.startswith("BEGIN:VCALENDAR")
 
 

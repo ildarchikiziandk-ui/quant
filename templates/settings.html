@@ -34,10 +34,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="card-title">Информация</div>
   <label class="field"><span>Имя</span><input name="name" value="{{ user.name or '' }}" maxlength="60"></label>
   <label class="field"><span>О себе <span class="faint" id="bio-n"></span></span><textarea name="bio" maxlength="{{ plus_limit(user, 'bio') }}" oninput="document.getElementById('bio-n').textContent={{ plus_limit(user, 'bio') }}-this.value.length">{{ user.bio or '' }}</textarea></label>
-  <div class="form-row">
-    <label class="field"><span>Город</span><input name="city" value="{{ user.city or '' }}" maxlength="60"></label>
-    <label class="field"><span>Работа или учёба</span><input name="work" value="{{ user.work or '' }}" maxlength="80" placeholder="Дизайнер в студии «Кит» · КФУ, 2 курс"></label>
-  </div>
+  <label class="field"><span>Город, село или деревня <span class="faint">— начните писать и выберите из списка</span></span><input name="city" value="{{ user.city or '' }}" maxlength="120" list="city-list" autocomplete="off" placeholder="Например: Пермь" data-places><datalist id="city-list"></datalist></label>
   <div class="form-row">
     <label class="field"><span>Сайт</span><input name="website" value="{{ user.website or '' }}" maxlength="100" placeholder="example.com"></label>
     <label class="field"><span>День рождения</span><input type="date" name="birthday" value="{{ user.birthday or '' }}"></label>

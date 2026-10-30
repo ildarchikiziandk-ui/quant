@@ -128,7 +128,7 @@ def _save(db, me, t, f):
     t.name, t.username = name or t.name, uname
     if email:
         t.email = email
-    t.bio, t.city = s(f.get("bio"))[:600], s(f.get("city")).strip()[:60]
+    t.bio, t.city = s(f.get("bio"))[:600], s(f.get("city")).strip()[:120]
     return "Профиль сохранён", False
 
 
