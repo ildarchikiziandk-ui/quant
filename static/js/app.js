@@ -317,6 +317,9 @@
       } else if (act === 'share' || act === 'copy') {
         const raw = b.dataset.url || `/post/${id}`; let url = /^https?:/.test(raw) ? raw : location.origin + raw;
         if (ME.user && url.startsWith(location.origin + '/post/') && !url.includes('from=')) url += (url.includes('?') ? '&' : '?') + 'from=' + encodeURIComponent(ME.user);  // «след» того, кто поделился
+        if (APP.short && url.startsWith(location.origin + '/')) {  // короткая ссылка: nvurl.ru/123, nvurl.ru/@ник
+          url = APP.short + url.slice(location.origin.length).replace(/^\/post\/(\d+)/, '/$1').replace(/^\/profile\/([\w.]+)/, '/@$1');
+        }
         if (act === 'share' && navigator.share) { try { await navigator.share({ url }); } catch (er) {} }
         else { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
       } else if (act === 'expand') {

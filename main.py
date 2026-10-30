@@ -1,3 +1,4 @@
+import re
 import json
 from urllib.parse import urlparse
 
@@ -131,11 +132,21 @@ def _norm_host(h: str) -> str:
     return h[4:] if h.startswith("www.") else h
 
 
+def short_target(path, query=""):
+    """Короткая ссылка → полный адрес на основном сайте: /123 — пост, /@ник — профиль, остальное — та же страница."""
+    m = re.fullmatch(r"/(\d{1,9})/?", path)
+    u = re.fullmatch(r"/@([\w.]{1,40})/?", path)
+    target = f"/post/{m.group(1)}" if m else f"/profile/{u.group(1)}" if u else path
+    return config.SITE_URL + target + (f"?{query}" if query else "")
+
+
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
     if not config.SECRET_CHATS_ENABLED and request.url.path in ("/static/js/gost.js", "/static/js/secret.js"):
         return PlainTextResponse("Not found", status_code=404)
     path = request.url.path
+    if config.SHORT_DOMAIN and _norm_host(request.headers.get("host", "")) == config.SHORT_DOMAIN:
+        return RedirectResponse(short_target(path, request.url.query), status_code=302)
     from packs.v3 import site
     if site.get("maintenance") and not path.startswith(("/static/", "/login", "/logout", "/sw.js", "/healthz", "/admin", "/offline")):
         from deps import current_user

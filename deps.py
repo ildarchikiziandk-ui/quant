@@ -33,7 +33,7 @@ env.filters["compact"] = text.compact_number
 env.filters["filesize"] = text.filesize
 env.globals.update(
     brand=config.BRAND_NAME, brand_tagline=config.BRAND_TAGLINE, brand_plus=config.BRAND_PLUS,
-    brand_email=config.BRAND_EMAIL, brand_color=config.BRAND_COLOR, site_url=config.SITE_URL,
+    brand_email=config.BRAND_EMAIL, brand_color=config.BRAND_COLOR, site_url=config.SITE_URL, short_url=config.SHORT_URL,
     plural=text.plural, is_online=social.is_online, user_is_plus=social.is_plus, enumerate=enumerate,
     android_apk_url=config.ANDROID_APK_URL, pref=prefs.get, pref_classes=prefs.html_classes, tz_city=timezones.city, reading_minutes=extras.reading_minutes, moods=extras.MOODS, mood_by=extras.MOOD_BY, post_bgs=extras.BGS,
     post_expires=extras.EXPIRES, zodiac=extras.zodiac, frame_by=extras.FRAME_BY, status_active=extras.status_active, pref_client=prefs.client_values,

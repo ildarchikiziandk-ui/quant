@@ -1206,3 +1206,15 @@ def test_places(alice, tmp_path, monkeypatch):
     assert "С. Перма" not in alice.get("/settings?section=profile").text  # своё написание не сохраняется
     alice.post("/settings/profile", data={"name": "Алиса", "city": "Орлово, Пермский край"})
     assert "Орлово, Пермский край" in alice.get("/profile/alice").text
+
+
+def test_short_links(alice, monkeypatch):
+    import config
+    import main
+    monkeypatch.setattr(config, "SHORT_DOMAIN", "nvurl.ru")
+    hit = lambda p: alice.get(p, headers={"host": "nvurl.ru"}, follow_redirects=False)
+    assert hit("/123?from=bob").headers["location"] == config.SITE_URL + "/post/123?from=bob"
+    assert hit("/@rubl").headers["location"] == config.SITE_URL + "/profile/rubl"
+    assert hit("/gifts/rubl").headers["location"] == config.SITE_URL + "/gifts/rubl"
+    assert alice.get("/settings", follow_redirects=False).status_code == 200  # основной домен работает как раньше
+    assert main.short_target("/") == config.SITE_URL + "/"

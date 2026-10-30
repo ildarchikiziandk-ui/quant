@@ -63,6 +63,9 @@ SECRET_KEY = env("SECRET_KEY") or _LEGACY_SECRET
 if SECRET_KEY == _LEGACY_SECRET:
     print("[config] ВНИМАНИЕ: SECRET_KEY не задан, используется старый ключ. Задайте SECRET_KEY в .env!")
 TOKEN_DAYS = int(env("TOKEN_DAYS", "30"))
+# короткий домен для ссылок (nvurl.ru/123 → пост 123, nvurl.ru/@rubl → профиль); пусто — выключено
+SHORT_DOMAIN = env("SHORT_DOMAIN", "").strip().lower().removeprefix("https://").removeprefix("http://").strip("/")
+SHORT_URL = f"https://{SHORT_DOMAIN}" if SHORT_DOMAIN else ""
 COOKIE_SECURE = env_bool("COOKIE_SECURE", SITE_URL.startswith("https://"))
 OWNER_USERNAME = env("OWNER_USERNAME", "rubl")
 # аккаунты-помощники (ИИ): регистрируются без почты — в поле email пишут «-»
