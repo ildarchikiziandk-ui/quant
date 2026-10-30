@@ -31,6 +31,15 @@ EOS
 ln -sf /etc/nginx/sites-available/nuvora-short /etc/nginx/sites-enabled/nuvora-short
 nginx -t && systemctl reload nginx
 certbot --nginx $CERT --non-interactive --agree-tos --register-unsafely-without-email --redirect
+# основной адрес сайта нужен, чтобы короткие ссылки вели на него, а не на localhost
+SITE=$(grep -E '^SITE_URL=' "$APP_DIR/.env" | tail -1 | cut -d= -f2- | tr -d '"' || true)
+if [ -z "$SITE" ] || [[ "$SITE" == *localhost* ]] || [[ "$SITE" == *127.0.0.1* ]]; then
+  MAIN=$(awk '/server_name/{print $2; exit}' /etc/nginx/sites-available/nuvora 2>/dev/null | tr -d ';' || true)
+  MAIN=${MAIN:-nvra.ru}
+  sed -i '/^SITE_URL=/d' "$APP_DIR/.env"
+  echo "SITE_URL=https://$MAIN" >> "$APP_DIR/.env"
+  echo "Основной адрес сайта: https://$MAIN"
+fi
 sed -i '/^SHORT_DOMAIN=/d' "$APP_DIR/.env"
 echo "SHORT_DOMAIN=$DOMAIN" >> "$APP_DIR/.env"
 systemctl restart nuvora
