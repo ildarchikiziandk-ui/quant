@@ -5,7 +5,6 @@
     <a href="/profile/{{ user.username }}">{{ avatar(user, 44) }}</a>
     <div class="grow">
       <textarea name="content" maxlength="{{ plus_limit(user, 'post_length') }}" placeholder="Что нового, {{ user.name or user.username }}? Используйте #теги и @упоминания" data-suggest rows="2"></textarea>
-      <div class="tiny faint" style="margin:-2px 0 4px">**жирный** · __курсив__ · ~~зачёркнутый~~ · `код` · ||спойлер|| · «&gt; » в начале строки — цитата</div>
       <input type="hidden" name="draft_id" value="">
       <div class="previews hidden" id="composer-previews"></div>
       <div class="composer-extra hidden" id="panel-poll">
@@ -38,13 +37,13 @@
 {% for _s in pack_slot("composer_panels") %}{% include _s %}{% endfor %}
       <div class="composer-tools">
         <div class="tools">
-          <button type="button" class="tool" title="Фото/видео (до 10)" onclick="document.getElementById('composer-files').click()">{{ icon("image") }}</button>
-          <button type="button" class="tool" title="Опрос" data-panel="panel-poll">{{ icon("poll") }}</button>
-          <button type="button" class="tool" title="Эмодзи" data-panel="panel-emoji">{{ icon("smile") }}</button>
-          <button type="button" class="tool" title="Аудитория и отложенная публикация" data-panel="panel-settings">{{ icon("clock") }}</button>
-          <button type="button" class="tool" title="Настроение, место, фон, исчезающий пост" data-panel="panel-more">{{ icon("sparkle") }}</button>
-          <button type="button" class="tool" title="Сохранить черновик" id="save-draft">{{ icon("draft") }}</button>
-          <button type="button" class="tool" title="Предпросмотр" id="composer-preview">{{ icon("eye") }}</button>
+          <button type="button" class="tool" title="Фото/видео (до 10)" onclick="document.getElementById('composer-files').click()">{{ icon("image") }}<span class="tl">Фото</span></button>
+          <button type="button" class="tool" title="Опрос" data-panel="panel-poll">{{ icon("poll") }}<span class="tl">Опрос</span></button>
+          <button type="button" class="tool" title="Эмодзи" data-panel="panel-emoji">{{ icon("smile") }}<span class="tl">Эмодзи</span></button>
+          <button type="button" class="tool" title="Аудитория и отложенная публикация" data-panel="panel-settings">{{ icon("clock") }}<span class="tl">Кому и когда</span></button>
+          <button type="button" class="tool" title="Настроение, место, фон, исчезающий пост" data-panel="panel-more">{{ icon("sparkle") }}<span class="tl">Ещё</span></button>
+          <button type="button" class="tool" title="Сохранить черновик" id="save-draft">{{ icon("draft") }}<span class="tl">Черновик</span></button>
+          <button type="button" class="tool" title="Предпросмотр" id="composer-preview">{{ icon("eye") }}<span class="tl">Просмотр</span></button>
           {% for _s in pack_slot("composer_tools") %}{% include _s %}{% endfor %}
           <input type="file" id="composer-files" name="media" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" class="hidden">
         </div>

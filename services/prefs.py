@@ -79,7 +79,6 @@ PREFS = [
     _p("guests_hidden", "privacy", "Скрыть посты от незарегистрированных", "Гости без аккаунта не увидят ваши посты", where="server", group="Профиль"),
     _p("who_can_ask", "privacy", "Кто может задавать мне вопросы", "Раздел «Вопросы» в профиле", "all", "select", AUDIENCE, "server", "Вопросы"),
     _p("allow_anonymous_questions", "privacy", "Разрешить анонимные вопросы", "", True, where="server", group="Вопросы"),
-    _p("plus_name_color", "plus", "Цветное имя", "Имя переливается цветом вашего значка PLUS", True, where="server", group="Оформление"),
     _p("plus_avatar_glow", "plus", "Сияющая аватарка", "Анимированное кольцо вокруг фото профиля", True, where="server", group="Оформление"),
     _p("incognito_views", "privacy", "Не учитывать мои визиты в статистике чужих профилей", "", where="server", group="Следы"),
     _p("anonymous_stories", "privacy", "Смотреть истории анонимно", "Вы не попадёте в список просмотревших", where="server", group="Следы"),

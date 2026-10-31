@@ -140,7 +140,7 @@
     const real = t === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
     document.documentElement.setAttribute('data-theme', real);
     const meta = $('meta[name=theme-color]');
-    if (meta) meta.content = real === 'dark' ? '#0b0b12' : '#ffffff';
+    if (meta) meta.content = real === 'dark' ? '#141311' : '#f3e7d3';
     syncAppTheme();
   }
   // Android-приложение красит полосы под строкой состояния и навигацией в цвет сайта

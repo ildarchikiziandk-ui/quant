@@ -1,7 +1,7 @@
 {# Мобильное меню: главное — крупно, остальное — компактными списками, редкое — в раскрывающихся группах.
    Лента, чаты, уведомления и профиль уже есть внизу и вверху экрана, поэтому здесь их нет. #}
-{% set main = [("/c","megaphone","Сообщества"),("/groups","users","Группы"),("/bookmarks","bookmark","Закладки"),("/tasks","target","Задания"),("/events","calendar","События")] %}
-{% set mine = [("/messages/starred","star","Избранное"),("/birthdays","cake","Дни рождения"),("/drafts","draft","Черновики"),("/stats","chart","Статистика"),("/gifts/" ~ user.username,"gift","Подарки"),("/archive","archive","Архив")] %}
+{% set main = [("/games","dice","Игры"),("/c","megaphone","Сообщества"),("/groups","users","Группы"),("/gifts/" ~ user.username,"gift","Подарки"),("/bookmarks","bookmark","Закладки"),("/tasks","target","Задания")] %}
+{% set mine = [("/messages/starred","star","Избранное"),("/birthdays","cake","Дни рождения"),("/drafts","draft","Черновики"),("/stats","chart","Статистика"),("/events","calendar","События"),("/archive","archive","Архив")] %}
 {% set more = [
   ("Обзор", "compass", [("/explore","compass","Обзор"),("/top","trophy","Топ постов"),("/people/city","map","Люди рядом"),("/leaderboard","chart","Рейтинг")]),
   ("Награды", "medal", [("/achievements","medal","Достижения"),("/shop","bag","Магазин"),("/invite","handshake","Пригласить друзей")]),

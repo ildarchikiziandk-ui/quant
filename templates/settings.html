@@ -183,7 +183,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
 <div class="card hero">
   <div style="font-size:22px;font-weight:800">{{ icon("sparkle", "i in") }} {{ brand_plus }}</div>
   {% if is_plus %}<div class="muted">Активен{% if user.is_owner %} навсегда{% elif user.plus_until %} до {{ user.plus_until.strftime("%d.%m.%Y") }}{% endif %}. Спасибо, что вы с нами!</div>
-  {% else %}<div class="muted">Цветной значок и имя, гости профиля, ×1,5 искр, длинные посты и голосовые и ещё много всего. <a href="/plus" style="color:var(--link)">Все возможности</a></div>{% endif %}
+  {% else %}<div class="muted">Синий значок, гости профиля, ×1,5 искр, длинные посты и голосовые и ещё много всего. <a href="/plus" style="color:var(--link)">Все возможности</a></div>{% endif %}
 </div>
 {% if is_plus %}
 <form class="card" method="post" action="/settings/prefs/plus">
@@ -197,13 +197,6 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
   <div class="card-title">Активировать промокод</div>
   <div class="row"><input name="code" placeholder="PROMO2026" style="margin:0;text-transform:uppercase" required><button class="btn">Активировать</button></div>
 </form>
-{% if is_plus %}
-<form class="card" method="post" action="/settings/plus-color">
-  <div class="card-title">Цвет значка PLUS и обложки</div>
-  <div class="plus-palette">{% for k, label, css in plus_palette %}<label title="{{ label }}"><input type="radio" name="preset" value="{{ k }}" {% if (user.plus_color or 'violet') == k %}checked{% endif %}><span style="background:{{ css }}"></span></label>{% endfor %}</div>
-  <div class="row mt" style="gap:10px"><span class="small muted">Или свой цвет:</span><input type="color" id="plus-custom" value="{{ user.plus_color if (user.plus_color or '').startswith('#') else '#a855f7' }}" style="width:48px;margin:0" onchange="var r=this.form.querySelector('[name=preset]:checked');if(r)r.checked=false;this.name='color'"><span class="grow"></span><span>Пример: <span class="plus-tag" style="background:{{ plus_bg(user) }}"><svg viewBox="0 0 24 24"><path d="M12 2.5c.8 5.1 2.6 7 7.7 7.8-5.1.8-6.9 2.6-7.7 7.7-.8-5.1-2.6-6.9-7.7-7.7 5.1-.8 6.9-2.7 7.7-7.8z"/></svg>PLUS</span></span><button class="btn">Сохранить</button></div>
-</form>
-{% endif %}
 
 {% elif section == "data" %}
 <div class="card"><div class="card-title">{{ icon("clock", "i in") }} Время в {{ brand }} сегодня</div><p class="small muted">На этом устройстве: <b id="time-today">—</b>. Напоминание о перерыве — в разделе «Доступность».</p><div id="time-week" class="mt"></div></div>

@@ -47,6 +47,7 @@ class User(Base):
     is_plus = Column(Boolean, default=False)
     plus_until = Column(DateTime, nullable=True)
     plus_color = Column(String, default="#a855f7")
+    name_color_legacy = Column(Boolean, default=False)  # переливающееся имя — только у тех, у кого оно было до 31.10.2026
     last_seen = Column(DateTime, nullable=True)
     offline_at = Column(DateTime, nullable=True)  # закрыл приложение — сразу «не в сети»
     pinned_post_id = Column(Integer, nullable=True)

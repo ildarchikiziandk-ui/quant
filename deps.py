@@ -39,7 +39,7 @@ env.globals.update(
     post_expires=extras.EXPIRES, zodiac=extras.zodiac, frame_by=extras.FRAME_BY, status_active=extras.status_active, pref_client=prefs.client_values,
     yandex_enabled=bool(config.YANDEX_CLIENT_ID and config.YANDEX_CLIENT_SECRET),
     push_enabled=bool(config.VAPID_PUBLIC_KEY), static_v=config.STATIC_V, app_version=config.APP_VERSION, utcnow=datetime.utcnow,
-    min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, dname=chatstyle.name_of, custom_name=chatstyle.custom_name, wallpapers=chatstyle.WALLPAPERS, bubbles=chatstyle.BUBBLES, chat_fonts=chatstyle.FONTS, streak_level=streaks.level, emo=text.emoji_img,
+    min_age=config.MIN_AGE, secret_enabled=config.SECRET_CHATS_ENABLED, operator=legal.operator(), icon_svg=icons.icon, plus_bg=plus.bg, name_bg=plus.name_bg, has_name_color=plus.has_name_color, plus_palette=plus.PALETTE, plus_bgs=plus.BGS, plus_expires=plus.EXPIRES, plus_limit=plus.limit, plus_features=plus.FEATURES, plus_accents=plus.ACCENTS, gift_price=plus.gift_price, plus_exclusive=plus.EXCLUSIVE_GIFTS, icon=icons.icon, glyph=icons.glyph, reaction=icons.reaction, dname=chatstyle.name_of, custom_name=chatstyle.custom_name, wallpapers=chatstyle.WALLPAPERS, bubbles=chatstyle.BUBBLES, chat_fonts=chatstyle.FONTS, streak_level=streaks.level, emo=text.emoji_img,
 )
 
 # ---------------------------------------------------------------- языки интерфейса

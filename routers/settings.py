@@ -312,20 +312,6 @@ async def settings_theme(request: Request, db: Session = Depends(get_db)):
     return JSONResponse({"ok": True})
 
 
-@router.post("/settings/plus-color")
-async def plus_color(request: Request, db: Session = Depends(get_db)):
-    user = current_user(request, db)
-    if not user or not social.is_plus(user):
-        return redirect("/settings?section=plus")
-    form = await request.form()
-    color = (form.get("preset") or form.get("color") or "").strip()
-    from services import plus as plus_srv
-    if plus_srv.valid_color(color):
-        user.plus_color = color
-        db.commit()
-    return redirect("/settings?section=plus")
-
-
 @router.post("/settings/promocode")
 @router.post("/activate_plus")
 async def activate_promo(request: Request, db: Session = Depends(get_db)):

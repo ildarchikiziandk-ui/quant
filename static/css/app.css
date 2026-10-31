@@ -215,6 +215,12 @@ label.field > span { display: block; font-size: 13px; font-weight: 600; color: v
 .composer-tools .tools { display: flex; gap: 2px; flex-wrap: wrap; }
 .tool { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: none; background: none; cursor: pointer; color: var(--brand); }
 .tool:hover { background: var(--hover); }
+.tool .tl { display: none; }
+.composer-tools .tool:has(.tl) { width: auto; min-width: 36px; padding: 0 10px; gap: 6px; border-radius: 999px; }
+.composer-tools .tool .tl { display: inline; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.composer-tools .tools { gap: 4px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.composer-tools .tools::-webkit-scrollbar { display: none; }
+.composer-tools .tool:has(.tl) { flex: none; background: var(--input); }
 .tool svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .tool.on { background: var(--input); color: var(--text); }
 .counter { font-size: 12px; color: var(--text-3); font-weight: 600; }
@@ -589,8 +595,8 @@ html:not(.p-nav-labels) .mobile-nav button span:not(.mbadge){display:none}
 .mmenu-search svg.i{width:18px;height:18px;color:var(--text-3);flex-shrink:0}
 .mmenu-search input{background:none;border:none;margin:0;padding:12px 0;flex:1;box-shadow:none}
 .mmenu-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin:16px 4px 8px}
-.mmenu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.mmenu-grid a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:16px;background:var(--card);border:1px solid var(--border);font-size:11.5px;font-weight:600;text-align:center;line-height:1.2;color:var(--text)}
+.mmenu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mmenu-grid a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:16px;background:var(--card);border:1px solid var(--border);font-size:12.5px;font-weight:600;text-align:center;line-height:1.2;color:var(--text)}
 .mmenu-grid a svg.i{width:22px;height:22px}
 .mmenu-list{margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
 .mmenu-list>a,.mmenu-list>button,.mmenu-list form button{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:none;border:none;border-top:1px solid var(--border);font:inherit;font-weight:600;color:var(--text);cursor:pointer;text-align:left}

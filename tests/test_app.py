@@ -954,10 +954,17 @@ def test_plus_features(alice, bob, owner):
     gamification.add_points(a, s, 10)
     assert a.total_points - pts == 15
     s.close()
-    # цвет значка из палитры и имя с градиентом
-    alice.post("/settings/plus-color", data={"preset": "aurora"})
+    # значок PLUS всегда синий, выбора цвета нет; цветное имя — только у тех, у кого оно было раньше
+    assert alice.post("/settings/plus-color", data={"preset": "aurora"}).status_code in (404, 405)
     prof = bob.get("/profile/alice").text
-    assert "plus-name" in prof and "#22d3ee" in prof
+    assert "plus-name" not in prof and "#1f6fb8" in prof
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    a.plus_color, a.name_color_legacy = "rainbow", True
+    s.commit()
+    s.close()
+    prof = bob.get("/profile/alice").text
+    assert "plus-name" in prof and "#a855f7" in prof  # радужное имя у «старичка» осталось
     assert "Длинные посты" in alice.get("/plus").text
     # длинный пост
     pid = create_post(alice, "а" * 9000)

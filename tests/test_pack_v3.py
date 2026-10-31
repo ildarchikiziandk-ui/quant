@@ -1218,3 +1218,33 @@ def test_short_links(alice, monkeypatch):
     assert hit("/gifts/rubl").headers["location"] == config.SITE_URL + "/gifts/rubl"
     assert alice.get("/settings", follow_redirects=False).status_code == 200  # основной домен работает как раньше
     assert main.short_target("/") == config.SITE_URL + "/"
+
+
+def test_retired_gifts_and_grandfather(alice, bob):
+    from services import extras, plus
+    s = db()
+    a = s.query(models.User).filter_by(username="alice").one()
+    a.total_points = 5000
+    s.commit()
+    s.close()
+    r = alice.post("/gifts/bob/send", data={"gift": "coffee"}, headers=J).json()
+    assert r["ok"] is False and "не продаётся" in r["error"]
+    assert "coffee.svg" not in alice.get("/gifts/bob").text
+    assert all(g["code"] != "coffee" for g in alice.get("/v3/gifts").json()["gifts"])
+    assert alice.post("/gifts/bob/send", data={"gift": "rose"}, headers=J).json()["ok"]
+    # старый подаренный «Кофе» по-прежнему виден у получателя
+    s = db()
+    uid = lambda n: s.query(models.User).filter_by(username=n).one().id
+    s.add(models.UserGift(gift_code="coffee", from_user_id=uid("alice"), to_user_id=uid("bob")))
+    s.commit()
+    assert "coffee.svg" in bob.get("/gifts/bob").text
+    # цветное имя переносится только Plus-пользователям с включённой настройкой
+    from packs.v3 import site
+    site.put(s, "name_color_grandfathered", False)
+    b = s.query(models.User).filter_by(username="bob").one()
+    b.is_plus, b.prefs = True, '{"plus_name_color": true}'
+    s.commit()
+    plus.grandfather_name_colors(s)
+    assert s.query(models.User).filter_by(username="bob").one().name_color_legacy
+    assert not s.query(models.User).filter_by(username="alice").one().name_color_legacy
+    s.close()

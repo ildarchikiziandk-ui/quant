@@ -27,9 +27,9 @@
 {%- endmacro %}
 
 {% macro name(u, link=true) -%}
-{%- set pn = user_is_plus(u) and pref(u, "plus_name_color") -%}
-{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ dname(u) }}</span>{{ badges(u) }}</a>
-{%- else %}<span class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ plus_bg(u) }}"{% endif %}>{{ dname(u) }}</span>{{ badges(u) }}</span>{% endif -%}
+{%- set pn = has_name_color(u) -%}
+{%- if link %}<a href="/profile/{{ u.username }}" class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ name_bg(u) }}"{% endif %}>{{ dname(u) }}</span>{{ badges(u) }}</a>
+{%- else %}<span class="name-line"><span class="ellipsis{% if pn %} plus-name{% endif %}"{% if pn %} style="--pg:{{ name_bg(u) }}"{% endif %}>{{ dname(u) }}</span>{{ badges(u) }}</span>{% endif -%}
 {%- endmacro %}
 
 {% macro follow_btn(u, user, following, small=true) -%}

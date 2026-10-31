@@ -358,7 +358,7 @@ def gifts_list(request: Request, db: Session = Depends(get_db)):
     items = []
     for c, _e, n, p in extras.GIFTS:
         ok, note, left = extras.gift_state(db, c, user)
-        if not ok and (note == "Ещё не вышел" or extras.KIND.get(c) == "founder"):
+        if not ok and (note == "Ещё не вышел" or extras.KIND.get(c) in ("founder", "retired")):
             continue
         items.append({"code": c, "name": n, "price": plus.gift_price(user, p), "plus": c in plus.EXCLUSIVE_GIFTS,
                       "kind": extras.KIND.get(c), "off": not ok, "note": note or (f"осталось {left}" if left is not None else "")})

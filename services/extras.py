@@ -9,15 +9,17 @@ import models
 # --- Подарки за искры --------------------------------------------------------------------------------------
 # (код, эмодзи для текста, название, цена в искрах). Картинки — static/gifts/<код>.svg (рисует tools/gift_art.py).
 REGULAR = [
-    ("heart", "❤️", "Сердечко", 10), ("rose", "🌹", "Роза", 20), ("coffee", "☕", "Кофе", 24), ("balloon", "🎈", "Шарик", 30),
-    ("cake", "🎂", "Тортик", 40), ("bear", "🧸", "Мишка", 50), ("star", "⭐", "Звезда", 60), ("fire", "🔥", "Огонь", 70),
-    ("trophy", "🏆", "Кубок", 120), ("whale", "🐋", "Кит Nuvora", 150), ("crown", "👑", "Корона", 200), ("aurora", "✨", "Северное сияние", 240),
-    ("diamond", "💎", "Бриллиант", 300), ("rocket", "🚀", "Ракета", 500),
+    ("heart", "❤️", "Сердечко", 10), ("rose", "🌹", "Роза", 20), ("cake", "🎂", "Тортик", 40), ("bear", "🧸", "Мишка", 50),
+    ("whale", "🐋", "Кит Nuvora", 150), ("crown", "👑", "Корона", 200), ("diamond", "💎", "Бриллиант", 300), ("rocket", "🚀", "Ракета", 500),
 ]
 # «Коллекция» — дорогие подарки, доступны всегда
 PREMIUM = [
-    ("castle", "🏰", "Замок", 1000), ("unicorn", "🦄", "Единорог", 1500), ("yacht", "⛵", "Яхта", 2000),
-    ("planet", "🪐", "Планета", 2500), ("golden_whale", "🐳", "Золотой кит", 3500), ("phoenix", "🔥", "Феникс", 5000),
+    ("castle", "🏰", "Замок", 1000), ("unicorn", "🦄", "Единорог", 1500), ("golden_whale", "🐳", "Золотой кит", 3500), ("phoenix", "🔥", "Феникс", 5000),
+]
+# Сняты с продажи 31.10.2026 (владелец: «подарков слишком много»). Уже подаренные остаются у получателей.
+RETIRED = [
+    ("coffee", "☕", "Кофе", 24), ("balloon", "🎈", "Шарик", 30), ("star", "⭐", "Звезда", 60), ("fire", "🔥", "Огонь", 70),
+    ("trophy", "🏆", "Кубок", 120), ("aurora", "✨", "Северное сияние", 240), ("yacht", "⛵", "Яхта", 2000), ("planet", "🪐", "Планета", 2500),
 ]
 # Лимитированные — по одному на месяц. Скрыты, пока владелец не «дропнет» их в админке (/admin/gifts).
 LIMITED = [
@@ -31,9 +33,9 @@ LIMITED = [
 FOUNDER = ("founder", "🏅", "Подарок от создателя", 0)  # дарить может только основатель сайта
 LIMITED_SUPPLY = 100  # тираж по умолчанию при дропе
 
-GIFTS = REGULAR + PREMIUM + [g[:4] for g in LIMITED] + [FOUNDER]
+GIFTS = REGULAR + PREMIUM + [g[:4] for g in LIMITED] + [FOUNDER] + RETIRED
 GIFT_BY_CODE = {g[0]: g for g in GIFTS}
-KIND = {**{g[0]: "regular" for g in REGULAR}, **{g[0]: "premium" for g in PREMIUM}, **{g[0]: "limited" for g in LIMITED}, FOUNDER[0]: "founder"}
+KIND = {**{g[0]: "regular" for g in REGULAR}, **{g[0]: "premium" for g in PREMIUM}, **{g[0]: "limited" for g in LIMITED}, FOUNDER[0]: "founder", **{g[0]: "retired" for g in RETIRED}}
 LIMITED_MONTH = {g[0]: g[4] for g in LIMITED}
 
 
@@ -54,6 +56,8 @@ def is_founder(user):
 def gift_state(db, code, user=None):
     """Можно ли сейчас дарить: (можно, причина/подпись, сколько осталось или None)."""
     kind = KIND.get(code)
+    if kind == "retired":
+        return False, "Больше не продаётся", None
     if kind == "founder":
         return is_founder(user), ("Дарить может только создатель Nuvora" if not is_founder(user) else ""), None
     if kind == "limited":

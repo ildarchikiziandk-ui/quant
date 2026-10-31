@@ -31,14 +31,44 @@ def valid_color(value):
     return value in PALETTE_BY or bool(HEX.match(value or ""))
 
 
+BADGE = "linear-gradient(135deg,#3b8fd6,#1f6fb8)"  # значок PLUS всегда фирменный синий (выбор цвета убран 31.10.2026)
+
+
 def bg(user):
-    """CSS-фон для значка и обложки пользователя."""
+    """CSS-фон значка PLUS, обложки по умолчанию и свечения аватарки — всегда синий."""
+    return BADGE
+
+
+def name_bg(user):
+    """Цвет переливающегося имени. Его оставили только тем, у кого оно уже было, — в их прежнем цвете."""
     c = (user.plus_color if user else "") or DEFAULT
     if c in PALETTE_BY:
         return PALETTE_BY[c]
     if HEX.match(c):
         return f"linear-gradient(135deg,{c},color-mix(in srgb,{c} 60%,#000))"
     return PALETTE_BY[DEFAULT]
+
+
+def has_name_color(user):
+    return bool(user and getattr(user, "name_color_legacy", False) and active(user))
+
+
+def grandfather_name_colors(db):
+    """Один раз: цветное имя остаётся у тех Plus-пользователей, у кого оно было включено."""
+    import json
+    import models
+    from packs.v3 import site
+    if site.get("name_color_grandfathered"):
+        return
+    for u in db.query(models.User).all():
+        try:
+            on = json.loads(u.prefs or "{}").get("plus_name_color", True)
+        except ValueError:
+            on = True
+        if on and active(u):
+            u.name_color_legacy = True
+    site.put(db, "name_color_grandfathered", True)
+    db.commit()
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -74,19 +104,18 @@ def gift_price(user, price):
 ACCENTS = ["#ec4899", "#f97316", "#06b6d4", "#8b5cf6", "#84cc16", "#e11d48", "#0ea5e9", "#a16207"]
 BGS = [("aurora", "Сияние"), ("cosmos", "Космос"), ("goldbg", "Золото"), ("ocean", "Океан")]
 BG_KEYS = {k for k, _ in BGS}
-EXCLUSIVE_GIFTS = {"whale", "aurora"}
+EXCLUSIVE_GIFTS = {"whale"}
 EXPIRES = [("1", "Через 1 час"), ("6", "Через 6 часов")]
 
 FEATURES = [
     ("Оформление", [
-        ("sparkle", "Значок PLUS", "18 цветов и градиентов на выбор или свой цвет"),
-        ("palette", "Цветное имя", "Имя в постах и комментариях переливается цветом вашего значка"),
+        ("sparkle", "Значок PLUS", "Фирменный синий значок рядом с именем"),
         ("circle", "Сияющая аватарка", "Анимированное кольцо вокруг фото профиля"),
-        ("image", "Цветная обложка", "Если обложки нет — профиль окрашен в ваш цвет"),
+        ("image", "Цветная обложка", "Если обложки нет — профиль окрашен в фирменный синий"),
         ("bag", "Все рамки бесплатно", "Любые рамки аватарки из магазина — без искр"),
         ("contrast", "Эксклюзивные цвета", "8 дополнительных акцентных цветов интерфейса"),
         ("layers", "Фоны для постов", "4 эксклюзивных фона: сияние, космос, золото, океан"),
-        ("gift", "Особые подарки", "«Кит Nuvora» и «Северное сияние» дарят только с Plus"),
+        ("gift", "Особый подарок", "«Кит Nuvora» дарят только с Plus"),
     ]),
     ("Возможности", [
         ("hourglass", "Исчезающие посты на час", "Таймеры удаления поста на 1 и 6 часов"),
