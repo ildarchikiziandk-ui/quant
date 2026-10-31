@@ -50,6 +50,19 @@
     const show = (online) => { bar.textContent = online ? 'Снова в сети' : 'Нет подключения к интернету'; bar.classList.toggle('ok', online); bar.classList.remove('hidden'); if (online) setTimeout(() => bar.classList.add('hidden'), 2500); };
     addEventListener('offline', () => show(false)); addEventListener('online', () => show(true));
     if (navigator.onLine === false) show(false);
+    // страницу отдали из сохранённых (сеть пропала или тормозит): говорим об этом и даём обновить
+    if (document.documentElement.dataset.savedCopy) {
+      bar.innerHTML = 'Сохранённая копия · <u>обновить</u>';
+      bar.classList.remove('hidden', 'ok'); bar.classList.add('saved'); bar.style.cursor = 'pointer'; bar.onclick = () => location.reload();
+    }
+    // в списке чатов заранее сохраняем последние переписки (только текст), чтобы читать их без сети
+    if (location.pathname === '/messages' && navigator.onLine !== false && navigator.serviceWorker && navigator.serviceWorker.controller && !document.documentElement.dataset.savedCopy) {
+      const last = +ls.get('nv_chats_cached') || 0;
+      if (Date.now() - last > 10 * 60 * 1000) {
+        const urls = [...new Set([...document.querySelectorAll('a[href^="/messages/"]')].map(a => a.getAttribute('href')).filter(h => /^\/messages\/[\w.-]+$/.test(h) && !/^\/messages\/(starred|search)$/.test(h)))].slice(0, 10);
+        if (urls.length) { navigator.serviceWorker.controller.postMessage({ type: 'cache-pages', urls }); ls.set('nv_chats_cached', String(Date.now())); }
+      }
+    }
   });
 
   // 4. Виброотклик: можно выключить
@@ -283,6 +296,11 @@
     ['nv_chat_tab', 'composer-draft', 'nv_search_hist'].forEach(ls.del);
     Object.keys(localStorage || {}).filter(k => k.startsWith('nv_draft_') || k.startsWith('nv_time_') || k.startsWith('nv_cdraft_')).forEach(ls.del);
     toast('Кэш очищен'); setTimeout(() => location.reload(), 700);
+  });
+  // размер сохранённого на устройстве — в настройках рядом с кнопкой
+  safe('cache-size', () => {
+    const el = $('[data-cache-size]'); if (!el || !navigator.storage || !navigator.storage.estimate) return;
+    navigator.storage.estimate().then(s => { const mb = (s.usage || 0) / 1048576; el.textContent = 'Сейчас занято: ' + (mb < 1 ? '< 1' : mb.toFixed(1)) + ' МБ'; }).catch(() => {});
   });
 
   // ======================================================================== ЛЕНТА И ПОСТЫ

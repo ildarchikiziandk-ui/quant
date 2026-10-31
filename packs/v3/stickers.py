@@ -1,6 +1,6 @@
-"""Наборы стикеров: «Кит Нуви», «Кот Мур», «Капибара Капи». Картинки лежат в static/stickers/<набор>
+"""Наборы стикеров: «Кит Нуви», «Кот Мур», «Капибара Капи», «Пингвин Пинг», «Лиса Фыся», «Панда Бао», «Утёнок Кря», «Мишка Топа». Картинки лежат в static/stickers/<набор>
 (встроены в приложение, не занимают место на сервере). В сообщении стикер — метка [[v3:st:имя]].
-Картинки рисуют tools/stickers_gen.py и tools/stickers_more.py. Наборы можно выключать в админ-панели."""
+Картинки рисуют tools/stickers_gen.py, tools/stickers_more.py и tools/stickers_new.py. Наборы можно выключать в админ-панели."""
 from fastapi.responses import JSONResponse
 
 from . import site
@@ -23,6 +23,21 @@ PACKS = [
         ("kapi-spokoyno", "Спокойно"), ("kapi-kayf", "Кайф"), ("kapi-norm", "Норм"), ("kapi-utro", "Доброе утро"),
         ("kapi-noch", "Спокойной ночи"), ("kapi-ustal", "Устал"), ("kapi-rabotayu", "Работаю"), ("kapi-pyatnica", "Пятница!"),
         ("kapi-nu-i-ladno", "Ну и ладно"), ("kapi-obnimayu", "Обнимаю"), ("kapi-ogo", "Ого"), ("kapi-ok", "Ок"),
+    ]),
+    ("ping", "Пингвин Пинг", [
+        ("ping-privet", "Привет!"), ("ping-spasibo", "Спасибо"), ("ping-lyublyu", "Люблю"), ("ping-haha", "Ха-ха"), ("ping-ok", "Окей"), ("ping-kruto", "Круто!"), ("ping-grust", "Грущу"), ("ping-vau", "Вау!"), ("ping-holodno", "Холодно"), ("ping-obnimayu", "Обнимаю")
+    ]),
+    ("fox", "Лиса Фыся", [
+        ("fox-hey", "Хей!"), ("fox-spasibo", "Спасибо"), ("fox-lyublyu", "Люблю"), ("fox-haha", "Ха-ха"), ("fox-hitro", "Хитро"), ("fox-pobeda", "Победа!"), ("fox-grust", "Грущу"), ("fox-vau", "Вау!"), ("fox-splyu", "Сплю"), ("fox-obnimayu", "Обнимаю")
+    ]),
+    ("panda", "Панда Бао", [
+        ("panda-privet", "Привет!"), ("panda-spasibo", "Спасибо"), ("panda-lyublyu", "Люблю"), ("panda-haha", "Ха-ха"), ("panda-ladno", "Ладно"), ("panda-ura", "Ура!"), ("panda-grust", "Грущу"), ("panda-vau", "Вау!"), ("panda-len", "Лень…"), ("panda-obnimayu", "Обнимаю")
+    ]),
+    ("duck", "Утёнок Кря", [
+        ("duck-krya", "Кря!"), ("duck-spasibo", "Спасибо"), ("duck-lyublyu", "Люблю"), ("duck-haha", "Ха-ха"), ("duck-ok", "Окей"), ("duck-uii", "Уиии!"), ("duck-grust", "Грущу"), ("duck-vau", "Вау!"), ("duck-splyu", "Сплю"), ("duck-obnimayu", "Обнимаю")
+    ]),
+    ("bear", "Мишка Топа", [
+        ("bear-privet", "Привет!"), ("bear-spasibo", "Спасибо"), ("bear-lyublyu", "Люблю"), ("bear-haha", "Ха-ха"), ("bear-norm", "Норм"), ("bear-ura", "Ура!"), ("bear-obidno", "Обидно"), ("bear-vau", "Вау!"), ("bear-splyu", "Сплю"), ("bear-obnimashki", "Обнимашки")
     ]),
 ]
 NAMES = {k: n for _, _, items in PACKS for k, n in items}

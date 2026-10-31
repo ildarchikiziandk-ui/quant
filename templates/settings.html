@@ -208,7 +208,7 @@ else if(location.search.indexOf('section=')>=0){var t2=document.querySelector('.
     <button type="button" class="btn ghost sm" onclick="(async()=>{if(!confirm('Вернуть все настройки по умолчанию? Профиль и посты не изменятся.'))return;await App.api('/settings/backup/reset');App.toast('Настройки сброшены');setTimeout(()=>location.reload(),700);})()">{{ icon("refresh", "i in") }} Сбросить всё</button>
   </div>
 </div>
-<div class="card"><div class="card-title">{{ icon("eraser", "i in") }} Кэш на этом устройстве</div><p class="small muted mb">Если фото не обновляются или приложение ведёт себя странно — очистите сохранённые файлы. Вход не сбросится.</p><button type="button" class="btn soft sm" data-clear-cache>Очистить кэш</button></div>
+<div class="card"><div class="card-title">{{ icon("eraser", "i in") }} Сохранённое на этом устройстве</div><p class="small muted mb">Последние открытые чаты и посты сохраняются на телефоне — только текст, без фото и видео. Поэтому их можно читать без интернета, а при плохой связи они открываются сразу. Очистка удалит сохранённое; вход не сбросится.</p><p class="small mb" data-cache-size></p><button type="button" class="btn soft sm" data-clear-cache>Очистить кэш</button></div>
 <div class="card"><div class="card-title">{{ icon("package", "i in") }} Экспорт данных</div><p class="small muted mb">Скачайте архив своих постов, комментариев, подписок и сообщений в формате JSON.</p><a class="btn soft" href="/export-data">Скачать мои данные</a></div>
 <div class="card" style="border-color:color-mix(in srgb,var(--danger) 40%,transparent)">
   <div class="card-title" style="color:var(--danger)">Удалить аккаунт</div>

@@ -21,7 +21,7 @@
   --input: #f1e4cd; --hover: rgba(31, 29, 26, .05);
   --like: #d63c3c; --bookmark: #c98a1b; --online: #3c9a5f; --plus: var(--whale);
   --shadow-1: none; --shadow-2: 0 10px 30px -12px rgba(40, 30, 15, .22); --shadow: var(--shadow-2);
-  --radius: 16px; --radius-sm: 11px;
+  --radius: 22px; --radius-sm: 15px;
   --font-display: "Unbounded", "Onest", sans-serif;
 }
 [data-theme="dark"] {
@@ -330,3 +330,15 @@ input[type=checkbox]:disabled { opacity: .5; cursor: default; }
 .gift.g-limited { background: linear-gradient(180deg, color-mix(in srgb, #8b5cf6 12%, var(--card)), var(--card)); }
 .gift.g-founder { background: linear-gradient(180deg, color-mix(in srgb, #f6b40e 22%, var(--card)), color-mix(in srgb, var(--whale) 10%, var(--card))); }
 .gift-plus.lim { background: linear-gradient(135deg, #a78bfa, #6d28d9); }
+
+/* ===== Округлый интерфейс (31.10.2026): кнопки-«таблетки», мягкие поля и карточки ===== */
+.btn, .btn.sm { border-radius: 999px; }
+input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]), select { border-radius: 16px; }
+textarea { border-radius: 18px; }
+.card, .post, .composer, .modal, .menu, .mmenu-grid a, .mmenu-rows, .mmenu-list, .mmenu-more { border-radius: var(--radius); }
+.menu button, .menu a { border-radius: 12px; }
+.tag-pill, .chip, .kbd { border-radius: 999px; }
+img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid video { border-radius: 18px; }
+.av, .av img { border-radius: 50%; }
+.net-bar.saved { background: var(--ink); color: var(--paper); font-size: 13px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
+[data-theme="dark"] .net-bar.saved { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }

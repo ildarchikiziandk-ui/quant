@@ -1,8 +1,8 @@
 const CACHE_NAME = 'app-__VERSION__';
-const MEDIA_CACHE = 'media-v1';  // фото и видео из ленты: имена файлов уникальные, их можно хранить
-const MEDIA_MAX = 400;
+const OLD_MEDIA = 'media-v1';  // раньше хранили и фото; теперь без интернета сохраняется только текст — кэш фото стираем
 const PAGES_CACHE = 'pages-v1';  // последние открытые страницы — их видно без интернета
-const PAGES_MAX = 40;
+const PAGES_MAX = 120;
+const SLOW_MS = 3500;  // сеть тормозит дольше — сразу показываем сохранённую страницу, а свежую подкладываем в кэш
 // какие страницы сохраняем для офлайна (личные, но только на этом устройстве; стираются при выходе из аккаунта)
 const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word|\/offline)?$|help$|ai$|capsule$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
 const BRAND = '__BRAND__';
@@ -17,7 +17,8 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== MEDIA_CACHE && k !== PAGES_CACHE).map(k => caches.delete(k)))));
+  caches.delete(OLD_MEDIA);
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== PAGES_CACHE).map(k => caches.delete(k)))));
   if (self.registration.navigationPreload) e.waitUntil(self.registration.navigationPreload.enable().catch(() => {}));
   self.clients.claim();
 });
@@ -35,31 +36,60 @@ self.addEventListener('fetch', e => {
     })));
     return;
   }
-  if (url.pathname.startsWith('/uploads/') && req.destination === 'image') {
-    e.respondWith(caches.open(MEDIA_CACHE).then(c => c.match(req).then(r => r || fetch(req).then(res => {
-      if (res.ok) { c.put(req, res.clone()); c.keys().then(k => { if (k.length > MEDIA_MAX) k.slice(0, k.length - MEDIA_MAX).forEach(x => c.delete(x)); }); }
-      return res;
-    }))));
-    return;
-  }
   if (req.mode === 'navigate') {
     e.respondWith((async () => {
-      try {
+      const key = url.pathname + url.search;
+      const c = await caches.open(PAGES_CACHE);
+      const saved = PAGE_OK.test(url.pathname) ? await c.match(key) : null;
+      const net = (async () => {
         const res = (await e.preloadResponse) || await fetch(req);
-        if (res.ok && !res.redirected && res.type === 'basic' && PAGE_OK.test(url.pathname)) {
-          const copy = res.clone();
-          caches.open(PAGES_CACHE).then(c => c.put(url.pathname + url.search, copy).then(() => c.keys()).then(k => {
-            if (k.length > PAGES_MAX) k.slice(0, k.length - PAGES_MAX).forEach(x => c.delete(x));
-          })).catch(() => {});
-        }
+        if (res.ok && !res.redirected && res.type === 'basic' && PAGE_OK.test(url.pathname)) await savePage(c, key, res.clone());
         return res;
+      })();
+      try {
+        if (!saved) return await net;
+        // есть сохранённая копия: ждём сеть не дольше SLOW_MS, иначе показываем копию (свежая догрузится в кэш)
+        const slow = new Promise(r => setTimeout(() => r(null), SLOW_MS));
+        const res = await Promise.race([net, slow]);
+        if (res) return res;
+        e.waitUntil(net.catch(() => {}));
+        return markSaved(saved);
       } catch (err) {
-        const c = await caches.open(PAGES_CACHE);
         const games = url.pathname === '/games/offline' && await caches.match('/games/offline', { cacheName: CACHE_NAME });  // свежая, под текущую статику
-        return games || (await c.match(url.pathname + url.search)) || (await c.match(url.pathname)) || (await caches.match('/offline')) || Response.error();
+        const page = games || saved || (await c.match(url.pathname));
+        return page ? markSaved(page) : ((await caches.match('/offline')) || Response.error());
       }
     })());
   }
+});
+
+// Сохраняем только HTML страницы (без фото и видео — они грузятся по сети), последние PAGES_MAX штук
+async function savePage(c, key, res) {
+  try {
+    await c.put(key, res);
+    const k = await c.keys();
+    if (k.length > PAGES_MAX) await Promise.all(k.slice(0, k.length - PAGES_MAX).map(x => c.delete(x)));
+  } catch (err) { /* нет места — не страшно */ }
+}
+
+// Помечаем сохранённую копию, чтобы страница показала плашку «Без интернета — сохранённая версия»
+async function markSaved(res) {
+  const html = await res.text();
+  return new Response(html.replace('<html ', '<html data-saved-copy="1" '), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
+// Страница чатов просит заранее сохранить последние переписки — тогда их видно без интернета
+self.addEventListener('message', e => {
+  const d = e.data || {};
+  if (d.type !== 'cache-pages' || !Array.isArray(d.urls)) return;
+  e.waitUntil(caches.open(PAGES_CACHE).then(c => Promise.all(d.urls.slice(0, 12).map(async u => {
+    const url = new URL(u, location.origin);
+    if (url.origin !== location.origin || !PAGE_OK.test(url.pathname)) return;
+    try {
+      const res = await fetch(url.pathname, { credentials: 'same-origin' });
+      if (res.ok && !res.redirected) await savePage(c, url.pathname, res);
+    } catch (err) { /* нет сети */ }
+  }))));
 });
 
 self.addEventListener('push', e => {

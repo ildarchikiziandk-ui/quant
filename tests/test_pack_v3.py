@@ -565,7 +565,7 @@ def test_moderation_posts_only(alice, bob):
 def test_stickers(alice, bob):
     friends(alice, bob)
     packs = alice.get("/v3/stickers").json()["packs"]
-    assert [p["id"] for p in packs] == ["nuvi", "mur", "kapi"] and sum(len(p["stickers"]) for p in packs) == 41
+    assert [p["id"] for p in packs] == ["nuvi", "mur", "kapi", "ping", "fox", "panda", "duck", "bear"] and sum(len(p["stickers"]) for p in packs) == 91
     assert alice.post("/messages/send", json={"receiver": "bob", "content": "[[v3:st:privet]]"}, headers=J).json()["ok"]
     html = bob.get("/messages/alice").text
     assert "/static/stickers/nuvi/privet.webp" in html and 'title="Стикеры"' in html
