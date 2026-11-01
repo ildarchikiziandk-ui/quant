@@ -57,22 +57,39 @@ apt-get install -y -qq unzip curl >/dev/null
 
 echo "==> 1/3 Программа llama.cpp"
 if [ ! -x "$DIR/bin/llama-server" ]; then
-  URL=$(curl -fsSL https://api.github.com/repos/ggml-org/llama.cpp/releases/latest | python3 -c "
+  # сначала пробуем готовую сборку с GitHub
+  URL=$(curl -fsSL https://api.github.com/repos/ggml-org/llama.cpp/releases/latest 2>/dev/null | python3 -c "
 import json,sys
-for a in json.load(sys.stdin)['assets']:
-    n=a['name']
-    if 'bin-ubuntu-x64.' in n and (n.endswith('.zip') or n.endswith('.tar.gz')): print(a['browser_download_url']); break")
-  [ -n "$URL" ] || { echo "Не нашёл сборку llama.cpp на GitHub — пришлите этот вывод Claude"; exit 1; }
+try:
+    for a in json.load(sys.stdin).get('assets', []):
+        n=a['name']
+        if 'bin-ubuntu-x64.' in n and (n.endswith('.zip') or n.endswith('.tar.gz')): print(a['browser_download_url']); break
+except Exception:
+    pass" 2>/dev/null || true)
   rm -rf /tmp/llama && mkdir -p /tmp/llama
-  if [[ "$URL" == *.zip ]]; then
-    curl -fL --progress-bar "$URL" -o /tmp/llama.zip && unzip -q /tmp/llama.zip -d /tmp/llama
-  else
-    curl -fL --progress-bar "$URL" -o /tmp/llama.zip && tar -xzf /tmp/llama.zip -C /tmp/llama
+  if [ -n "$URL" ] && curl -fL --progress-bar "$URL" -o /tmp/llama.pkg; then
+    if [[ "$URL" == *.zip ]]; then unzip -q /tmp/llama.pkg -d /tmp/llama; else tar -xzf /tmp/llama.pkg -C /tmp/llama; fi
+    SRV=$(find /tmp/llama -name llama-server -type f | head -1)
+    [ -n "$SRV" ] && cp -a "$(dirname "$SRV")"/. "$DIR/bin/"
   fi
-  SRV=$(find /tmp/llama -name llama-server -type f | head -1)
-  cp -a "$(dirname "$SRV")"/. "$DIR/bin/"
-  rm -rf /tmp/llama /tmp/llama.zip
+  # готовой сборки нет — собираем из исходного кода (10–20 минут, один раз)
+  if [ ! -x "$DIR/bin/llama-server" ]; then
+    echo "    готовой сборки нет — собираю из исходного кода, это займёт 10–20 минут, не закрывайте окно"
+    apt-get install -y -qq build-essential cmake git libcurl4-openssl-dev >/dev/null
+    JOBS=$([ "$MEM" -lt 3500 ] && echo 1 || echo "$CPUS")  # при малой памяти собираем в один поток, чтобы не упасть
+    rm -rf /tmp/llama-src
+    git clone -q --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-src
+    cmake -S /tmp/llama-src -B /tmp/llama-src/build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLAMA_CURL=OFF \
+      -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF >/tmp/llama-cmake.log 2>&1 \
+      || { echo "Не получилось подготовить сборку. Пришлите Claude: tail -20 /tmp/llama-cmake.log"; exit 1; }
+    cmake --build /tmp/llama-src/build --config Release --target llama-server -j "$JOBS" >/tmp/llama-build.log 2>&1 \
+      || { echo "Не получилось собрать. Пришлите Claude: tail -20 /tmp/llama-build.log"; exit 1; }
+    cp /tmp/llama-src/build/bin/llama-server "$DIR/bin/"
+    rm -rf /tmp/llama-src
+  fi
+  rm -rf /tmp/llama /tmp/llama.pkg
 fi
+[ -x "$DIR/bin/llama-server" ] || { echo "Программа llama.cpp не установилась — пришлите этот вывод Claude"; exit 1; }
 
 echo "==> 2/3 Модель (скачивается один раз, 0,4–1,1 ГБ)"
 if [ ! -s "$DIR/$FILE" ]; then
