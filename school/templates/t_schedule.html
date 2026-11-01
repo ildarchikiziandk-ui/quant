@@ -14,12 +14,12 @@
     <select name="s_{{ d }}_{{ n }}" class="grow"><option value="">— нет урока —</option>{% for s in subjects %}<option value="{{ s.id }}"{% if l and l.subject_id == s.id %} selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
     <input name="r_{{ d }}_{{ n }}" value="{{ l.room if l else '' }}" placeholder="где" maxlength="30" style="width:90px;flex:none"></div>
   {% endfor %}
+  <details class="mt"><summary class="small" style="cursor:pointer">{{ i("clock") }} Звонки в {{ WD[d]|lower }} <span class="faint">— нажмите, чтобы изменить</span></summary>
+    <div class="mt">{% for n in range(1, 9) %}<div class="row" style="margin-bottom:6px"><b style="width:24px">{{ n }}</b><input name="bell_{{ d }}_{{ n }}" value="{{ day_bells[d][n - 1] if day_bells[d]|length >= n else '' }}" maxlength="20" placeholder="08:30–09:15"></div>{% endfor %}</div>
+  </details>
   <button type="button" class="btn ghost sm" data-copy="{{ d }}">Скопировать этот день в другой…</button>
 </div>
 {% endfor %}
-<details class="card"><summary><h2 style="margin:0">{{ i("clock") }} Звонки <span class="tiny faint" style="margin-left:auto">нажмите, чтобы изменить</span></h2></summary>
-  <div class="mt">{% for n in range(1, 9) %}<div class="row" style="margin-bottom:6px"><b style="width:24px">{{ n }}</b><input name="bell_{{ n }}" value="{{ bells[n - 1] if bells|length >= n else '' }}" maxlength="20" placeholder="08:30–09:15"></div>{% endfor %}</div>
-</details>
 <button class="btn block">Сохранить расписание</button>
 </form>
 {% endblock %}
@@ -29,10 +29,10 @@
   const show=d=>{ chips.forEach(c=>c.classList.toggle('on',c.dataset.day==d)); cards.forEach(c=>c.hidden=c.dataset.daycard!=d); };
   chips.forEach(c=>c.onclick=()=>show(c.dataset.day));
   document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
-    const from=+b.dataset.copy, names=['пн','вт','ср','чт','пт','сб'];
-    const to=prompt('В какой день скопировать? Напишите: пн, вт, ср, чт, пт или сб'); const t=names.indexOf((to||'').trim().toLowerCase().slice(0,2));
+    const from=+b.dataset.copy, names=['пн','вт','ср','чт','пт','сб','вс'];
+    const to=prompt('В какой день скопировать? Напишите: пн, вт, ср, чт, пт, сб или вс'); const t=names.indexOf((to||'').trim().toLowerCase().slice(0,2));
     if(t<0||t===from) return;
-    for(let n=1;n<=8;n++){ document.querySelector(`[name=s_${t}_${n}]`).value=document.querySelector(`[name=s_${from}_${n}]`).value; document.querySelector(`[name=r_${t}_${n}]`).value=document.querySelector(`[name=r_${from}_${n}]`).value; }
+    for(let n=1;n<=8;n++){ document.querySelector(`[name=s_${t}_${n}]`).value=document.querySelector(`[name=s_${from}_${n}]`).value; document.querySelector(`[name=r_${t}_${n}]`).value=document.querySelector(`[name=r_${from}_${n}]`).value; document.querySelector(`[name=bell_${t}_${n}]`).value=document.querySelector(`[name=bell_${from}_${n}]`).value; }
     show(t); School.toast('Скопировано — не забудьте сохранить');
   });
 })();

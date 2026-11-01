@@ -26,7 +26,7 @@
       <a class="btn soft sm" href="/t/chat/{{ c.s.id }}" style="position:relative">{{ i("chat") }}{% if c.unread %}<span class="badge" style="position:absolute;top:-6px;right:-6px">{{ c.unread }}</span>{% endif %}</a></div>
   {% else %}<div class="empty">Учеников пока нет. <a href="/t/students" style="color:var(--accent)">Добавить</a></div>{% endfor %}</div></div>
 <div class="card"><h2>{{ i("calendar") }} Уроки сегодня <a href="/t/week">Неделя</a></h2>
-  {% for l in lessons %}<div class="lesson"><div class="n">{{ l.num }}</div><div class="grow"><b>{{ l.subject.name }}</b><div class="t">{{ bells[l.num - 1] if bells|length >= l.num else "" }}{% if l.room %} · {{ l.room }}{% endif %}</div></div></div>
+  {% for l in lessons %}<div class="lesson"><div class="n">{{ l.num }}</div><div class="grow"><b>{{ l.subject.name }}</b><div class="t">{{ bell(l.weekday, l.num) }}{% if l.room %} · {{ l.room }}{% endif %}</div></div></div>
   {% else %}<div class="empty small">Сегодня уроков нет</div>{% endfor %}
   {% if hw_soon %}<h2 class="mt">{{ i("book") }} Ближайшие задания</h2>{% for h in hw_soon %}<div class="small" style="padding:4px 0"><b>{{ h.subject.name }}</b> · {{ human_date(h.due) }} — {{ h.text[:80] }}</div>{% endfor %}{% endif %}
 </div>

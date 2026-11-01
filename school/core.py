@@ -114,8 +114,18 @@ def school_name(db):
     return setting(db, "school_name", "Моя школа")
 
 
-def bells(db):
-    return setting(db, "bells", DEFAULT_BELLS)
+def bells(db, wd=None):
+    """Время уроков. У каждого дня недели своё (setting «bells_day»); если для дня не задано — общее."""
+    common = setting(db, "bells", DEFAULT_BELLS)
+    if wd is None:
+        return common
+    own = (setting(db, "bells_day", {}) or {}).get(str(wd))
+    return own if own and any(own) else common
+
+
+def bell_time(db, wd, num):
+    b = bells(db, wd)
+    return b[num - 1] if 0 < num <= len(b) else ""
 
 
 # ---------------------------------------------------------------- даты, четверти, оценки
@@ -218,6 +228,6 @@ def render(request, db, name, **ctx):
             unread = db.query(m.Message).filter_by(student_id=user.id, from_teacher=True, read=False).count()
     base = dict(request=request, user=user, school=school_name(db), unread=unread, path=request.url.path,
                 human_date=human_date, msk=lambda dt: (dt + timedelta(hours=3)).strftime("%d.%m в %H:%M") if dt else "", WD=WEEKDAYS, WD_SHORT=WD_SHORT, BEHAVIOR=BEHAVIOR, KINDS=dict(KINDS), grade_class=grade_class,
-                today=today())
+                today=today(), bell=lambda wd, num: bell_time(db, wd, num))
     base.update(ctx)
     return templates.TemplateResponse(request, name, base)

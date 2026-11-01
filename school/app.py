@@ -245,7 +245,7 @@ def schedule_edit(request: Request, ok: str = "", db: Session = Depends(m.get_db
     if not _need(request, db, "teacher"):
         return redirect("/login")
     grid = {(l.weekday, l.num): l for l in db.query(m.Lesson).all()}
-    return render(request, db, "t_schedule.html", grid=grid, subjects=_subjects(db), bells=bells(db), ok=ok, day=today().weekday())
+    return render(request, db, "t_schedule.html", grid=grid, subjects=_subjects(db), day_bells={d: bells(db, d) for d in range(7)}, ok=ok, day=today().weekday())
 
 
 @app.post("/t/schedule")
@@ -260,8 +260,7 @@ async def schedule_save(request: Request, db: Session = Depends(m.get_db)):
             v = f.get(f"s_{wd}_{num}") or ""
             if v.isdigit() and int(v) in subs:
                 db.add(m.Lesson(weekday=wd, num=num, subject_id=int(v), room=(f.get(f"r_{wd}_{num}") or "").strip()[:30]))
-    new_bells = [(f.get(f"bell_{i}") or "").strip()[:20] for i in range(1, 9)]
-    put_setting(db, "bells", new_bells)
+    put_setting(db, "bells_day", {str(wd): [(f.get(f"bell_{wd}_{i}") or "").strip()[:20] for i in range(1, 9)] for wd in range(7)})
     db.commit()
     return redirect("/t/schedule?ok=Расписание сохранено")
 

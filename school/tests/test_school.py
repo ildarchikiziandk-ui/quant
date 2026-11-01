@@ -87,9 +87,10 @@ def test_teacher_full_flow(teacher):
     teacher.post("/t/students/new", data={"name": "Аня", "login": "anya", "password": "1234"})
     sid = _sid()
     # расписание: математика в понедельник первым уроком
-    teacher.post("/t/schedule", data={"s_0_1": str(math), "r_0_1": "кухня", "s_2_2": str(rus), "s_6_1": str(rus), "r_6_1": "балкон", "bell_1": "09:00–09:45"})
+    teacher.post("/t/schedule", data={"s_0_1": str(math), "r_0_1": "кухня", "s_2_2": str(rus), "s_6_1": str(rus), "r_6_1": "балкон", "bell_0_1": "09:00–09:45", "bell_6_1": "11:00–11:20"})
     page = teacher.get("/t/schedule").text
     assert "кухня" in page and "балкон" in page and ">Вс<" in page  # уроки и в воскресенье
+    assert "09:00–09:45" in page and "11:00–11:20" in page  # у каждого дня свои звонки
     # оценки
     for v, kind in ((5, ""), (4, ""), (3, "контрольная")):
         assert teacher.post("/t/grades/new", data={"student": sid, "subject": math, "value": v, "kind": kind,
@@ -153,3 +154,18 @@ def test_pages_render(teacher):
               f"/t/chat/{_sid()}", "/t/settings", "/t/week", "/app", "/manifest.webmanifest"):
         assert teacher.get(p).status_code == 200, p
     assert client().get("/login").status_code == 200
+
+
+def test_sister_schedule(teacher):
+    from school import manage
+    from school.core import bell_time
+    from school import db as m
+    assert manage.plan_bells(manage._FRI, "10:00") == ["10:00–10:20", "10:20–10:45", "11:00–11:20", "11:20–11:45", "12:00–12:20"]
+    assert manage.schedule("10:00") == 0
+    s = m.SessionLocal()
+    sun = s.query(m.Lesson).filter_by(weekday=6).order_by(m.Lesson.num).all()
+    assert [l.subject.name for l in sun] == ["Чистописание", "Русский язык", "Физика", "Английский язык", "Окружающий мир", "Литература"]
+    assert bell_time(s, 6, 6) == "12:10–12:35" and bell_time(s, 5, 5) == "11:50–12:00"
+    assert s.query(m.Lesson).filter_by(weekday=0).count() == 5  # понедельник — как пятница
+    s.close()
+    assert "Окружающий мир" in teacher.get("/t/schedule").text
