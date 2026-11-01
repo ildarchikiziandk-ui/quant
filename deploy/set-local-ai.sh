@@ -37,8 +37,18 @@ if [ "$MEM" -lt 1800 ]; then
   echo "Памяти слишком мало для нейросети (нужно хотя бы 2 ГБ). В панели Beget можно увеличить тариф VPS."; exit 1
 elif [ "$MEM" -lt 3500 ]; then
   REPO="Qwen/Qwen2.5-0.5B-Instruct-GGUF"; FILE="qwen2.5-0.5b-instruct-q4_k_m.gguf"; SIZE="маленькая (0,5 млрд параметров)"
+  CTX=2048; LIMIT=700M
 else
   REPO="Qwen/Qwen2.5-1.5B-Instruct-GGUF"; FILE="qwen2.5-1.5b-instruct-q4_k_m.gguf"; SIZE="средняя (1,5 млрд параметров)"
+  CTX=4096; LIMIT=1600M
+fi
+
+# запасная память на диске (файл подкачки): если оперативной не хватит, сервер не упадёт, а просто чуть замедлится
+if [ "$(swapon --show --noheadings | wc -l)" = "0" ]; then
+  echo "==> Создаю файл подкачки 2 ГБ (запас памяти на диске)"
+  fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+  chmod 600 /swapfile && mkswap -q /swapfile && swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
 fi
 echo "    модель: $SIZE — $FILE"
 
@@ -82,9 +92,12 @@ After=network.target
 User=nuvora
 WorkingDirectory=$DIR
 Environment=LD_LIBRARY_PATH=$DIR/bin
-ExecStart=$DIR/bin/llama-server -m $DIR/$FILE --host 127.0.0.1 --port $PORT -c 4096 -t $CPUS --parallel 1 --alias nuva
+ExecStart=$DIR/bin/llama-server -m $DIR/$FILE --host 127.0.0.1 --port $PORT -c $CTX -t $CPUS --parallel 1 --alias nuva
 Restart=always
 Nice=10
+# памяти не больше LIMIT, а если её мало — система выключит нейросеть, а не сайт
+MemoryMax=$LIMIT
+OOMScoreAdjust=800
 
 [Install]
 WantedBy=multi-user.target
