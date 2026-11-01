@@ -1248,3 +1248,11 @@ def test_retired_gifts_and_grandfather(alice, bob):
     assert s.query(models.User).filter_by(username="bob").one().name_color_legacy
     assert not s.query(models.User).filter_by(username="alice").one().name_color_legacy
     s.close()
+
+
+def test_profanity_greek_lookalikes(alice):
+    from services import profanity
+    assert profanity.has_bad("Yα xγEс0S") and profanity.mask("Yα xγEс0S") == "Yα x*****"
+    assert not profanity.has_bad("сукно, мандарин и блин") and not profanity.has_bad("Yα крутой")
+    r = alice.post("/post/create", data={"content": "Yα xγEс0S"}, headers=J)
+    assert r.status_code == 400 or r.json().get("ok") is False

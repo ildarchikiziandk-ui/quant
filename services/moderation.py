@@ -30,7 +30,8 @@ _WORD = re.compile(r"[^\W_]+(?:\*+[^\W_]*)*|\*+[^\W_]+", re.UNICODE)
 
 
 def normalize(text: str) -> str:
-    t = (text or "").lower()
+    from services.profanity import CONFUSABLES
+    t = (text or "").translate(CONFUSABLES).lower()
     t = re.sub(r"https?://\S+|www\.\S+", " ссылка ", t)
     t = _SPACED.sub(lambda m: re.sub(r"[\s.\-_*]+", "", m.group(0)), t)
     t = _INNER_SEP.sub("", t)

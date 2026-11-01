@@ -18,6 +18,18 @@ _LOOK = str.maketrans({"a": "а", "b": "б", "c": "с", "e": "е", "k": "к", "m
                        "1": "и", "$": "с", "|": "и", "ё": "е", "i": "и"})
 _DIGITS = str.maketrans({"3": "з", "0": "о", "6": "б", "4": "ч", "@": "а", "1": "и", "$": "с", "ё": "е"})
 _VOWELS = set("аеёиоуыэюя")
+# греческие и прочие «похожие» буквы → латиница (один символ на один: позиции в тексте не сдвигаются).
+# Ловит маскировку вида «xγEс0S»: γ похожа на y, α — на a и т. д.
+CONFUSABLES = str.maketrans({
+    "α": "a", "β": "b", "γ": "y", "δ": "d", "ε": "e", "ζ": "z", "η": "n", "ι": "i", "κ": "k", "λ": "l", "μ": "m", "ν": "v",
+    "ο": "o", "π": "n", "ρ": "p", "σ": "o", "ς": "c", "τ": "t", "υ": "u", "φ": "f", "χ": "x", "ψ": "y", "ω": "w",
+    "Α": "A", "Β": "B", "Γ": "r", "Δ": "D", "Ε": "E", "Ζ": "Z", "Η": "H", "Ι": "I", "Κ": "K", "Λ": "L", "Μ": "M", "Ν": "N",
+    "Ο": "O", "Π": "n", "Ρ": "P", "Σ": "E", "Τ": "T", "Υ": "Y", "Φ": "F", "Χ": "X", "Ψ": "Y", "Ω": "W",
+    "і": "и", "ї": "и", "ј": "j", "ѕ": "s", "һ": "h", "ԁ": "d", "ɑ": "a", "ʏ": "y", "ᴇ": "e", "ᴋ": "k", "ᴍ": "m", "ᴏ": "o",
+    "ᴘ": "p", "ᴛ": "t", "ʜ": "h",
+})
+# смешанное слово «по виду, а где не похоже — по звучанию»: xyeсos → хуесос
+_LOOK_FALLBACK = str.maketrans({"s": "с", "d": "д", "f": "ф", "g": "г", "i": "и", "j": "й", "l": "л", "q": "к", "v": "в", "w": "в", "z": "з"})
 
 _PREFIX = r"(?:за|у|вы|до|раз|рас|от|по|на|при|про|съ|сь|об|под|недо|пере|из|вз)?"
 PATTERNS = [
@@ -57,6 +69,7 @@ def variants(token):
     out = {w.translate(_DIGITS)}
     if re.search(r"[a-z0-9@$|]", w):
         out.add(w.translate(_LOOK))
+        out.add(w.translate(_LOOK).translate(_LOOK_FALLBACK))
         out.add(_phonetic(w.translate(_DIGITS)))
     out = {v.replace("ё", "е") for v in out}
     return out | {re.sub(r"(.)\1+", r"\1", v) for v in out}  # «сууука», «ххуй»
@@ -95,18 +108,19 @@ def mask(text, extra=()):
     if not text:
         return text
     extra = normalize_words(extra)
-
-    def rep(m):
-        t = m.group(0)
-        if len(t) < 3 or not is_bad(t, extra):
-            return t
-        return t[0] + "*" * (len(t) - 1)
-    return _TOKEN.sub(rep, text)
+    plain = text.translate(CONFUSABLES)  # та же длина, что и у исходного текста
+    out, last = [], 0
+    for m in _TOKEN.finditer(plain):
+        if len(m.group(0)) >= 3 and is_bad(m.group(0), extra):
+            a, b = m.span()
+            out.append(text[last:a] + text[a] + "*" * (b - a - 1))
+            last = b
+    return "".join(out) + text[last:]
 
 
 def has_bad(text, extra=()):
     extra = normalize_words(extra)
-    return any(is_bad(m.group(0), extra) for m in _TOKEN.finditer(text or "") if len(m.group(0)) >= 3)
+    return any(is_bad(m.group(0), extra) for m in _TOKEN.finditer((text or "").translate(CONFUSABLES)) if len(m.group(0)) >= 3)
 
 
 def to_cyrillic(text):
