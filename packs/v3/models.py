@@ -240,6 +240,7 @@ class Payment(Base):
     kind = Column(String(8))  # plus, sparks
     amount = Column(Integer)  # ₽
     sparks = Column(Integer, default=0)
+    days = Column(Integer, default=30)  # срок Nuvora+
     status = Column(String(12), default="pending")  # pending, succeeded, canceled
     provider_id = Column(String(64), default="", index=True)
     applied = Column(Boolean, default=False)

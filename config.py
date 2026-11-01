@@ -175,7 +175,7 @@ except Exception:
 # --- Оплата (ЮKassa): Искры и Nuvora+. Работает, только когда заданы ключи И оплата включена в админке («Сайт»).
 YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", "")
 YOOKASSA_SECRET = env("YOOKASSA_SECRET", "")
-PLUS_DONATION_MIN, PLUS_DONATION_MAX = 35, 250  # пожертвование за 30 дней Nuvora+, ₽
+PLUS_PLANS = [(30, 33), (90, 99)]  # Nuvora+: (дней, ₽) — 1 месяц за 33 ₽, 3 месяца за 99 ₽ (обычная покупка, не пожертвование)
 SPARK_RUB = 0.25  # 1 Искра ≈ 0,25 ₽
 
 # --- Нува на нейросети GigaChat (Сбер). Без ключа Нува отвечает по справке, как раньше.

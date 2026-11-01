@@ -870,9 +870,9 @@ def test_payments(owner, alice, monkeypatch):
             return {"id": f"yk-{len(calls)}", "confirmation": {"confirmation_url": "https://yoomoney.ru/pay"}}
         return {"status": "succeeded", "paid": True, "amount": {"value": calls[0][2]["amount"]["value"] if calls[0][2] else "0"}}
     monkeypatch.setattr(payments, "_call", fake)
-    assert alice.post("/buy", data={"kind": "plus", "amount": "20"}, headers=J).status_code == 400  # меньше 35 ₽
-    r = alice.post("/buy", data={"kind": "plus", "amount": "99"}, headers=J).json()
-    assert r["url"].startswith("https://") and calls[-1][2]["amount"]["value"] == "99.00"
+    assert alice.post("/buy", data={"kind": "plus", "days": "7"}, headers=J).status_code == 400  # такого срока нет
+    r = alice.post("/buy", data={"kind": "plus", "days": "30", "amount": "1"}, headers=J).json()
+    assert r["url"].startswith("https://") and calls[-1][2]["amount"]["value"] == "33.00"  # цену задаёт сервер
     # подтверждение: уведомлению не верим, статус спрашиваем сами
     alice.post("/buy/webhook", json={"object": {"id": "yk-1"}})
     s = db()

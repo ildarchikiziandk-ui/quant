@@ -1,7 +1,7 @@
 """Покупка Искр и Nuvora+ через ЮKassa. Пока выключено: работает, только когда в .env заданы ключи магазина
 (YOOKASSA_SHOP_ID, YOOKASSA_SECRET) и владелец включил оплату в админке («Сайт»).
 
-- Nuvora+ на 30 дней — за любое пожертвование от 35 до 250 ₽.
+- Nuvora+ — по фиксированной цене из config.PLUS_PLANS: 1 месяц за 33 ₽, 3 месяца за 99 ₽.
 - Искры — 1 Искра ≈ 0,25 ₽ (4 Искры за рубль). Купленные Искры не поднимают уровень: уровень — за активность.
 Оплату подтверждаем только по ответу самой ЮKassa (запрос статуса платежа), уведомлению на слово не верим.
 """
@@ -59,8 +59,8 @@ def apply(db, p):
         return
     if p.kind == "plus":
         from services import gamification
-        gamification.grant_plus(user, 30)
-        text = f"Спасибо за поддержку! Nuvora+ активен до {user.plus_until.strftime('%d.%m.%Y')}"
+        gamification.grant_plus(user, p.days or 30)
+        text = f"Спасибо за покупку! Nuvora+ активен до {user.plus_until.strftime('%d.%m.%Y')}"
     else:
         user.spent_points = (user.spent_points or 0) - p.sparks  # баланс растёт, уровень — нет
         text = f"Начислено {p.sparks} Искр — спасибо за покупку!"
@@ -96,7 +96,7 @@ def buy_page(request: Request, db: Session = Depends(get_db)):
         return login_redirect(request)
     from services import extras
     return render(request, db, "packs/v3/buy.html", on=enabled(), packs=[(n, sparks_price(n)) for n in SPARK_PACKS],
-                  pmin=config.PLUS_DONATION_MIN, pmax=config.PLUS_DONATION_MAX, rub=config.SPARK_RUB, balance=extras.balance(user),
+                  plans=config.PLUS_PLANS, rub=config.SPARK_RUB, balance=extras.balance(user),
                   history=db.query(m.Payment).filter_by(user_id=user.id).order_by(m.Payment.id.desc()).limit(10).all())
 
 
@@ -111,10 +111,12 @@ async def buy(request: Request, db: Session = Depends(get_db)):
     kind = s(f.get("kind"))
     try:
         if kind == "plus":
-            amount = int(s(f.get("amount")) or 0)
-            if not config.PLUS_DONATION_MIN <= amount <= config.PLUS_DONATION_MAX:
-                return json_error(f"Сумма пожертвования — от {config.PLUS_DONATION_MIN} до {config.PLUS_DONATION_MAX} ₽")
-            sparks, desc = 0, f"Nuvora+ на 30 дней (@{user.username})"
+            plans = dict(config.PLUS_PLANS)
+            days = int(s(f.get("days")) or 30)
+            if days not in plans:
+                return json_error("Такого срока нет")
+            amount = plans[days]  # цену задаёт сервер, сумму из формы не берём
+            sparks, desc = 0, f"Nuvora+ на {days // 30} мес. (@{user.username})"
         elif kind == "sparks":
             sparks = int(s(f.get("sparks")) or 0)
             if not 20 <= sparks <= 40000:
@@ -124,7 +126,7 @@ async def buy(request: Request, db: Session = Depends(get_db)):
             return json_error("Что покупаем?")
     except ValueError:
         return json_error("Неверная сумма")
-    p = m.Payment(user_id=user.id, kind=kind, amount=amount, sparks=sparks)
+    p = m.Payment(user_id=user.id, kind=kind, amount=amount, sparks=sparks, days=days if kind == "plus" else 0)
     db.add(p)
     db.flush()
     try:
