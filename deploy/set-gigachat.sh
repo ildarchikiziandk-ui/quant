@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Нува на нейросети GigaChat. Запуск: bash /opt/nuvora/deploy/set-gigachat.sh [КЛЮЧ_АВТОРИЗАЦИИ]
+# Без ключа в команде берёт уже сохранённый — так можно починить связь после переезда сервера.
 # Ключ: developers.sber.ru → «GigaChat API» → проект → «Получить ключ» (скопируйте «Authorization key»).
 # Для физлиц есть бесплатный лимит (scope GIGACHAT_API_PERS).
 set -euo pipefail
 APP_DIR=/opt/nuvora
 ENV="$APP_DIR/.env"
 KEY="${1:-}"
+# ключ уже есть в настройках (например, после переезда) — берём его, заново вводить не нужно
+[ -n "$KEY" ] || KEY=$(grep -E '^GIGACHAT_AUTH_KEY=' "$ENV" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"' || true)
+if [ -n "$KEY" ] && [ -z "${1:-}" ]; then echo "==> Беру ключ GigaChat из настроек сайта"; fi
 [ -n "$KEY" ] || { read -rsp "Ключ авторизации GigaChat (символы не видны): " KEY; echo; }
 SCOPE="${GIGACHAT_SCOPE:-GIGACHAT_API_PERS}"
 

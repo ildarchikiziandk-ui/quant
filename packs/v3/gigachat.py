@@ -5,6 +5,7 @@
 Если ключа нет, лимит исчерпан или сервис не ответил — Нува отвечает по справке, как раньше.
 """
 import json
+import os
 import ssl
 import threading
 import time
@@ -35,6 +36,9 @@ def enabled():
 
 def _ctx():
     if config.GIGACHAT_CA:
+        if not os.path.exists(config.GIGACHAT_CA):
+            # так бывает после переезда на новый сервер: ключ в .env есть, а файла сертификата нет
+            print(f"[gigachat] нет файла сертификата {config.GIGACHAT_CA} — запустите: bash /opt/nuvora/deploy/set-gigachat.sh", flush=True)
         return ssl.create_default_context(cafile=config.GIGACHAT_CA)
     return ssl.create_default_context()
 

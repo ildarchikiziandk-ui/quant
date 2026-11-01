@@ -37,6 +37,7 @@ $SSH "export DEBIAN_FRONTEND=noninteractive; echo 'DPkg::Lock::Timeout \"900\";'
       git config --global --add safe.directory $APP_DIR; git -C $APP_DIR fetch -q origin $BRANCH && git -C $APP_DIR checkout -q -f -B $BRANCH origin/$BRANCH"
 
 COPY=(.env uploads)
+[ -d "$APP_DIR/data" ] && COPY+=(data)  # сертификаты GigaChat и прочее
 [ -d "$APP_DIR/school/data" ] && COPY+=(school/data school/.env)
 
 echo "==> 3/6 Предварительное копирование загрузок (сайт пока работает)"
