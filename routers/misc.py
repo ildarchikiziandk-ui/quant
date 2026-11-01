@@ -161,6 +161,12 @@ def refund_page(request: Request, db: Session = Depends(get_db)):
     return render(request, db, "refund.html")
 
 
+@router.get("/recommendations")
+def recommendations_rules(request: Request, db: Session = Depends(get_db)):
+    """Правила применения рекомендательных технологий (ст. 10.2-2 149-ФЗ)."""
+    return render(request, db, "recommendations.html")
+
+
 @router.get("/licenses")
 def licenses_page(request: Request, db: Session = Depends(get_db)):
     return render(request, db, "licenses.html")

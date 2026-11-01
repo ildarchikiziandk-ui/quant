@@ -1256,3 +1256,9 @@ def test_profanity_greek_lookalikes(alice):
     assert not profanity.has_bad("сукно, мандарин и блин") and not profanity.has_bad("Yα крутой")
     r = alice.post("/post/create", data={"content": "Yα xγEс0S"}, headers=J)
     assert r.status_code == 400 or r.json().get("ok") is False
+
+
+def test_recommendation_rules_page(alice):
+    page = alice.get("/recommendations")
+    assert page.status_code == 200 and "10.2-2" in page.text and "Подписки и подписчики" in page.text
+    assert 'href="/recommendations"' in alice.get("/").text
