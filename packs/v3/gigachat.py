@@ -1,4 +1,5 @@
-"""Нува на нейросети GigaChat (Сбер): живые ответы, тексты, идеи — с опорой на справку Nuvora.
+"""Нува на нейросети: своя модель на нашем сервере (LOCAL_AI_URL, deploy/set-local-ai.sh) или GigaChat (Сбер).
+Живые ответы, тексты, идеи — с опорой на справку Nuvora. Своя модель важнее: если она задана, GigaChat не используется.
 
 Включается ключом GIGACHAT_AUTH_KEY в .env (скрипт deploy/set-gigachat.sh). Сертификат сервера GigaChat выдан
 НУЦ Минцифры — его корневой сертификат скрипт кладёт в GIGACHAT_CA; проверку TLS мы не отключаем.
@@ -30,8 +31,12 @@ SYSTEM = """Ты — Нува, дружелюбная помощница соц�
 Пользователя зовут: {name}."""
 
 
+def local():
+    return bool(config.LOCAL_AI_URL)
+
+
 def enabled():
-    return bool(config.GIGACHAT_AUTH_KEY)
+    return local() or bool(config.GIGACHAT_AUTH_KEY)
 
 
 def _ctx():
@@ -57,8 +62,22 @@ def _token():
         return _tok["v"]
 
 
+def _post_local(messages, max_tokens, temperature):
+    """Своя модель (llama.cpp server, OpenAI-совместимый API) на этом же сервере: без ключей и без интернета.
+    На обычном процессоре она медленнее GigaChat, поэтому ответы короче и ждём дольше."""
+    body = json.dumps({"model": config.LOCAL_AI_MODEL, "messages": messages, "temperature": temperature,
+                       "max_tokens": min(max_tokens, 400)}).encode()
+    req = urllib.request.Request(config.LOCAL_AI_URL + "/chat/completions", method="POST", data=body,
+                                 headers={"Content-Type": "application/json", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        j = json.load(r)
+    return (j["choices"][0]["message"]["content"] or "").strip()
+
+
 def _post(messages, max_tokens=700, temperature=0.7):
-    """Запрос к GigaChat. Вынесено отдельно, чтобы в тестах подменить."""
+    """Запрос к нейросети. Вынесено отдельно, чтобы в тестах подменить."""
+    if local():
+        return _post_local(messages, max_tokens, temperature)
     body = json.dumps({"model": config.GIGACHAT_MODEL, "messages": messages, "temperature": temperature,
                        "max_tokens": max_tokens}).encode()
     req = urllib.request.Request(API, method="POST", data=body, headers={

@@ -184,4 +184,8 @@ GIGACHAT_SCOPE = env("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
 GIGACHAT_MODEL = env("GIGACHAT_MODEL", "GigaChat-2")
 GIGACHAT_API_URL = env("GIGACHAT_API_URL", "https://api.giga.chat/v1")
 GIGACHAT_CA = env("GIGACHAT_CA", "")  # сертификаты с корневым НУЦ Минцифры (ставит deploy/set-gigachat.sh)
+# своя нейросеть на нашем сервере (llama.cpp, deploy/set-local-ai.sh): адрес OpenAI-совместимого API, напр. http://127.0.0.1:8090/v1.
+# Если задан — Нува отвечает ею, а не GigaChat; вопросы никуда не уходят с сервера.
+LOCAL_AI_URL = env("LOCAL_AI_URL", "").rstrip("/")
+LOCAL_AI_MODEL = env("LOCAL_AI_MODEL", "nuva")
 GIGACHAT_PER_HOUR = int(env("GIGACHAT_PER_HOUR", "40"))  # вопросов в час на человека

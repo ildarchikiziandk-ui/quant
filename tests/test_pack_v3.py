@@ -1262,3 +1262,18 @@ def test_recommendation_rules_page(alice):
     page = alice.get("/recommendations")
     assert page.status_code == 200 and "10.2-2" in page.text and "Подписки и подписчики" in page.text
     assert 'href="/recommendations"' in alice.get("/").text
+
+
+def test_nuva_local_model(alice, monkeypatch):
+    import config
+    from packs.v3 import gigachat
+    monkeypatch.setattr(config, "LOCAL_AI_URL", "http://127.0.0.1:8090/v1")
+    monkeypatch.setattr(config, "GIGACHAT_AUTH_KEY", "")
+    seen = {}
+
+    def fake(messages, max_tokens, temperature):
+        seen["msgs"] = messages
+        return "Кит плывёт, волну качая 🐋"
+    monkeypatch.setattr(gigachat, "_post_local", fake)
+    r = alice.post("/ai/chat", json={"question": "Придумай стих про кита"}, headers=J).json()
+    assert r["ai"] and "Кит" in r["text"] and "Нува" in seen["msgs"][0]["content"]
