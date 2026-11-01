@@ -107,6 +107,11 @@ class NotifyService : Service() {
                         val isCall = e.optBoolean("call")
                         val isMessage = e.optString("kind") == "message" || isCall
                         if (isMessage && appVisible) continue  // открытое приложение само показывает сообщения и экран звонка
+                        if (isCall && e.optBoolean("ringing", true) && e.optInt("call_id") > 0) {
+                            // входящий звонок — с мелодией и экраном звонка, а не обычным уведомлением
+                            CallNotify.show(this, 100000 + e.optInt("id"), e.optInt("call_id"), e.optString("title"), e.optString("url", "/messages"))
+                            continue
+                        }
                         val urgent = e.optBoolean("urgent")  // «Это вы входите?» — громко, как сообщение
                         show(
                             this,
@@ -160,6 +165,7 @@ class NotifyService : Service() {
             nm.createNotificationChannel(service)
             nm.createNotificationChannel(NotificationChannel(CHANNEL_MESSAGES, "Сообщения", NotificationManager.IMPORTANCE_HIGH))
             nm.createNotificationChannel(NotificationChannel(NotifyWorker.CHANNEL, ctx.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT))
+            CallNotify.createChannel(ctx)
         }
 
         fun show(ctx: Context, id: Int, title: String, text: String, path: String, message: Boolean) {

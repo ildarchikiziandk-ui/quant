@@ -149,8 +149,13 @@ def _events(db, user, since_notif, since_msg):
         url = (f"/messages/{who.username}" if who and n.type in ("reminder", "birthday", "call")
                else "/login-approve" if n.type == "login_approve"
                else f"/post/{n.post_id}" if n.post_id else "/notifications")
-        out.append({"kind": "notification", "id": n.id, "title": title, "text": (n.text or social.NOTIFY_TEXT.get(n.type, "новое уведомление"))[:200], "url": url,
-                    "call": n.type == "call", "urgent": n.type == "login_approve"})
+        ev = {"kind": "notification", "id": n.id, "title": title, "text": (n.text or social.NOTIFY_TEXT.get(n.type, "новое уведомление"))[:200], "url": url,
+              "call": n.type == "call", "urgent": n.type == "login_approve"}
+        if n.type == "call":  # приложению для Android: звонить мелодией, пока звонок ещё идёт, и уметь его отклонить
+            from packs.v3 import models as v3m
+            c = db.query(v3m.Call).filter(v3m.Call.notif_id == n.id).first()
+            ev["call_id"], ev["ringing"] = (c.id, c.status == "ringing") if c else (0, False)
+        out.append(ev)
     return out
 
 

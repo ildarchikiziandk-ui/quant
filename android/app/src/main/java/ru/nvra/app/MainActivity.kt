@@ -87,6 +87,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleCall(intent)
         web = WebView(this)
         root = FrameLayout(this)
         root.addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -261,8 +262,23 @@ class MainActivity : AppCompatActivity() {
         NotifyWorker.schedule(this)
     }
 
+    /** Открыли из входящего звонка: показываемся поверх экрана блокировки, будим экран и убираем звонящее уведомление. */
+    private fun handleCall(intent: Intent?) {
+        val notif = intent?.getIntExtra(CallNotify.EXTRA_NOTIF, 0) ?: 0
+        if (notif == 0) return
+        CallNotify.cancel(this, notif)
+        if (Build.VERSION.SDK_INT >= 27) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        handleCall(intent)
         val data = intent.data
         if (data != null && isOwn(data)) web.loadUrl(data.toString())
         else safePath(intent.getStringExtra(NotifyWorker.EXTRA_PATH))?.let { web.loadUrl(it) }

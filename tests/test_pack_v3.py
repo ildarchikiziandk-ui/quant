@@ -495,6 +495,10 @@ def test_calls(alice, bob):
     n = s.query(models.Notification).filter_by(type="call").first()
     assert n and "звонит вам" in n.text
     s.close()
+    # приложение для Android получает номер звонка, чтобы звонить мелодией и уметь отклонить
+    st = bob.get("/api/stream?since_notif=0&since_msg=999999&wait=0", headers=J).json()
+    callev = [e for e in st["events"] if e.get("call")][0]
+    assert callev["call_id"] == cid and callev["ringing"] is True
     # постороннему звонок не виден
     carol = make_client()
     register(carol, "carol")
