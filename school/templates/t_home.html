@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card hello">
   <h2 style="color:#fff;font-size:20px;margin:0">Здравствуйте, {{ user.first_name }}!</h2>
-  <div class="muted small">{{ WD[today.weekday()] if today.weekday() < 6 else "Воскресенье" }}, {{ human_date(today)|replace("сегодня", today.strftime("%d.%m")) }} · {{ term }} четверть</div>
+  <div class="muted small">{{ WD[today.weekday()] }}, {{ human_date(today)|replace("сегодня", today.strftime("%d.%m")) }} · {{ term }} четверть</div>
   <div class="stats">
     <a href="/t/journal">{{ i("star") }}<span style="display:block">Поставить оценку</span></a>
     <a href="/t/homework">{{ i("book") }}<span style="display:block">Задать ДЗ</span></a>

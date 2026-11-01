@@ -87,8 +87,9 @@ def test_teacher_full_flow(teacher):
     teacher.post("/t/students/new", data={"name": "Аня", "login": "anya", "password": "1234"})
     sid = _sid()
     # расписание: математика в понедельник первым уроком
-    teacher.post("/t/schedule", data={"s_0_1": str(math), "r_0_1": "кухня", "s_2_2": str(rus), "bell_1": "09:00–09:45"})
-    assert "кухня" in teacher.get("/t/schedule").text
+    teacher.post("/t/schedule", data={"s_0_1": str(math), "r_0_1": "кухня", "s_2_2": str(rus), "s_6_1": str(rus), "r_6_1": "балкон", "bell_1": "09:00–09:45"})
+    page = teacher.get("/t/schedule").text
+    assert "кухня" in page and "балкон" in page and ">Вс<" in page  # уроки и в воскресенье
     # оценки
     for v, kind in ((5, ""), (4, ""), (3, "контрольная")):
         assert teacher.post("/t/grades/new", data={"student": sid, "subject": math, "value": v, "kind": kind,

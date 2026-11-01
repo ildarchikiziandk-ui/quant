@@ -5,8 +5,8 @@
 {% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}
 {% if not subjects %}<div class="alert err">Сначала создайте предметы — <a href="/t/subjects" style="text-decoration:underline">Предметы</a></div>{% endif %}
 <form method="post" action="/t/schedule">
-<div class="chips" id="days">{% for d in range(6) %}<button type="button" class="chip{% if d == day %} on{% endif %}" data-day="{{ d }}">{{ WD_SHORT[d] }}</button>{% endfor %}</div>
-{% for d in range(6) %}
+<div class="chips" id="days">{% for d in range(7) %}<button type="button" class="chip{% if d == day %} on{% endif %}" data-day="{{ d }}">{{ WD_SHORT[d] }}</button>{% endfor %}</div>
+{% for d in range(7) %}
 <div class="card" data-daycard="{{ d }}"{% if d != day %} hidden{% endif %}>
   <h2>{{ WD[d] }}</h2>
   {% for n in range(1, 9) %}{% set l = grid.get((d, n)) %}

@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card hello">
   <h2 style="color:#fff;font-size:21px;margin:0">Привет, {{ user.first_name }}!</h2>
-  <div class="muted small">{{ WD[today.weekday()] if today.weekday() < 6 else "Воскресенье — выходной" }}</div>
+  <div class="muted small">{{ WD[today.weekday()] }}{% if not lessons and show == today %} — выходной{% endif %}</div>
   <div class="stats">
     <a href="/s/grades"><b>{{ "%.1f"|format(avg_total) if avg_total else "—" }}</b><span>средний балл</span></a>
     <a href="/s/homework"><b>{{ hw|length }}</b><span>заданий</span></a>

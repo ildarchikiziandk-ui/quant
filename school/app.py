@@ -129,7 +129,7 @@ def teacher_home(request: Request, db: Session = Depends(m.get_db)):
         beh = db.query(m.Behavior).filter_by(student_id=s.id).order_by(m.Behavior.date.desc(), m.Behavior.id.desc()).first()
         unread = db.query(m.Message).filter_by(student_id=s.id, from_teacher=False, read=False).count()
         cards.append({"s": s, "avg": average(gs), "n": len(gs), "beh": beh, "unread": unread})
-    lessons = db.query(m.Lesson).filter_by(weekday=t.weekday()).order_by(m.Lesson.num).all() if t.weekday() < 6 else []
+    lessons = db.query(m.Lesson).filter_by(weekday=t.weekday()).order_by(m.Lesson.num).all()
     hw_soon = db.query(m.Homework).filter(m.Homework.due >= t, m.Homework.due <= t + timedelta(days=2)).order_by(m.Homework.due).all()
     return render(request, db, "t_home.html", cards=cards, lessons=lessons, bells=bells(db), hw_soon=hw_soon,
                   no_subjects=not _subjects(db), term=current_term())
@@ -245,7 +245,7 @@ def schedule_edit(request: Request, ok: str = "", db: Session = Depends(m.get_db
     if not _need(request, db, "teacher"):
         return redirect("/login")
     grid = {(l.weekday, l.num): l for l in db.query(m.Lesson).all()}
-    return render(request, db, "t_schedule.html", grid=grid, subjects=_subjects(db), bells=bells(db), ok=ok, day=today().weekday() if today().weekday() < 6 else 0)
+    return render(request, db, "t_schedule.html", grid=grid, subjects=_subjects(db), bells=bells(db), ok=ok, day=today().weekday())
 
 
 @app.post("/t/schedule")
@@ -255,7 +255,7 @@ async def schedule_save(request: Request, db: Session = Depends(m.get_db)):
     f = await request.form()
     subs = {s.id for s in _subjects(db, archived=True)}
     db.query(m.Lesson).delete()
-    for wd in range(6):
+    for wd in range(7):
         for num in range(1, 9):
             v = f.get(f"s_{wd}_{num}") or ""
             if v.isdigit() and int(v) in subs:
@@ -475,9 +475,12 @@ def student_home(request: Request, db: Session = Depends(m.get_db)):
     if not me:
         return redirect("/login")
     t = today()
-    # если сегодня воскресенье или уроки кончились — показываем следующий учебный день
+    # если сегодня уроков нет (выходной) — показываем ближайший день, когда они есть
+    study_days = {wd for (wd,) in db.query(m.Lesson.weekday).distinct()}
     show = t
-    while show.weekday() == 6:
+    for _ in range(7):
+        if not study_days or show.weekday() in study_days:
+            break
         show += timedelta(days=1)
     lessons = db.query(m.Lesson).filter_by(weekday=show.weekday()).order_by(m.Lesson.num).all()
     hw = _hw_for(db, me, t, t + timedelta(days=7))
@@ -582,7 +585,7 @@ def _week(request, db, me, week, tpl):
     if not me.is_teacher:
         for g in db.query(m.Grade).filter(m.Grade.student_id == me.id, m.Grade.date >= monday, m.Grade.date <= monday + timedelta(days=6)):
             grade_map[(g.date, g.subject_id)].append(g)
-    for i in range(6):
+    for i in range(7):
         d = monday + timedelta(days=i)
         days.append({"date": d, "wd": i, "lessons": lessons.get(i, [])})
     return render(request, db, tpl, days=days, week=week, monday=monday, bells=bells(db), hw_map=hw_map, grade_map=grade_map)
