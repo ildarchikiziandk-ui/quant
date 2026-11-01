@@ -3,7 +3,7 @@
   <button class="btn sm" data-share-follow="{{ sg.username }}" data-dismiss="1">{{ icon_svg("user-plus", "i in") }} В друзья</button><button class="icon-btn" data-sg-close aria-label="Скрыть">{{ icon_svg("x") }}</button></div>{% endif %}
 {% set ch = v3_chest(user) %}
 <div class="card today" id="today-card">
-  <div class="today-main"><b id="today-hi">Привет, {{ user.name or user.username }}!</b><div class="small muted" id="today-tip"></div></div>
+  <div class="today-main"><b id="today-hi">{% if ch and not ch.open %}Ежедневный сундук · день {{ ch.day }} из 7{% else %}Совет дня{% endif %}</b><div class="small muted" id="today-tip"></div></div>
   {% if ch and not ch.open %}<button type="button" class="today-chest" data-v3-chest title="Ежедневный сундук: день {{ ch.day }} из 7">{{ icon_svg("gift") }}<span>+{{ ch.reward }}</span></button>{% endif %}
 </div>
 {% endif %}

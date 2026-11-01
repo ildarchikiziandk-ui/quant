@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import post_card, avatar, badges, user_row, crown %}{% from "partials/icons.html" import icon %}
+{% from "partials/macros.html" import post_card, note_tile, avatar, badges, user_row, crown %}{% from "partials/icons.html" import icon %}
 {% set pu = profile_user %}
 {% set me = user and user.id == pu.id %}
 {% block title %}{{ pu.name or pu.username }} (@{{ pu.username }}) — {{ brand }}{% endblock %}
@@ -8,63 +8,25 @@
 <meta property="og:image" content="{{ site_url }}/og/profile/{{ pu.username }}.png"><meta name="twitter:card" content="summary_large_image"><link rel="canonical" href="{{ site_url }}/profile/{{ pu.username }}">{% endblock %}
 {% block content %}
 <div class="card flat">
-  <div class="cover" style="{% if pu.cover %}background-image:url('{{ pu.cover }}');{% elif profile_is_plus %}background:{{ plus_bg(pu) }};{% endif %}">
-    {% if me %}<form method="post" action="/settings/cover" enctype="multipart/form-data" style="position:absolute;right:12px;bottom:12px"><label class="btn soft sm" style="cursor:pointer;background:rgba(0,0,0,.45);color:#fff">{{ icon("image") }} Обложка<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.requestSubmit()"></label></form>{% endif %}
-  </div>
+  {% if pu.cover %}<div class="cover" style="background-image:url('{{ pu.cover }}')"></div>{% endif %}
   <div class="profile-top">
+    <div class="pv-head">
     <div class="profile-av">
-      {% if has_story %}<a href="/stories/{{ pu.username }}" class="ring">{{ avatar(pu, 104) }}</a>{% else %}{{ avatar(pu, 104, online=true) }}{% endif %}
+      {% if has_story %}<a href="/stories/{{ pu.username }}" class="ring">{{ avatar(pu, 84) }}</a>{% else %}{{ avatar(pu, 84, online=true) }}{% endif %}
     </div>
-    <div class="profile-actions">
-      {% if me %}
-        <a href="/settings" class="btn ghost sm">Редактировать</a>
-        <div class="menu-wrap">
-          <button class="icon-btn" data-menu title="Ещё">{{ icon("more") }}</button>
-          <div class="menu">
-            <a href="/gifts/{{ pu.username }}">{{ icon("gift") }} Мои подарки{% if gifts_total %} <span class="faint">{{ gifts_total }}</span>{% endif %}</a>
-            <a href="/stats">{{ icon("chart") }} Статистика</a>
-            <a href="/drafts">{{ icon("draft") }} Черновики</a>
-            <a href="/shop">{{ icon("bag") }} Рамки и заморозки</a>
-            <a href="/invite">{{ icon("handshake") }} Пригласить друзей</a>
-            <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код профиля</a>
-            <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
-            <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
-            {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
-          </div>
-        </div>
-      {% elif user %}
-        {% if not rel.i_blocked and not rel.blocked_me %}
-        <a href="/messages/{{ pu.username }}" class="icon-btn" title="Написать">{{ icon("chat") }}</a>
-        <a href="/gifts/{{ pu.username }}" class="icon-btn" title="Подарить подарок">{{ icon("gift") }}</a>
-        {% for _s in pack_slot("profile_actions") %}{% include _s %}{% endfor %}
-        <button class="btn sm {% if rel.is_following or rel.requested %}ghost{% endif %}" data-act="follow" data-user="{{ pu.username }}">{% if rel.is_following %}Вы подписаны{% elif rel.requested %}Заявка отправлена{% elif rel.follows_me %}Подписаться в ответ{% else %}Подписаться{% endif %}</button>
-        {% endif %}
-        <div class="menu-wrap">
-          <button class="icon-btn" data-menu>{{ icon("more") }}</button>
-          <div class="menu">
-            {% if secret_enabled %}<a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>{% endif %}
-            <button data-cname="{{ custom_name(pu) or '' }}" onclick="(async(b)=>{const n=prompt('Как записать контакт?', b.dataset.cname); if(n===null) return; await App.api('/contacts/{{ pu.username }}/name',{name:n}); location.reload();})(this)">{{ icon("pen") }} Записать контакт как…</button>
-            <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
-            <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код</a>
-            <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
-            {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">{{ icon("star", "i in") }} {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
-            {% if rel.follows_me %}<button data-act="toggle" data-url="/follower/{{ pu.username }}/remove" data-msg="Подписчик удалён" data-reload="1">{{ icon("x") }} Удалить из подписчиков</button>{% endif %}
-            {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
-            <button data-act="toggle" data-url="/mute/{{ pu.username }}" data-msg="Готово" data-reload="1">{{ icon("mute") }} {% if rel.is_muted %}Показывать посты{% else %}Скрыть посты из ленты{% endif %}</button>
-            <button data-act="toggle" data-url="/block/{{ pu.username }}" data-msg="Готово" data-reload="1" class="danger">{{ icon("x") }} {% if rel.i_blocked %}Разблокировать{% else %}Заблокировать{% endif %}</button>
-            {% if user and (user.is_owner or user.is_moderator) %}<a href="/admin/u/{{ pu.username }}">{{ icon("wrench") }} Управление</a>{% endif %}
-            <a href="/report/{{ pu.username }}" class="danger">{{ icon("flag") }} Пожаловаться</a>
-          </div>
-        </div>
-      {% else %}
-        <a href="/login?next=/profile/{{ pu.username }}" class="btn sm">Подписаться</a>
-      {% endif %}
-    </div>
+      <div class="pv-id">
     {% set pn = has_name_color(pu) %}<div class="profile-name"><span{% if pn %} class="plus-name" style="--pg:{{ name_bg(pu) }}"{% endif %}>{{ pu.name or pu.username }}</span>{{ badges(pu) }}</div>
-    {% if not me and custom_name(pu) %}<div class="small muted mt-s">{{ icon("pen", "i in") }} У вас записан(а) как <b>{{ custom_name(pu) }}</b></div>{% endif %}
-    {% if pu.is_owner %}<div class="owner-pill mt-s{% if pu.co_owner %} co{% endif %}">{{ crown(pu, 20) }}{{ "Совладелец" if pu.co_owner else "Основатель" }} {{ brand }}</div>{% endif %}
     <div class="row small muted" style="gap:8px"><span data-copy-username="{{ pu.username }}" title="Нажмите, чтобы скопировать" style="cursor:copy">@{{ pu.username }}</span>{% for h in v3_aliases(pu) %}<span class="faint">· @{{ h }}</span>{% endfor %}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span class="online-txt"><i></i>онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
+    <div class="profile-stats tiles">
+      <span><b>{{ stats.posts }}</b> <span class="muted">постов</span></span>
+      <a href="/profile/{{ pu.username }}/followers"{% if not me and pref(pu, "hide_followers_list") %} onclick="return false" style="cursor:default"{% endif %}><b id="followers-count">{{ stats.followers }}</b> <span class="muted">подписчиков</span></a>
+      <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
+    </div>
+      </div>
+    </div>
+    {% if not me and custom_name(pu) %}<div class="small muted mt-s">{{ icon("pen", "i in") }} У вас записан(а) как <b>{{ custom_name(pu) }}</b></div>{% endif %}
+    {% if pu.is_owner %}<div class="owner-pill mt-s{% if pu.co_owner %} co{% endif %}">{{ crown(pu, 20) }}{{ "Совладелец" if pu.co_owner else "Основатель" }} {{ brand }}</div>{% endif %}
     {% if pu.dnd_until and pu.dnd_until > now %}<div class="status-pill">{{ icon("moon", "i in") }} не беспокоить</div>{% endif %}
     {% if pu.bio %}<div style="margin-top:10px;white-space:normal">{{ pu.bio|rich }}</div>{% endif %}
     {% if common_interests and not me %}<div class="small muted mt">{{ icon("sparkle", "i in") }} У вас {{ plural(common_interests|length, "общий интерес", "общих интереса", "общих интересов") }}: {{ common_interests|join(", ") }}</div>{% endif %}
@@ -83,11 +45,53 @@
       {% if pu.tiktok_link %}<a href="{{ pu.tiktok_link if pu.tiktok_link.startswith('http') else 'https://tiktok.com/@' ~ pu.tiktok_link.lstrip('@') }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
       {% for _s in pack_slot("profile_after_bio") %}{% include _s %}{% endfor %}
     </div></details>
-    <div class="profile-stats tiles">
-      <span><b>{{ stats.posts }}</b> <span class="muted">постов</span></span>
-      <a href="/profile/{{ pu.username }}/followers"{% if not me and pref(pu, "hide_followers_list") %} onclick="return false" style="cursor:default"{% endif %}><b id="followers-count">{{ stats.followers }}</b> <span class="muted">подписчиков</span></a>
-      <a href="/profile/{{ pu.username }}/following"{% if not me and pref(pu, "hide_following_list") %} onclick="return false" style="cursor:default"{% endif %}><b>{{ stats.following }}</b> <span class="muted">подписок</span></a>
-      <span><b>{{ stats.likes|compact }}</b> <span class="muted">лайков</span></span>
+    <div class="profile-btns">
+      {% if me %}
+        <a href="/settings" class="btn soft grow">{{ icon("edit", "i in") }} Редактировать</a>
+        <a href="/gifts/{{ pu.username }}" class="btn soft" title="Мои подарки">{{ icon("gift", "i in") }}</a>
+        <button type="button" class="btn soft" data-share-profile="{{ pu.username }}" title="Поделиться">{{ icon("share", "i in") }}</button>
+        <div class="menu-wrap">
+          <button class="btn soft" data-menu title="Ещё">{{ icon("more") }}</button>
+          <div class="menu">
+            <a href="/gifts/{{ pu.username }}">{{ icon("gift") }} Мои подарки{% if gifts_total %} <span class="faint">{{ gifts_total }}</span>{% endif %}</a>
+            <form method="post" action="/settings/cover" enctype="multipart/form-data" style="margin:0"><label style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 12px">{{ icon("image") }} {% if pu.cover %}Сменить обложку{% else %}Добавить обложку{% endif %}<input type="file" name="cover" accept="image/*" class="hidden" onchange="this.form.submit()"></label></form>
+            <a href="/stats">{{ icon("chart") }} Статистика</a>
+            <a href="/drafts">{{ icon("draft") }} Черновики</a>
+            <a href="/shop">{{ icon("bag") }} Рамки и заморозки</a>
+            <a href="/invite">{{ icon("handshake") }} Пригласить друзей</a>
+            <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код профиля</a>
+            <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
+            <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
+            {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
+          </div>
+        </div>
+      {% elif user %}
+        {% if not rel.i_blocked and not rel.blocked_me %}
+        <button class="btn grow {% if rel.is_following or rel.requested %}soft{% endif %}" data-act="follow" data-user="{{ pu.username }}">{% if rel.is_following %}Вы подписаны{% elif rel.requested %}Заявка отправлена{% elif rel.follows_me %}Подписаться в ответ{% else %}Подписаться{% endif %}</button>
+        <a href="/messages/{{ pu.username }}" class="btn soft" title="Написать">{{ icon("chat", "i in") }}</a>
+        <a href="/gifts/{{ pu.username }}" class="btn soft" title="Подарить подарок">{{ icon("gift", "i in") }}</a>
+        {% for _s in pack_slot("profile_actions") %}{% include _s %}{% endfor %}
+        {% endif %}
+        <div class="menu-wrap">
+          <button class="btn soft" data-menu>{{ icon("more") }}</button>
+          <div class="menu">
+            {% if secret_enabled %}<a href="/secret?u={{ pu.username }}">{{ icon("secret") }} Секретный чат</a>{% endif %}
+            <button data-cname="{{ custom_name(pu) or '' }}" onclick="(async(b)=>{const n=prompt('Как записать контакт?', b.dataset.cname); if(n===null) return; await App.api('/contacts/{{ pu.username }}/name',{name:n}); location.reload();})(this)">{{ icon("pen") }} Записать контакт как…</button>
+            <button data-act="copy" data-url="/profile/{{ pu.username }}">{{ icon("link") }} Ссылка на профиль</button>
+            <a href="/qr/{{ pu.username }}">{{ icon("qr") }} QR-код</a>
+            <button type="button" data-share-profile="{{ pu.username }}">{{ icon("share") }} Поделиться профилем</button>
+            {% if rel.is_following %}<button data-act="toggle" data-url="/close-friends/{{ pu.username }}" data-msg="Список близких друзей обновлён" data-reload="1">{{ icon("star", "i in") }} {% if rel.is_close %}Убрать из близких{% else %}В близкие друзья{% endif %}</button>{% endif %}
+            {% if rel.follows_me %}<button data-act="toggle" data-url="/follower/{{ pu.username }}/remove" data-msg="Подписчик удалён" data-reload="1">{{ icon("x") }} Удалить из подписчиков</button>{% endif %}
+            {% for _s in pack_slot("profile_menu") %}{% include _s %}{% endfor %}
+            <button data-act="toggle" data-url="/mute/{{ pu.username }}" data-msg="Готово" data-reload="1">{{ icon("mute") }} {% if rel.is_muted %}Показывать посты{% else %}Скрыть посты из ленты{% endif %}</button>
+            <button data-act="toggle" data-url="/block/{{ pu.username }}" data-msg="Готово" data-reload="1" class="danger">{{ icon("x") }} {% if rel.i_blocked %}Разблокировать{% else %}Заблокировать{% endif %}</button>
+            {% if user and (user.is_owner or user.is_moderator) %}<a href="/admin/u/{{ pu.username }}">{{ icon("wrench") }} Управление</a>{% endif %}
+            <a href="/report/{{ pu.username }}" class="danger">{{ icon("flag") }} Пожаловаться</a>
+          </div>
+        </div>
+      {% else %}
+        <a href="/login?next=/profile/{{ pu.username }}" class="btn grow">Подписаться</a>
+      {% endif %}
     </div>
     {% if gifts %}<a href="/gifts/{{ pu.username }}" class="row mt gift-row" title="Подарки">{% for g in gifts %}{% set gi = gift_by.get(g.gift_code) %}{% if gi %}<span title="{{ gi[2] }}{% if not g.is_anonymous and g.from_user %} от @{{ g.from_user.username }}{% endif %}"><img src="/static/gifts/{{ gi[0] }}.svg" alt="{{ gi[2] }}"></span>{% endif %}{% endfor %}{% if gifts_total > gifts|length %}<span class="small muted" style="align-self:center">+{{ gifts_total - gifts|length }}</span>{% endif %}</a>{% endif %}
     {% if mutual %}<div class="row tiny muted mt" style="gap:6px">{% for m in mutual %}{{ avatar(m, 20) }}{% endfor %}<span>Среди подписчиков: {{ mutual|map(attribute="username")|join(", ") }}</span></div>{% endif %}
@@ -130,8 +134,9 @@
 {% else %}
   {% if user and not me and v3_wall_ok(pu, user) %}<details class="card wall-write"><summary class="row" style="gap:10px;cursor:pointer">{{ icon("edit", "i in") }}<b class="grow">Написать на стене</b><span class="tiny faint">{{ pu.name or pu.username }} увидит запись в профиле</span></summary>
     {% set post_to = {"ref": pu.username, "back": "/profile/" ~ pu.username, "field": "wall"} %}<div class="mt">{% include "partials/composer.html" %}</div></details>{% endif %}
-  {% if pinned_post %}<div class="tiny muted" style="padding:0 6px 6px">{{ icon("pin", "i in") }} Закреплённый пост</div>{{ post_card(pinned_post, user, st, originals, repost_counts, can_mod) }}{% endif %}
-  {% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}{% if not pinned_post %}<div class="card empty"><div class="big">{{ icon("note", "i in") }}</div>{% if me %}Здесь появятся ваши посты. <a href="/create" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endfor %}
+  {% if tab == "likes" %}{% for p in posts %}{{ post_card(p, user, st, originals, repost_counts, can_mod) }}{% else %}<div class="card empty">Лайков пока нет</div>{% endfor %}
+  {% elif pinned_post or posts %}<div class="notes">{% if pinned_post %}{{ note_tile(pinned_post, user, st, originals, true, 0) }}{% endif %}{% for p in posts %}{{ note_tile(p, user, st, originals, false, loop.index) }}{% endfor %}</div>
+  {% else %}{% if not pinned_post %}<div class="card empty"><div class="big">{{ icon("note", "i in") }}</div>{% if me %}Здесь появятся ваши посты. <a href="/create" style="color:var(--link);font-weight:600">Написать первый</a>{% else %}Постов пока нет{% endif %}</div>{% endif %}{% endif %}
 {% endif %}
 {% endif %}
 

@@ -236,3 +236,24 @@
             {%- if user and (user.id == main.user_id or can_mod) %}<button class="danger" data-act="delete-post" data-id="{{ main.id }}">{{ icon("trash") }} Удалить</button>{% endif %}
             {%- if user and user.id == p.user_id and p.id != main.id %}<button class="danger" data-act="delete-post" data-id="{{ p.id }}">{{ icon("trash") }} Удалить репост</button>{% endif %}
 {%- endmacro %}
+
+{# Плитка поста в профиле: текст — тёплая «записка», фото — карточка с картинкой и подписью. #}
+{% macro note_tile(p, user, st, originals={}, pinned=false, i=0) -%}
+{%- set orig = originals.get(p.repost_id) if p.is_repost else None -%}
+{%- set main = orig if (p.is_repost and not p.original_comment and orig) else p -%}
+{%- set items = main.media_items|sort(attribute="position") -%}
+{%- set pic = items[0].media_url if items and items[0].media_type != "video" else (main.image if main.image and main.media_type != "video" else None) -%}
+{%- set vid = (items[0].media_url if items and items[0].media_type == "video" else None) or (main.image if main.image and main.media_type == "video" else None) -%}
+{%- set text = (main.content or "")|striptags|replace("**", "")|replace("__", "")|trim -%}
+{%- set hide = main.author.hide_likes and not (user and user.id == main.user_id) -%}
+<a href="/post/{{ main.id }}" class="ntile{% if (pic or vid) and not main.content_warning %} photo{% else %} note n{{ i % 4 }}{% endif %}" id="post-{{ p.id }}">
+  {%- if main.wall_owner_id and main.wall_owner and main.wall_owner_id != main.user_id %}<span class="ntag">{{ icon("forward", "i in") }} {{ main.author.name or main.author.username }} на стене у {{ main.wall_owner.name or main.wall_owner.username }}</span>{% endif %}
+  {%- if pinned or p.is_repost %}<span class="ntag">{% if pinned %}{{ icon("pin", "i in") }} закреплён{% else %}{{ icon("repost", "i in") }} репост{% endif %}</span>{% endif %}
+  {%- if main.content_warning %}{% elif pic %}<img src="{{ pic }}" alt="" loading="lazy">{% elif vid %}<span class="nvid"><video src="{{ vid }}#t=0.1" muted preload="metadata" playsinline></video><span class="nplay">{{ icon("play", "i in") }}</span></span>{% endif %}
+  {%- if main.content_warning %}<span class="ntext muted">{{ icon("alert", "i in") }} {{ main.content_warning }} — откройте пост</span>
+  {%- elif main.poll %}<span class="ntext"><b>{{ icon("chart", "i in") }} {{ main.poll.question }}</b></span>
+  {%- elif text %}<span class="ntext{% if pic or vid %} cap{% endif %}">{{ text|truncate(220 if not (pic or vid) else 90, True, "…") }}</span>
+  {%- elif not (pic or vid) %}<span class="ntext muted">Пост без текста</span>{% endif %}
+  <span class="nmeta">{% if not hide and main.likes %}<span{% if st and main.id in st.liked %} class="on"{% endif %}>{{ icon("heart", "i in") }} {{ main.likes|length }}</span>{% endif %}{% if main.comments %}<span>{{ icon("comment", "i in") }} {{ main.comments|length }}</span>{% endif %}{% if main.is_long %}<span>{{ icon("book", "i in") }} {{ reading_minutes(main.content) }} мин</span>{% endif %}<span class="nwhen">{{ main.created_at|ago }}</span></span>
+</a>
+{%- endmacro %}

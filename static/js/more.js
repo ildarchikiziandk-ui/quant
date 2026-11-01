@@ -495,7 +495,7 @@
     const tip = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
     const tcard = $('#today-card');
     if (tcard) {  // одна карточка «Сегодня»: приветствие, совет, сундук и «Что нового»
-      $('#today-hi', tcard).textContent = bday ? 'С днём рождения, ' + ((APP.name || '').split(' ')[0] || APP.user) + '!' : part + ', ' + ((APP.name || '').split(' ')[0] || APP.user) + '!';
+      if (bday) $('#today-hi', tcard).textContent = 'С днём рождения, ' + ((APP.name || '').split(' ')[0] || APP.user) + '!';  // обычное приветствие — только на заставке при запуске
       $('#today-tip', tcard).innerHTML = bday ? 'Вся команда Nuvora желает вам счастья. Сегодня ваш день!' : IC('bulb') + ' ' + esc(tip);
       if (bday) tcard.classList.add('bday');
       if (bday && ls.get('nv_confetti', '') !== localDate().slice(5)) { ls.set('nv_confetti', localDate().slice(5)); confetti(); }

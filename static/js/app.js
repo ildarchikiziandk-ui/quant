@@ -140,7 +140,7 @@
     const real = t === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
     document.documentElement.setAttribute('data-theme', real);
     const meta = $('meta[name=theme-color]');
-    if (meta) meta.content = real === 'dark' ? '#141311' : '#f3e7d3';
+    if (meta) meta.content = real === 'dark' ? '#1d1916' : '#f4ede3';
     syncAppTheme();
   }
   // Android-приложение красит полосы под строкой состояния и навигацией в цвет сайта
@@ -211,7 +211,7 @@
     const m = $('#mmenu');
     if (!m) return;
     if (e.target.closest('[data-mmenu-open]')) { e.preventDefault(); m.hidden = !m.hidden; document.body.style.overflow = m.hidden ? '' : 'hidden'; $('[data-mmenu-open]')?.classList.toggle('active', !m.hidden); }
-    else if (e.target.closest('[data-mmenu-close]') || (e.target.closest('#mmenu a'))) { m.hidden = true; document.body.style.overflow = ''; $('[data-mmenu-open]')?.classList.remove('active'); }
+    else if (e.target === m || e.target.closest('[data-mmenu-close]') || (e.target.closest('#mmenu a'))) { m.hidden = true; document.body.style.overflow = ''; $('[data-mmenu-open]')?.classList.remove('active'); }
   });
   window.addEventListener('pageshow', () => { const m = $('#mmenu'); if (m) { m.hidden = true; document.body.style.overflow = ''; } });
 

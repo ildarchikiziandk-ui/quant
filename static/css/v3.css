@@ -12,26 +12,27 @@
   src: url("/static/fonts/unbounded-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 :root {
-  --ink: #1f1d1a; --paper: #f3e7d3; --whale: #1f6fb8; --whale-2: #185a96; --cream: #f1dcbc;
-  --accent: var(--whale); --accent-2: var(--whale-2); --accent-soft: color-mix(in srgb, var(--whale) 11%, transparent);
+  /* Тёплая спокойная палитра (01.11.2026): молочный фон, тёмно-коричневый текст, терракотовый акцент. Без градиентов. */
+  --ink: #2b2520; --paper: #f4ede3; --whale: #b5562f; --whale-2: #9a4625; --cream: #efe2d0;
+  --accent: var(--whale); --accent-2: var(--whale-2); --accent-soft: #f1dfd2;
   --grad: var(--whale);
-  --brand: var(--whale); --on-brand: #ffffff; --brand-2: #5d564c; --link: var(--whale);
-  --bg: var(--paper); --card: #fdf8ef; --card-2: #f8eedd; --border: #e5d4b8; --border-2: #d4bf9e;
-  --text: var(--ink); --text-2: #625a4e; --text-3: #6a6054;  /* контраст ≥ 4,5:1 к фону (WCAG AA) */
-  --input: #f1e4cd; --hover: rgba(31, 29, 26, .05);
-  --like: #d63c3c; --bookmark: #c98a1b; --online: #3c9a5f; --plus: var(--whale);
-  --shadow-1: none; --shadow-2: 0 10px 30px -12px rgba(40, 30, 15, .22); --shadow: var(--shadow-2);
-  --radius: 22px; --radius-sm: 15px;
+  --brand: var(--whale); --on-brand: #ffffff; --brand-2: #6e6254; --link: #9a4625;
+  --bg: var(--paper); --card: #fbf7f1; --card-2: #f6efe5; --border: #e6dccd; --border-2: #d6c7b2;
+  --text: var(--ink); --text-2: #5f554a; --text-3: #6e6254;  /* контраст ≥ 4,5:1 к фону (WCAG AA) */
+  --input: #efe6d8; --hover: rgba(43, 37, 32, .05);
+  --like: #b5562f; --bookmark: #9a6a2b; --online: #5f8a4f; --plus: var(--whale);
+  --shadow-1: none; --shadow-2: 0 10px 30px -12px rgba(60, 40, 20, .22); --shadow: var(--shadow-2);
+  --radius: 20px; --radius-sm: 14px;
   --font-display: "Unbounded", "Onest", sans-serif;
 }
 [data-theme="dark"] {
-  --ink: #f3ece1; --whale: #5fa8e6; --whale-2: #8cc2ee;
-  --accent-soft: color-mix(in srgb, var(--whale) 15%, transparent);
-  --brand: var(--whale); --on-brand: #0b1724; --brand-2: #b3a99b;
-  --bg: #141311; --card: #1c1b18; --card-2: #22201d; --border: #2e2b27; --border-2: #3d3934;
-  --text: #f3ece1; --text-2: #a69d90; --text-3: #958c7f;
-  --input: #252320; --hover: rgba(243, 236, 225, .05);
-  --like: #f06a6a; --online: #5cc27f;
+  --ink: #f1e8dc; --whale: #d98058; --whale-2: #e8a27f;
+  --accent-soft: color-mix(in srgb, var(--whale) 18%, transparent);
+  --brand: var(--whale); --on-brand: #1d1916; --brand-2: #b3a593; --link: #e8a27f;
+  --bg: #1d1916; --card: #26211d; --card-2: #2c2622; --border: #3a332d; --border-2: #4a4139;
+  --text: #f1e8dc; --text-2: #b9ad9d; --text-3: #a89c8c;
+  --input: #2f2924; --hover: rgba(241, 232, 220, .05);
+  --like: #e27f58; --online: #8fb67c;
   --shadow-2: 0 12px 34px -12px rgba(0, 0, 0, .6);
 }
 
@@ -342,3 +343,123 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .av, .av img { border-radius: 50%; }
 .net-bar.saved { background: var(--ink); color: var(--paper); font-size: 13px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
 [data-theme="dark"] .net-bar.saved { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+
+/* ===================== Редизайн ноябрь 2026: тёплый, спокойный, без градиентов ===================== */
+/* — Шапка на телефоне: ☰ слева, логотип, справа поиск/чаты/уведомления. Нижней панели больше нет. */
+.mobile-top { gap: 6px; justify-content: flex-start; }
+.mobile-top .mt-burger { position: relative; margin-left: -4px; }
+.mobile-top .mt-burger .mbadge.dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; padding: 0; min-width: 0; border-radius: 50%; background: var(--whale); border: 2px solid var(--bg); }
+.mobile-nav { display: none !important; }
+@media (max-width: 640px) { .main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); } }
+.fab-compose { display: none; }
+@media (max-width: 640px) {
+  .fab-compose { display: flex; position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 80; width: 56px; height: 56px; border-radius: 18px;
+    align-items: center; justify-content: center; background: var(--whale); color: #fff; box-shadow: 0 6px 18px -6px rgba(90, 50, 20, .45); }
+  .fab-compose svg { width: 26px; height: 26px; color: #fff; stroke-width: 2.2; }
+  .fab-compose:active { transform: scale(.94); }
+  .chat-page .fab-compose, body.reader .fab-compose, body:has(#mmenu:not([hidden])) .fab-compose { display: none; }
+}
+
+/* — Боковое меню (выезжает слева) */
+.mmenu { padding: 0; background: rgba(43, 37, 32, .38); animation: mm-fade .2s ease-out; overflow: hidden; }
+.mmenu-panel { position: absolute; left: 0; top: 0; bottom: 0; width: min(310px, 86vw); background: var(--bg); overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(14px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom)); border-radius: 0 24px 24px 0; animation: mm-slide .24s cubic-bezier(.2, .8, .2, 1); }
+@keyframes mm-fade { from { opacity: 0 } }
+@keyframes mm-slide { from { transform: translateX(-100%) } }
+.mmenu-head { padding: 4px 2px 10px; }
+.mmenu-nav { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.mmenu-nav a { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; font-weight: 650; font-size: 15.5px; color: var(--text); }
+.mmenu-nav a svg.i { width: 22px; height: 22px; color: var(--text-2); }
+.mmenu-nav a.on { background: var(--accent-soft); color: var(--whale-2); }
+.mmenu-nav a.on svg.i { color: var(--whale); }
+.mmenu-nav a:active { background: var(--card-2); }
+.mmenu-nav .mm-n { margin-left: auto; background: var(--whale); color: #fff; font-size: 12px; font-weight: 700; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; }
+.mmenu .mmenu-rows { grid-template-columns: 1fr; }
+.mmenu-title { margin: 18px 6px 6px; }
+
+/* — Заставка с приветствием (один раз при запуске) */
+.splash { position: fixed; inset: 0; z-index: 1000; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; transition: opacity .4s; }
+.splash[hidden] { display: none; }
+.splash img { width: 96px; height: 96px; animation: sp-in .5s cubic-bezier(.2, .8, .2, 1); }
+.splash b { font-family: Unbounded, var(--font, sans-serif); font-size: 22px; color: var(--text); animation: sp-in .5s .1s both; }
+.splash span { color: var(--text-2); font-size: 15px; animation: sp-in .5s .2s both; }
+.splash.out { opacity: 0; pointer-events: none; }
+@keyframes sp-in { from { opacity: 0; transform: translateY(8px) } }
+
+/* — Кнопки: текст всегда по центру */
+.btn { justify-content: center; text-align: center; }
+.btn.soft { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+
+/* — Посты в ленте: мягкие карточки без тени, тихие кнопки */
+.card, .post { box-shadow: none; border: 1px solid var(--border); background: var(--card); }
+.post { border-radius: var(--radius); }
+.post .act { color: var(--text-3); }
+.post .act.on, .post .act.like.on { color: var(--like); }
+.post .post-text { line-height: 1.55; }
+
+/* — Профиль: аватар слева, имя и цифры справа, кнопки строкой */
+.profile-top { padding: 16px; }
+.cover + .profile-top { padding-top: 12px; }
+.cover { height: 120px; border-radius: var(--radius) var(--radius) 0 0; }
+.pv-head { display: flex; gap: 14px; align-items: center; }
+.pv-head .profile-av { position: static; margin: 0; flex-shrink: 0; }
+.pv-id { min-width: 0; flex: 1; }
+.pv-id .profile-name { font-size: 19px; margin: 0; }
+.pv-id .profile-stats.tiles { display: flex; gap: 14px; margin-top: 8px; padding: 0; border: none; background: none; flex-wrap: wrap; }
+.pv-id .profile-stats.tiles > * { display: flex; flex-direction: column; align-items: flex-start; padding: 0; background: none; border: none; line-height: 1.2; }
+.pv-id .profile-stats.tiles > * b { font-size: 16px; }
+.pv-id .profile-stats .muted { font-size: 12px; }
+.profile-btns { display: flex; gap: 8px; margin-top: 14px; align-items: stretch; position: static; }
+.profile-btns > .btn, .profile-btns > .menu-wrap > .btn { min-height: 42px; padding: 0 14px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.profile-btns .grow { flex: 1; }
+.profile-btns .menu-wrap { position: relative; }
+.profile-btns .menu { right: 0; left: auto; }
+
+/* — Посты в профиле: две колонки, текст — тёплые записки, фото — карточки с подписью */
+.notes { columns: 2; column-gap: 10px; margin-top: 4px; }
+@media (min-width: 900px) { .notes { columns: 3; } }
+.ntile { break-inside: avoid; display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; border-radius: 18px; overflow: hidden; color: var(--ink); position: relative; }
+.ntile.note { padding: 14px 14px 12px; }
+.ntile.n0 { background: #f1dfd2; } .ntile.n1 { background: #e4e8d8; } .ntile.n2 { background: #e9dfee; } .ntile.n3 { background: #f3e6c8; }
+[data-theme="dark"] .ntile.note { color: var(--text); }
+[data-theme="dark"] .ntile.n0 { background: #3a2c24; } [data-theme="dark"] .ntile.n1 { background: #2f3328; } [data-theme="dark"] .ntile.n2 { background: #352d38; } [data-theme="dark"] .ntile.n3 { background: #3a3222; }
+.ntile.photo { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+.ntile.photo > img, .ntile .nvid video { display: block; width: 100%; height: auto; max-height: 340px; object-fit: cover; }
+.ntile .nvid { position: relative; display: block; }
+.ntile .nplay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; }
+.ntile .nplay svg { width: 34px; height: 34px; background: rgba(0, 0, 0, .35); border-radius: 50%; padding: 8px; }
+.ntile .ntext { font-size: 14.5px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.ntile.photo .ntext, .ntile.photo .nmeta { padding: 0 12px; }
+.ntile.photo .nmeta { padding-bottom: 10px; }
+.ntile .ntext.cap { font-size: 13.5px; }
+.ntile .ntext img { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.2em; max-height: none; }
+.ntile .nmeta { display: flex; gap: 10px; align-items: center; font-size: 12px; opacity: .72; }
+.ntile .nmeta span { display: inline-flex; align-items: center; gap: 3px; }
+.ntile .nmeta .on { color: var(--like); opacity: 1; }
+.ntile .nmeta .nwhen { margin-left: auto; }
+.ntile .ntag { font-size: 11.5px; font-weight: 700; opacity: .7; display: inline-flex; gap: 4px; align-items: center; }
+.ntile.photo .ntag { position: absolute; top: 8px; left: 8px; background: rgba(251, 247, 241, .92); padding: 3px 8px; border-radius: 999px; opacity: 1; color: var(--ink); }
+.ntile:active { transform: scale(.98); }
+
+/* — Без градиентов: всё плоскими тёплыми цветами */
+.plus-hero { background: var(--whale) !important; }
+.read-progress, .tw-bars i { background: var(--whale) !important; }
+.wn-num { background: none !important; -webkit-background-clip: border-box; background-clip: border-box; color: var(--whale) !important; }
+.whatsnew-card { background: var(--accent-soft) !important; }
+.greet.bday { background: #f3e6c8 !important; } [data-theme="dark"] .greet.bday { background: #3a3222 !important; }
+.owner-pill { background: #f3e6c8 !important; color: #8a5a1c !important; } [data-theme="dark"] .owner-pill { background: #3a3222 !important; color: #f3d9a4 !important; }
+.badge.owner-b { background: #d9952b !important; box-shadow: none !important; }
+.ach .e { background: #f3e6c8 !important; color: #8a5a1c !important; }
+.plus-tag::after { display: none; }
+.gift-plus, .gift-plus.lim, .plus-feat .pi { background: var(--whale) !important; }
+.gift.excl, .gift.g-premium { background: color-mix(in srgb, #d9952b 10%, var(--card)) !important; }
+.gift.g-limited { background: color-mix(in srgb, #8a6aa0 10%, var(--card)) !important; }
+.gift.g-founder { background: color-mix(in srgb, #d9952b 18%, var(--card)) !important; }
+.v3-giftpick button.gk-founder { background: color-mix(in srgb, #d9952b 18%, var(--card-2)) !important; }
+.c-cover { background-color: var(--accent-soft); background-image: none; }
+.c-cover[style*="url("] { background-size: cover; }
+.bg-graphite { background: #4a423b !important; } .bg-sand { background: #b49c80 !important; }
+.bg-mint { background: #6f8f6a !important; } .bg-sky { background: #5f7f99 !important; }
+.bg-sunset { background: #c06a3e !important; } .bg-night { background: #2f2925 !important; }
+.bg-aurora { background: #8a6aa0 !important; } .bg-cosmos { background: #3c3048 !important; }
+.bg-goldbg { background: #d9a441 !important; color: #3a2a10 !important; } .bg-ocean { background: #3f6f86 !important; }
