@@ -3,7 +3,8 @@
 Команды — JSON-список в BOT_COMMANDS, например:
   [{"do": "dm", "to": "rubl", "text": "Привет"}, {"do": "post", "text": "..."},
    {"do": "comment", "post": 12, "text": "...", "parent": 34}, {"do": "like", "post": 12},
-   {"do": "whale", "post": 12}, {"do": "ttt", "game": 3, "cell": 4}, {"do": "follow", "user": "alice"}]
+   {"do": "whale", "post": 12}, {"do": "ttt", "game": 3, "cell": 4}, {"do": "follow", "user": "alice"},
+   {"do": "dm_file", "to": "rubl", "path": "/tmp/ad.mp4", "text": "подпись"}]
 После команд остаётся в сети BOT_STAY минут и печатает новые личные сообщения и уведомления.
 Пароль — секрет NUVORA_BOT_PASSWORD (в журнал не попадает).
 """
@@ -57,6 +58,12 @@ def run(cmd):
     d = cmd.get("do")
     if d == "dm":
         r = s.post(B + "/messages/send", json={"receiver": cmd["to"], "content": cmd["text"]}, headers=H, timeout=20)
+    elif d == "dm_file":  # фото, видео или файл в личку (подпись — text)
+        import mimetypes
+        mime = mimetypes.guess_type(cmd["path"])[0] or "application/octet-stream"
+        with open(cmd["path"], "rb") as f:
+            r = s.post(B + "/messages/send-media", data={"receiver": cmd["to"], "caption": cmd.get("text", "")},
+                       files={"file": (os.path.basename(cmd["path"]), f, mime)}, headers={"Origin": B, "X-Requested-With": "fetch"}, timeout=300)
     elif d == "post":
         r = s.post(B + "/post/create", data={"content": cmd["text"]}, headers={"Origin": B}, timeout=30, allow_redirects=False)
     elif d == "comment":
