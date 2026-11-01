@@ -182,4 +182,6 @@ SPARK_RUB = 0.25  # 1 Искра ≈ 0,25 ₽
 # напр. http://127.0.0.1:8090/v1. Пусто — Нува отвечает по справке. Вопросы никуда не уходят с сервера.
 LOCAL_AI_URL = env("LOCAL_AI_URL", "").rstrip("/")
 LOCAL_AI_MODEL = env("LOCAL_AI_MODEL", "nuva")
-NUVA_AI_PER_HOUR = int(env("NUVA_AI_PER_HOUR", "40"))  # вопросов нейросети в час на человека
+NUVA_AI_PER_HOUR = int(env("NUVA_AI_PER_HOUR", "40"))
+NUVA_UPLOAD_CODE = env("NUVA_UPLOAD_CODE", "")  # одноразовый код для загрузки дообученной модели из Colab (deploy/nuva-upload-code.sh)
+NUVA_MODEL_DIR = env("NUVA_MODEL_DIR", os.path.join(BASE_DIR, "data", "ai"))  # вопросов нейросети в час на человека

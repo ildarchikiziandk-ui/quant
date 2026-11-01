@@ -33,6 +33,7 @@ fi
 MEM=$(free -m | awk '/^Mem:/{print $2}')
 CPUS=$(nproc)
 echo "==> Сервер: память ${MEM} МБ, ядер процессора: ${CPUS}"
+CUSTOM="$DIR/nuva-custom.gguf"  # своя дообученная модель (tools/nuva_finetune.ipynb), если загружена
 if [ "$MEM" -lt 1800 ]; then
   echo "Памяти слишком мало для нейросети (нужно хотя бы 2 ГБ). В панели Beget можно увеличить тариф VPS."; exit 1
 elif [ "$MEM" -lt 3500 ]; then
@@ -41,6 +42,11 @@ elif [ "$MEM" -lt 3500 ]; then
 else
   REPO="Qwen/Qwen2.5-1.5B-Instruct-GGUF"; FILE="qwen2.5-1.5b-instruct-q4_k_m.gguf"; SIZE="средняя (1,5 млрд параметров)"
   CTX=4096; LIMIT=1600M
+fi
+if [ -s "$CUSTOM" ]; then
+  FILE="nuva-custom.gguf"; SIZE="своя дообученная Нува"; CTX=2048
+  [ "$MEM" -lt 3500 ] && LIMIT=1000M
+  echo "    нашёл свою дообученную модель — ставлю её"
 fi
 
 # запасная память на диске (файл подкачки): если оперативной не хватит, сервер не упадёт, а просто чуть замедлится
@@ -93,6 +99,7 @@ fi
 
 echo "==> 2/3 Модель (скачивается один раз, 0,4–1,1 ГБ)"
 if [ ! -s "$DIR/$FILE" ]; then
+  [ "$FILE" = "nuva-custom.gguf" ] && { echo "Своя модель не найдена"; exit 1; }
   curl -fL --progress-bar "https://huggingface.co/$REPO/resolve/main/$FILE" -o "$DIR/$FILE.part" \
     || curl -fL --progress-bar "https://hf-mirror.com/$REPO/resolve/main/$FILE" -o "$DIR/$FILE.part"
   mv "$DIR/$FILE.part" "$DIR/$FILE"
@@ -139,7 +146,7 @@ ANS=$(curl -s "http://127.0.0.1:$PORT/v1/chat/completions" -H "Content-Type: app
 echo "    ответ за $(( $(date +%s) - START )) с: $ANS"
 
 set_var LOCAL_AI_URL "http://127.0.0.1:$PORT/v1"
-for k in GIGACHAT_AUTH_KEY GIGACHAT_SCOPE GIGACHAT_CA; do set_var $k ""; done  # GigaChat больше не используется
+for k in GIGACHAT_AUTH_KEY GIGACHAT_SCOPE GIGACHAT_CA NUVA_UPLOAD_CODE; do set_var $k ""; done  # GigaChat не используется; код загрузки больше не нужен  # GigaChat больше не используется
 systemctl restart nuvora
 echo
 echo "Готово! Нува отвечает своей нейросетью с этого сервера. Выключить: bash $APP_DIR/deploy/set-local-ai.sh off"

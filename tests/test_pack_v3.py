@@ -1276,3 +1276,20 @@ def test_nuva_local_model(alice, monkeypatch):
     monkeypatch.setattr(nuva_model, "_post_local", fake)
     r = alice.post("/ai/chat", json={"question": "Придумай стих про кита"}, headers=J).json()
     assert r["ai"] and "Кит" in r["text"] and "Нува" in seen["msgs"][0]["content"]
+
+
+def test_nuva_model_upload(anon, tmp_path, monkeypatch):
+    import os
+    import config
+    monkeypatch.setattr(config, "NUVA_MODEL_DIR", str(tmp_path))
+    url = "/api/nuva-model/upload?part={}&total=2"
+    monkeypatch.setattr(config, "NUVA_UPLOAD_CODE", "")
+    assert anon.post(url.format(0), content=b"GGUF1234").status_code == 403  # без кода на сервере — никак
+    monkeypatch.setattr(config, "NUVA_UPLOAD_CODE", "x" * 32)
+    assert anon.post(url.format(0), content=b"GGUF1234", headers={"X-Upload-Code": "wrong"}).status_code == 403
+    h = {"X-Upload-Code": "x" * 32}
+    assert anon.post(url.format(1), content=b"5678", headers=h).status_code == 400  # с середины нельзя
+    assert anon.post(url.format(0), content=b"GGUF1234", headers=h).json() == {"ok": True, "done": False}
+    r = anon.post(url.format(1), content=b"5678", headers=h).json()
+    assert r["done"] and open(os.path.join(tmp_path, "nuva-custom.gguf"), "rb").read() == b"GGUF12345678"
+    assert anon.post("/api/nuva-model/upload?part=0&total=1", content=b"NOTGGUF", headers=h).status_code == 400
