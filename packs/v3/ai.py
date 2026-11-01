@@ -1,4 +1,4 @@
-"""Нува — помощник Nuvora. С ключом GigaChat отвечает нейросетью (packs/v3/gigachat.py), без него — по справке (хватает 1 ГБ памяти).
+"""Нува — помощник Nuvora. Со своей нейросетью на сервере (packs/v3/nuva_model.py) отвечает ею, без неё — по справке (хватает 1 ГБ памяти).
 
 Как отвечает:
   1. Готовит вопрос: растянутые буквы, английская раскладка, частые ошибки, синонимы, основы слов (стеммер),
@@ -39,8 +39,8 @@ def enabled():
 
 def smart():
     """Подключена ли нейросеть (для подписи на странице Нувы)."""
-    from . import gigachat
-    return gigachat.enabled()
+    from . import nuva_model
+    return nuva_model.enabled()
 
 
 # ---------------------------------------------------------------- словари
@@ -478,9 +478,9 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
     question = s(data.get("question")).strip()[:2000]
     if not question:
         return json_error("Напишите вопрос")
-    from . import gigachat
+    from . import nuva_model
     from services import ratelimit
-    if gigachat.enabled() and (user.is_owner or ratelimit.hit(f"giga:{user.id}", config.GIGACHAT_PER_HOUR, 3600)):
+    if nuva_model.enabled() and (user.is_owner or ratelimit.hit(f"nuva:{user.id}", config.NUVA_AI_PER_HOUR, 3600)):
         hist = data.get("history")
         if isinstance(hist, str):
             try:
@@ -490,7 +490,7 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
         q, stems, _ = prepare(question)
         KB.ensure(db)
         hits = KB.search(stems, limit=4) if stems else []
-        text = gigachat.chat(question, hist if isinstance(hist, list) else [], user, hits)
+        text = nuva_model.chat(question, hist if isinstance(hist, list) else [], user, hits)
         if text:
             top = hits[0] if hits and hits[0][0] >= 3.5 else None
             links = [{"url": top[1]["link"][0], "title": top[1]["link"][1]}] if top and top[1]["link"] else []
@@ -509,8 +509,8 @@ async def ai_rewrite(request: Request, db: Session = Depends(get_db)):
     if len(text.strip()) < 3:
         return json_error("Сначала напишите текст")
     if mode == "fix":
-        from . import gigachat
-        out = gigachat.rewrite(text, "fix") or fix_text(text)
+        from . import nuva_model
+        out = nuva_model.rewrite(text, "fix") or fix_text(text)
         return JSONResponse({"ok": True, "text": out, "same": out == text.strip()})
     if mode == "tags":
         tags = hashtags(text)

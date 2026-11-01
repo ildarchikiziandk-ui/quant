@@ -1545,7 +1545,6 @@
 "Ну и ладно": "Oh well",
 "Ну пожалуйста": "Pretty please",
 "Нува": "Nuva",
-"Нува думает с помощью нейросети GigaChat и опирается на справку": "Nuva thinks with the GigaChat neural network and relies on the help center",
 "Нува отвечает по справке и готовым шаблонам. Понимает опечатки и английскую раскладку.": "Nuva answers from the help center and ready-made templates. Understands typos and the wrong keyboard layout.",
 "Нува — помощник": "Nuva — assistant",
 "Нува — помощник Nuvora: подскажет, как всё устроено, придумает подпись, поздравление или идею поста": "Nuva is the Nuvora assistant: she'll explain how everything works, come up with a caption, a greeting or a post idea",
@@ -3439,5 +3438,6 @@
 "🎲 Бросаю кубик (1–": "🎲 Rolling a die (1–",
 "📱 Поделиться номером": "📱 Share phone number",
 "🕒 У меня сейчас": "🕒 My time now is",
-"🪙 Монетка:": "🪙 Coin:"
+"🪙 Монетка:": "🪙 Coin:",
+"Нува думает своей нейросетью на сервере": "Nuva thinks with her own neural network on the server"
 }

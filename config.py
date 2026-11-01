@@ -178,14 +178,8 @@ YOOKASSA_SECRET = env("YOOKASSA_SECRET", "")
 PLUS_PLANS = [(30, 33), (90, 99)]  # Nuvora+: (дней, ₽) — 1 месяц за 33 ₽, 3 месяца за 99 ₽ (обычная покупка, не пожертвование)
 SPARK_RUB = 0.25  # 1 Искра ≈ 0,25 ₽
 
-# --- Нува на нейросети GigaChat (Сбер). Без ключа Нува отвечает по справке, как раньше.
-GIGACHAT_AUTH_KEY = env("GIGACHAT_AUTH_KEY", "")  # «Ключ авторизации» из личного кабинета developers.sber.ru
-GIGACHAT_SCOPE = env("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
-GIGACHAT_MODEL = env("GIGACHAT_MODEL", "GigaChat-2")
-GIGACHAT_API_URL = env("GIGACHAT_API_URL", "https://api.giga.chat/v1")
-GIGACHAT_CA = env("GIGACHAT_CA", "")  # сертификаты с корневым НУЦ Минцифры (ставит deploy/set-gigachat.sh)
-# своя нейросеть на нашем сервере (llama.cpp, deploy/set-local-ai.sh): адрес OpenAI-совместимого API, напр. http://127.0.0.1:8090/v1.
-# Если задан — Нува отвечает ею, а не GigaChat; вопросы никуда не уходят с сервера.
+# --- Нува: своя нейросеть на нашем сервере (llama.cpp, deploy/set-local-ai.sh) — адрес OpenAI-совместимого API,
+# напр. http://127.0.0.1:8090/v1. Пусто — Нува отвечает по справке. Вопросы никуда не уходят с сервера.
 LOCAL_AI_URL = env("LOCAL_AI_URL", "").rstrip("/")
 LOCAL_AI_MODEL = env("LOCAL_AI_MODEL", "nuva")
-GIGACHAT_PER_HOUR = int(env("GIGACHAT_PER_HOUR", "40"))  # вопросов в час на человека
+NUVA_AI_PER_HOUR = int(env("NUVA_AI_PER_HOUR", "40"))  # вопросов нейросети в час на человека

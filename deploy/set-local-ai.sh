@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Своя нейросеть для Нувы прямо на этом сервере — без GigaChat и без отправки вопросов наружу.
+# Своя нейросеть для Нувы прямо на этом сервере — без внешних сервисов и без отправки вопросов наружу.
 # Ставит llama.cpp (программа, которая запускает нейросеть) и открытую модель Qwen2.5-Instruct (лицензия Apache 2.0),
 # размер модели подбирается под память сервера. Служба nuvora-ai слушает только 127.0.0.1:8090.
 # Запуск: bash /opt/nuvora/deploy/set-local-ai.sh        Выключить: bash /opt/nuvora/deploy/set-local-ai.sh off
@@ -26,7 +26,7 @@ if [ "${1:-}" = "off" ]; then
   systemctl disable --now nuvora-ai 2>/dev/null || true
   set_var LOCAL_AI_URL ""
   systemctl restart nuvora
-  echo "Своя нейросеть выключена. Нува снова отвечает через GigaChat (если он настроен) или по справке."
+  echo "Своя нейросеть выключена. Нува снова отвечает по справке."
   exit 0
 fi
 
@@ -109,6 +109,7 @@ ANS=$(curl -s "http://127.0.0.1:$PORT/v1/chat/completions" -H "Content-Type: app
 echo "    ответ за $(( $(date +%s) - START )) с: $ANS"
 
 set_var LOCAL_AI_URL "http://127.0.0.1:$PORT/v1"
+for k in GIGACHAT_AUTH_KEY GIGACHAT_SCOPE GIGACHAT_CA; do set_var $k ""; done  # GigaChat больше не используется
 systemctl restart nuvora
 echo
 echo "Готово! Нува отвечает своей нейросетью с этого сервера. Выключить: bash $APP_DIR/deploy/set-local-ai.sh off"

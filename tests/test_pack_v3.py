@@ -1042,26 +1042,26 @@ def test_share_trace(alice, bob):
     assert bob.get(f"/post/{pid}?from=nobody_here").status_code == 200
 
 
-def test_nuva_gigachat(alice, monkeypatch):
+def test_nuva_model(alice, monkeypatch):
     import config
-    from packs.v3 import gigachat
-    # без ключа — ответ по справке
+    from packs.v3 import nuva_model
+    # нейросеть не запущена — ответ по справке
     r = alice.post("/ai/chat", json={"question": "Как получить искры?"}, headers=J).json()
     assert r["ok"] and not r.get("ai")
-    monkeypatch.setattr(config, "GIGACHAT_AUTH_KEY", "test-key")
+    monkeypatch.setattr(config, "LOCAL_AI_URL", "http://127.0.0.1:8090/v1")
     sent = []
 
     def fake(messages, max_tokens=700, temperature=0.7):
         sent.append(messages)
         return "Искры дают за посты и задания дня. А ещё их можно потратить на подарки 🎁"
-    monkeypatch.setattr(gigachat, "_post", fake)
+    monkeypatch.setattr(nuva_model, "_post", fake)
     r = alice.post("/ai/chat", json={"question": "Как получить искры?", "history": '[{"role":"user","content":"привет"},{"role":"bot","content":"Привет!"}]'}, headers=J).json()
     assert r["ai"] and "Искры" in r["text"]
     msgs = sent[-1]
     assert msgs[0]["role"] == "system" and "Справка Nuvora" in msgs[0]["content"] and "Как получить искры" in msgs[0]["content"]
     assert [m_["role"] for m_ in msgs[1:]] == ["user", "assistant", "user"]
-    # сбой сервиса — снова справка, без ошибки
-    monkeypatch.setattr(gigachat, "_post", lambda *a, **k: (_ for _ in ()).throw(OSError("down")))
+    # модель упала — снова справка, без ошибки
+    monkeypatch.setattr(nuva_model, "_post", lambda *a, **k: (_ for _ in ()).throw(OSError("down")))
     r = alice.post("/ai/chat", json={"question": "Как получить искры?"}, headers=J).json()
     assert r["ok"] and not r.get("ai")
 
@@ -1266,14 +1266,13 @@ def test_recommendation_rules_page(alice):
 
 def test_nuva_local_model(alice, monkeypatch):
     import config
-    from packs.v3 import gigachat
+    from packs.v3 import nuva_model
     monkeypatch.setattr(config, "LOCAL_AI_URL", "http://127.0.0.1:8090/v1")
-    monkeypatch.setattr(config, "GIGACHAT_AUTH_KEY", "")
     seen = {}
 
     def fake(messages, max_tokens, temperature):
         seen["msgs"] = messages
         return "Кит плывёт, волну качая 🐋"
-    monkeypatch.setattr(gigachat, "_post_local", fake)
+    monkeypatch.setattr(nuva_model, "_post_local", fake)
     r = alice.post("/ai/chat", json={"question": "Придумай стих про кита"}, headers=J).json()
     assert r["ai"] and "Кит" in r["text"] and "Нува" in seen["msgs"][0]["content"]

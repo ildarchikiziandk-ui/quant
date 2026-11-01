@@ -1216,7 +1216,7 @@ def test_liked_posts_sink_in_feed(alice, bob):
 
 
 def test_compliance_pages_and_accessibility(alice, anon):
-    for url, text in (("/refund", "Автопродления нет"), ("/licenses", "CC BY 4.0"), ("/privacy", "GigaChat")):
+    for url, text in (("/refund", "Автопродления нет"), ("/licenses", "CC BY 4.0"), ("/privacy", "своей нейросетью")):
         r = anon.get(url)
         assert r.status_code == 200 and text.lower() in r.text.lower(), url
     assert "ЮKassa" in anon.get("/privacy").text and "<code>ref</code>" in anon.get("/privacy").text
