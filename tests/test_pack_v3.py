@@ -1060,6 +1060,11 @@ def test_nuva_model(alice, monkeypatch):
     msgs = sent[-1]
     assert msgs[0]["role"] == "system" and "Справка Nuvora" in msgs[0]["content"] and "Как получить искры" in msgs[0]["content"]
     assert [m_["role"] for m_ in msgs[1:]] == ["user", "assistant", "user"]
+    # иероглифы: переспрашиваем, а если опять — выкидываем испорченное предложение
+    replies = iter(["Снег на л动工 🐋", "Зима пришла ❄️ 你好. Кто лепил снеговика?"])
+    monkeypatch.setattr(nuva_model, "_post", lambda *a, **k: next(replies))
+    r = alice.post("/ai/chat", json={"question": "Подпись к фото снега"}, headers=J).json()
+    assert r["ai"] and r["text"] == "Кто лепил снеговика?"
     # модель упала — снова справка, без ошибки
     monkeypatch.setattr(nuva_model, "_post", lambda *a, **k: (_ for _ in ()).throw(OSError("down")))
     r = alice.post("/ai/chat", json={"question": "Как получить искры?"}, headers=J).json()

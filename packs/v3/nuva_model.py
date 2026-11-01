@@ -5,6 +5,7 @@
 Нува отвечает по справке, как раньше.
 """
 import json
+import re
 import urllib.request
 
 import config
@@ -65,10 +66,24 @@ def chat(question, history, user, kb_hits):
     msgs.append({"role": "user", "content": question[:2000]})
     try:
         out = _post(msgs)
+        if FOREIGN.search(out):  # маленькая модель иногда вставляет китайские иероглифы — спрашиваем ещё раз, спокойнее
+            out = _post(msgs, temperature=0.2)
     except Exception as e:  # noqa: BLE001 — модель не запущена или занята: молча возвращаемся к справке
         print(f"[nuva-ai] {type(e).__name__}: {e}")
         return None
-    return out[:4000] or None
+    return clean(out)[:4000] or None
+
+
+# иероглифы и прочие «чужие» письменности, которых в ответах Нувы быть не должно
+FOREIGN = re.compile(r"[\u0590-\u08ff\u0e00-\u0e7f\u1100-\u11ff\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uff60]")
+
+
+def clean(text):
+    """Убирает предложения с иероглифами; если ничего не осталось — пусто (тогда Нува ответит по справке)."""
+    if not FOREIGN.search(text or ""):
+        return (text or "").strip()
+    parts = re.split(r"(?<=[.!?…])\s+|\n+", text)
+    return " ".join(p for p in parts if p and not FOREIGN.search(p)).strip()
 
 
 def rewrite(text, mode):
@@ -82,4 +97,5 @@ def rewrite(text, mode):
     except Exception as e:  # noqa: BLE001
         print(f"[nuva-ai] rewrite {e}")
         return None
+    out = clean(out)
     return out or None
