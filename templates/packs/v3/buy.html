@@ -6,8 +6,7 @@
 <div class="card"><div class="card-title">{{ icon("sparkle", "i in") }} {{ brand_plus }}</div>
   <p class="small muted mb">Все возможности {{ brand_plus }}. Разовая покупка: когда срок закончится, подписка сама не продлевается и деньги больше не списываются.</p>
   <div class="row wrap" style="gap:8px">{% for days, price in plans %}<form data-buy><input type="hidden" name="kind" value="plus"><input type="hidden" name="days" value="{{ days }}">
-    <button class="btn{% if not loop.last %} soft{% endif %}" {% if not on %}disabled{% endif %}>{{ days // 30 }} {{ "месяц" if days == 30 else "месяца" }} — {{ price }} ₽</button></form>{% endfor %}</div>
-  <p class="tiny faint mt">3 месяца выгоднее: {{ (plans[-1][1] / 3)|round|int }} ₽ в месяц.</p>
+    <button class="btn" {% if not on %}disabled{% endif %}>{{ days // 30 }} {{ "месяц" if days == 30 else "месяца" }} — {{ price }} ₽</button></form>{% endfor %}</div>
 </div>
 <div class="card"><div class="card-title">{{ icon("sparkle", "i in") }} Искры <span class="tag-pill" style="margin-left:auto">у вас {{ "∞" if user.is_owner else balance }}</span></div>
   <p class="small muted mb">Искры тратятся на подарки, рамки и красивые логины. 1 Искра ≈ {{ ("%.2f"|format(rub)).replace(".", ",") }} ₽. Купленные Искры не меняют уровень — он растёт только за активность.</p>
