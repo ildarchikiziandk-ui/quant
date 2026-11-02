@@ -345,11 +345,10 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 [data-theme="dark"] .net-bar.saved { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
 
 /* ===================== Редизайн ноябрь 2026: тёплый, спокойный, без градиентов ===================== */
-/* — Шапка на телефоне: ☰ слева, логотип, справа поиск/чаты/уведомления. Нижней панели больше нет. */
+/* — Шапка на телефоне: логотип, справа поиск и уведомления. Внизу — панель: Лента, Меню, +, Чаты, Профиль. */
 .mobile-top { gap: 6px; justify-content: flex-start; }
 .mobile-top .mt-burger { position: relative; margin-left: -4px; }
 .mobile-top .mt-burger .mbadge.dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; padding: 0; min-width: 0; border-radius: 50%; background: var(--whale); border: 2px solid var(--bg); }
-.mobile-nav { display: none !important; }
 @media (max-width: 640px) { .main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); } }
 .fab-compose { display: none; }
 @media (max-width: 640px) {
@@ -463,3 +462,7 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .bg-sunset { background: #c06a3e !important; } .bg-night { background: #2f2925 !important; }
 .bg-aurora { background: #8a6aa0 !important; } .bg-cosmos { background: #3c3048 !important; }
 .bg-goldbg { background: #d9a441 !important; color: #3a2a10 !important; } .bg-ocean { background: #3f6f86 !important; }
+
+/* Нижняя панель (вернули 02.11.2026) — в тёплых цветах */
+.mobile-nav .fab { background: var(--whale) !important; }
+.mobile-nav a.active, .mobile-nav a.active svg, .mobile-nav button.active, .mobile-nav button.active svg { color: var(--whale) !important; }

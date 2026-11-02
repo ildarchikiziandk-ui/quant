@@ -453,7 +453,7 @@
   let bar = null, hideT = 0;
   const show = (off) => {
     if (!bar) { bar = document.createElement('div'); bar.className = 'm-offline'; document.body.appendChild(bar); }
-    bar.classList.toggle('back', !off); bar.innerHTML = `<i></i>${off ? 'Нет сети — показываю сохранённое' : 'Снова в сети'}`;
+    bar.classList.toggle('back', !off); bar.innerHTML = `<i></i>${off ? 'Нет связи — показываю сохранённое' : 'Снова в сети'}`;
     requestAnimationFrame(() => bar.classList.add('show')); clearTimeout(hideT);
     if (!off) hideT = setTimeout(() => bar.classList.remove('show'), 2200);
   };
@@ -468,16 +468,18 @@
   } catch (e) {}
   // navigator.onLine в WebView часто врёт (переключение Wi-Fi и 4G, VPN), поэтому «нет сети» показываем
   // только если сервер действительно не отвечает, и сами проверяем, когда связь вернулась
-  let offline = false, recheck = 0, checking = false;
+  let offline = false, recheck = 0, checking = false, fails = 0;
   async function verify() {
     if (checking) return; checking = true;
     let ok = false;
     try {
-      const c = new AbortController(), t = setTimeout(() => c.abort(), 6000);
+      const c = new AbortController(), t = setTimeout(() => c.abort(), 12000);
       const r = await fetch('/healthz?ts=' + Date.now(), { cache: 'no-store', signal: c.signal });
       clearTimeout(t); ok = !!r; // любой ответ сервера — значит, сеть есть
     } catch (e) { ok = false; }
     checking = false;
+    fails = ok ? 0 : fails + 1;
+    if (!ok && !offline && fails < 2) { checking = false; setTimeout(verify, 3000); return; }  // одна неудача — ещё не «нет сети»
     if (!ok && !offline) { offline = true; show(true); }
     if (ok && offline) { offline = false; show(false); }
     clearInterval(recheck);

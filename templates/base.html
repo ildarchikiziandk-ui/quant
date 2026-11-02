@@ -38,12 +38,10 @@
 {% if user %}<div class="splash" id="splash" hidden><img src="/static/brand/logo-mark-warm.png" alt=""><b id="splash-hi"></b>{% if unread_msg or unread %}<span>{% if unread_msg %}{{ plural(unread_msg, "новое сообщение", "новых сообщения", "новых сообщений") }}{% endif %}{% if unread_msg and unread %} · {% endif %}{% if unread %}{{ plural(unread, "уведомление", "уведомления", "уведомлений") }}{% endif %}</span>{% endif %}</div>
 <script>(function(){try{if(sessionStorage.getItem('nv_splash'))return;sessionStorage.setItem('nv_splash','1')}catch(e){return}var s=document.getElementById('splash');if(!s||matchMedia('(min-width:900px)').matches)return;var h=new Date().getHours(),n=(APP.name||APP.user||'').split(' ')[0];document.getElementById('splash-hi').textContent=(h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер')+', '+n;s.hidden=false;setTimeout(function(){s.classList.add('out');setTimeout(function(){s.remove()},450)},1300);s.onclick=function(){s.remove()}})()</script>{% endif %}
 <div class="mobile-top">
-  {% if user %}<button type="button" class="icon-btn mt-burger" data-mmenu-open aria-label="Меню">{{ icon("menu") }}<span class="mbadge dot {% if not (unread_msg or unread) %}hidden{% endif %}"></span></button>{% endif %}
   <a href="/" class="logo" style="margin:0;padding:0"><img src="/static/brand/logo-mark-warm.png" alt="" style="width:30px;height:30px"><span class="logo-text" style="font-size:19px">{{ brand }}</span></a>
   <div class="row" style="gap:2px;margin-left:auto">
     <a class="icon-btn" href="/search" aria-label="Поиск">{{ icon("search") }}</a>
-    {% if user %}<a class="icon-btn" href="/messages" aria-label="Чаты" style="position:relative">{{ icon("chat") }}<span class="mbadge badge-count {% if not unread_msg %}hidden{% endif %}" data-badge="messages" style="position:absolute;top:0;right:0;font-size:9px;padding:0 5px">{{ unread_msg }}</span></a>
-    <a class="icon-btn" href="/notifications" aria-label="Уведомления" style="position:relative">{{ icon("bell") }}<span class="mbadge badge-count {% if not unread %}hidden{% endif %}" data-badge="notifications" style="position:absolute;top:0;right:0;font-size:9px;padding:0 5px">{{ unread }}</span></a>
+    {% if user %}<a class="icon-btn" href="/notifications" aria-label="Уведомления" style="position:relative">{{ icon("bell") }}<span class="mbadge badge-count {% if not unread %}hidden{% endif %}" data-badge="notifications" style="position:absolute;top:0;right:0;font-size:9px;padding:0 5px">{{ unread }}</span></a>
     {% else %}<button class="icon-btn" onclick="toggleTheme()" title="Тема">{{ icon("sun") }}</button>{% endif %}
   </div>
 </div>
@@ -156,7 +154,13 @@
 </div>
 
 {% if user %}
-{% if not v3_posts_locked(user) %}<a href="/create" class="fab-compose" aria-label="Новый пост">{{ icon("plus") }}</a>{% endif %}
+<nav class="mobile-nav"><div class="mobile-nav-inner">
+  {% if v3_posts_locked(user) %}<a href="/notifications">{{ icon("bell") }}<span>Уведомл.</span></a>{% else %}<a href="/">{{ icon("home") }}<span>Лента</span></a>{% endif %}
+  <button type="button" data-mmenu-open aria-label="Меню">{{ icon("grid") }}<span>Меню</span></button>
+  {% if not (user and v3_posts_locked(user)) %}<a href="/create" aria-label="Новый пост"><span class="fab">{{ icon("plus") }}</span></a>{% endif %}
+  <a href="/messages">{{ icon("chat") }}<span>Чаты</span><span class="mbadge {% if not unread_msg %}hidden{% endif %}" data-badge="messages">{{ unread_msg }}</span></a>
+  <a href="/profile/{{ user.username }}">{{ icon("user") }}<span>Профиль</span></a>
+</div></nav>
 {% from "partials/macros.html" import avatar %}{% include "partials/mobile_menu.html" %}
 {% endif %}
 {% endblock %}
