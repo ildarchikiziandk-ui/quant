@@ -1302,3 +1302,21 @@ def test_nuva_model_upload(anon, tmp_path, monkeypatch):
     r = anon.post(url.format(1), content=b"5678", headers=h).json()
     assert r["done"] and open(os.path.join(tmp_path, "nuva-custom.gguf"), "rb").read() == b"GGUF12345678"
     assert anon.post("/api/nuva-model/upload?part=0&total=1", content=b"NOTGGUF", headers=h).status_code == 400
+
+
+def test_site_backup(owner, alice):
+    import io, zipfile, tarfile
+    assert alice.get("/admin/backup", follow_redirects=False).status_code in (302, 303)
+    assert alice.get("/admin/backup/db.zip", follow_redirects=False).status_code in (302, 303)
+    page = owner.get("/admin/backup")
+    assert page.status_code == 200 and "Скачать базу" in page.text
+    assert "/admin/backup" in owner.get("/admin").text
+    r = owner.get("/admin/backup/db.zip")
+    assert r.status_code == 200
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    assert "quant.db" in z.namelist() and "ПРОЧТИ.txt" in z.namelist()
+    assert z.read("quant.db")[:15] == b"SQLite format 3"
+    r = owner.get("/admin/backup/uploads.tar.gz")
+    assert r.status_code == 200
+    tarfile.open(fileobj=io.BytesIO(r.content), mode="r:gz").getnames()
+    assert "Последний раз скачана" in owner.get("/admin/backup").text

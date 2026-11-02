@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Копия сайта — {{ brand }}{% endblock %}
+{% block content %}
+<div class="row mb"><a href="/admin" class="btn ghost sm">{{ icon("back", "i in") }} Админ-панель</a></div>
+<div class="page-title">{{ icon("download", "i in") }} Копия сайта</div>
+<p class="small muted">Если с хостингом случится беда, по этим двум файлам Нувору можно поднять на любом другом сервере — со всеми людьми, постами и переписками. Скачивайте копию примерно раз в неделю и храните на компьютере или флешке.</p>
+
+<div class="card">
+  <div class="card-title">{{ icon("archive", "i in") }} 1. База сайта</div>
+  <p class="small muted">Пользователи, посты, комментарии, сообщения, подарки, настройки и электронная школа. Сейчас: {{ info.db }}.{% if info.last_db %} Последний раз скачана: <b>{{ info.last_db }}</b>.{% endif %}</p>
+  <a class="btn" href="/admin/backup/db.zip" download>{{ icon("download", "i in") }} Скачать базу</a>
+</div>
+
+<div class="card">
+  <div class="card-title">{{ icon("image", "i in") }} 2. Фото и файлы</div>
+  <p class="small muted">Аватарки, фото в постах и чатах, голосовые. Сейчас: {{ info.uploads }} — может скачиваться долго.{% if info.last_files %} Последний раз скачаны: <b>{{ info.last_files }}</b>.{% endif %}</p>
+  <a class="btn soft" href="/admin/backup/uploads.tar.gz" download>{{ icon("download", "i in") }} Скачать фото и файлы</a>
+</div>
+
+<div class="card" style="border-color:var(--whale)">
+  <b>{{ icon("lock", "i in") }} Важно</b>
+  <p class="small muted" style="margin-top:6px">В архиве с базой лежат переписки людей и секретный ключ сайта. Никому его не отправляйте и не выкладывайте в интернет. Как восстановить сайт из копии — написано в файле «ПРОЧТИ.txt» внутри архива.</p>
+</div>
+{% endblock %}
