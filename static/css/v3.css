@@ -432,7 +432,8 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .ntile.photo .nmeta { padding-bottom: 10px; }
 .ntile .ntext.cap { font-size: 13.5px; }
 .ntile .ntext img { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.2em; max-height: none; }
-.ntile .nmeta { display: flex; gap: 10px; align-items: center; font-size: 12px; opacity: .72; }
+.ntile .nmeta { display: flex; gap: 4px 10px; align-items: center; flex-wrap: wrap; font-size: 12px; opacity: .72; }
+.ntile .nmeta > span { white-space: nowrap; }
 .ntile .nmeta span { display: inline-flex; align-items: center; gap: 3px; }
 .ntile .nmeta .on { color: var(--like); opacity: 1; }
 .ntile .nmeta .nwhen { margin-left: auto; }
