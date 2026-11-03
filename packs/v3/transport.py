@@ -138,9 +138,18 @@ def _qr_svg(url, size=10):
     return buf.getvalue().decode()
 
 
+PUBLIC = "https://nvra.ru"  # адрес на табличках: даже если на сервере SITE_URL — IP или localhost, люди увидят nvra.ru
+
+
+def _base():
+    host = re.sub(r"^https?://", "", config.SITE_URL.rstrip("/")).split("/")[0].split(":")[0]
+    if not host or host == "localhost" or host == "testserver" or re.fullmatch(r"[\d.]+", host):
+        return PUBLIC
+    return config.SITE_URL.rstrip("/")
+
+
 def _short():
-    base = re.sub(r"^https?://", "", config.SITE_URL.rstrip("/"))
-    return base + PATH
+    return re.sub(r"^https?://", "", _base()) + PATH
 
 
 @router.get(PATH)
@@ -153,7 +162,7 @@ def page(request: Request, db: Session = Depends(get_db), stop: str = ""):
 
 
 def _sign_html(data, st, rows):
-    url = f"{config.SITE_URL.rstrip('/')}{PATH}?stop={st['slug']}"
+    url = f"{_base()}{PATH}?stop={st['slug']}"
     e = html.escape
     blocks = []
     for r in rows:
@@ -214,7 +223,7 @@ def signs(request: Request, db: Session = Depends(get_db)):
 
 @router.get(PATH + "/qr.svg")
 def qr(stop: str = ""):
-    url = f"{config.SITE_URL.rstrip('/')}{PATH}" + (f"?stop={re.sub(r'[^a-z0-9-]', '', stop)}" if stop else "")
+    url = f"{_base()}{PATH}" + (f"?stop={re.sub(r'[^a-z0-9-]', '', stop)}" if stop else "")
     return Response(_qr_svg(url), media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
 
