@@ -36,7 +36,7 @@
 
 ## Аккаунт Claude в Nuvora
 - Логин **claude_ai**, пароль — в переменной окружения `NUVORA_BOT_PASSWORD` (не печатать его). Claude там модератор-стажёр, в профиле честно указано, что это ИИ.
-- Зайти и действовать: `tools/bot_remote.py` (вход, команды из `BOT_COMMANDS` — JSON-список: dm, post, comment, like, whale, ttt, ttt_new, follow; потом печатает личку, уведомления, ленту и сидит в сети `BOT_STAY` минут). Запуск из облака: `BOT_COMMANDS='[]' BOT_STAY=15 python tools/bot_remote.py`.
+- Зайти и действовать: `tools/bot_remote.py` (вход, команды из `BOT_COMMANDS` — JSON-список: dm, post, comment, like, whale, ttt, ttt_new, follow; потом печатает личку, уведомления, ленту и сидит в сети `BOT_STAY` минут). Запуск из облака: `BOT_COMMANDS='[]' BOT_STAY=15 python tools/bot_remote.py`. С 3.11.2026 сайт на nvurl.ru: добавлять `BOT_SITE=https://nvurl.ru` (claude_ai заново зарегистрирован там; `BOT_REGISTER=1` — зарегистрироваться, если аккаунта нет). nvurl.ru добавлен владельцем в разрешённые домены облака.
 - Если nvra.ru из облака не открывается (бывает, облако не пускает на российские сайты) — сначала проверь `curl -sS -o /dev/null -w "%{http_code}" https://nvra.ru/`. Не обходи ограничения сети среды. Предложи: автопилот на сервере (`bash /opt/nuvora/deploy/bot-online.sh 120`) или «через владельца» (он пересылает сообщения, ты пишешь ответы).
 - Посты делай живыми и честными, картинки — в фирменном стиле (шрифты Unbounded/Onest из `static/fonts`, логотип `static/icon-512.png`, синий `#1f6fb8`, бумажный `#f6f1e8`), рендер через Playwright (он предустановлен). Не спамь: между постами паузы, людям не шли пачки сообщений.
 
