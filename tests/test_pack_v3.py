@@ -1338,3 +1338,26 @@ def test_vt_transport(owner, alice):
     assert "<svg" in sign and "/vt-transport" in sign and "8:03" in sign
     assert "Центр" in alice.get("/vt-transport/signs").text
     assert alice.get("/vt-transport/qr.svg?stop=shkola").headers["content-type"].startswith("image/svg")
+
+
+def test_merge_rename_login(alice):
+    """После объединения баз: человек с временным логином входит по прежнему логину и своему паролю, видит плашку."""
+    import models
+    import auth
+    s = db()
+    u = models.User(username="user4242", email="dup@example.com", password=auth.hash_password("pw-dup-123"), name="Дубль",
+                    is_verified=True, email_verified=True, previous_username="alice", rename_notice=True)
+    s.add(u)
+    s.commit()
+    s.close()
+    c = make_client()
+    r = c.post("/login", data={"username": "alice", "password": "pw-dup-123"}, follow_redirects=False)
+    assert r.status_code == 303
+    home = c.get("/").text
+    assert "Вам выдан временный логин @user4242" in home and "@alice" in home
+    c.post("/v3/rename-notice/hide", follow_redirects=False)
+    assert "Вам выдан временный логин" not in c.get("/").text
+    # настоящая alice входит как раньше
+    c2 = make_client()
+    assert c2.post("/login", data={"username": "alice", "password": "secret123"}, follow_redirects=False).status_code == 303
+    assert "Вам выдан временный логин" not in c2.get("/").text

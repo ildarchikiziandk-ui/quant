@@ -45,7 +45,7 @@ jobs:
       - name: Build APK
         working-directory: android
         env:
-          SITE_URL: https://nvra.ru
+          SITE_URL: https://nvurl.ru  # временно, пока nvra.ru у Beget недоступен
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
 

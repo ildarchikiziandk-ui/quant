@@ -44,6 +44,8 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="nvra.ru" />
                 <data android:scheme="https" android:host="www.nvra.ru" />
+                <data android:scheme="https" android:host="nvurl.ru" />
+                <data android:scheme="https" android:host="www.nvurl.ru" />
             </intent-filter>
         </activity>
 

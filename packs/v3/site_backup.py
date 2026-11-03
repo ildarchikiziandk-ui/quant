@@ -165,3 +165,13 @@ def backup_uploads(request: Request, db: Session = Depends(get_db)):
     db.commit()
     return StreamingResponse(_stream_uploads(), media_type="application/gzip",
                              headers={"Content-Disposition": f'attachment; filename="nuvora-foto-{stamp}.tar.gz"'})
+
+
+@router.post("/v3/rename-notice/hide")
+def rename_notice_hide(request: Request, db: Session = Depends(get_db)):
+    """Плашка «вам выдан временный логин» (после объединения баз) — больше не показывать."""
+    me = current_user(request, db)
+    if me and me.rename_notice:
+        me.rename_notice = False  # previous_username оставляем: по нему можно входить, пока логин не сменён
+        db.commit()
+    return redirect(request.headers.get("referer") or "/")

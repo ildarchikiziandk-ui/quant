@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 import re
 import secrets
 from datetime import datetime, timedelta
@@ -97,6 +98,12 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         print(f"[login] rate-limited ip={ip} ident={ident!r}")
         return render(request, db, "login.html", sidebar=False, error="Слишком много попыток. Подождите 5 минут.", username=ident, next=next)
     user = _find_user(db, ident)
+    if not user or not (auth.verify_password(password, user.password) or auth.verify_password(password.strip(), user.password)):
+        # после объединения баз: человек с этим же логином, которому выдали временный ник, входит по старому логину и своему паролю
+        for alt in db.query(models.User).filter(models.User.previous_username == ident.lower()).all():
+            if auth.verify_password(password, alt.password) or auth.verify_password(password.strip(), alt.password):
+                user = alt
+                break
     if not user:
         print(f"[login] no such user ident={ident!r} ip={ip}")
         return render(request, db, "login.html", sidebar=False, username=ident, next=next,
@@ -164,7 +171,9 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         return fail("Слишком много регистраций с вашего адреса. Попробуйте позже.")
     if config.BETA_CODE and beta_code.strip().upper() != config.BETA_CODE.upper():
         return fail("Неверный инвайт-код")
-    err = validate_username(username) or validate_password(password)
+    # основатель (OWNER_USERNAME) может занять свой «заповедный» логин, пока на сайте ещё нет владельца — например, на новом сервере
+    founder_free = username.lower() == (config.OWNER_USERNAME or "").lower() and not db.query(models.User.id).filter_by(is_owner=True).first()
+    err = validate_username(username, SimpleNamespace(is_owner=True) if founder_free else None) or validate_password(password)
     if err:
         return fail(err)
     bot = username.lower() in config.BOT_USERNAMES and email in ("-", "")
@@ -188,7 +197,7 @@ def register(request: Request, username: str = Form(...), email: str = Form(...)
         return fail("Email уже зарегистрирован")
     user = models.User(username=username, email=email, password=auth.hash_password(password), is_verified=True,
                        name=(name.strip() or ("Claude (ИИ-помощник)" if bot else username))[:60], email_verified=bot or not config.EMAIL_ENABLED,
-                       is_owner=(username == config.OWNER_USERNAME and not db.query(models.User.id).filter_by(is_owner=True).first()), pd_consent_at=datetime.utcnow(),
+                       is_owner=(username.lower() == (config.OWNER_USERNAME or "").lower() and not db.query(models.User.id).filter_by(is_owner=True).first()), pd_consent_at=datetime.utcnow(),
                        pd_consent_version=legal.CONSENT_VERSION, age_confirmed=True, public_consent_at=datetime.utcnow())
     tz_key = tz_key if tz_key in timezones.BY_KEY else timezones.iana_map().get(tz.strip()[:64])
     if tz_key:  # пояс выбран при регистрации (по умолчанию — определённый браузером)

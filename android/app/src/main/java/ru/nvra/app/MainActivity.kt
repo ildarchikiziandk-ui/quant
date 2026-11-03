@@ -44,6 +44,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 
+/** Свои домены: nvurl.ru (новый сервер после аварии Beget) и nvra.ru (основной) — открываются внутри приложения. */
+private val OWN_HOSTS = setOf("nvra.ru", "www.nvra.ru", "nvurl.ru", "www.nvurl.ru")
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
@@ -367,7 +370,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun isOwn(uri: Uri): Boolean {
         val host = uri.host ?: return false
-        return uri.scheme == "https" && (host == BuildConfig.SITE_HOST || host == "www." + BuildConfig.SITE_HOST)
+        return uri.scheme == "https" && (host == BuildConfig.SITE_HOST || host == "www." + BuildConfig.SITE_HOST || host in OWN_HOSTS)
     }
 
     private fun isAuthHost(uri: Uri): Boolean {

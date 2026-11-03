@@ -48,6 +48,9 @@ class User(Base):
     plus_until = Column(DateTime, nullable=True)
     plus_color = Column(String, default="#a855f7")
     name_color_legacy = Column(Boolean, default=False)  # переливающееся имя — только у тех, у кого оно было до 31.10.2026
+    # после объединения со старой базой (переезд с Beget): логин был занят старым аккаунтом — выдан временный
+    previous_username = Column(String(30), default="")
+    rename_notice = Column(Boolean, default=False)
     last_seen = Column(DateTime, nullable=True)
     offline_at = Column(DateTime, nullable=True)  # закрыл приложение — сразу «не в сети»
     pinned_post_id = Column(Integer, nullable=True)

@@ -161,6 +161,7 @@ async def settings_username(request: Request, db: Session = Depends(get_db)):
     if err:
         return _settings(request, db, user, "account", error=err)
     user.username = new
+    user.rename_notice, user.previous_username = False, ""  # временный ник после объединения баз сменён на свой
     db.commit()
     return _settings(request, db, user, "account", success=f"Логин изменён на @{new}")
 
