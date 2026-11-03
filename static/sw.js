@@ -4,7 +4,7 @@ const PAGES_CACHE = 'pages-v1';  // последние открытые стра
 const PAGES_MAX = 120;
 const SLOW_MS = 8000;  // сеть тормозит дольше — сразу показываем сохранённую страницу, а свежую подкладываем в кэш
 // какие страницы сохраняем для офлайна (личные, но только на этом устройстве; стираются при выходе из аккаунта)
-const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word|\/offline)?$|help$|ai$|capsule$|bookmarks$|whats-new$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
+const PAGE_OK = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word|\/offline)?$|help$|ai$|capsule$|bookmarks$|whats-new$|vt-transport$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
 const BRAND = '__BRAND__';
 const PRECACHE = ['/static/icon-192.png', '/static/brand/logo-180.png', '/offline'];
 // «Игры без интернета»: страница, её скрипты, стили, иконки и шрифты скачиваются сразу (список подставляет сервер)

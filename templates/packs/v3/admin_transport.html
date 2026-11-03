@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Расписание транспорта — {{ brand }}{% endblock %}
+{% block content %}
+<div class="row mb"><a href="/admin" class="btn ghost sm">{{ icon("back", "i in") }} Админ-панель</a><a href="/vt-transport" class="btn ghost sm">Открыть расписание</a></div>
+<div class="page-title">{{ icon("map", "i in") }} Расписание маршруток и автобусов</div>
+{% if ok %}<div class="card" style="border-color:var(--whale)">{{ ok }}</div>{% endif %}
+{% if errors %}<div class="card" style="border-color:var(--danger)"><b>Что исправить:</b><ul class="small" style="margin:6px 0 0 18px">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+<details class="card"><summary style="cursor:pointer"><b>Как заполнять</b></summary><div class="small muted" style="margin-top:8px;line-height:1.6">
+  Каждый маршрут — с новой строки «Маршрут:», дальше его остановки и время.<br>
+  <b>Маршрут:</b> номер | автобус или маршрутка | откуда — куда<br>
+  <b>Остановки:</b> через запятую, после названия — сколько минут ехать до неё от первой остановки (у первой — 0)<br>
+  <b>Будни: / Выходные: / Ежедневно: / Суббота: / Воскресенье:</b> время отправления с первой остановки через пробел, например 6:40 7:15<br>
+  Остановки с одинаковым названием у разных маршрутов — это одна остановка: на её табличке будут все маршруты.<br>
+  Строки с # — заголовок и откуда взято расписание (это видно людям внизу страницы).</div></details>
+<form method="post" class="card"><textarea name="text" rows="22" style="width:100%;font-family:ui-monospace,monospace;font-size:13.5px;line-height:1.5" spellcheck="false">{{ text }}</textarea>
+  <button class="btn mt">Сохранить</button></form>
+<div class="card"><div class="card-title">Таблички для печати</div>
+  <p class="small muted">Остановок: {{ data.stops|length }}, маршрутов: {{ data.routes|length }}. Каждая табличка — лист А4: сверху расписание, снизу QR-код и nvra.ru/vt-transport.</p>
+  {% if data.stops %}<a class="btn" href="/vt-transport/signs" target="_blank">Все таблички сразу</a>
+  <div class="row wrap mt" style="gap:6px">{% for st in data.stops %}<a class="chip" style="margin:0" href="/vt-transport/sign/{{ st.slug }}" target="_blank">{{ st.name }}</a>{% endfor %}</div>{% endif %}
+</div>
+{% endblock %}

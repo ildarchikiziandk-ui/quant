@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ data.title }} — расписание маршруток и автобусов{% endblock %}
+{% block meta %}<meta name="description" content="Расписание всех маршруток и автобусов: ближайшие рейсы с каждой остановки."><link rel="canonical" href="{{ site_url }}/vt-transport">{% endblock %}
+{% block content %}
+<div class="page-title">{{ icon("map", "i in") }} {{ data.title }}</div>
+{% if not data.routes %}
+<div class="card empty"><div class="big">{{ icon("clock", "i in") }}</div>Расписание скоро появится{% if is_owner %}<br><a class="btn mt" href="/admin/transport">Заполнить расписание</a>{% endif %}</div>
+{% else %}
+<div class="card">
+  <div class="card-title">Выберите остановку</div>
+  <div class="row wrap" style="gap:6px">{% for st in data.stops %}<a class="chip{% if stop and stop.slug == st.slug %} active{% endif %}" style="margin:0" href="?stop={{ st.slug }}">{{ st.name }}</a>{% endfor %}</div>
+</div>
+{% if stop %}
+<div class="card" id="vt-stop" data-rows='{{ rows|tojson }}'>
+  <div class="tiny muted" style="text-transform:uppercase;letter-spacing:.08em">Остановка</div>
+  <div style="font-family:var(--font-display);font-size:24px;font-weight:700;margin:2px 0 12px">{{ stop.name }}</div>
+  <div class="card-title" style="margin-bottom:6px">Ближайшие</div>
+  <div id="vt-next" class="small muted">Считаю…</div>
+</div>
+{% for r in rows %}
+<div class="card">
+  <div class="row" style="gap:10px;align-items:center;margin-bottom:8px"><span class="vt-num">{{ r.num }}</span><div style="min-width:0"><b>{{ r.name or ("до " ~ r.to) }}</b><div class="tiny muted">{{ r.kind }}{% if r.is_last %} · здесь конечная{% endif %}</div></div></div>
+  {% for d in r.days %}<div class="vt-day"><b>{{ d.title }}</b><span>{% for t in d.times %}<i>{{ t }}</i>{% else %}—{% endfor %}</span></div>{% endfor %}
+</div>
+{% endfor %}
+{% else %}
+<div class="card"><div class="card-title">Маршруты</div>
+{% for r in data.routes %}<div style="padding:10px 0;border-top:1px solid var(--border)"><div class="row" style="gap:10px;align-items:center"><span class="vt-num">{{ r.num }}</span><div style="min-width:0"><b>{{ r.name }}</b><div class="tiny muted">{{ r.kind }} · {{ r.stops|map(attribute="name")|join(" → ") }}</div></div></div></div>{% endfor %}
+</div>
+{% endif %}
+<p class="tiny muted" style="padding:0 6px">Расписание неофициальное{% if data.source %} — {{ data.source }}{% endif %}. Время может меняться: пробки, погода, праздники. Нашли ошибку? <a href="/support" style="text-decoration:underline">Напишите нам</a>.</p>
+{% if is_owner %}<div class="row wrap" style="gap:8px;padding:0 6px"><a class="btn soft sm" href="/admin/transport">{{ icon("edit", "i in") }} Изменить расписание</a>{% if stop %}<a class="btn soft sm" href="/vt-transport/sign/{{ stop.slug }}">{{ icon("download", "i in") }} Табличка этой остановки</a>{% endif %}<a class="btn soft sm" href="/vt-transport/signs">Все таблички</a></div>{% endif %}
+{% endif %}
+<style>.vt-num{font-family:var(--font-display);font-weight:700;font-size:18px;background:var(--ink);color:#fff;border-radius:10px;padding:4px 10px;min-width:48px;text-align:center;flex-shrink:0}
+.vt-day{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--border);font-size:14px}.vt-day b{min-width:88px;flex-shrink:0}.vt-day span{display:flex;flex-wrap:wrap;gap:4px 10px;font-variant-numeric:tabular-nums}.vt-day i{font-style:normal}
+.vt-day i.past{color:var(--text-3);opacity:.6}.vt-next-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);color:var(--text)}.vt-next-row:first-child{border-top:none}.vt-next-row .in{margin-left:auto;font-weight:700;color:var(--whale)}</style>
+<script>
+(function(){
+  const box=document.getElementById('vt-stop'); if(!box) return;
+  const rows=JSON.parse(box.dataset.rows||'[]');
+  function tick(){
+    const now=new Date(), wd=(now.getDay()+6)%7, cur=now.getHours()*60+now.getMinutes(), list=[];
+    rows.forEach(r=>r.days.forEach(d=>{ if(!d.wd.includes(wd)) return; d.mins.forEach(m=>{ if(m>=cur) list.push({r,m}); }); }));
+    list.sort((a,b)=>a.m-b.m);
+    const el=document.getElementById('vt-next');
+    if(!list.length){ el.textContent='Сегодня рейсов больше нет'; }
+    else el.innerHTML=list.slice(0,5).map(x=>{const d=x.m-cur, t=Math.floor(x.m/60)+':'+String(x.m%60).padStart(2,'0');
+      return `<div class="vt-next-row"><span class="vt-num" style="font-size:15px;min-width:40px">${x.r.num}</span><span>${t}</span><span class="in">${d===0?'сейчас':d<60?'через '+d+' мин':'через '+Math.floor(d/60)+' ч '+(d%60)+' мин'}</span></div>`}).join('');
+    // прошедшие сегодня рейсы — бледные
+    document.querySelectorAll('.vt-day i').forEach(i=>{const [h,m]=i.textContent.split(':').map(Number); i.classList.toggle('past', h*60+m<cur);});
+  }
+  tick(); setInterval(tick,30000);
+})();
+</script>
+{% endblock %}

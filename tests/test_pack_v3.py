@@ -1320,3 +1320,21 @@ def test_site_backup(owner, alice):
     assert r.status_code == 200
     tarfile.open(fileobj=io.BytesIO(r.content), mode="r:gz").getnames()
     assert "Последний раз скачана" in owner.get("/admin/backup").text
+
+
+def test_vt_transport(owner, alice):
+    from packs.v3 import transport
+    data, errors = transport.parse("Маршрут: 7 | автобус | А — Б\nОстановки: Центр 0, Школа 5\nБудни: 6:10 25:00\nЛетом: 1:00")
+    assert len(errors) == 2 and data["stops"][1]["slug"] == "shkola"
+    assert transport.at_stop(data, "shkola")[0]["days"][0]["times"] == ["6:15"]
+    assert "скоро появится" in alice.get("/vt-transport").text
+    assert alice.get("/admin/transport", follow_redirects=False).status_code in (302, 303)
+    text = "# Название: Транспорт Верх-Тулы\nМаршрут: 101 | автобус | Верх-Тула — Город\nОстановки: Центр 0, Школа 3\nЕжедневно: 7:00 8:00"
+    r = owner.post("/admin/transport", data={"text": text})
+    assert r.status_code == 200 and "Сохранено" in r.text
+    page = alice.get("/vt-transport?stop=shkola").text
+    assert "Школа" in page and "7:03" in page and "Транспорт Верх-Тулы" in page
+    sign = alice.get("/vt-transport/sign/shkola").text
+    assert "<svg" in sign and "/vt-transport" in sign and "8:03" in sign
+    assert "Центр" in alice.get("/vt-transport/signs").text
+    assert alice.get("/vt-transport/qr.svg?stop=shkola").headers["content-type"].startswith("image/svg")
