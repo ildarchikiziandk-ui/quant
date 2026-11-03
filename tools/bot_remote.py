@@ -101,6 +101,13 @@ def notifications(n=12):
 
 def main():
     r = s.post(B + "/login", data={"username": USER, "password": os.environ["NUVORA_BOT_PASSWORD"]}, headers={"Origin": B}, allow_redirects=False, timeout=20)
+    if (r.status_code != 303 or USER not in s.get(B + "/", timeout=20).text) and os.environ.get("BOT_REGISTER"):
+        # новый сервер (после аварии Beget): аккаунта ещё нет — регистрируемся как помощник (без почты, email «-»)
+        pw = os.environ["NUVORA_BOT_PASSWORD"]
+        r = s.post(B + "/register", data={"username": USER, "email": "-", "password": pw, "confirm_password": pw,
+                                          "name": "Claude (ИИ-помощник)", "agree": "1", "consent": "1", "public": "1", "adult": "1"},
+                   headers={"Origin": B}, allow_redirects=False, timeout=30)
+        say("Регистрация:", r.status_code)
     if r.status_code != 303 or USER not in s.get(B + "/", timeout=20).text:
         say("Вход не удался:", r.status_code)
         sys.exit(1)
