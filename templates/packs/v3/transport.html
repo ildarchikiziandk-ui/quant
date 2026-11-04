@@ -2,7 +2,7 @@
 {% block title %}{{ data.title }} — расписание маршруток и автобусов{% endblock %}
 {% block meta %}<meta name="description" content="Расписание всех маршруток и автобусов: ближайшие рейсы с каждой остановки."><link rel="canonical" href="{{ site_url }}/vt-transport">{% endblock %}
 {% block content %}
-<div class="page-title">{{ icon("map", "i in") }} {{ data.title }}</div>
+<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><div class="page-title" style="margin:0">{{ icon("map", "i in") }} {{ data.title }}</div><a class="btn soft sm" href="/map{% if stop %}?stop={{ stop.slug }}{% endif %}">{{ icon("map", "i in") }} На карте</a></div>
 {% if not data.routes %}
 <div class="card empty"><div class="big">{{ icon("clock", "i in") }}</div>Расписание скоро появится{% if is_owner %}<br><a class="btn mt" href="/admin/transport">Заполнить расписание</a>{% endif %}</div>
 {% else %}

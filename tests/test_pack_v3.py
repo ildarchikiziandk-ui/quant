@@ -1372,3 +1372,13 @@ def test_vt_transport_approx():
     real = open("data/vt_transport.txt", encoding="utf-8").read()
     d, err = transport.parse(real)
     assert not err and len(d["routes"]) == 6
+
+
+def test_vt_map(owner, alice):
+    page = alice.get("/map").text
+    assert "Карта Верх-Тулы" in page and "/static/vendor/leaflet/leaflet.js" in page and "OpenStreetMap" in page
+    r = alice.post("/admin/map/stop", json={"slug": "tsentr-v-storonu-goroda", "lat": 54.8, "lon": 82.7}, headers=J)
+    assert r.status_code == 403
+    assert owner.post("/admin/map/stop", json={"slug": "tsentr-v-storonu-goroda", "lat": 54.88, "lon": 82.78}, headers=J).json()["ok"]
+    from packs.v3 import vt_map
+    assert vt_map._default_geo("Центр (в сторону города)") and vt_map._default_geo("Неизвестная") is None

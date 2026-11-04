@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Карта Верх-Тулы — {{ brand }}{% endblock %}
+{% block meta %}<meta name="description" content="Карта Верх-Тулы: остановки, ближайшие автобусы и маршрутки, улицы и места."><link rel="canonical" href="{{ site_url }}/map">{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css?v={{ static_v }}">{% endblock %}
+{% block body_class %}map-page{% endblock %}
+{% block content %}
+<style>
+.map-page .main{padding:0!important;max-width:none}.map-page .layout{max-width:none;padding:0}.map-page aside.right{display:none}
+.nmap-wrap{position:relative;height:calc(100vh - 64px);height:calc(100dvh - 64px)}
+@media (max-width:640px){.nmap-wrap{height:calc(100dvh - 64px - 84px - env(safe-area-inset-bottom))}}
+#nmap{position:absolute;inset:0;background:#f4ede3}
+.nmap-top{position:absolute;left:10px;right:10px;top:10px;z-index:1000;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;pointer-events:none}
+.nmap-top>*{pointer-events:auto}
+.nmap-title{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px 12px;font-weight:700;box-shadow:0 4px 14px -8px rgba(0,0,0,.3)}
+.nmap-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px 12px;font:inherit;font-weight:600;color:var(--text);cursor:pointer;box-shadow:0 4px 14px -8px rgba(0,0,0,.3)}
+.nmap-btn.on{background:var(--whale);color:#fff;border-color:var(--whale)}
+@media (max-width:420px){.nmap-btn span{display:none}}
+.nmap-sheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:1000;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 10px 30px -12px rgba(0,0,0,.35);max-width:480px}
+.nmap-x{position:absolute;right:8px;top:8px}.nmap-name{font-family:var(--font-display);font-size:22px;font-weight:700;margin:2px 0 6px}
+.nmap-side{display:inline-block;background:var(--whale);color:#fff;border-radius:10px;padding:3px 10px;font-size:13px;font-weight:700;margin-bottom:8px}
+.nmap-hint{position:absolute;left:50%;transform:translateX(-50%);top:62px;z-index:1000;background:#2b2520;color:#fff;border-radius:12px;padding:8px 12px;font-size:13px;max-width:90%}
+.nmap-attr{position:absolute;left:8px;bottom:4px;z-index:900;font-size:10.5px;color:#6e6254;background:rgba(244,237,227,.8);padding:1px 6px;border-radius:6px}
+.nm-stop i{display:block;width:22px;height:22px;border-radius:50%;background:#b5562f;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);box-sizing:border-box}
+.nm-stop.from i{background:#3f6f86}
+.nm-street{font-size:11px;color:#6e6254;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff;transform:translate(-50%,-50%)}
+.nm-place{font-family:var(--font-display);font-size:15px;font-weight:700;color:#2b2520;white-space:nowrap;text-shadow:0 0 4px #fff,0 0 4px #fff;transform:translate(-50%,-50%)}
+.vt-num{font-family:var(--font-display);font-weight:700;font-size:15px;background:var(--ink);color:#fff;border-radius:9px;padding:3px 8px;min-width:40px;text-align:center;flex-shrink:0}
+.vt-next-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)}.vt-next-row:first-child{border-top:none}.vt-next-row .in{margin-left:auto;font-weight:700;color:var(--whale);white-space:nowrap}
+.leaflet-container{font:inherit}
+</style>
+<div class="nmap-wrap">
+  <div id="nmap" style="position:absolute;inset:0"></div>
+  <div class="nmap-top">
+    <div class="nmap-title">{{ icon("map", "i in") }} Карта Верх-Тулы</div>
+    <div class="row" style="gap:6px">
+      <button class="nmap-btn" id="nm-me" title="Где я">{{ icon("target", "i in") }}<span>Где я</span></button>
+      <a class="nmap-btn" href="/vt-transport" title="Расписание">{{ icon("clock", "i in") }}<span>Расписание</span></a>
+      {% if can_edit %}<button class="nmap-btn" id="nm-edit" title="Поправить остановки">{{ icon("edit", "i in") }}<span>Править</span></button>{% endif %}
+    </div>
+  </div>
+  <div class="nmap-sheet" id="nm-sheet" hidden>
+    <button class="icon-btn nmap-x" id="nm-close" aria-label="Закрыть">{{ icon("x", "i in") }}</button>
+    <div class="tiny muted" style="text-transform:uppercase;letter-spacing:.08em">Остановка</div>
+    <div class="nmap-name" id="nm-name"></div>
+    <div id="nm-side"></div>
+    <div id="nm-next" class="small"></div>
+    <a class="btn soft sm mt" id="nm-full" href="#">Всё расписание этой остановки</a>
+  </div>
+  <div class="nmap-hint" id="nm-hint" hidden>Режим правки: перетащите точку остановки на правильное место — она сохранится сама</div>
+  <div class="nmap-attr">© участники <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Leaflet</div>
+</div>
+<script src="/static/vendor/leaflet/leaflet.js?v={{ static_v }}"></script>
+<script>
+(function(){
+  const MD = {{ md|tojson }}, FOCUS = {{ focus|tojson }}, EDIT = {{ can_edit|tojson }};
+  const map = L.map('nmap', { preferCanvas: true, zoomControl: false, attributionControl: false, minZoom: 12, maxZoom: 19 }).setView([54.879, 82.772], 14);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  const ll = c => [c[1], c[0]];
+  const pane = (n, z) => { map.createPane(n); map.getPane(n).style.zIndex = z; };
+  pane('roadsP', 410); pane('labelsP', 640);
+  fetch('/static/packs/v3/map/vt.json?v={{ static_v }}').then(r => r.json()).then(d => {
+    const W = { 1: 9, 2: 7, 3: 5, 4: 3, 5: 2, 6: 1.5 }, C = { 1: '#e8a27f', 2: '#f1c3a6', 3: '#ffffff', 4: '#ffffff', 5: '#d6c7b2', 6: '#d6c7b2' };
+    d.green.forEach(g => L.polygon(g.c.map(ll), { stroke: false, fillColor: g.k === 'cemetery' ? '#d9dccb' : '#dfe6cf', fillOpacity: 1, interactive: false }).addTo(map));
+    d.water.forEach(w => L.polygon(w.map(ll), { stroke: false, fillColor: '#bcd3e3', fillOpacity: 1, interactive: false }).addTo(map));
+    d.rivers.forEach(w => L.polyline(w.map(ll), { color: '#8fb3cf', weight: 4, interactive: false }).addTo(map));
+    d.buildings.forEach(b => L.polygon(b.map(ll), { color: '#d6c7b2', weight: .6, fillColor: '#e6d9c7', fillOpacity: 1, interactive: false }).addTo(map));
+    [6, 5, 4, 3, 2, 1].forEach(k => d.roads.filter(r => r.k === k).forEach(r => {
+      if (k <= 3) L.polyline(r.c.map(ll), { pane: 'roadsP', color: '#cdb89e', weight: W[k] + 2, interactive: false }).addTo(map);
+      L.polyline(r.c.map(ll), { pane: 'roadsP', color: C[k], weight: W[k], dashArray: k >= 5 ? '4 4' : null, interactive: false }).addTo(map);
+    }));
+    // названия улиц — подписи посередине, видны при приближении
+    const seen = {}, labels = L.layerGroup();
+    d.roads.filter(r => r.n && r.k <= 3 && r.c.length > 2).sort((a, b) => b.c.length - a.c.length).forEach(r => {
+      if (seen[r.n]) return; seen[r.n] = 1; const m = r.c[Math.floor(r.c.length / 2)];
+      labels.addLayer(L.marker(ll(m), { pane: 'labelsP', interactive: false, icon: L.divIcon({ className: 'nm-street', html: r.n.replace(/улица/i, 'ул.').replace(/переулок/i, 'пер.'), iconSize: null }) }));
+    });
+    d.places.forEach(p => L.marker(ll(p.c), { pane: 'labelsP', interactive: false, icon: L.divIcon({ className: 'nm-place', html: p.n, iconSize: null }) }).addTo(map));
+    const pois = L.layerGroup();
+    d.pois.forEach(p => pois.addLayer(L.circleMarker(ll(p.c), { radius: 5, color: '#fff', weight: 1.5, fillColor: '#5f8a4f', fillOpacity: 1 }).bindTooltip((p.n || '') + (p.t && p.t !== p.n ? ' · ' + p.t : ''))));
+    const upd = () => { const z = map.getZoom(); z >= 16 ? labels.addTo(map) : labels.remove(); z >= 15 ? pois.addTo(map) : pois.remove(); };
+    map.on('zoomend', upd); upd();
+  });
+  // маршруты
+  MD.routes.forEach(r => L.polyline(r.pts, { color: r.color, weight: 3, opacity: .55, dashArray: '6 6' }).addTo(map).bindTooltip(r.num + ' · ' + r.name, { sticky: true }));
+  // остановки
+  const markers = {};
+  const sheet = document.getElementById('nm-sheet');
+  function nextList(rows) {
+    const now = new Date(), wd = (now.getDay() + 6) % 7, cur = now.getHours() * 60 + now.getMinutes(), list = [];
+    rows.forEach(r => r.days.forEach(dd => { if (!dd.wd.includes(wd)) return; dd.mins.forEach(m => { if (m >= cur) list.push({ r, m }); }); }));
+    list.sort((a, b) => a.m - b.m);
+    if (!list.length) return '<div class="muted">Сегодня рейсов больше нет</div>';
+    return list.slice(0, 5).map(x => { const dm = x.m - cur, t = Math.floor(x.m / 60) + ':' + String(x.m % 60).padStart(2, '0');
+      return `<div class="vt-next-row"><span class="vt-num">${x.r.num}</span><span style="min-width:0"><b>${x.r.approx ? '≈' : ''}${t}</b> <span class="muted">→ ${(x.r.name || '').split('→').pop().trim()}</span></span><span class="in">${dm === 0 ? 'сейчас' : dm < 60 ? 'через ' + dm + ' мин' : 'через ' + Math.floor(dm / 60) + ' ч ' + (dm % 60) + ' мин'}</span></div>`; }).join('');
+  }
+  function open(st) {
+    document.getElementById('nm-name').textContent = st.base;
+    document.getElementById('nm-side').innerHTML = st.side ? `<span class="nmap-side">${st.side === 'в сторону города' ? '→ в сторону города' : '← из города'}</span>` : '';
+    document.getElementById('nm-next').innerHTML = nextList(st.rows);
+    document.getElementById('nm-full').href = '/vt-transport?stop=' + st.slug;
+    sheet.hidden = false;
+  }
+  document.getElementById('nm-close').onclick = () => sheet.hidden = true;
+  MD.stops.forEach(st => {
+    const icon = L.divIcon({ className: 'nm-stop' + (st.side === 'из города' ? ' from' : ''), html: '<i></i>', iconSize: [22, 22], iconAnchor: [11, 11] });
+    const m = L.marker([st.lat, st.lon], { icon, draggable: false, zIndexOffset: 500 }).addTo(map)
+      .bindTooltip(st.base + (st.side ? ' · ' + (st.side === 'в сторону города' ? '→ город' : '← из города') : ''), { direction: 'top', offset: [0, -10] });
+    m.on('click', () => { open(st); map.panTo(m.getLatLng()); setTimeout(() => map.panBy([0, Math.round(innerHeight * .2)]), 260); });
+    m.on('dragend', () => { const p = m.getLatLng(); fetch('/admin/map/stop', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, body: JSON.stringify({ slug: st.slug, lat: p.lat, lon: p.lng }) })
+      .then(r => r.json()).then(j => window.toast && toast(j.ok ? 'Место остановки сохранено' : (j.error || 'Не сохранилось'))); });
+    markers[st.slug] = m;
+  });
+  if (FOCUS && markers[FOCUS]) { const st = MD.stops.find(x => x.slug === FOCUS); map.setView(markers[FOCUS].getLatLng(), 17, { animate: false }); open(st); map.panBy([0, Math.round(innerHeight * .22)], { animate: false }); }
+  // где я + ближайшая остановка
+  let me = null;
+  document.getElementById('nm-me').onclick = () => {
+    if (!navigator.geolocation) return window.toast && toast('Телефон не даёт узнать место');
+    navigator.geolocation.getCurrentPosition(p => {
+      const c = [p.coords.latitude, p.coords.longitude];
+      if (me) me.setLatLng(c); else me = L.circleMarker(c, { radius: 8, color: '#fff', weight: 3, fillColor: '#3f6f86', fillOpacity: 1 }).addTo(map);
+      let best = null, bd = 1e9;
+      MD.stops.forEach(st => { const dd = map.distance(c, [st.lat, st.lon]); if (dd < bd) { bd = dd; best = st; } });
+      if (best && bd < 3000) { map.fitBounds(L.latLngBounds([c, [best.lat, best.lon]]).pad(.4)); open(best);
+        window.toast && toast('Ближайшая остановка — ' + best.base + ', ' + Math.round(bd) + ' м'); }
+      else map.setView(c, 16);
+    }, () => window.toast && toast('Разрешите доступ к местоположению'), { enableHighAccuracy: true, timeout: 10000 });
+  };
+  if (EDIT) {
+    let on = false;
+    document.getElementById('nm-edit').onclick = () => { on = !on; Object.values(markers).forEach(m => on ? m.dragging.enable() : m.dragging.disable());
+      document.getElementById('nm-hint').hidden = !on; document.getElementById('nm-edit').classList.toggle('on', on); };
+  }
+})();
+</script>
+{% endblock %}

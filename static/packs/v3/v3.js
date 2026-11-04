@@ -459,7 +459,7 @@
   };
   // список сохранённых страниц для офлайн-экрана приложения
   try {
-    const okPath = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word)?$|help$|ai$|capsule$|bookmarks$|whats-new$|vt-transport$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
+    const okPath = /^\/($|messages\/?$|notifications$|explore$|games(\/2048|\/word)?$|help$|ai$|capsule$|bookmarks$|whats-new$|vt-transport$|map$|profile\/[\w.-]+$|post\/\d+$|messages\/[\w.-]+$)/;
     if (window.APP && APP.user && okPath.test(location.pathname) && navigator.onLine) {
       const u = location.pathname + location.search, t = u === '/' ? 'Лента' : (document.title || '').replace(/\s*—\s*Nuvora\s*$/, '') || 'Страница';
       const list = JSON.parse(localStorage.getItem('nv_saved_pages') || '[]').filter(p => p.u !== u);
