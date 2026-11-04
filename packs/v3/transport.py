@@ -7,7 +7,7 @@
 import html
 import re
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,9 @@ from .common import router, s
 
 KEY = "vt_transport"
 PATH = "/vt-transport"
+# 4.11.2026 владелец попросил убрать доступ к расписанию «пока не скажу». Расписание и админка остаются;
+# страницы и таблички видит только владелец. Вернуть всем — OPEN = True
+OPEN = False
 DAYS = {  # как пишется в тексте → какие дни недели (0 = понедельник)
     "будни": (0, 1, 2, 3, 4), "выходные": (5, 6), "ежедневно": (0, 1, 2, 3, 4, 5, 6), "каждый день": (0, 1, 2, 3, 4, 5, 6),
     "понедельник": (0,), "вторник": (1,), "среда": (2,), "четверг": (3,), "пятница": (4,), "суббота": (5,), "воскресенье": (6,),
@@ -150,8 +153,17 @@ def _short():
     return re.sub(r"^https?://", "", _base()) + PATH
 
 
+def _closed(request, db):
+    """Пока раздел закрыт — для всех, кроме владельца, страницы как будто нет."""
+    if not OPEN:
+        u = current_user(request, db)
+        if not (u and u.is_owner):
+            raise HTTPException(404)
+
+
 @router.get(PATH)
 def page(request: Request, db: Session = Depends(get_db), stop: str = ""):
+    _closed(request, db)
     data = load()
     cur = next((x for x in data["stops"] if x["slug"] == stop), None)
     user = current_user(request, db)
@@ -215,6 +227,7 @@ def _sign_page(title, sections):
 
 @router.get(PATH + "/sign/{stop_slug}")
 def sign(stop_slug: str, request: Request, db: Session = Depends(get_db)):
+    _closed(request, db)
     data = load()
     st = next((x for x in data["stops"] if x["slug"] == stop_slug), None)
     if not st:
@@ -224,6 +237,7 @@ def sign(stop_slug: str, request: Request, db: Session = Depends(get_db)):
 
 @router.get(PATH + "/signs")
 def signs(request: Request, db: Session = Depends(get_db)):
+    _closed(request, db)
     data = load()
     if not data["stops"]:
         return redirect(PATH)
@@ -231,7 +245,8 @@ def signs(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get(PATH + "/qr.svg")
-def qr(stop: str = ""):
+def qr(request: Request, db: Session = Depends(get_db), stop: str = ""):
+    _closed(request, db)
     url = f"{_base()}{PATH}" + (f"?stop={re.sub(r'[^a-z0-9-]', '', stop)}" if stop else "")
     return Response(_qr_svg(url), media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 

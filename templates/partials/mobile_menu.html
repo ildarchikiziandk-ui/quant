@@ -1,6 +1,6 @@
 {# Боковое меню (выезжает слева по кнопке ☰): основное — списком с счётчиками, остальное — в раскрывающихся группах. #}
 {% set nav = [("/","home","Лента",0),("/messages","chat","Чаты",unread_msg),("/notifications","bell","Уведомления",unread),("/profile/" ~ user.username,"user","Профиль",0),("/explore","compass","Обзор",0)] %}
-{% set main = [("/map","map","Карта Верх-Тулы"),("/games","dice","Игры"),("/c","megaphone","Сообщества"),("/groups","users","Группы"),("/gifts/" ~ user.username,"gift","Подарки"),("/bookmarks","bookmark","Закладки"),("/tasks","target","Задания")] %}
+{% set main = [("/games","dice","Игры"),("/c","megaphone","Сообщества"),("/groups","users","Группы"),("/gifts/" ~ user.username,"gift","Подарки"),("/bookmarks","bookmark","Закладки"),("/tasks","target","Задания")] %}
 {% set mine = [("/messages/starred","star","Избранное"),("/birthdays","cake","Дни рождения"),("/drafts","draft","Черновики"),("/stats","chart","Статистика"),("/events","calendar","События"),("/archive","archive","Архив")] %}
 {% set more = [
   ("Ещё интересное", "trophy", [("/top","trophy","Топ постов"),("/people/city","map","Люди рядом"),("/leaderboard","chart","Рейтинг")]),

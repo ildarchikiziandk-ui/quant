@@ -36,10 +36,10 @@
 
   // 2. Потянуть, чтобы обновить (телефон)
   safe('pull', () => {
-    if (!on('pull_refresh') || !('ontouchstart' in window) || $('#box') || path.startsWith('/stories') || path.startsWith('/reels') || path === '/map' || $('.leaflet-container')) return;  // на карте тянут пальцем саму карту
+    if (!on('pull_refresh') || !('ontouchstart' in window) || $('#box') || path.startsWith('/stories') || path.startsWith('/reels')) return;
     const ind = document.createElement('div'); ind.className = 'ptr'; ind.innerHTML = IC('refresh'); document.body.appendChild(ind);
     let y0 = null, dy = 0;
-    addEventListener('touchstart', e => { y0 = scrollY <= 0 && !e.target.closest('.modal-bg.open,.mmenu:not([hidden]),input,textarea,.leaflet-container,canvas') ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+    addEventListener('touchstart', e => { y0 = scrollY <= 0 && !e.target.closest('.modal-bg.open,.mmenu:not([hidden]),input,textarea') ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
     addEventListener('touchmove', e => { if (y0 === null) return; dy = e.touches[0].clientY - y0; if (dy > 0) { ind.style.transform = `translate(-50%, ${Math.min(dy, 120) - 50}px) rotate(${dy * 3}deg)`; ind.style.opacity = Math.min(1, dy / 90); } }, { passive: true });
     addEventListener('touchend', () => { if (y0 !== null && dy > 95) { ind.classList.add('spin'); vib(10); location.reload(); } else { ind.style.transform = ''; ind.style.opacity = 0; } y0 = null; });
   });

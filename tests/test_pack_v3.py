@@ -1327,7 +1327,10 @@ def test_vt_transport(owner, alice):
     data, errors = transport.parse("Маршрут: 7 | автобус | А — Б\nОстановки: Центр 0, Школа 5\nБудни: 6:10 25:00\nЛетом: 1:00")
     assert len(errors) == 2 and data["stops"][1]["slug"] == "shkola"
     assert transport.at_stop(data, "shkola")[0]["days"][0]["times"] == ["6:15"]
-    assert "скоро появится" in alice.get("/vt-transport").text
+    assert alice.get("/vt-transport").status_code == 404  # раздел закрыт владельцем (4.11.2026)
+    assert alice.get("/vt-transport/signs").status_code == 404 and alice.get("/vt-transport/qr.svg").status_code == 404
+    assert "скоро появится" in owner.get("/vt-transport").text
+    transport.OPEN = True
     assert alice.get("/admin/transport", follow_redirects=False).status_code in (302, 303)
     text = "# Название: Транспорт Верх-Тулы\nМаршрут: 101 | автобус | Верх-Тула — Город\nОстановки: Центр 0, Школа 3\nЕжедневно: 7:00 8:00"
     r = owner.post("/admin/transport", data={"text": text})
@@ -1338,6 +1341,7 @@ def test_vt_transport(owner, alice):
     assert "<svg" in sign and "/vt-transport" in sign and "8:03" in sign
     assert "Центр" in alice.get("/vt-transport/signs").text
     assert alice.get("/vt-transport/qr.svg?stop=shkola").headers["content-type"].startswith("image/svg")
+    transport.OPEN = False
 
 
 def test_merge_rename_login(alice):
@@ -1372,24 +1376,3 @@ def test_vt_transport_approx():
     real = open("data/vt_transport.txt", encoding="utf-8").read()
     d, err = transport.parse(real)
     assert not err and len(d["routes"]) == 6
-
-
-def test_vt_map(owner, alice):
-    page = alice.get("/map").text
-    assert "Карта Верх-Тулы" in page and "/static/vendor/leaflet/leaflet.js" in page and "OpenStreetMap" in page
-    r = alice.post("/admin/map/stop", json={"slug": "tsentr-v-storonu-goroda", "lat": 54.8, "lon": 82.7}, headers=J)
-    assert r.status_code == 403
-    assert owner.post("/admin/map/stop", json={"slug": "tsentr-v-storonu-goroda", "lat": 54.88, "lon": 82.78}, headers=J).json()["ok"]
-    from packs.v3 import vt_map
-    assert vt_map._default_geo("Центр (в сторону города)") and vt_map._default_geo("Неизвестная") is None
-
-
-def test_vt_map_addr_fix(owner, alice):
-    from packs.v3 import vt_map
-    assert vt_map.map_data()["addr"]["82.78468,54.88599"]["s"] == "Рабочая улица"  # Кирова 51а → Рабочая 51а
-    body = {"key": "82.7801,54.8801", "s": "Рабочая улица", "h": "12"}
-    assert alice.post("/admin/map/addr", json=body, headers=J).status_code == 403
-    assert owner.post("/admin/map/addr", json={"key": "drop table", "h": "1"}, headers=J).status_code == 400
-    assert owner.post("/admin/map/addr", json=body, headers=J).json()["ok"]
-    assert vt_map.addr_fixes()["82.7801,54.8801"]["h"] == "12"
-    assert owner.post("/admin/map/addr", json={"key": "82.7801,54.8801", "h": ""}, headers=J).json()["ok"]
