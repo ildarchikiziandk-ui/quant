@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Вернуть старые данные (из копии Beget или «Копии сайта») и объединить с тем, что уже есть на новом сервере.
-# Положите в одну папку файлы из старой копии: quant.db, .env (или env.txt), папку uploads, school.db — что есть.
+# Положите в одну папку файлы из старой копии: quant.db (и quant.db-wal, если есть), .env (или env.txt), папку uploads,
+# school.db (и school.db-wal) — что есть. Файлы из бэкапа Beget снимались «на ходу»: скрипт сам вливает -wal и проверяет базы.
 #   bash /opt/nuvora/deploy/merge.sh /root/old
 # Старые аккаунты, посты и переписки возвращаются; новые люди и посты остаются. Если логин заняли дважды —
 # новому человеку выдаётся временный логин userNNNN (входит он по-прежнему своим логином и паролем, на сайте видит плашку).
@@ -11,6 +12,10 @@ OLD_ENV="$OLD/.env"; [ -f "$OLD_ENV" ] || OLD_ENV="$OLD/env.txt"
 [ -f "$OLD/quant.db" ] || { echo "В папке $OLD нет quant.db"; exit 1; }
 [ -f "$OLD_ENV" ] || { echo "В папке $OLD нет .env (или env.txt) — без старого ключа не откроются переписки"; exit 1; }
 STAMP=$(date +%Y%m%d-%H%M)
+echo "==> Проверяю старые базы (копия снималась с работающего сервера)"
+command -v sqlite3 >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq sqlite3 >/dev/null 2>&1 || true
+"$APP_DIR/venv/bin/python" "$APP_DIR/tools/db_check.py" "$OLD/quant.db" || { echo "Старую базу открыть не удалось — пришлите этот вывод Claude"; exit 1; }
+[ -f "$OLD/school.db" ] && { "$APP_DIR/venv/bin/python" "$APP_DIR/tools/db_check.py" "$OLD/school.db" || echo "База школы повреждена — школу оставляю как есть"; }
 echo "==> Останавливаю сайт и сохраняю текущую базу (quant.db.before-merge-$STAMP)"
 systemctl stop nuvora
 cp "$APP_DIR/quant.db" "$APP_DIR/quant.db.before-merge-$STAMP"
