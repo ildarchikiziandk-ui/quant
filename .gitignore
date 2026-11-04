@@ -21,3 +21,9 @@ places.sqlite
 places.sqlite.part
 places-download/
 places.log
+
+# плитки карты — рисует tools/render_vt_tiles.py на сервере
+static/packs/v3/map/tiles/
+static/packs/v3/map/tiles.tmp/
+static/packs/v3/map/tiles.old/
+map-tiles.log

@@ -1382,3 +1382,14 @@ def test_vt_map(owner, alice):
     assert owner.post("/admin/map/stop", json={"slug": "tsentr-v-storonu-goroda", "lat": 54.88, "lon": 82.78}, headers=J).json()["ok"]
     from packs.v3 import vt_map
     assert vt_map._default_geo("Центр (в сторону города)") and vt_map._default_geo("Неизвестная") is None
+
+
+def test_vt_map_addr_fix(owner, alice):
+    from packs.v3 import vt_map
+    assert vt_map.map_data()["addr"]["82.78468,54.88599"]["s"] == "Рабочая улица"  # Кирова 51а → Рабочая 51а
+    body = {"key": "82.7801,54.8801", "s": "Рабочая улица", "h": "12"}
+    assert alice.post("/admin/map/addr", json=body, headers=J).status_code == 403
+    assert owner.post("/admin/map/addr", json={"key": "drop table", "h": "1"}, headers=J).status_code == 400
+    assert owner.post("/admin/map/addr", json=body, headers=J).json()["ok"]
+    assert vt_map.addr_fixes()["82.7801,54.8801"]["h"] == "12"
+    assert owner.post("/admin/map/addr", json={"key": "82.7801,54.8801", "h": ""}, headers=J).json()["ok"]

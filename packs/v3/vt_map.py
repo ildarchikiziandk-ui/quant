@@ -2,7 +2,9 @@
 собирает tools/build_vt_map.py), остановки из расписания (packs/v3/transport.py) с ближайшими рейсами,
 линии маршрутов и «где я». Всё лежит на нашем сервере: без чужих скриптов и карт.
 Остановки стоят по карте владельца (4.11.2026); владелец может перетащить точку — она запоминается (site «vt_geo»)."""
+import json
 import math
+import os
 import re
 
 from fastapi import Depends, Request
@@ -26,12 +28,30 @@ EDGE_M = 9  # остановка — на обочине, в 9 м от сере�
 # у двух крайних точек названия разные по сторонам — считаем их сторонами одной остановки
 SIDE_OF = {"Поворот на Верх-Тулу": "в сторону города", "Река Верх-Тула": "из города"}
 _roads = []
+# ошибки адресов в OpenStreetMap, которые поправил владелец (ключ — первая точка контура дома «долгота,широта»);
+# свои правки владелец делает на карте: «Править» → долгое нажатие на дом (site «vt_addr»)
+ADDR_FIX = {
+    "82.78468,54.88599": {"s": "Рабочая улица", "h": "51а"},  # в OSM записан как «улица Кирова, 51а» (4.11.2026)
+}
+TILES = os.path.join(os.path.dirname(__file__), "..", "..", "static", "packs", "v3", "map", "tiles")
+
+
+def tiles_version():
+    """Версия готовых плиток (tools/render_vt_tiles.py) или "" — тогда карта рисуется в браузере, как раньше."""
+    try:
+        return str(json.load(open(os.path.join(TILES, "meta.json")))["v"])
+    except (OSError, ValueError, KeyError):
+        return ""
+
+
+def addr_fixes():
+    out = dict(ADDR_FIX)
+    out.update(site.get("vt_addr") or {})
+    return out
 
 
 def _load_roads():
     if not _roads:
-        import json
-        import os
         path = os.path.join(os.path.dirname(__file__), "..", "..", "static", "packs", "v3", "map", "vt.json")
         try:
             d = json.load(open(path, encoding="utf-8"))
@@ -117,7 +137,8 @@ def map_data():
             if r["num"] not in nums:
                 nums.append(r["num"])
             routes.append({"num": r["num"], "name": r["name"], "pts": pts, "color": COLORS[nums.index(r["num"]) % len(COLORS)]})
-    return {"title": data["title"], "stops": stops, "routes": routes, "source": data["source"]}
+    return {"title": data["title"], "stops": stops, "routes": routes, "source": data["source"],
+            "addr": addr_fixes(), "tiles": tiles_version()}
 
 
 @router.get("/map")
@@ -144,4 +165,25 @@ async def map_stop_save(request: Request, db: Session = Depends(get_db)):
     geo = dict(site.get("vt_geo") or {})
     geo[slug_] = [round(lat, 6), round(lon, 6)]
     site.put(db, "vt_geo", geo)
+    return {"ok": True}
+
+
+@router.post("/admin/map/addr")
+async def map_addr_save(request: Request, db: Session = Depends(get_db)):
+    """Владелец исправляет адрес дома: улица и номер. Пустой номер — убрать правку."""
+    me = current_user(request, db)
+    if not me or not me.is_owner:
+        return json_error("Только для владельца", 403)
+    from routers.posts import read_payload
+    d = await read_payload(request)
+    key = s(d.get("key"))[:40]
+    if not re.fullmatch(r"-?\d{1,3}\.\d{1,7},-?\d{1,2}\.\d{1,7}", key):
+        return json_error("Не понял, какой это дом")
+    street, num = s(d.get("s"))[:80], s(d.get("h"))[:20]
+    fixes = dict(site.get("vt_addr") or {})
+    if num:
+        fixes[key] = {"s": street, "h": num}
+    else:
+        fixes.pop(key, None)
+    site.put(db, "vt_addr", fixes)
     return {"ok": True}

@@ -19,6 +19,8 @@ systemctl restart nuvora
 [ -f /etc/nginx/sites-available/nuvora ] && ! grep -q nuvora-502 /etc/nginx/sites-available/nuvora && bash "$APP_DIR/deploy/nginx-fix.sh" || true
 # справочник городов, сёл и деревень мира: собирается один раз, в фоне
 [ -f "$APP_DIR/places.sqlite" ] || bash "$APP_DIR/deploy/places.sh" bg || true
+# картинки-плитки для карты Верх-Тулы: рисуются в фоне, если их нет или данные карты обновились
+bash "$APP_DIR/deploy/map-tiles.sh" bg || true
 # школа (school.nvra.ru), если установлена
 if systemctl list-unit-files nuvora-school.service >/dev/null 2>&1 && [ -f "$APP_DIR/school/.env" ]; then
   chown -R nuvora:nuvora "$APP_DIR/school"
