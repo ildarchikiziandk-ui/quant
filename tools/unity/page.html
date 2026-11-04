@@ -50,6 +50,8 @@ const M = {
       + along(10, i => `<g transform="rotate(${i * 30})">${[0, 60, 120, 180, 240, 300].map(r => `<path d="M0 0 C 8 -2 13 -10 10 -19" fill="none" stroke="${i % 2 ? c : a}" stroke-width="4" stroke-linecap="round" transform="rotate(${r})"/>`).join('')}<circle r="4" fill="${b}"/></g>`); },
   knot([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)
       + along(10, i => `<g fill="none" stroke="${a}" stroke-width="3.5"><rect x="-11" y="-11" width="22" height="22" rx="4" transform="rotate(45)"/><rect x="-6" y="-17" width="12" height="34" rx="6"/><rect x="-17" y="-6" width="34" height="12" rx="6"/></g><circle r="3" fill="${i % 2 ? c : b}"/>`); },
+  rosette([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)  // сюзане и изразцы: цветок-солнце с лепестками
+      + along(11, i => `<g transform="rotate(${i * 22})">${[0, 45, 90, 135, 180, 225, 270, 315].map(r => `<ellipse cx="0" cy="-15" rx="5" ry="9" fill="${i % 2 ? b : a}" transform="rotate(${r})"/>`).join('')}<circle r="9" fill="${i % 2 ? a : b}"/><circle r="4" fill="${c}"/></g>`); },
 };
 const light = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 200; };
 // светлое кольцо на светлом фоне — с тёмной окантовкой, чтобы не терялось
