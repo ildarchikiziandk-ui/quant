@@ -13,6 +13,7 @@
   <div class="field"><span class="small muted" style="font-weight:600">Фон для текстовой истории</span>
     <div class="row mt">{% for c in bg_colors %}<label style="cursor:pointer"><input type="radio" name="bg_color" value="{{ c }}" class="hidden" {% if loop.first %}checked{% endif %}><span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:{{ c }};border:3px solid var(--card);box-shadow:0 0 0 1px var(--border)"></span></label>{% endfor %}</div></div>
   <label class="field"><span>Кто увидит</span><select name="audience"><option value="all">Все, кому разрешено настройками</option><option value="close">{{ icon("star", "i in") }} Только близкие друзья</option></select></label>
+  <label class="field"><span>Сколько висит</span><select name="duration"><option value="24">24 часа</option><option value="48"{% if not user_is_plus(user) %} disabled{% endif %}>48 часов{% if not user_is_plus(user) %} — с {{ brand_plus }}{% endif %}</option></select></label>
   <button class="btn block">Опубликовать историю</button>
 </form>
 {% endblock %}

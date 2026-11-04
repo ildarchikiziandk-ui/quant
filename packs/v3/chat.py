@@ -260,7 +260,7 @@ async def save_folder(request: Request, db: Session = Depends(get_db)):
     fid = s(data.get("id"))
     f = db.query(m.ChatFolder).filter_by(id=int(fid), user_id=user.id).first() if fid.isdigit() and len(fid) < 10 else None
     if not f:
-        if db.query(m.ChatFolder).filter_by(user_id=user.id).count() >= 10:
+        if db.query(m.ChatFolder).filter_by(user_id=user.id).count() >= (30 if __import__("services.plus", fromlist=["active"]).active(user) else 10):
             return json_error("Можно создать до 10 папок")
         f = m.ChatFolder(user_id=user.id)
         db.add(f)

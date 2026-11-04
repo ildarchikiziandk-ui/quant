@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import auth
+import config
 import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, render
@@ -53,8 +54,8 @@ async def handles_buy(request: Request, db: Session = Depends(get_db)):
     if handles.owner_of(db, name):
         return json_error("Этот логин уже купили")
     as_alias = s(data.get("mode")) == "alias"
-    if as_alias and db.query(m.UserAlias).filter_by(user_id=user.id).count() >= handles.MAX_ALIASES:
-        return json_error(f"У вас уже {handles.MAX_ALIASES} дополнительных логина — удалите один в настройках")
+    if as_alias and db.query(m.UserAlias).filter_by(user_id=user.id).count() >= handles.max_aliases(user):
+        return json_error(f"У вас уже {handles.max_aliases(user)} дополнительных логина — удалите один в настройках" + ("" if handles.max_aliases(user) > handles.MAX_ALIASES else f" (с {config.BRAND_PLUS} — до {handles.MAX_ALIASES_PLUS})"))
     if not auth.verify_password(s(data.get("password")), user.password):
         return json_error("Неверный пароль")
     if extras.balance(user) < price:
@@ -95,7 +96,7 @@ def _alias_error(db, user, name):
         return err
     if handles.owner_of(db, name):
         return "Этот логин уже занят"
-    if db.query(m.UserAlias).filter_by(user_id=user.id).count() >= handles.MAX_ALIASES:
+    if db.query(m.UserAlias).filter_by(user_id=user.id).count() >= handles.max_aliases(user):
         return f"Можно не больше {handles.MAX_ALIASES + 1} логинов: основной и {handles.MAX_ALIASES} дополнительных"
     return None
 

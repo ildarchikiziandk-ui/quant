@@ -29,6 +29,9 @@ server {
     listen [::]:80;
     server_name $NAMES;
     client_max_body_size 110m;
+    # nuvora-502: своя страница, пока сайт перезапускается
+    error_page 502 503 504 /nuvora-502.html;
+    location = /nuvora-502.html { root /opt/nuvora/static/errors; try_files /502.html =502; internal; }
 
     location / {
         proxy_pass http://127.0.0.1:8000;

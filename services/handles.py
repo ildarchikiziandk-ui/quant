@@ -37,6 +37,12 @@ for _price, _names in _TIERS.items():
 
 
 MAX_ALIASES = 2  # дополнительные логины: всего у человека до трёх
+MAX_ALIASES_PLUS = 4  # с Nuvora+ — до пяти
+
+
+def max_aliases(user):
+    from services import plus
+    return MAX_ALIASES_PLUS if plus.active(user) else MAX_ALIASES
 
 
 def owner_of(db, name):

@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.posts import read_payload, wants_json
-from services import gamification, prefs, social
+from services import gamification, plus, prefs, social
 from services.uploads import delete_file, is_upload, save_file
 
 router = APIRouter()
@@ -130,7 +130,7 @@ async def create_story(request: Request, db: Session = Depends(get_db)):
         return render(request, db, "stories_create.html", bg_colors=STORY_BG, error="Добавьте фото, видео или текст")
     story = models.Story(user_id=user.id, media_url=url, media_type=mtype, text_overlay=text, bg_color=bg or "#18181b",
                          audience="close" if form.get("audience") == "close" else "all",
-                         expires_at=datetime.utcnow() + timedelta(hours=24))
+                         expires_at=datetime.utcnow() + timedelta(hours=48 if form.get("duration") == "48" and plus.active(user) else 24))
     db.add(story)
     gamification.add_points(user, db, 3)
     db.commit()

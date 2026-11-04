@@ -48,8 +48,14 @@
   safe('offline', () => {
     const bar = document.createElement('div'); bar.className = 'net-bar hidden'; document.body.appendChild(bar);
     const show = (online) => { bar.textContent = online ? 'Снова в сети' : 'Нет подключения к интернету'; bar.classList.toggle('ok', online); bar.classList.remove('hidden'); if (online) setTimeout(() => bar.classList.add('hidden'), 2500); };
-    addEventListener('offline', () => show(false)); addEventListener('online', () => show(true));
-    if (navigator.onLine === false) show(false);
+    // WebView часто ошибочно сообщает «нет сети» при переключении Wi-Fi и мобильного интернета — показываем плашку,
+    // только если сервер действительно не отвечает (проверяем дважды)
+    let shownOff = false;
+    const probe = async () => { try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 10000); await fetch('/healthz?ts=' + Date.now(), { cache: 'no-store', signal: c.signal }); clearTimeout(t); return true; } catch (e) { return false; } };
+    const checkOff = async () => { if (await probe()) return; await new Promise(r => setTimeout(r, 3000)); if (!(await probe())) { shownOff = true; show(false); } };
+    addEventListener('offline', () => setTimeout(checkOff, 1500));
+    addEventListener('online', () => { if (shownOff) { shownOff = false; show(true); } });
+    if (navigator.onLine === false) setTimeout(checkOff, 1500);
     // страницу отдали из сохранённых (сеть пропала или тормозит): говорим об этом и даём обновить
     if (document.documentElement.dataset.savedCopy) {
       bar.innerHTML = 'Сохранённая копия · <u>обновить</u>';

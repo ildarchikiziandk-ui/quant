@@ -15,6 +15,8 @@ if ! grep -q '^TURN_SECRET=.' "$APP_DIR/.env" 2>/dev/null; then
   bash "$APP_DIR/deploy/set-calls.sh" || echo "Ретранслятор звонков не установился — звонки будут работать напрямую. Повторить: bash $APP_DIR/deploy/set-calls.sh"
 fi
 systemctl restart nuvora
+# своя страница вместо «502 Bad Gateway», пока сайт перезапускается (один раз)
+[ -f /etc/nginx/sites-available/nuvora ] && ! grep -q nuvora-502 /etc/nginx/sites-available/nuvora && bash "$APP_DIR/deploy/nginx-fix.sh" || true
 # справочник городов, сёл и деревень мира: собирается один раз, в фоне
 [ -f "$APP_DIR/places.sqlite" ] || bash "$APP_DIR/deploy/places.sh" bg || true
 # школа (school.nvra.ru), если установлена

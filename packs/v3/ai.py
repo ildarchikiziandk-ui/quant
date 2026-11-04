@@ -480,7 +480,7 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
         return json_error("Напишите вопрос")
     from . import nuva_model
     from services import ratelimit
-    if nuva_model.enabled() and (user.is_owner or ratelimit.hit(f"nuva:{user.id}", config.NUVA_AI_PER_HOUR, 3600)):
+    if nuva_model.enabled() and (user.is_owner or ratelimit.hit(f"nuva:{user.id}", config.NUVA_AI_PER_HOUR * (3 if __import__("services.plus", fromlist=["active"]).active(user) else 1), 3600)):
         hist = data.get("history")
         if isinstance(hist, str):
             try:
