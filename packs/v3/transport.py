@@ -139,14 +139,12 @@ def _qr_svg(url, size=10):
     return buf.getvalue().decode()
 
 
-PUBLIC = "https://nvra.ru"  # адрес на табличках: даже если на сервере SITE_URL — IP или localhost, люди увидят nvra.ru
+PUBLIC = "https://nvurl.ru"  # адрес на табличках (QR и подпись). nvurl.ru останется рабочим и после возвращения nvra.ru: короткие ссылки переадресуют /vt-transport на nvra.ru
 
 
 def _base():
-    host = re.sub(r"^https?://", "", config.SITE_URL.rstrip("/")).split("/")[0].split(":")[0]
-    if not host or host == "localhost" or host == "testserver" or re.fullmatch(r"[\d.]+", host):
-        return PUBLIC
-    return config.SITE_URL.rstrip("/")
+    """Адрес для QR-кода и подписи на табличке — всегда nvurl.ru: напечатанные таблички не придётся переделывать."""
+    return PUBLIC
 
 
 def _short():
