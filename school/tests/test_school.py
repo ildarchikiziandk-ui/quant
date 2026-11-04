@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 import tempfile
 
@@ -115,7 +116,11 @@ def test_teacher_full_flow(teacher):
     hid = s.query(m.Homework).one().id
     due = s.query(m.Homework).one().due
     s.close()
-    assert due.weekday() == 2  # срок — ближайшая среда, когда по расписанию русский
+    # срок — ближайший после сегодняшнего день, когда по расписанию русский (среда или воскресенье)
+    exp = core.today() + timedelta(days=1)
+    while exp.weekday() not in (2, 6):
+        exp += timedelta(days=1)
+    assert due == exp
     assert st.post(f"/s/homework/{hid}/done", headers=J).json()["done"] is True
     assert "сделал(а): Аня" in teacher.get("/t/homework").text
     assert "Математика" in st.get("/s/schedule").text

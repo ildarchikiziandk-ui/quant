@@ -26,11 +26,12 @@ cells = [
 
 1. Сверху: **Среда выполнения → Сменить среду выполнения → T4 GPU → Сохранить**.
 2. В ячейке ниже вставьте **код загрузки** — его покажет на сервере команда `bash /opt/nuvora/deploy/nuva-upload-code.sh`.
-3. **Среда выполнения → Выполнить все.** Обучение идёт ~10–20 минут, потом модель сама загрузится на сервер.
+3. **Среда выполнения → Выполнить все.** Обучение идёт ~20–40 минут, потом модель сама загрузится на сервер.
 4. Когда внизу появится «✅ Модель загружена», запустите на сервере `bash /opt/nuvora/deploy/set-local-ai.sh`.
 """),
     code("""
-SERVER = "https://nvra.ru"  # адрес вашего сайта
+SERVER = "https://nvurl.ru"  # адрес вашего сайта
+SIZE = "0.5B"               # "0.5B" — быстрая и лёгкая (выдержит много людей сразу), "1.5B" — умнее, но отвечает в 2–3 раза медленнее
 CODE = ""                   # ← вставьте сюда код загрузки в кавычках
 assert CODE, "Вставьте код загрузки в CODE (команда на сервере: bash /opt/nuvora/deploy/nuva-upload-code.sh)"
 """),
@@ -46,28 +47,33 @@ print("Видеокарта:", torch.cuda.get_device_name(0))
 open("nuva_train.jsonl", "w", encoding="utf-8").write(DATA)
 print("примеров:", DATA.count("\\n"))
 """),
-    md("## 3. Обучение (~10–20 минут)"),
+    md("## 3. Обучение (~20–40 минут)"),
     code("""
 import json
 from datasets import Dataset
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer, DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
-BASE = "Qwen/Qwen2.5-0.5B-Instruct"
+BASE = f"Qwen/Qwen2.5-{SIZE}-Instruct"
 tok = AutoTokenizer.from_pretrained(BASE)
 if tok.pad_token is None:
     tok.pad_token = tok.eos_token
-model = AutoModelForCausalLM.from_pretrained(BASE, torch_dtype=torch.float32).cuda()
+model = AutoModelForCausalLM.from_pretrained(BASE, torch_dtype=torch.float16).cuda()
+model.gradient_checkpointing_enable()
+model.enable_input_require_grads()
 model = get_peft_model(model, LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
                                          target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]))
+for p_ in model.parameters():  # обучаемые части — в float32, иначе fp16-обучение падает
+    if p_.requires_grad:
+        p_.data = p_.data.float()
 rows = [json.loads(l) for l in open("nuva_train.jsonl", encoding="utf-8")]
 enc = [tok(tok.apply_chat_template(r["messages"], tokenize=False), truncation=True, max_length=1024) for r in rows]
 ds = Dataset.from_list([{"input_ids": e["input_ids"], "attention_mask": e["attention_mask"]} for e in enc])
-args = TrainingArguments(output_dir="out", per_device_train_batch_size=4, gradient_accumulation_steps=2, num_train_epochs=3,
+args = TrainingArguments(output_dir="out", per_device_train_batch_size=2, gradient_accumulation_steps=4, num_train_epochs=3,
                          learning_rate=2e-4, warmup_ratio=0.05, lr_scheduler_type="cosine", fp16=True, logging_steps=10,
                          save_strategy="no", report_to=[])
 Trainer(model=model, args=args, train_dataset=ds, data_collator=DataCollatorForLanguageModeling(tok, mlm=False)).train()
-model = model.merge_and_unload()
+model = model.merge_and_unload().half()
 model.save_pretrained("nuva-merged")
 tok.save_pretrained("nuva-merged")
 print("✅ Обучение закончено")
@@ -86,8 +92,14 @@ for q in ["Кто ты?", "Как получить искры?", "Придума
     code("""
 !git clone -q --depth 1 https://github.com/ggml-org/llama.cpp
 !pip install -q -r llama.cpp/requirements/requirements-convert_hf_to_gguf.txt
-!python llama.cpp/convert_hf_to_gguf.py nuva-merged --outfile nuva-custom.gguf --outtype q8_0
-import os
+!python llama.cpp/convert_hf_to_gguf.py nuva-merged --outfile nuva-f16.gguf --outtype f16
+# сжимаем до q4_k_m: модель становится в 3 раза меньше и быстрее, а ум почти не теряет
+!cmake -S llama.cpp -B llama.cpp/build -DLLAMA_CURL=OFF > /dev/null && cmake --build llama.cpp/build --target llama-quantize -j 4 > /dev/null
+import os, subprocess
+if os.path.exists("llama.cpp/build/bin/llama-quantize"):
+    subprocess.run(["llama.cpp/build/bin/llama-quantize", "nuva-f16.gguf", "nuva-custom.gguf", "Q4_K_M"], check=True)
+else:  # не собралось — запасной вариант q8_0 (больше по размеру)
+    subprocess.run(["python", "llama.cpp/convert_hf_to_gguf.py", "nuva-merged", "--outfile", "nuva-custom.gguf", "--outtype", "q8_0"], check=True)
 print("размер модели:", round(os.path.getsize("nuva-custom.gguf") / 1024 / 1024), "МБ")
 """),
     md("## 6. Отправляю модель на сервер Nuvora"),

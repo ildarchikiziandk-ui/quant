@@ -36,7 +36,7 @@ echo "==> Сервер: память ${MEM} МБ, ядер процессора:
 CUSTOM="$DIR/nuva-custom.gguf"  # своя дообученная модель (tools/nuva_finetune.ipynb), если загружена
 if [ "$MEM" -lt 1800 ]; then
   echo "Памяти слишком мало для нейросети (нужно хотя бы 2 ГБ). В панели Beget можно увеличить тариф VPS."; exit 1
-elif [ "$MEM" -lt 3500 ]; then
+elif [ "$MEM" -lt 3500 ] || [ "${NUVA_SIZE:-0.5B}" = "0.5B" ]; then  # по умолчанию — быстрая 0,5B (выдерживает больше людей); умнее: NUVA_SIZE=1.5B bash set-local-ai.sh
   REPO="Qwen/Qwen2.5-0.5B-Instruct-GGUF"; FILE="qwen2.5-0.5b-instruct-q4_k_m.gguf"; SIZE="маленькая (0,5 млрд параметров)"
   CTX=2048; LIMIT=700M
 else
@@ -45,7 +45,7 @@ else
 fi
 if [ -s "$CUSTOM" ]; then
   FILE="nuva-custom.gguf"; SIZE="своя дообученная Нува"; CTX=2048
-  [ "$MEM" -lt 3500 ] && LIMIT=1000M
+  if [ "$MEM" -lt 3500 ]; then LIMIT=1000M; else LIMIT=2000M; fi
   echo "    нашёл свою дообученную модель — ставлю её"
 fi
 
