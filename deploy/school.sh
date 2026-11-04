@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Школа (электронный дневник) на поддомене: отдельная служба, своя база, свой HTTPS-сертификат.
-# Сначала в DNS добавьте A-запись: school → IP этого сервера (как у nvra.ru).
-# Запуск:  sudo bash /opt/nuvora/deploy/school.sh            (домен school.nvra.ru, логин учителя rubl)
+# Сначала в DNS добавьте A-запись: school → IP этого сервера (как у nvurl.ru).
+# Запуск:  sudo bash /opt/nuvora/deploy/school.sh            (домен school.nvurl.ru, логин учителя rubl)
 #          sudo bash /opt/nuvora/deploy/school.sh school.nvra.ru rubl
 # Повторный запуск безопасен: база и пароли сохраняются; пароль учителя можно сменить командой из конца вывода.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1
-DOMAIN="${1:-school.nvra.ru}"
+DOMAIN="${1:-school.nvurl.ru}"  # с 4.11.2026 — nvurl.ru (nvra.ru недоступен после аварии Beget)
 LOGIN="${2:-rubl}"
 APP_DIR=/opt/nuvora
 DIR="$APP_DIR/school"
@@ -32,7 +32,7 @@ chmod 600 "$ENV"
 echo "==> 2/5 Служба nuvora-school (порт 8010)"
 cat > /etc/systemd/system/nuvora-school.service <<EOS
 [Unit]
-Description=School diary (school.nvra.ru)
+Description=School diary ($DOMAIN)
 After=network.target
 
 [Service]

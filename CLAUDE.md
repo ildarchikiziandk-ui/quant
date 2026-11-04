@@ -9,7 +9,7 @@
 - Пароли, ключи и личные данные владельца (ФИО, ИНН, паспорт, адрес) не повторять в чате и никогда не коммитить.
 
 ## Проект
-- Сайт **https://nvra.ru** (и школа **school.nvra.ru**). FastAPI + Jinja + SQLAlchemy (SQLite), мини-фреймворк `packs/v3`.
+- Сайт **https://nvra.ru** (и школа **school.nvra.ru**; с 4.11.2026 школа временно на **school.nvurl.ru** — `deploy/school.sh` по умолчанию ставит её туда, приложение школы собрано под school.nvurl.ru и считает своими оба адреса, `OWN_HOSTS` в `school/android/.../MainActivity.kt`; база школы с Beget потеряна — расписание вставляется заново `school-schedule.sh`). FastAPI + Jinja + SQLAlchemy (SQLite), мини-фреймворк `packs/v3`.
 - Рабочая ветка — **`ildarrr`** (она же ветка по умолчанию на GitHub). Коммить и пушить туда.
 - Тесты: `python -m pytest -q` (≈125 штук, должны проходить перед пушем).
 - Языки сайта: русский, английский, древнеславянский (`services/i18n.py`, `i18n/*.json`, `python tools/i18n_extract.py --missing`).

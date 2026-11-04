@@ -26,7 +26,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 
-/** Приложение школы: сайт school.nvra.ru внутри приложения, уведомления и обновления без GitHub. */
+/** Приложение школы: сайт школы внутри приложения, уведомления и обновления без GitHub. */
+// С 4.11.2026 школа на school.nvurl.ru (nvra.ru недоступен после аварии Beget); своими считаем оба адреса
+private val OWN_HOSTS = setOf(BuildConfig.SITE_HOST, "school.nvurl.ru", "school.nvra.ru")
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
@@ -63,7 +65,7 @@ class MainActivity : AppCompatActivity() {
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
-                if (uri.host == BuildConfig.SITE_HOST && uri.path?.endsWith(".apk") != true) return false
+                if (uri.host in OWN_HOSTS && uri.path?.endsWith(".apk") != true) return false
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, uri))  // чужие ссылки и скачивание APK — в браузере
                 } catch (e: ActivityNotFoundException) {
@@ -115,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         offline = false
         // из уведомления — сразу на нужную страницу (/s/grades, /s/chat…)
         val path = intent?.getStringExtra(NotifyWorker.EXTRA_PATH)
-        val link = intent?.data?.takeIf { it.host == BuildConfig.SITE_HOST }
+        val link = intent?.data?.takeIf { it.host in OWN_HOSTS }
         web.loadUrl(link?.toString() ?: (BuildConfig.SITE_URL + (path?.takeIf { it.startsWith("/") } ?: "/")))
     }
 

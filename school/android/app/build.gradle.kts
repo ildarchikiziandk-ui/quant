@@ -5,7 +5,7 @@ plugins {
 
 // Номер сборки берётся из GitHub Actions, чтобы каждая новая версия ставилась поверх старой.
 val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-val siteUrl = System.getenv("SITE_URL") ?: "https://school.nvra.ru"
+val siteUrl = System.getenv("SITE_URL") ?: "https://school.nvurl.ru"
 
 android {
     namespace = "ru.nvra.school"

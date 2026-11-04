@@ -36,7 +36,7 @@ jobs:
       - name: Build APK
         working-directory: school/android
         env:
-          SITE_URL: https://school.nvra.ru
+          SITE_URL: https://school.nvurl.ru
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
 
@@ -57,7 +57,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: false
           body: |
-            Приложение школы (school.nvra.ru) для Android.
+            Приложение школы (school.nvurl.ru) для Android.
 
-            Скачивать удобнее прямо с сайта: https://school.nvra.ru/app — там же инструкция по установке.
+            Скачивать удобнее прямо с сайта: https://school.nvurl.ru/app — там же инструкция по установке.
           files: School.apk
