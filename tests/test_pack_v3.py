@@ -1376,3 +1376,17 @@ def test_vt_transport_approx():
     real = open("data/vt_transport.txt", encoding="utf-8").read()
     d, err = transport.parse(real)
     assert not err and len(d["routes"]) == 6
+
+
+def test_unity_day(alice):
+    import datetime as dt
+    from packs.v3 import unity_day
+    assert unity_day.active(dt.date(2026, 11, 4)) and not unity_day.active(dt.date(2026, 11, 10))
+    ps = unity_day.peoples()
+    assert len(ps) >= 27 and ps[0]["name"] == "Русские"
+    import os
+    for p in ps:
+        assert os.path.exists(f"static/brand/unity/{p['slug']}.png"), p["slug"]
+        assert not p["flag"] or os.path.exists(f"static/brand/unity/flags/{p['flag']}.png"), p["flag"]
+    page = alice.get("/4-noyabrya").text
+    assert "Минин" in page and "Татары" in page

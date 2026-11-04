@@ -467,3 +467,16 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 /* Нижняя панель (вернули 02.11.2026) — в тёплых цветах */
 .mobile-nav .fab { background: var(--whale) !important; }
 .mobile-nav a.active, .mobile-nav a.active svg, .mobile-nav button.active, .mobile-nav button.active svg { color: var(--whale) !important; }
+
+/* День народного единства — заставка при запуске (packs/v3/unity_day.py) */
+.unity-splash { overflow-y: auto; justify-content: flex-start; padding: max(28px, env(safe-area-inset-top)) 22px 28px; gap: 10px; }
+.unity-splash > :first-child { margin-top: auto; }
+.unity-splash > :last-child { margin-bottom: auto; }
+.unity-splash #us-logo { width: min(210px, 52vw); height: auto; margin: -18px 0 -26px; }
+.us-people { display: flex; align-items: center; gap: 10px; justify-content: center; }
+.us-people img { width: 36px; height: 24px; border-radius: 4px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.us-people b { font-family: Unbounded, var(--font, sans-serif); font-size: 20px; animation: none; }
+.unity-splash .us-about { font-size: 14px; color: var(--text-2); }
+.unity-splash .us-title { font-size: 21px; margin-top: 8px; color: var(--whale); }
+.us-hist { max-width: 460px; margin: 0; font-size: 14px; line-height: 1.45; color: var(--text); }
+.unity-splash .us-hist.muted { color: var(--text-2); font-size: 13px; }

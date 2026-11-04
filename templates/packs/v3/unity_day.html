@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}День народного единства — {{ brand }}{% endblock %}
+{% block content %}
+<style>
+.ud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ud-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px;text-align:center}
+.ud-card>img{width:100%;height:auto;display:block}
+.ud-name{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;margin-top:4px}
+.ud-name img{width:27px;height:18px;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+</style>
+<div class="card">
+  <div class="row" style="gap:14px;align-items:center"><img src="/static/brand/unity/russkie.png" alt="" style="width:86px;height:86px"><div><div class="page-title" style="margin:0">4 ноября — День народного единства</div><div class="small muted">История праздника и узоры народов России</div></div></div>
+  <p class="mt">{{ history }}</p>
+  <p class="small muted">В России живут больше 190 народов. В праздничные дни при каждом входе в Нувору логотип расписан узором одного из них — вот все {{ peoples|length }}. Рядом с названием — флаг республики, где живёт много людей этого народа.</p>
+</div>
+<div class="ud-grid mt">
+{% for p in peoples %}<div class="ud-card"><img src="/static/brand/unity/{{ p.slug }}.png" alt="Логотип в узорах: {{ p.name }}" loading="lazy">
+<div class="ud-name">{% if p.flag %}<img src="/static/brand/unity/flags/{{ p.flag }}.png" alt="" title="Флаг {{ p.flag_of }}">{% endif %}{{ p.name }}</div><div class="tiny muted">{{ p.about }}</div></div>{% endfor %}
+</div>
+<p class="tiny muted mt">Узоры нарисованы для {{ brand }} по мотивам народных орнаментов. Флаги республик — официальные символы.</p>
+{% endblock %}
