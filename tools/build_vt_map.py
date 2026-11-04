@@ -55,7 +55,14 @@ def build(osm_xml):
         if hw in ROADS:
             out["roads"].append({"c": pts, "k": ROADS[hw], **({"n": t["name"]} if t.get("name") else {})})
         elif t.get("building") and len(pts) > 3:
-            out["buildings"].append(pts)
+            b = {"c": pts}
+            if t.get("addr:housenumber"):
+                b["h"] = t["addr:housenumber"][:12]
+                if t.get("addr:street") or t.get("addr:place"):
+                    b["s"] = (t.get("addr:street") or t.get("addr:place"))[:60]
+            if t.get("name"):
+                b["n"] = t["name"][:60]
+            out["buildings"].append(b)
             kind = next((t[k] for k in POI_KEYS if t.get(k)), None)
             if kind and (t.get("name") or kind in POI_TYPES):
                 lon = sum(p[0] for p in pts) / len(pts)

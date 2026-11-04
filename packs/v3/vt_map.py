@@ -21,23 +21,76 @@ BASE = {
     "Новая — ул. Советская": (54.874235, 82.76467), "Строительная": (54.868796, 82.756911), "ул. Луговая": (54.865522, 82.750508),
     "Автотехцентр": (54.862357, 82.744098), "мкр. Радужный": (54.86604, 82.75987), "конечная (кладбище)": (54.855085, 82.762549),
 }
-SIDE_SHIFT = {"в сторону города": 1, "из города": -1}
 COLORS = ["#b5562f", "#3f6f86", "#5f8a4f", "#8a6aa0", "#c48a20", "#9a4625", "#2b2520"]
+EDGE_M = 9  # остановка — на обочине, в 9 м от середины дороги
+# у двух крайних точек названия разные по сторонам — считаем их сторонами одной остановки
+SIDE_OF = {"Поворот на Верх-Тулу": "в сторону города", "Река Верх-Тула": "из города"}
+_roads = []
+
+
+def _load_roads():
+    if not _roads:
+        import json
+        import os
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "static", "packs", "v3", "map", "vt.json")
+        try:
+            d = json.load(open(path, encoding="utf-8"))
+            _roads.extend(r for r in d["roads"] if r["k"] <= 3)
+        except (OSError, ValueError, KeyError):
+            _roads.append({"c": [], "k": 9})
+    return _roads
+
+
+def _snap(lat, lon, side):
+    """Ближайшая точка главной дороги и сдвиг на обочину: в России ездят справа, поэтому автобус «в сторону города»
+    (на север, к выезду на Новосибирск) останавливается справа по ходу, а «из города» — с другой стороны."""
+    kx = 111320 * math.cos(math.radians(lat))
+    ky = 111320
+
+    def m(p):
+        return ((p[0] - lon) * kx, (p[1] - lat) * ky)
+    best = None
+    for limit in (2, 3):
+        for r in _load_roads():
+            if r["k"] > limit:
+                continue
+            pts = [m(p) for p in r["c"]]
+            for a, b in zip(pts, pts[1:]):
+                dx, dy = b[0] - a[0], b[1] - a[1]
+                ln2 = dx * dx + dy * dy
+                if not ln2:
+                    continue
+                t = max(0.0, min(1.0, -(a[0] * dx + a[1] * dy) / ln2))
+                px, py = a[0] + t * dx, a[1] + t * dy
+                dist = math.hypot(px, py)
+                if best is None or dist < best[0]:
+                    best = (dist, px, py, dx, dy)
+        if best and best[0] < 160:  # главная дорога рядом — к ней, а не к соседней улочке
+            break
+    if not best or best[0] > 200:
+        return lat, lon
+    _, px, py, dx, dy = best
+    if dy < 0 or (dy == 0 and dx < 0):  # направление «в сторону города» — на север
+        dx, dy = -dx, -dy
+    ln = math.hypot(dx, dy) or 1
+    rx, ry = dy / ln, -dx / ln  # вправо по ходу движения на север
+    sign = 1 if side == "в сторону города" else -1 if side == "из города" else 0
+    px, py = px + sign * rx * EDGE_M, py + sign * ry * EDGE_M
+    return lat + py / ky, lon + px / kx
 
 
 def _split(name):
     m = re.fullmatch(r"(.+?)\s*\((в сторону города|из города)\)", name)
-    return (m.group(1), m.group(2)) if m else (name, "")
+    if m:
+        return m.group(1), m.group(2)
+    return name, SIDE_OF.get(name, "")
 
 
 def _default_geo(name):
     base, side = _split(name)
     if base not in BASE:
         return None
-    lat, lon = BASE[base]
-    if side:  # сдвиг поперёк главной дороги (она идёт с северо-востока на юго-запад)
-        k = SIDE_SHIFT[side] * 0.00011
-        lat, lon = lat - k * 0.7, lon + k * 1.2
+    lat, lon = _snap(*BASE[base], side)
     return [round(lat, 6), round(lon, 6)]
 
 
