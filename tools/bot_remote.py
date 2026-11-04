@@ -4,7 +4,8 @@
   [{"do": "dm", "to": "rubl", "text": "Привет"}, {"do": "post", "text": "..."},
    {"do": "comment", "post": 12, "text": "...", "parent": 34}, {"do": "like", "post": 12},
    {"do": "whale", "post": 12}, {"do": "ttt", "game": 3, "cell": 4}, {"do": "follow", "user": "alice"},
-   {"do": "dm_file", "to": "rubl", "path": "/tmp/ad.mp4", "text": "подпись"}]
+   {"do": "dm_file", "to": "rubl", "path": "/tmp/ad.mp4", "text": "подпись"},
+   {"do": "story", "path": "/tmp/s.png", "text": "подпись"}, {"do": "post", "text": "текст", "path": "/tmp/p.png"}]
 После команд остаётся в сети BOT_STAY минут и печатает новые личные сообщения и уведомления.
 Пароль — секрет NUVORA_BOT_PASSWORD (в журнал не попадает).
 """
@@ -64,8 +65,20 @@ def run(cmd):
         with open(cmd["path"], "rb") as f:
             r = s.post(B + "/messages/send-media", data={"receiver": cmd["to"], "caption": cmd.get("text", "")},
                        files={"file": (os.path.basename(cmd["path"]), f, mime)}, headers={"Origin": B, "X-Requested-With": "fetch"}, timeout=300)
-    elif d == "post":
-        r = s.post(B + "/post/create", data={"content": cmd["text"]}, headers={"Origin": B}, timeout=30, allow_redirects=False)
+    elif d == "post":  # пост; "path" — картинка или видео к нему
+        files = None
+        if cmd.get("path"):
+            import mimetypes
+            files = {"media": (os.path.basename(cmd["path"]), open(cmd["path"], "rb"), mimetypes.guess_type(cmd["path"])[0] or "image/png")}
+        r = s.post(B + "/post/create", data={"content": cmd["text"]}, files=files, headers={"Origin": B}, timeout=120, allow_redirects=False)
+    elif d == "story":  # история: картинка/видео ("path") и/или текст ("text")
+        files = None
+        if cmd.get("path"):
+            import mimetypes
+            files = {"media": (os.path.basename(cmd["path"]), open(cmd["path"], "rb"), mimetypes.guess_type(cmd["path"])[0] or "image/png")}
+        r = s.post(B + "/stories/create", data={"text_overlay": cmd.get("text", ""), "bg_color": cmd.get("bg", "#2b211c")}, files=files,
+                   headers={"Origin": B}, timeout=120, allow_redirects=False)
+        time.sleep(3)
     elif d == "comment":
         body = {"content": cmd["text"]}
         if cmd.get("parent"):
