@@ -11,7 +11,6 @@ from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
 
-import config
 from database import get_db
 from deps import current_user, log_mod, redirect, render
 
