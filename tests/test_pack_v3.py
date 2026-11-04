@@ -1361,3 +1361,14 @@ def test_merge_rename_login(alice):
     c2 = make_client()
     assert c2.post("/login", data={"username": "alice", "password": "secret123"}, follow_redirects=False).status_code == 303
     assert "Вам выдан временный логин" not in c2.get("/").text
+
+
+def test_vt_transport_approx():
+    from packs.v3 import transport
+    d, err = transport.parse("Маршрут: 1 | автобус | А → Б\nОстановки: ~Больница (из города) -2, Центр (из города) 0\nЕжедневно: 8:05")
+    assert not err
+    rows = transport.at_stop(d, transport.slug("Больница (из города)"))
+    assert rows[0]["approx"] and rows[0]["days"][0]["times"] == ["8:03"]
+    real = open("data/vt_transport.txt", encoding="utf-8").read()
+    d, err = transport.parse(real)
+    assert not err and len(d["routes"]) == 6

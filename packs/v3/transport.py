@@ -77,12 +77,13 @@ def parse(text):
             errors.append(f"строка {n}: сначала напишите строку «Маршрут: …»")
         elif key == "остановки":
             for item in val.split(","):
-                m = re.fullmatch(r"\s*(.+?)\s+(\d{1,3})\s*", item)
+                # «~Больница -2»: ~ — время примерное (в расписании перевозчика его нет), минус — раньше опорной остановки
+                m = re.fullmatch(r"\s*(~?)\s*(.+?)\s+(-?\d{1,3})\s*", item)
                 if not m:
                     if item.strip():
                         errors.append(f"строка {n}: у остановки «{item.strip()}» нет минут в пути (например, «Школа 5»)")
                     continue
-                cur["stops"].append({"name": m.group(1)[:60], "slug": slug(m.group(1)), "off": int(m.group(2))})
+                cur["stops"].append({"name": m.group(2)[:60], "slug": slug(m.group(2)), "off": int(m.group(3)), "approx": bool(m.group(1))})
         elif key in DAYS:
             times, bad = [], []
             for tok in val.replace(",", " ").split():
@@ -118,7 +119,7 @@ def at_stop(data, stop_slug):
         if not st:
             continue
         last = r["stops"][-1]["name"] if r["stops"] else ""
-        out.append({"num": r["num"], "kind": r["kind"], "name": r["name"], "to": last, "is_last": st is r["stops"][-1],
+        out.append({"num": r["num"], "kind": r["kind"], "name": r["name"], "to": last, "is_last": st is r["stops"][-1], "approx": st.get("approx", False),
                     "days": [{"title": d["title"], "wd": list(d["wd"]), "times": [fmt(t + st["off"]) for t in d["times"]],
                               "mins": [(t + st["off"]) % 1440 for t in d["times"]]} for d in r["days"]]})
     return out
@@ -166,13 +167,20 @@ def _sign_html(data, st, rows):
     e = html.escape
     blocks = []
     for r in rows:
-        days = "".join(f'<div class="d"><b>{e(d["title"])}</b><span>{" ".join(e(t) for t in d["times"]) or "—"}</span></div>' for d in r["days"])
+        days = "".join(f'<div class="d"><b>{e(d["title"])}</b><span>{"≈ " if r["approx"] else ""}{" ".join(e(t) for t in d["times"]) or "—"}</span></div>' for d in r["days"])
         to = "конечная" if r["is_last"] else "→ " + e(r["to"])
         blocks.append(f'<div class="r"><div class="h"><span class="n">{e(r["num"])}</span><span class="k">{e(r["kind"])}</span>'
                       f'<span class="to">{e(r["name"] or to)}</span></div>{days}</div>')
+    total = sum(len(d["times"]) for r in rows for d in r["days"])
+    size = "s1" if total <= 45 else "s2" if total <= 90 else "s3" if total <= 140 else "s4"  # шрифт под количество рейсов
     body = "".join(blocks) or '<p class="empty">Через эту остановку маршрутов пока нет</p>'
-    return (f'<section class="sign"><div class="top"><div class="lbl">Остановка</div><h1>{e(st["name"])}</h1></div>'
-            f'<div class="list">{body}</div>'
+    if any(r["approx"] for r in rows):
+        body += '<p class="note">≈ — примерное время: в расписании перевозчика оно указано только для основных остановок</p>'
+    m = re.fullmatch(r"(.+?)\s*\((в сторону города|из города)\)", st["name"])
+    title, side = (m.group(1), m.group(2)) if m else (st["name"], "")
+    side_html = f'<div class="side">{"→ в сторону города" if side.startswith("в") else "← из города"}</div>' if side else ""
+    return (f'<section class="sign"><div class="top"><div class="lbl">Остановка</div><h1>{e(title)}</h1>{side_html}</div>'
+            f'<div class="list {size}">{body}</div>'
             f'<div class="bot"><div class="qr">{_qr_svg(url)}</div><div class="txt"><b>Расписание всех маршруток и автобусов</b>'
             f'<span class="u">{e(_short())}</span><small>Наведите камеру телефона на QR-код. Время может меняться — '
             f'актуальное всегда на сайте.</small></div></div></section>')
@@ -185,12 +193,16 @@ body{font-family:Onest,Arial,sans-serif;color:#2b2520;background:#e9e2d8}
 .sign{width:210mm;height:297mm;margin:0 auto 10mm;background:#fff;padding:14mm 13mm 12mm;display:flex;flex-direction:column;page-break-after:always;break-after:page}
 .top{border-bottom:2.5mm solid #b5562f;padding-bottom:5mm;margin-bottom:6mm}.lbl{font-size:13pt;text-transform:uppercase;letter-spacing:.12em;color:#6e6254}
 h1{font-family:Unb,Arial,sans-serif;font-size:34pt;line-height:1.1;margin-top:2mm}
+.side{display:inline-block;margin-top:3mm;background:#b5562f;color:#fff;font-size:15pt;font-weight:700;padding:1.5mm 5mm;border-radius:3mm}
 .list{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:5mm}
 .r{border:.6mm solid #d6c7b2;border-radius:5mm;padding:4mm 5mm}.h{display:flex;align-items:center;gap:4mm;margin-bottom:2.5mm}
 .n{font-family:Unb,Arial,sans-serif;font-size:22pt;background:#2b2520;color:#fff;border-radius:3mm;padding:1mm 4mm;min-width:22mm;text-align:center}
 .k{font-size:11pt;text-transform:uppercase;letter-spacing:.08em;color:#6e6254}.to{font-size:14pt;font-weight:600}
 .d{display:flex;gap:4mm;font-size:17pt;line-height:1.45;padding:1mm 0}.d b{min-width:36mm}.d span{font-variant-numeric:tabular-nums;word-spacing:2mm}
-.empty{font-size:16pt;color:#6e6254}
+.s2 .d{font-size:13pt;line-height:1.35}.s2 .r{padding:3mm 4mm}.s2{gap:3mm}
+.s3 .d{font-size:11pt;line-height:1.3}.s3 .d b{min-width:28mm}.s3 .r{padding:2.5mm 4mm}.s3 .h{margin-bottom:1.5mm}.s3 .n{font-size:17pt}.s3{gap:2.5mm}
+.s4 .d{font-size:9.5pt;line-height:1.25}.s4 .d b{min-width:24mm}.s4 .r{padding:2mm 3.5mm}.s4 .h{margin-bottom:1mm}.s4 .n{font-size:15pt}.s4{gap:2mm}
+.empty{font-size:16pt;color:#6e6254}.note{font-size:11pt;color:#6e6254;margin-top:1mm}
 .bot{display:flex;gap:7mm;align-items:center;border-top:.6mm solid #d6c7b2;padding-top:6mm;margin-top:5mm}
 .qr svg{width:48mm;height:48mm;display:block}.txt{display:flex;flex-direction:column;gap:2mm}.txt b{font-size:17pt}
 .u{font-family:Unb,Arial,sans-serif;font-size:24pt;color:#9a4625}.txt small{font-size:10.5pt;color:#6e6254}
