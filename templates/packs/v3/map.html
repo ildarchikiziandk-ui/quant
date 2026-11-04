@@ -5,10 +5,11 @@
 {% block body_class %}map-page{% endblock %}
 {% block content %}
 <style>
+html:has(.map-page),.map-page{overscroll-behavior:none}  /* без «потяни, чтобы обновить» браузера */
 .map-page .main{padding:0!important;max-width:none}.map-page .layout{max-width:none;padding:0}.map-page aside.right{display:none}
 .nmap-wrap{position:relative;height:calc(100vh - 64px);height:calc(100dvh - 64px)}
 @media (max-width:640px){.nmap-wrap{height:calc(100dvh - 64px - 84px - env(safe-area-inset-bottom))}}
-#nmap{position:absolute;inset:0;background:#f4ede3}
+#nmap{position:absolute;inset:0;background:#f4ede3;touch-action:none;overscroll-behavior:none}
 .nmap-top{position:absolute;left:10px;right:10px;top:10px;z-index:1000;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;pointer-events:none}
 .nmap-top>*{pointer-events:auto}
 .nmap-search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:0 12px;box-shadow:0 4px 14px -8px rgba(0,0,0,.3);flex:1;min-width:150px;max-width:360px}
