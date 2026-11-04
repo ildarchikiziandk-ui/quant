@@ -19,7 +19,7 @@ srv.listen(0, async () => {
   const f = await b.newPage({ viewport: { width: 120, height: 80 }, javaScriptEnabled: false });
   for (const code of [...new Set(peoples.map(x => x.flag).filter(Boolean))]) {
     const svg = fs.readFileSync(path.join(OUT, 'flags', code + '.svg'), 'utf8');
-    await f.setContent(`<style>html,body{margin:0}svg{width:120px;height:80px;display:block}</style>${svg.replace('<svg ', '<svg preserveAspectRatio="none" ')}`);
+    await f.setContent(`<style>html,body{margin:0}svg{width:120px;height:80px;display:block}</style>${svg.replace('<svg ', code.startsWith('c-') ? '<svg preserveAspectRatio="xMidYMid slice" ' : '<svg preserveAspectRatio="none" ')}`);
     await f.screenshot({ path: path.join(OUT, 'flags', code + '.png') });
   }
   await b.close(); srv.close(); console.log('готово:', peoples.length, 'логотипов');

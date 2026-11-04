@@ -11,11 +11,11 @@
 <div class="card">
   <div class="row" style="gap:14px;align-items:center"><img src="/static/brand/unity/russkie.png" alt="" style="width:86px;height:86px"><div><div class="page-title" style="margin:0">4 ноября — День народного единства</div><div class="small muted">История праздника и узоры народов России</div></div></div>
   <p class="mt">{{ history }}</p>
-  <p class="small muted">В России живут больше 190 народов. В праздничные дни при каждом входе в Нувору логотип расписан узором одного из них — вот все {{ peoples|length }}. Рядом с названием — флаг республики, где живёт много людей этого народа.</p>
+  <p class="small muted">В России живут больше 190 народов. В праздничные дни при каждом входе в Нувору логотип расписан узором одного из них — вот все {{ peoples|length }}. Рядом с названием — флаг республики или страны этого народа.</p>
 </div>
 <div class="ud-grid mt">
 {% for p in peoples %}<div class="ud-card"><img src="/static/brand/unity/{{ p.slug }}.png" alt="Логотип в узорах: {{ p.name }}" loading="lazy">
 <div class="ud-name">{% if p.flag %}<img src="/static/brand/unity/flags/{{ p.flag }}.png" alt="" title="Флаг {{ p.flag_of }}">{% endif %}{{ p.name }}</div><div class="tiny muted">{{ p.about }}</div></div>{% endfor %}
 </div>
-<p class="tiny muted mt">Узоры нарисованы для {{ brand }} по мотивам народных орнаментов. Флаги республик — официальные символы.</p>
+<p class="tiny muted mt">Узоры нарисованы для {{ brand }} по мотивам народных орнаментов. Флаги — официальные символы республик и стран.</p>
 {% endblock %}
