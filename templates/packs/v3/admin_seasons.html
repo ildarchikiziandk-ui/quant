@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Праздники — {{ brand }}{% endblock %}
+{% block content %}
+<div class="row mb"><a href="/admin" class="btn ghost sm">{{ icon("back", "i in") }} Админ-панель</a></div>
+<div class="page-title">{{ icon("sparkle", "i in") }} Праздники</div>
+{% if ok %}<div class="card" style="border-color:var(--whale)">Сохранено</div>{% endif %}
+<form class="card" method="post" action="/admin/seasons">
+  {% for r in rows %}
+  <div class="row wrap" style="justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border)">
+    <div><b>{{ r.title }}</b> {% if r.on %}<span class="tag-pill">сейчас идёт</span>{% endif %}
+      <div class="small muted">{% if r.key == "snow" %}По календарю: с 15 ноября по конец февраля{% elif r.key == "mom" %}По календарю: {{ mom_day.day - 1 }}–{{ mom_day.day + 1 }} ноября (День матери — {{ mom_day.day }} ноября){% else %}По календарю: с 15 декабря по 14 января · шариков на ёлке: {{ balls }}{% endif %}</div></div>
+    <select name="{{ r.key }}" style="margin:0;width:auto">
+      <option value="auto" {% if r.mode == "auto" %}selected{% endif %}>По календарю</option>
+      <option value="on" {% if r.mode == "on" %}selected{% endif %}>Включить сейчас</option>
+      <option value="off" {% if r.mode == "off" %}selected{% endif %}>Выключить</option>
+    </select>
+  </div>
+  {% endfor %}
+  <button class="btn mt">Сохранить</button>
+  <p class="small muted mt">Вы как владелец можете заранее посмотреть: <a href="/den-materi">открытки ко Дню матери</a> · <a href="/yolka">новогоднюю ёлку</a>. Остальные увидят их, только когда праздник идёт.</p>
+</form>
+{% endblock %}

@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}svg{display:block}</style></head><body><svg id="c" width="1080" height="1350" viewBox="0 0 1080 1350"></svg>
+<script>
+// Фоны открыток ко Дню матери (текст сервер дописывает сам: packs/v3/seasons.py). Место под текст — верхние ~760 px.
+const tulip = (x, y, s, c, c2, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">
+  <path d="M0 0 C -6 60 -4 140 4 230" stroke="#5f8a4f" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M2 150 C -40 110 -70 120 -86 100 C -60 150 -20 170 2 175Z" fill="#6f9a5c"/><path d="M4 120 C 40 80 66 92 80 70 C 60 120 26 140 4 145Z" fill="#7faa69"/>
+  <path d="M0 4 C -40 -6 -46 -60 -30 -92 C -20 -70 -12 -66 -6 -90 C 0 -110 4 -110 8 -90 C 14 -66 22 -70 32 -92 C 48 -60 42 -6 0 4Z" fill="${c}"/>
+  <path d="M0 4 C -16 -20 -14 -60 -6 -90 C 0 -110 4 -110 8 -90 C 16 -60 18 -20 0 4Z" fill="${c2}"/></g>`;
+const daisy = (x, y, r, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot})">${[...Array(14)].map((_, k) => `<ellipse cx="0" cy="${-r * .62}" rx="${r * .17}" ry="${r * .42}" fill="#fff" stroke="#e6dccb" stroke-width="2" transform="rotate(${k * 360 / 14})"/>`).join('')}<circle r="${r * .26}" fill="#f0b429"/><circle r="${r * .26}" fill="none" stroke="#d99a16" stroke-width="3"/></g>`;
+const heart = (x, y, s, c, rot = 0) => `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" d="M0 12 C -22 -6 -26 -26 -12 -34 C -4 -38 0 -32 0 -26 C 0 -32 4 -38 12 -34 C 26 -26 22 -6 0 12Z" fill="${c}"/>`;
+const CARDS = {
+  tulips: () => `<rect width="1080" height="1350" fill="#f8efe4"/><rect x="34" y="34" width="1012" height="1282" rx="44" fill="none" stroke="#e3c7b1" stroke-width="4"/>`
+    + [[340, 1060, 1.5, '#d6455d', '#e86a7f', -14], [540, 990, 1.7, '#b5562f', '#d27a4f', 0], [740, 1060, 1.5, '#e98aa0', '#f3adbd', 14], [440, 1110, 1.25, '#f0b429', '#f6cd63', -6], [640, 1110, 1.25, '#d6455d', '#e86a7f', 7]]
+      .map(a => tulip(...a)).join('') + `<path d="M410 1250 C 470 1190 610 1190 670 1250 L 640 1316 L 440 1316Z" fill="#e3c7b1"/>`,
+  daisies: () => `<rect width="1080" height="1350" fill="#eef3e6"/><rect x="34" y="34" width="1012" height="1282" rx="44" fill="none" stroke="#c9d8b6" stroke-width="4"/>`
+    + [[150, 1180, 120, 10], [330, 1250, 90, 30], [520, 1190, 130, 0], [720, 1250, 95, 20], [900, 1170, 120, 5], [80, 980, 70, 15], [1000, 990, 75, 40], [250, 1060, 60, 0], [820, 1060, 62, 8]].map(a => daisy(...a)).join(''),
+  hearts: () => `<rect width="1080" height="1350" fill="#fbe9ea"/><rect x="34" y="34" width="1012" height="1282" rx="44" fill="none" stroke="#efc4c9" stroke-width="4"/>`
+    + [...Array(26)].map((_, k) => { const x = 90 + ((k * 397) % 900), y = 900 + ((k * 151) % 380); return heart(x, y, 1.2 + (k % 4) * .5, ['#d6455d', '#e86a7f', '#f29aa8', '#b5562f'][k % 4], (k * 37) % 50 - 25); }).join(''),
+};
+window.draw = k => { document.getElementById('c').innerHTML = CARDS[k](); };
+</script></body></html>

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Новогодняя ёлка — {{ brand }}{% endblock %}
+{% block content %}
+<style>
+.yk-wrap{position:relative;width:100%;max-width:520px;margin:0 auto;aspect-ratio:5/6}
+.yk-wrap svg.tree{position:absolute;inset:0;width:100%;height:100%}
+.yk-ball{position:absolute;width:9%;aspect-ratio:1;transform:translate(-50%,-50%);border:0;padding:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));animation:yk-sway 4s ease-in-out infinite}
+.yk-ball img{width:100%;height:100%;border-radius:50%;display:block;background:#fff}
+.yk-ball::before{content:"";position:absolute;left:50%;top:-12%;width:26%;height:16%;transform:translateX(-50%);background:linear-gradient(#f3d27a,#c99a2e);border-radius:3px 3px 2px 2px}
+.yk-ball.mine img{box-shadow:0 0 0 3px #f0c24a}
+@keyframes yk-sway{0%,100%{rotate:-3deg}50%{rotate:3deg}}
+@media (prefers-reduced-motion:reduce){.yk-ball{animation:none}}
+.yk-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}.yk-more .yk-ball{position:relative;width:100%;transform:none;animation:none}
+.yk-ed{display:flex;flex-direction:column;align-items:center;gap:10px}
+.yk-canvas{width:min(300px,78vw);aspect-ratio:1;border-radius:50%;touch-action:none;box-shadow:0 0 0 4px #f0c24a,0 12px 26px -12px rgba(0,0,0,.4);background:#fff;cursor:crosshair}
+.yk-pal{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:340px}
+.yk-pal button{width:32px;height:32px;border-radius:50%;border:2px solid rgba(0,0,0,.12);padding:0;cursor:pointer}.yk-pal button.on{outline:3px solid var(--text);outline-offset:2px}
+.yk-tools{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.yk-tools .btn.on{background:var(--whale);color:#fff}
+.yk-pop{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:1200;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px 14px;box-shadow:0 14px 34px -14px rgba(0,0,0,.4);display:flex;align-items:center;gap:10px;max-width:92vw;min-width:260px}.yk-pop b{white-space:nowrap}
+</style>
+<div class="card" style="text-align:center">
+  <div class="page-title" style="margin:0">🎄 Ёлка {{ brand }}</div>
+  <div class="small muted">Каждый вешает на ёлку свой шарик — нарисованный своими руками. С наступающим {{ year }}!</div>
+</div>
+<div class="card">
+  <div class="yk-wrap" id="yk-tree">
+    <svg class="tree" viewBox="0 0 500 600" aria-hidden="true">
+      <polygon points="250,40 262,72 296,72 268,92 279,124 250,104 221,124 232,92 204,72 238,72" fill="#f0c24a" stroke="#c99a2e" stroke-width="3"/>
+      <polygon points="250,95 330,210 290,210 370,330 320,330 410,460 90,460 180,330 130,330 210,210 170,210" fill="#3f7d4e"/>
+      <polygon points="250,95 330,210 290,210 370,330 320,330 410,460 250,460" fill="#356c43"/>
+      <path d="M170 210 Q250 245 330 210 M130 330 Q250 375 370 330 M90 460 Q250 510 410 460" fill="none" stroke="#2c5a38" stroke-width="5" opacity=".5"/>
+      <rect x="222" y="460" width="56" height="70" rx="6" fill="#7a4a2c"/>
+      <ellipse cx="250" cy="540" rx="170" ry="22" fill="#e9e1d4"/>
+    </svg>
+    {% for it in items[:slots|length] %}{% set p = slots[loop.index0] %}
+    <button class="yk-ball{% if user and it.u.id == user.id %} mine{% endif %}" style="left:{{ p[0] }}%;top:{{ p[1] }}%;animation-delay:-{{ loop.index0 % 7 * 0.6 }}s" data-name="{{ it.u.name or it.u.username }}" data-user="{{ it.u.username }}" data-id="{{ it.b.id }}"><img src="{{ it.b.image }}" alt="Шарик {{ it.u.name or it.u.username }}" loading="lazy"></button>
+    {% endfor %}
+  </div>
+  {% if items|length > slots|length %}<div class="card-title mt">Ещё шарики</div><div class="yk-more">{% for it in items[slots|length:] %}<button class="yk-ball" data-name="{{ it.u.name or it.u.username }}" data-user="{{ it.u.username }}" data-id="{{ it.b.id }}"><img src="{{ it.b.image }}" alt="" loading="lazy"></button>{% endfor %}</div>{% endif %}
+  <p class="tiny muted center mt">{% if items %}На ёлке {{ plural(items|length, "шарик", "шарика", "шариков") }}. Нажмите на шарик — увидите, чей он.{% else %}Пока на ёлке нет ни одного шарика — повесьте первый!{% endif %}</p>
+</div>
+<div class="card" id="yk-draw">
+  {% if user %}
+  <div class="card-title center">{{ "Перерисовать свой шарик" if mine else "Нарисуйте свой шарик" }}</div>
+  <div class="yk-ed">
+    <canvas class="yk-canvas" id="yk-c" width="400" height="400"></canvas>
+    <div class="yk-pal" id="yk-pal"></div>
+    <div class="yk-tools">
+      <button class="btn soft sm on" data-size="6">Тонко</button><button class="btn soft sm" data-size="14">Средне</button><button class="btn soft sm" data-size="30">Толсто</button>
+      <button class="btn soft sm" id="yk-fill">Залить фон</button><button class="btn soft sm" id="yk-er">Ластик</button><button class="btn soft sm" id="yk-undo">Отменить</button><button class="btn ghost sm" id="yk-clr">Очистить</button>
+    </div>
+    <button class="btn" id="yk-save">🎄 Повесить на ёлку</button>
+    <p class="tiny muted center">Один шарик на человека — его можно перерисовать. Шарики с плохими рисунками модераторы снимают.</p>
+  </div>
+  {% else %}<p class="center">Чтобы повесить свой шарик, <a href="/login?next=/yolka" style="color:var(--link)">войдите</a> или <a href="/register" style="color:var(--link)">зарегистрируйтесь</a>.</p>{% endif %}
+</div>
+<script>
+(function () {
+  const CAN_MOD = {{ can_mod|tojson }};
+  // кто повесил шарик
+  let pop = null;
+  document.querySelectorAll('.yk-ball').forEach(b => b.onclick = () => {
+    pop && pop.remove(); pop = document.createElement('div'); pop.className = 'yk-pop';
+    pop.innerHTML = `<img src="${b.querySelector('img').src}" style="width:44px;height:44px;border-radius:50%"><div><b></b><div class="tiny"><a href="/profile/${encodeURIComponent(b.dataset.user)}" style="color:var(--link)">Открыть профиль</a></div></div>${CAN_MOD ? '<button class="btn ghost sm" data-hide>Снять</button>' : ''}<button class="icon-btn" data-x aria-label="Закрыть">✕</button>`;
+    pop.querySelector('b').textContent = 'Шарик: ' + b.dataset.name; document.body.appendChild(pop);
+    pop.querySelector('[data-x]').onclick = () => pop.remove();
+    const h = pop.querySelector('[data-hide]');
+    if (h) h.onclick = () => fetch(`/yolka/ball/${b.dataset.id}/hide`, { method: 'POST', headers: { 'X-Requested-With': 'fetch' } }).then(r => r.json()).then(j => { if (j.ok) { b.remove(); pop.remove(); } else window.toast && toast(j.error || 'Не вышло'); });
+  });
+  // рисовалка
+  const c = document.getElementById('yk-c'); if (!c) return;
+  const x = c.getContext('2d'), W = c.width;
+  const COLORS = ['#c8281e', '#e86a7f', '#f0c24a', '#e0a526', '#2e8b57', '#8fc36a', '#1d5fa5', '#7fb3e0', '#8a6aa0', '#ffffff', '#b5562f', '#2b2520'];
+  let color = COLORS[0], size = 6, erase = false, drawing = false, last = null; const hist = [];
+  const clipCircle = () => { x.save(); x.beginPath(); x.arc(W / 2, W / 2, W / 2, 0, Math.PI * 2); x.clip(); };
+  const fillBg = col => { snap(); clipCircle(); x.fillStyle = col; x.fillRect(0, 0, W, W); x.restore(); };
+  const snap = () => { hist.push(x.getImageData(0, 0, W, W)); if (hist.length > 30) hist.shift(); };
+  // стартовый шарик — красный с бликом, чтобы было с чего начать
+  clipCircle(); x.fillStyle = '#c8281e'; x.fillRect(0, 0, W, W); x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(130, 120, 50, 30, -0.6, 0, Math.PI * 2); x.fill(); x.restore();
+  const MINE = {{ (mine.image if mine and not mine.hidden else '')|tojson }};  // перерисовать — начинаем со своего шарика
+  if (MINE) { const im = new Image(); im.onload = () => { x.clearRect(0, 0, W, W); clipCircle(); x.drawImage(im, 0, 0, W, W); x.restore(); }; im.src = MINE; }
+  const pal = document.getElementById('yk-pal');
+  COLORS.forEach((col, i) => { const b = document.createElement('button'); b.style.background = col; b.title = col; if (!i) b.classList.add('on');
+    b.onclick = () => { color = col; erase = false; document.getElementById('yk-er').classList.remove('on'); pal.querySelectorAll('button').forEach(z => z.classList.toggle('on', z === b)); }; pal.appendChild(b); });
+  const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * W / r.height]; };
+  const line = (a, b) => { clipCircle(); x.globalCompositeOperation = erase ? 'destination-out' : 'source-over'; x.strokeStyle = color; x.lineWidth = size; x.lineCap = x.lineJoin = 'round';
+    x.beginPath(); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); x.stroke(); x.restore(); x.globalCompositeOperation = 'source-over'; };
+  c.addEventListener('pointerdown', e => { snap(); drawing = true; last = pos(e); line(last, [last[0] + .1, last[1] + .1]); c.setPointerCapture(e.pointerId); });
+  c.addEventListener('pointermove', e => { if (!drawing) return; const p = pos(e); line(last, p); last = p; });
+  ['pointerup', 'pointercancel'].forEach(n => c.addEventListener(n, () => drawing = false));
+  document.querySelectorAll('[data-size]').forEach(b => b.onclick = () => { size = +b.dataset.size; document.querySelectorAll('[data-size]').forEach(z => z.classList.toggle('on', z === b)); });
+  document.getElementById('yk-fill').onclick = () => fillBg(color);
+  document.getElementById('yk-er').onclick = e => { erase = !erase; e.currentTarget.classList.toggle('on', erase); };
+  document.getElementById('yk-undo').onclick = () => { const h = hist.pop(); if (h) x.putImageData(h, 0, 0); };
+  document.getElementById('yk-clr').onclick = () => { snap(); x.clearRect(0, 0, W, W); };
+  document.getElementById('yk-save').onclick = e => { const btn = e.currentTarget; btn.disabled = true;
+    fetch('/yolka/ball', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, body: JSON.stringify({ png: c.toDataURL('image/png') }) })
+      .then(r => r.json()).then(j => { if (j.ok) { window.toast && toast('Шарик на ёлке! 🎄'); setTimeout(() => location.reload(), 700); } else { btn.disabled = false; window.toast && toast(j.error || 'Не получилось'); } })
+      .catch(() => { btn.disabled = false; window.toast && toast('Нет связи — попробуйте ещё раз'); }); };
+})();
+</script>
+{% endblock %}

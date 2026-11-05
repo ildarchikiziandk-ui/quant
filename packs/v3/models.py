@@ -320,3 +320,15 @@ class ShareVisit(Base):
     viewer_id = Column(Integer, ForeignKey("users.id"), index=True)
     post_id = Column(Integer, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# --- Праздники ---------------------------------------------------------------------------------------------
+class YolkaBall(Base):
+    """Шарик на общей новогодней ёлке: каждый рисует свой (один на человека, можно перерисовать)."""
+    __tablename__ = "v3_yolka_balls"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
+    image = Column(String(200), default="")  # /uploads/yolka/....png
+    year = Column(Integer, default=2027)  # какой Новый год встречаем
+    hidden = Column(Boolean, default=False)  # скрыт модератором
+    created_at = Column(DateTime, default=datetime.utcnow)

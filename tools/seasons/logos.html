@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}.m{position:relative;width:512px;height:512px}.m>*{position:absolute;inset:0;width:100%;height:100%}</style></head>
+<body><div class="m"><img src="mark.png"><svg id="o" viewBox="0 0 1024 1024"></svg></div>
+<script>
+const heart = (x, y, s, c) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 12 C -22 -6 -26 -26 -12 -34 C -4 -38 0 -32 0 -26 C 0 -32 4 -38 12 -34 C 26 -26 22 -6 0 12Z" fill="${c}"/>`;
+const L = {
+  // Новый год: красный колпак на голове кита
+  ny: `<g transform="translate(282 556) rotate(-14)">
+        <path d="M-86 0 C -70 -70 -30 -130 40 -150 C 86 -162 120 -140 132 -112 C 110 -126 78 -118 60 -96 C 40 -70 40 -36 46 0 Z" fill="#c8281e" stroke="#7d1712" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M-96 -6 C -40 -22 30 -22 62 -8 L 64 26 C 30 10 -40 10 -98 26 Z" fill="#fff" stroke="#cfc6bb" stroke-width="4"/>
+        <circle cx="138" cy="-104" r="27" fill="#fff" stroke="#cfc6bb" stroke-width="4"/></g>`,
+  // День матери: сердечки вместо фонтанчика
+  mom: heart(300, 470, 2.1, '#d6455d') + heart(372, 395, 1.6, '#e86a7f') + heart(292, 330, 1.2, '#f29aa8'),
+};
+window.draw = k => { document.getElementById('o').innerHTML = L[k]; };
+</script></body></html>

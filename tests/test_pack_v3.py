@@ -1410,3 +1410,38 @@ def test_cert_site_and_team_badge(owner, alice):
     s.close()
     assert "Команда" in owner.get("/profile/alice").text
     owner.post("/admin/u/alice/team")
+
+
+def test_seasons(owner, alice):
+    import base64
+    import datetime as dt
+    import io
+    from PIL import Image
+    from packs.v3 import seasons
+    assert seasons.mothers_day(2026) == dt.date(2026, 11, 29)
+    assert seasons.by_calendar("snow", dt.date(2026, 11, 20)) and not seasons.by_calendar("snow", dt.date(2026, 11, 10))
+    assert seasons.by_calendar("mom", dt.date(2026, 11, 28)) and not seasons.by_calendar("mom", dt.date(2026, 11, 25))
+    assert seasons.by_calendar("ny", dt.date(2027, 1, 3)) and not seasons.by_calendar("ny", dt.date(2026, 12, 10))
+    assert alice.post("/admin/seasons", data={"ny": "on"}, follow_redirects=False).status_code in (302, 303)
+    assert alice.get("/yolka", follow_redirects=False).status_code in (302, 303)  # до праздника только владелец
+    assert owner.post("/admin/seasons", data={"snow": "on", "mom": "on", "ny": "on"}, follow_redirects=False).status_code in (302, 303)
+    from packs.v3 import site
+    site._cache["t"] = 0
+    home = alice.get("/").text
+    assert "snow.js" in home and "ssplash" in home and "ny-garland" in home
+    assert "Ёлка" in alice.get("/yolka").text
+    im = Image.new("RGBA", (300, 300), (200, 40, 30, 255))
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    png = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    r = alice.post("/yolka/ball", json={"png": png}, headers=J).json()
+    assert r["ok"] and r["image"].startswith("/uploads/yolka/")
+    assert alice.post("/yolka/ball", json={"png": "data:image/png;base64,AAAA"}, headers=J).json()["ok"] is False
+    page = alice.get("/yolka").text
+    assert r["image"] in page
+    card = alice.get("/den-materi/card.png?c=daisies&to=Мама&t=Люблю&sg=Алиса")
+    assert card.status_code == 200 and card.content[:4] == b"\x89PNG"
+    assert "Открытка" in alice.get("/den-materi").text or "Днём матери" in alice.get("/den-materi").text
+    owner.post("/admin/seasons", data={"snow": "off", "mom": "off", "ny": "off"})
+    site._cache["t"] = 0
+    assert "ssplash" not in alice.get("/").text
