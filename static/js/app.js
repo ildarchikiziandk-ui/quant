@@ -696,7 +696,8 @@
     if (P.chat_big_emoji !== false) $$('.bubble:not([data-em]) .txt', root).forEach(t => {
       const b = t.closest('.bubble'); b.dataset.em = 1;
       const txt = t.textContent.trim();
-      if (txt && txt.length <= 12 && /^(\p{Extended_Pictographic}|\p{Emoji_Component}|‍|️|\s)+$/u.test(txt) && !b.querySelector('img,video,audio,.file')) b.classList.add('big-emoji');
+      // без «окошка» — только настоящие смайлики; цифры, # и * считаются частью эмодзи (1️⃣), но обычные цифры — это текст
+      if (txt && txt.length <= 12 && /^(\p{Extended_Pictographic}|\p{Emoji_Component}|‍|️|\s)+$/u.test(txt) && /\p{Extended_Pictographic}|\u20E3/u.test(txt) && !/[0-9#*](?!\uFE0F?\u20E3)/.test(txt) && !b.querySelector('img,video,audio,.file')) b.classList.add('big-emoji');
     });
     // Подсказки у кнопок-иконок
     if (P.alt_hints !== false) $$('.icon-btn[aria-label]:not([title])', root).forEach(b => b.title = b.getAttribute('aria-label'));

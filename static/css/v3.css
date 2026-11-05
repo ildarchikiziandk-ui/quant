@@ -485,3 +485,5 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .owner-pill.team { background: color-mix(in srgb, #b5562f 14%, var(--card)) !important; color: #8a3d1f !important; }
 [data-theme="dark"] .owner-pill.team { background: color-mix(in srgb, #e08a63 20%, var(--card)) !important; color: #f3c3ad !important; }
 .owner-pill .team-ic { flex: none; }
+.badge.team-b img { width: 16px; height: 16px; display: block; }
+.owner-pill.team { font-family: inherit; width: fit-content; }
