@@ -1,0 +1,91 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:transparent}.m{position:relative;width:512px;height:512px}.m>*{position:absolute;inset:0;width:100%;height:100%}
+.rm{-webkit-mask:url(ringmask.png) 0 0/100% 100%;mask:url(ringmask.png) 0 0/100% 100%}
+.wm{-webkit-mask:url(whalemask.png) 0 0/100% 100%;mask:url(whalemask.png) 0 0/100% 100%;background:#b5562f}
+</style></head><body><div class="m"><svg class="rm" id="orn" viewBox="0 0 1024 1024"></svg><div class="wm"></div></div>
+<script>
+// Узоры народов на кольце буквы Q. Координаты логотипа 1024×1024: центр кольца (378, 508), средний радиус 266, толщина 70.
+// Узор рисуется «по ходу» кольца: x — вдоль кольца, y — поперёк (наружу — минус), |y| ≤ ~28.
+const CX = 378, CY = 508, RM = 266;
+const P = (a, r) => [CX + r * Math.cos(a * Math.PI / 180), CY + r * Math.sin(a * Math.PI / 180)];
+function along(step, fn, from = 92, to = 400) { let h = '', i = 0;
+  for (let a = from; a <= to; a += step, i++) { const [x, y] = P(a, RM); h += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a + 90).toFixed(1)})">${fn(i)}</g>`; } return h; }
+function arc(r, color, w, dash) { let d = ''; for (let a = 88; a <= 404; a += 2) { const [x, y] = P(a, r); d += (a === 88 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`; }
+const edges = (c, w = 3) => arc(RM + 29, c, w) + arc(RM - 29, c, w);
+function stitch(grid, color, s = 4.2) { let h = ''; const n = grid.length;  // крестики по сетке
+  grid.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') { const X = (x - (row.length - 1) / 2) * s - s / 2, Y = (y - (n - 1) / 2) * s - s / 2;
+    h += `<path d="M${X.toFixed(1)} ${Y.toFixed(1)}l${s} ${s}M${(X + s).toFixed(1)} ${Y.toFixed(1)}l-${s} ${s}" stroke="${ch === '#' ? color[0] : color[1]}" stroke-width="1.5"/>`; } })); return h; }
+const RHOMB = ["....#....", "...#o#...", "..#o.o#..", ".#o.#.o#.", "#o.###.o#", ".#o.#.o#.", "..#o.o#..", "...#o#...", "....#...."];
+const STAR = ["...#.#...", "...###...", "#..#.#..#", "##.###.##", ".#######.", "##.###.##", "#..#.#..#", "...###...", "...#.#..."];
+const curl = (s, c, w) => `<path d="M0 0 C ${6 * s} ${-2 * s} ${8 * s} ${-9 * s} ${3 * s} ${-12 * s} C ${-1 * s} ${-14 * s} ${-5 * s} ${-10 * s} ${-2 * s} ${-7 * s}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+const M = {
+  vine([bg, gold, red, hi]) { let h = `<rect width="1024" height="1024" fill="${bg}"/>`, d = '';
+    for (let a = 90; a <= 402; a += 2) { const [x, y] = P(a, RM + 13 * Math.sin(a * Math.PI / 18)); d += (a === 90 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+    h += `<path d="${d}" fill="none" stroke="${gold}" stroke-width="5"/>`;
+    for (let a = 95, i = 0; a <= 400; a += 10, i++) { const out = i % 2 ? 1 : -1, r = RM + 13 * Math.sin(a * Math.PI / 18); const [x, y] = P(a, r), [lx, ly] = P(a + 4, r + out * 16);
+      const rot = Math.atan2(ly - y, lx - x) * 180 / Math.PI; h += `<ellipse cx="${(x + lx) / 2}" cy="${(y + ly) / 2}" rx="14" ry="6" transform="rotate(${rot} ${(x + lx) / 2} ${(y + ly) / 2})" fill="${gold}"/>`;
+      if (i % 3 === 1) { const [bx, by] = P(a + 5, r - out * 12); [[0, 0], [9, -5], [2, -10]].forEach(([dx, dy]) => { h += `<circle cx="${bx + dx - 4}" cy="${by + dy + 4}" r="6.5" fill="${red}"/><circle cx="${bx + dx - 6}" cy="${by + dy + 2}" r="1.8" fill="${hi}"/>`; }); } }
+    return h; },
+  stitch([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5) + arc(RM + 23, b, 1.5, '4 4') + arc(RM - 23, b, 1.5, '4 4')
+      + along(9, i => stitch(i % 2 ? STAR : RHOMB, i % 2 ? [b, c] : [a, c], 4.2)); },
+  sun([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a)
+      + along(10, i => i % 2 ? `<path d="M0 -9 L 9 0 L 0 9 L -9 0Z" fill="${b}"/><circle r="3" fill="${c}"/>`
+        : `<g fill="${a}">${[0, 45, 90, 135].map(r => `<rect x="-4" y="-22" width="8" height="44" transform="rotate(${r})"/>`).join('')}</g><circle r="7" fill="${bg}"/><circle r="3.5" fill="${c}"/>`); },
+  tulip([bg, red, gold, leaf]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + arc(RM, gold, 3)
+      + along(13, i => { const f = i % 2 ? -1 : 1; return `<g transform="scale(1.3 ${f * 1.3}) translate(0 12)"><path d="M0 0 C -2 -6 -2 -10 0 -12" stroke="${gold}" stroke-width="2.5" fill="none"/>
+        <path d="M0 -10 C -12 -10 -12 -26 -7 -27 C -4 -22 -2 -24 0 -28 C 2 -24 4 -22 7 -27 C 12 -26 12 -10 0 -10Z" fill="${red}"/>
+        <path d="M0 -3 C 8 -4 14 -10 16 -16 C 10 -14 4 -10 0 -3Z" fill="${leaf}"/><path d="M0 -3 C -8 -4 -14 -10 -16 -16 C -10 -14 -4 -10 0 -3Z" fill="${leaf}"/></g>`; }); },
+  horns([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(b, 2.5)
+      + along(9, i => `<g transform="translate(0 ${i % 2 ? -8 : 8}) scale(${i % 2 ? -1 : 1} ${i % 2 ? -1 : 1})">${curl(2.3, a, 5)}<g transform="scale(-1 1)">${curl(2.3, a, 5)}</g></g><circle cy="${i % 2 ? 18 : -18}" r="3" fill="${c}"/>`); },
+  lyre([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)
+      + along(9, i => `<g transform="scale(1 ${i % 2 ? -1 : 1})"><path d="M0 18 C -18 10 -20 -12 -8 -16 C 0 -18 2 -8 -4 -6 M0 18 C 18 10 20 -12 8 -16 C 0 -18 -2 -8 4 -6" fill="none" stroke="${a}" stroke-width="4" stroke-linecap="round"/>
+        <path d="M0 18 V -2" stroke="${b}" stroke-width="3"/><circle cy="-22" r="3.5" fill="${c}"/></g>`); },
+  zigzag([bg, a, b, c]) { let d = ''; for (let a2 = 88, k = 0; a2 <= 404; a2 += 3, k++) { const [x, y] = P(a2, RM + (k % 2 ? 16 : -16)); d += (k ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+    return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 3) + `<path d="${d}" fill="none" stroke="${a}" stroke-width="4" stroke-linejoin="round"/>`
+      + along(6, i => `<path d="M0 ${i % 2 ? 6 : -6} l5 ${i % 2 ? 8 : -8} l-5 ${i % 2 ? 8 : -8} l-5 ${i % 2 ? -8 : 8}z" fill="${i % 4 < 2 ? b : c}"/>`, 89.5); },
+  buta([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)
+      + along(9, i => `<g transform="rotate(${i % 2 ? 200 : 20}) translate(0 2)"><path d="M0 16 C -14 14 -14 -6 -2 -10 C 6 -13 10 -20 6 -24 C 18 -16 16 14 0 16Z" fill="${i % 2 ? b : a}"/><path d="M0 9 C -6 8 -6 -1 0 -3" fill="none" stroke="${c}" stroke-width="2.5"/></g>`); },
+  spiral([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)
+      + along(10, i => `<g transform="rotate(${i * 30})">${[0, 60, 120, 180, 240, 300].map(r => `<path d="M0 0 C 8 -2 13 -10 10 -19" fill="none" stroke="${i % 2 ? c : a}" stroke-width="4" stroke-linecap="round" transform="rotate(${r})"/>`).join('')}<circle r="4" fill="${b}"/></g>`); },
+  knot([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)
+      + along(10, i => `<g fill="none" stroke="${a}" stroke-width="3.5"><rect x="-11" y="-11" width="22" height="22" rx="4" transform="rotate(45)"/><rect x="-6" y="-17" width="12" height="34" rx="6"/><rect x="-17" y="-6" width="34" height="12" rx="6"/></g><circle r="3" fill="${i % 2 ? c : b}"/>`); },
+  rosette([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5)  // сюзане и изразцы: цветок-солнце с лепестками
+      + along(11, i => `<g transform="rotate(${i * 22})">${[0, 45, 90, 135, 180, 225, 270, 315].map(r => `<ellipse cx="0" cy="-15" rx="5" ry="9" fill="${i % 2 ? b : a}" transform="rotate(${r})"/>`).join('')}<circle r="9" fill="${i % 2 ? a : b}"/><circle r="4" fill="${c}"/></g>`); },
+};
+const light = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 200; };
+// светлое кольцо на светлом фоне — с тёмной окантовкой, чтобы не терялось
+window.draw = p => { document.getElementById('orn').innerHTML = M[p.motif](p.colors) + (light(p.colors[0]) ? arc(RM + 33, '#4f3f38', 4) + arc(RM - 33, '#4f3f38', 4) : ''); };
+
+// ---- праздничные кольца (tools/seasons) ----
+const bulb = (c) => `<rect x="-3" y="-15" width="6" height="6" rx="1.5" fill="#c9b27a"/><ellipse cx="0" cy="0" rx="7.5" ry="10" fill="${c}"/><ellipse cx="-2.5" cy="-3" rx="2" ry="3.5" fill="#fff" opacity=".55"/>`;
+const flake = (c, r = 13) => `<g stroke="${c}" stroke-width="3" stroke-linecap="round" fill="none">${[0, 60, 120].map(a => `<path d="M0 -${r} V ${r} M-4 -${r - 5} L0 -${r - 1} L4 -${r - 5} M-4 ${r - 5} L0 ${r - 1} L4 ${r - 5}" transform="rotate(${a})"/>`).join('')}</g>`;
+const tulipS = (c1, c2, leaf) => `<g transform="translate(0 12)"><path d="M0 0 C -1 -6 -1 -10 0 -12" stroke="${leaf}" stroke-width="3" fill="none"/><path d="M0 -3 C 7 -4 12 -9 14 -15 C 8 -13 3 -9 0 -3Z" fill="${leaf}"/><path d="M0 -10 C -11 -10 -11 -25 -7 -27 C -4 -22 -2 -24 0 -28 C 2 -24 4 -22 7 -27 C 11 -25 11 -10 0 -10Z" fill="${c1}"/><path d="M0 -10 C -4 -14 -4 -22 0 -28 C 4 -22 4 -14 0 -10Z" fill="${c2}"/></g>`;
+const heartS = (c, s = 1) => `<path transform="scale(${s})" d="M0 9 C -15 -3 -18 -16 -9 -21 C -4 -24 0 -20 0 -16 C 0 -20 4 -24 9 -21 C 18 -16 15 -3 0 9Z" fill="${c}"/>`;
+Object.assign(M, {
+  ny_garland([bg, a, b, c]) {  // ёлочная гирлянда: хвоя, лампочки, снег сверху
+    let needles = ''; for (let k = 0; k < 220; k++) { const ang = 92 + k * 1.42, r = RM + ((k * 37) % 50) - 25; const [x1, y1] = P(ang, r); const [x2, y2] = P(ang + 2.2, r + ((k % 3) - 1) * 6);
+      needles += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="${k % 2 ? '#2f6b45' : '#3f8656'}" stroke-width="4" stroke-linecap="round"/>`; }
+    let snow = ''; for (let ang = 190; ang <= 350; ang += 3) { const [x, y] = P(ang, RM + 27 + 4 * Math.sin(ang / 7)); snow += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${9 + 3 * Math.sin(ang)}" fill="#fff"/>`; }
+    const cols = ['#e8443a', '#f0c24a', '#4a90e2', '#e86ab0', '#5fc46e'];
+    return `<rect width="1024" height="1024" fill="${bg}"/>` + needles + snow + along(13, i => `<g transform="translate(0 ${i % 2 ? 9 : -9}) rotate(${i % 2 ? 180 : 0})">${bulb(cols[i % cols.length])}</g>`); },
+  ny_snow([bg, a, b, c]) {  // снежинки на синем
+    return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 2.5) + along(11, i => i % 2 ? `<circle r="3.5" fill="${c}"/><circle cx="0" cy="-15" r="2" fill="${a}"/><circle cx="0" cy="15" r="2" fill="${a}"/>` : flake(a, 15)); },
+  ny_red([bg, a, b, c]) {  // красное с золотыми звёздами и снегом сверху
+    let snow = ''; for (let ang = 195; ang <= 345; ang += 3) { const [x, y] = P(ang, RM + 27 + 4 * Math.sin(ang / 6)); snow += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${9 + 3 * Math.cos(ang)}" fill="#fff"/>`; }
+    return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(a, 3) + along(12, i => i % 2 ? `<circle r="3" fill="${a}"/>` : `<path d="M0 -15 L4 -5 L15 -5 L6 2 L9 13 L0 6 L-9 13 L-6 2 L-15 -5 L-4 -5Z" fill="${a}"/>`) + snow; },
+  mom_tulips([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(c, 2.5) + along(11, i => `<g transform="scale(1.25 ${i % 2 ? -1.25 : 1.25})">${tulipS(i % 3 ? a : b, i % 3 ? '#f29aa8' : '#f6c94e', '#6f9a5c')}</g>`); },
+  mom_hearts([bg, a, b, c]) { return `<rect width="1024" height="1024" fill="${bg}"/>` + edges(c, 2.5) + along(10, i => `<g transform="rotate(${i % 2 ? 12 : -12}) translate(0 ${i % 2 ? 4 : -4})">${heartS(i % 3 ? a : b, i % 2 ? .9 : 1.15)}</g>`); },
+  mom_wreath([bg, a, b, c]) {  // венок: лоза с цветами
+    let d = ''; for (let ang = 90; ang <= 402; ang += 2) { const [x, y] = P(ang, RM + 12 * Math.sin(ang * Math.PI / 18)); d += (ang === 90 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+    const flower = (col) => `${[0, 72, 144, 216, 288].map(r => `<ellipse cx="0" cy="-8" rx="6" ry="9" fill="${col}" transform="rotate(${r})"/>`).join('')}<circle r="5" fill="#f6c94e"/>`;
+    return `<rect width="1024" height="1024" fill="${bg}"/><path d="${d}" fill="none" stroke="#8fc36a" stroke-width="5"/>`
+      + along(10, i => `<g transform="translate(${i % 2 ? 8 : -8} ${i % 2 ? 12 : -12})"><ellipse rx="12" ry="5" fill="#8fc36a" transform="rotate(35)"/></g>`, 96)
+      + along(10, i => `<g transform="translate(0 ${i % 2 ? -11 : 11})">${flower(i % 3 ? a : b)}</g>`, 91); },
+});
+const RINGS = {
+  'ny-1': ['ny_garland', ['#24573c', '#fff', '#fff', '#fff']], 'ny-2': ['ny_snow', ['#2b5d8a', '#ffffff', '#ffffff', '#cfe3f5']], 'ny-3': ['ny_red', ['#b3202a', '#f0c24a', '#fff', '#fff']],
+  'mom-1': ['mom_tulips', ['#fbeee6', '#d6455d', '#e86a7f', '#d6455d']], 'mom-2': ['mom_hearts', ['#e86a7f', '#ffffff', '#fbe9ea', '#ffffff']], 'mom-3': ['mom_wreath', ['#3f6b4e', '#f29aa8', '#ffffff', '#fff']],
+};
+window.drawRing = k => { const [m, c] = RINGS[k]; document.getElementById('orn').innerHTML = M[m](c) + (light(c[0]) ? arc(RM + 33, '#4f3f38', 4) + arc(RM - 33, '#4f3f38', 4) : ''); };
+</script></body></html>
