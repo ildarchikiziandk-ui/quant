@@ -495,7 +495,7 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .season-splash b { font-family: Unbounded, var(--font, sans-serif); font-size: 24px; color: var(--whale); }
 .season-splash p { max-width: 340px; margin: 0; color: var(--text); font-size: 15px; line-height: 1.45; }
 .ss-count { font-family: Unbounded, var(--font, sans-serif); font-size: 18px; color: var(--text); }
-.ss-count span { font-size: 30px; font-weight: 800; }
+.season-splash .ss-count span { font-size: 30px; font-weight: 800; color: var(--text); animation: none; }
 .ny-garland { position: fixed; left: 0; right: 0; top: 0; height: 14px; z-index: 960; display: flex; justify-content: space-around; pointer-events: none;
   background: radial-gradient(ellipse at 50% -40%, transparent 60%, rgba(60,50,40,.35) 62%, transparent 66%) 0 0/calc(100% / 24) 14px repeat-x; }
 .ny-garland i { width: 7px; height: 10px; border-radius: 50% 50% 45% 45%; margin-top: 5px; animation: ny-blink 2.4s ease-in-out infinite; }
