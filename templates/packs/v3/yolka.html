@@ -2,11 +2,11 @@
 {% block title %}Новогодняя ёлка — {{ brand }}{% endblock %}
 {% block content %}
 <style>
-.yk-wrap{position:relative;width:100%;max-width:520px;margin:0 auto;aspect-ratio:5/6}
+.yk-wrap{position:relative;width:100%;max-width:560px;margin:0 auto;aspect-ratio:3/5}
 .yk-wrap svg.tree{position:absolute;inset:0;width:100%;height:100%}
-.yk-ball{position:absolute;width:9%;aspect-ratio:1;transform:translate(-50%,-50%);border:0;padding:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));animation:yk-sway 4s ease-in-out infinite}
+.yk-ball{position:absolute;width:6.4%;aspect-ratio:1;transform:translate(-50%,-50%);border:0;padding:0;background:none;cursor:pointer;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3));animation:yk-sway 4s ease-in-out infinite}
 .yk-ball img{width:100%;height:100%;border-radius:50%;display:block;background:#fff}
-.yk-ball::before{content:"";position:absolute;left:50%;top:-12%;width:26%;height:16%;transform:translateX(-50%);background:linear-gradient(#f3d27a,#c99a2e);border-radius:3px 3px 2px 2px}
+.yk-ball::before{content:"";position:absolute;left:50%;top:-14%;width:30%;height:18%;transform:translateX(-50%);background:linear-gradient(#f3d27a,#c99a2e);border-radius:3px 3px 2px 2px}
 .yk-ball.mine img{box-shadow:0 0 0 3px #f0c24a}
 @keyframes yk-sway{0%,100%{rotate:-3deg}50%{rotate:3deg}}
 @media (prefers-reduced-motion:reduce){.yk-ball{animation:none}}
@@ -24,14 +24,7 @@
 </div>
 <div class="card">
   <div class="yk-wrap" id="yk-tree">
-    <svg class="tree" viewBox="0 0 500 600" aria-hidden="true">
-      <polygon points="250,40 262,72 296,72 268,92 279,124 250,104 221,124 232,92 204,72 238,72" fill="#f0c24a" stroke="#c99a2e" stroke-width="3"/>
-      <polygon points="250,95 330,210 290,210 370,330 320,330 410,460 90,460 180,330 130,330 210,210 170,210" fill="#3f7d4e"/>
-      <polygon points="250,95 330,210 290,210 370,330 320,330 410,460 250,460" fill="#356c43"/>
-      <path d="M170 210 Q250 245 330 210 M130 330 Q250 375 370 330 M90 460 Q250 510 410 460" fill="none" stroke="#2c5a38" stroke-width="5" opacity=".5"/>
-      <rect x="222" y="460" width="56" height="70" rx="6" fill="#7a4a2c"/>
-      <ellipse cx="250" cy="540" rx="170" ry="22" fill="#e9e1d4"/>
-    </svg>
+    {{ tree_svg|safe }}
     {% for it in items[:slots|length] %}{% set p = slots[loop.index0] %}
     <button class="yk-ball{% if user and it.u.id == user.id %} mine{% endif %}" style="left:{{ p[0] }}%;top:{{ p[1] }}%;animation-delay:-{{ loop.index0 % 7 * 0.6 }}s" data-name="{{ it.u.name or it.u.username }}" data-user="{{ it.u.username }}" data-id="{{ it.b.id }}"><img src="{{ it.b.image }}" alt="Шарик {{ it.u.name or it.u.username }}" loading="lazy"></button>
     {% endfor %}
