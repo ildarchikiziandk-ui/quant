@@ -55,10 +55,13 @@ def peoples():
     return [{"slug": p[0], "name": p[1], "flag": p[2], "flag_of": p[3], "motif": p[4], "colors": list(p[5]), "about": p[6]} for p in PEOPLES]
 
 
+ENABLED = False  # 5.11.2026 владелец попросил убрать ивент; на следующий год — включить (True)
+
+
 def active(today=None):
-    """Праздничная заставка — со 2 по 6 ноября (по Москве)."""
+    """Праздничная заставка — со 2 по 6 ноября (по Москве), если ивент включён."""
     d = today or (dt.datetime.utcnow() + dt.timedelta(hours=3)).date()
-    return d.month == 11 and 2 <= d.day <= 6
+    return ENABLED and d.month == 11 and 2 <= d.day <= 6
 
 
 HISTORY = ("Осенью 1612 года народное ополчение во главе с нижегородцем Кузьмой Мининым и князем Дмитрием Пожарским "
@@ -68,4 +71,7 @@ HISTORY = ("Осенью 1612 года народное ополчение во 
 
 @router.get("/4-noyabrya")
 def unity_page(request: Request, db: Session = Depends(get_db)):
+    if not ENABLED:
+        from deps import redirect
+        return redirect("/")
     return render(request, db, "packs/v3/unity_day.html", sidebar=False, peoples=peoples(), history=HISTORY)

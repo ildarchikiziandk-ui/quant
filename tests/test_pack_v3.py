@@ -1381,6 +1381,7 @@ def test_vt_transport_approx():
 def test_unity_day(alice):
     import datetime as dt
     from packs.v3 import unity_day
+    unity_day.ENABLED = True
     assert unity_day.active(dt.date(2026, 11, 4)) and not unity_day.active(dt.date(2026, 11, 10))
     ps = unity_day.peoples()
     assert len(ps) >= 27 and ps[0]["name"] == "Русские"
@@ -1390,6 +1391,9 @@ def test_unity_day(alice):
         assert not p["flag"] or os.path.exists(f"static/brand/unity/flags/{p['flag']}.png"), p["flag"]
     page = alice.get("/4-noyabrya").text
     assert "Минин" in page and "Татары" in page
+    unity_day.ENABLED = False
+    assert not unity_day.active(dt.date(2026, 11, 4))
+    assert alice.get("/4-noyabrya", follow_redirects=False).status_code in (302, 303)
 
 
 def test_cert_site_and_team_badge(owner, alice):
