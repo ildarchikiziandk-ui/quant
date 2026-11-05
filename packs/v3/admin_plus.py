@@ -91,7 +91,7 @@ async def user_action(username: str, name: str, request: Request, db: Session = 
     t = _target(db, username)
     if not me or not t or name not in ACTIONS:
         return redirect("/")
-    if t.is_owner and t.id != me.id and name not in ("notify", "coowner"):
+    if t.is_owner and t.id != me.id and name not in ("notify", "coowner") and not (name == "team" and not me.co_owner):
         return _back(t.username, "С другим владельцем так нельзя", True)
     form = await request.form()
     msg, is_err = ACTIONS[name](db, me, t, form)
@@ -109,6 +109,15 @@ def _coowner(db, me, t, f):
     t.is_owner = t.co_owner = on
     t.is_moderator = t.is_moderator or on
     return ("@%s теперь совладелец — полный доступ, как у вас" if on else "@%s больше не совладелец") % t.username, False
+
+
+@action("team")
+def _team(db, me, t, f):
+    """Значок «Команда Nuvora»: выдаёт и снимает владелец (основатель или совладелец)."""
+    if not me.is_owner:
+        return "Значок команды выдаёт только владелец", True
+    t.is_team = not t.is_team
+    return ("@%s теперь в команде Nuvora — у имени появился значок" if t.is_team else "@%s больше не в команде Nuvora") % t.username, False
 
 
 @action("save")

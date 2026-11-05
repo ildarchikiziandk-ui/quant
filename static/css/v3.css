@@ -480,3 +480,8 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .unity-splash .us-title { font-size: 21px; margin-top: 8px; color: var(--whale); }
 .us-hist { max-width: 460px; margin: 0; font-size: 14px; line-height: 1.45; color: var(--text); }
 .unity-splash .us-hist.muted { color: var(--text-2); font-size: 13px; }
+
+/* значок «Команда Nuvora» */
+.owner-pill.team { background: color-mix(in srgb, #b5562f 14%, var(--card)) !important; color: #8a3d1f !important; }
+[data-theme="dark"] .owner-pill.team { background: color-mix(in srgb, #e08a63 20%, var(--card)) !important; color: #f3c3ad !important; }
+.owner-pill .team-ic { flex: none; }

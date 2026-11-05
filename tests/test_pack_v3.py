@@ -1390,3 +1390,19 @@ def test_unity_day(alice):
         assert not p["flag"] or os.path.exists(f"static/brand/unity/flags/{p['flag']}.png"), p["flag"]
     page = alice.get("/4-noyabrya").text
     assert "Минин" in page and "Татары" in page
+
+
+def test_cert_site_and_team_badge(owner, alice):
+    from packs.v3 import certificates as c
+    assert c.clean_addr("https://nvurl.ru/") == "nvurl.ru" and c.clean_addr("javascript:alert(1)") == ""
+    assert owner.post("/admin/certificates/site", data={"addr": "nvurl.ru"}, follow_redirects=False).status_code in (302, 303)
+    assert c.site_addr() == "nvurl.ru" and 'value="nvurl.ru"' in owner.get("/admin/certificates").text
+    alice.post("/admin/certificates/site", data={"addr": "evil.ru"})
+    assert c.site_addr() == "nvurl.ru"
+    assert alice.post("/admin/u/owner/team", follow_redirects=False).status_code in (302, 303)
+    owner.post("/admin/u/alice/team")
+    s = db()
+    assert s.query(models.User).filter_by(username="alice").first().is_team
+    s.close()
+    assert "Команда" in owner.get("/profile/alice").text
+    owner.post("/admin/u/alice/team")

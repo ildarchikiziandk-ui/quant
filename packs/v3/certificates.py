@@ -19,6 +19,7 @@ import models
 from database import get_db
 from deps import current_user, log_mod, redirect, render
 
+from . import site
 from .common import router, s
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -63,8 +64,22 @@ def clean_signature(raw):
     return out.crop(box) if box else out
 
 
-def draw(code, days, recipient="", owner_name=""):
+def site_addr():
+    """Адрес сайта на сертификатах — владелец вписывает сам (админка → Сертификаты), по умолчанию адрес сайта."""
+    import re
+    raw = site.get("cert_site") or re.sub(r"^https?://", "", config.SITE_URL)
+    return clean_addr(raw) or "nvurl.ru"
+
+
+def clean_addr(raw):
+    import re
+    a = re.sub(r"^https?://", "", (raw or "").strip()).strip("/").lower()
+    return a if re.fullmatch(r"[a-zа-яё0-9.-]+(/[a-z0-9_.-]+)*", a) and "." in a and len(a) <= 60 else ""
+
+
+def draw(code, days, recipient="", owner_name="", addr=None):
     """Картинка сертификата (PNG, байты)."""
+    addr = addr or site_addr()
     im = Image.new("RGB", (W, H), PAPER)
     # мягкие синие пятна на фоне
     glow = Image.new("RGB", (W, H), PAPER)
@@ -82,7 +97,7 @@ def draw(code, days, recipient="", owner_name=""):
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, 111, 111), 30, fill=255)
     im.paste(logo, (110, 104), mask)
     d.text((246, 118), "Nuvora", font=_font("unbounded-700.ttf", 44), fill=INK)
-    d.text((248, 176), "nvra.ru", font=_font("onest-500.ttf", 28), fill=MUTED)
+    d.text((248, 176), addr, font=_font("onest-500.ttf", 28), fill=MUTED)
     # заголовок
     d.text((110, 280), "Сертификат", font=_font("unbounded-700.ttf", 92), fill=INK)
     d.text((114, 396), "на Nuvora+", font=_font("unbounded-700.ttf", 56), fill=WHALE)
@@ -100,10 +115,10 @@ def draw(code, days, recipient="", owner_name=""):
     cw = d.textlength(code, font=cf)
     d.rounded_rectangle((104, y, 104 + cw + 64, y + 96), 24, fill=(255, 255, 255), outline=WHALE, width=3)
     d.text((136, y + 16), code, font=cf, fill=INK)
-    d.text((114, y + 116), "Активируйте на nvra.ru/plus", font=_font("onest-800.ttf", 30), fill=INK)
+    d.text((114, y + 116), f"Активируйте на {addr}/plus", font=_font("onest-800.ttf", 30), fill=INK)
     # QR на страницу активации с уже вписанным кодом
     qr = qrcode.QRCode(border=1, box_size=10)
-    qr.add_data(f"{config.SITE_URL}/plus?code={code}")
+    qr.add_data(f"https://{addr}/plus?code={code}")
     qr_img = qr.make_image(fill_color=INK, back_color="white").convert("RGB").resize((230, 230), Image.NEAREST)
     d.rounded_rectangle((W - 360, 110, W - 110, 360), 24, fill=(255, 255, 255))
     im.paste(qr_img, (W - 350, 120))
@@ -127,7 +142,7 @@ def cert_page(request: Request, db: Session = Depends(get_db), made: int = 0):
     if not me:
         return redirect("/")
     promo = db.get(models.Promocode, made) if made else None
-    return render(request, db, "packs/v3/admin_certs.html", sidebar=False, promo=promo, has_signature=os.path.exists(SIGNATURE),
+    return render(request, db, "packs/v3/admin_certs.html", sidebar=False, promo=promo, has_signature=os.path.exists(SIGNATURE), cert_addr=site_addr(),
                   recent=db.query(models.Promocode).order_by(models.Promocode.created_at.desc()).limit(30).all())
 
 
@@ -161,6 +176,21 @@ def cert_png(promo_id: int, request: Request, db: Session = Depends(get_db), dl:
     if dl:
         headers["Content-Disposition"] = f'attachment; filename="nuvora-plus-{p.code}.png"'
     return Response(draw(p.code, p.days or 30, p.note or ""), media_type="image/png", headers=headers)
+
+
+@router.post("/admin/certificates/site")
+async def cert_site(request: Request, db: Session = Depends(get_db)):
+    """Владелец сам пишет адрес, который будет на сертификатах и в QR-коде (например, nvurl.ru)."""
+    me = _owner(request, db)
+    if not me:
+        return redirect("/")
+    f = await request.form()
+    addr = clean_addr(s(f.get("addr")))
+    site.put(db, "cert_site", addr)  # пусто — снова адрес сайта
+    log_mod(db, me, "cert_site", addr or "по умолчанию", "")
+    db.commit()
+    back = s(f.get("back"))
+    return redirect("/admin/certificates" + (f"?made={int(back)}" if back.isdigit() else ""))
 
 
 @router.post("/admin/certificates/signature")

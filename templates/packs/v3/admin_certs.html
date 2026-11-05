@@ -13,6 +13,13 @@
 </div>
 {% endif %}
 
+<form class="card" method="post" action="/admin/certificates/site">
+  <div class="card-title">Адрес сайта на сертификате</div>
+  <div class="row wrap" style="gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:200px;margin:0"><span>Что написать на картинке и куда вести QR-код</span><input name="addr" value="{{ cert_addr }}" maxlength="60" placeholder="nvurl.ru"></label>
+  <input type="hidden" name="back" value="{{ promo.id if promo else '' }}"><button class="btn soft">Сохранить</button></div>
+  <p class="small muted mt">Пишите без https:// — например <b>nvurl.ru</b>. Подпись «Активируйте на …/plus» и QR-код поменяются на всех сертификатах, даже уже созданных — просто скачайте картинку заново.</p>
+</form>
+
 <form class="card" method="post" action="/admin/certificates/new">
   <div class="card-title">Новый сертификат</div>
   <div class="form-row">

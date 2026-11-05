@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partials/macros.html" import post_card, note_tile, avatar, badges, user_row, crown %}{% from "partials/icons.html" import icon %}
+{% from "partials/macros.html" import post_card, note_tile, avatar, badges, user_row, crown, team_icon %}{% from "partials/icons.html" import icon %}
 {% set pu = profile_user %}
 {% set me = user and user.id == pu.id %}
 {% block title %}{{ pu.name or pu.username }} (@{{ pu.username }}) — {{ brand }}{% endblock %}
@@ -27,6 +27,7 @@
     </div>
     {% if not me and custom_name(pu) %}<div class="small muted mt-s">{{ icon("pen", "i in") }} У вас записан(а) как <b>{{ custom_name(pu) }}</b></div>{% endif %}
     {% if pu.is_owner %}<div class="owner-pill mt-s{% if pu.co_owner %} co{% endif %}">{{ crown(pu, 20) }}{{ "Совладелец" if pu.co_owner else "Основатель" }} {{ brand }}</div>{% endif %}
+    {% if pu.is_team %}<div class="owner-pill team mt-s">{{ team_icon(20) }}Команда {{ brand }}</div>{% endif %}
     {% if pu.dnd_until and pu.dnd_until > now %}<div class="status-pill">{{ icon("moon", "i in") }} не беспокоить</div>{% endif %}
     {% if pu.bio %}<div style="margin-top:10px;white-space:normal">{{ pu.bio|rich }}</div>{% endif %}
     {% if common_interests and not me %}<div class="small muted mt">{{ icon("sparkle", "i in") }} У вас {{ plural(common_interests|length, "общий интерес", "общих интереса", "общих интересов") }}: {{ common_interests|join(", ") }}</div>{% endif %}

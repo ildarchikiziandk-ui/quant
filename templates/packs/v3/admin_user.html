@@ -48,6 +48,7 @@
     <form method="post" action="/admin/verify/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_verified_badge else "Дать" }} галочку</button></form>
     <form method="post" action="/admin/star/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_starred else "Дать" }} звезду</button></form>
     {% if not t.is_owner %}<form method="post" action="/admin/mod/{{ t.username }}"><button class="btn soft sm">{{ "Снять" if t.is_moderator else "Сделать" }} модератором</button></form>{% endif %}
+    {% if user.is_owner %}<form method="post" action="/admin/u/{{ t.username }}/team"><button class="btn soft sm">{{ "Убрать значок «Команда Nuvora»" if t.is_team else "Дать значок «Команда Nuvora»" }}</button></form>{% endif %}
     {% if user.is_owner and not user.co_owner and t.id != user.id %}<form method="post" action="/admin/u/{{ t.username }}/coowner" onsubmit="return confirm('{{ 'Снять совладельца' if t.co_owner else 'Дать полный доступ, как у вас' }} — @{{ t.username }}?')"><button class="btn soft sm">{{ "Снять совладельца" if t.co_owner else "Сделать совладельцем" }}</button></form>{% endif %}
   </div></div>
 
