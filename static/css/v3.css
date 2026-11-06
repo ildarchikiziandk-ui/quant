@@ -503,3 +503,8 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .ny-garland i:nth-child(4n+3) { background: #4fb06a; animation-delay: 1.2s; } .ny-garland i:nth-child(4n) { background: #4a90e2; animation-delay: 1.8s; }
 @keyframes ny-blink { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); } 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .ny-garland i { animation: none; } }
+
+/* значок Nuvora+ у имени — маленький кружок со звёздочкой (6.11.2026, вместо плашки «PLUS») */
+.badge.plus-b { width: 17px; height: 17px; border-radius: 50%; background: var(--whale); flex: none; }
+.badge.plus-b svg { width: 11px; height: 11px; fill: #fff; }
+[data-theme="dark"] .badge.plus-b svg { fill: #fff; }
