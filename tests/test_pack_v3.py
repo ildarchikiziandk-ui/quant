@@ -1445,3 +1445,20 @@ def test_seasons(owner, alice):
     owner.post("/admin/seasons", data={"snow": "off", "mom": "off", "ny": "off"})
     site._cache["t"] = 0
     assert "ssplash" not in alice.get("/").text
+
+
+def test_sea_placement(alice, bob):
+    from packs.v3 import chat_games as cg
+    assert alice.post("/v3/chat/bob/game", json={"kind": "sea"}, headers=J).json()["ok"]
+    gid = last_msg().content[5:-2].split(":")[1]
+    assert alice.post(f"/v3/game/{gid}/move", json={"v": "0"}, headers=J).status_code >= 400  # сначала расстановка
+    assert "Расставить самому" in alice.get("/messages/bob").text
+    bad = [[0, 1, 2, 3], [8, 9, 10], [40, 41, 42], [60, 61], [6, 7], [24], [26]]  # касаются друг друга
+    assert alice.post(f"/v3/game/{gid}/sea/place", json={"ships": bad}, headers=J).status_code >= 400
+    good = [[0, 1, 2, 3], [16, 17, 18], [32, 33, 34], [5, 6], [21, 22], [48], [63]]
+    assert cg.valid_fleet(good)
+    r = alice.post(f"/v3/game/{gid}/sea/place", json={"ships": good, "ready": 1}, headers=J).json()
+    assert r["ok"] and not r["started"]
+    assert alice.post(f"/v3/game/{gid}/sea/place", json={"random": 1}, headers=J).status_code >= 400  # уже готова
+    assert bob.post(f"/v3/game/{gid}/sea/place", json={"random": 1, "ready": 1}, headers=J).json()["started"]
+    assert alice.post(f"/v3/game/{gid}/move", json={"v": "0"}, headers=J).json()["ok"]

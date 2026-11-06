@@ -4,7 +4,8 @@
 - dice — «Кости»: каждый бросает два кубика, у кого больше — тот победил;
 - c4   — «Четыре в ряд»: поле 7×6, фишка падает вниз, побеждает четыре подряд;
 - hang — «Виселица»: один загадывает слово, другой угадывает буквы, 6 ошибок — проигрыш;
-- sea  — «Морской бой»: поле 8×8 (помещается в пузырь на телефоне), флот расставляет сервер случайно;
+- sea  — «Морской бой»: поле 8×8 (помещается в пузырь на телефоне); сначала каждый расставляет флот сам
+         (или оставляет случайную расстановку), игра начинается, когда оба нажали «Готово» (6.11.2026);
          корабли соперника в карточку не попадают, пока их не подбили или игра не кончилась; попал — стреляй ещё.
 """
 import json
@@ -107,6 +108,41 @@ def _sea_board(st, owner, shooter, reveal):
     return cells, afloat
 
 
+def sea_ready(st):
+    """Обе стороны расставили флот (в старых партиях этапа расстановки не было)."""
+    r = st.get("ready")
+    return r is None or (r.get("a") and r.get("b"))
+
+
+def valid_fleet(ships):
+    """Флот как в правилах: корабли нужных размеров, прямые, в поле и не касаются друг друга даже углами."""
+    if not isinstance(ships, list) or sorted(len(x) for x in ships if isinstance(x, list)) != sorted(SEA_FLEET) or len(ships) != len(SEA_FLEET):
+        return None
+    out, busy = [], set()
+    for ship in ships:
+        try:
+            cells = sorted(int(x) for x in ship)
+        except (TypeError, ValueError):
+            return None
+        if any(not 0 <= x < SEA_N * SEA_N for x in cells):
+            return None
+        rows, cols = {x // SEA_N for x in cells}, {x % SEA_N for x in cells}
+        if len(cells) > 1:
+            if len(rows) == 1:
+                if cells != list(range(cells[0], cells[0] + len(cells))):
+                    return None
+            elif len(cols) == 1:
+                if cells != list(range(cells[0], cells[0] + SEA_N * len(cells), SEA_N)):
+                    return None
+            else:
+                return None
+        if busy.intersection(cells):
+            return None
+        busy |= _halo(cells)
+        out.append(cells)
+    return out
+
+
 def _first_turn(kind, user, other):
     return user.id if kind in ("c4", "sea") else other.id if kind == "hang" else None
 
@@ -119,7 +155,7 @@ def new_state(kind, word=""):
     if kind == "c4":
         return {"board": "." * (COLS * ROWS), "last": -1}
     if kind == "sea":
-        return {"ships": {"a": sea_fleet(), "b": sea_fleet()}, "shots": {"a": [], "b": []}, "last": None}
+        return {"ships": {"a": sea_fleet(), "b": sea_fleet()}, "shots": {"a": [], "b": []}, "last": None, "ready": {"a": False, "b": False}}
     return {"word": word, "guessed": ""}
 
 
@@ -246,6 +282,8 @@ async def game_move(game_id: int, request: Request, db: Session = Depends(get_db
         elif _hang_misses(st) >= HANG_LIVES:
             g.winner = g.a_id
     elif g.kind == "sea":
+        if not sea_ready(st):
+            return json_error("Сначала оба расставляют корабли")
         if g.turn != user.id:
             return json_error("Сейчас ход соперника")
         try:
@@ -269,6 +307,35 @@ async def game_move(game_id: int, request: Request, db: Session = Depends(get_db
     _save(g, st)
     db.commit()
     return JSONResponse({"ok": True, "winner": g.winner})
+
+
+@router.post("/v3/game/{game_id}/sea/place")
+async def sea_place(game_id: int, request: Request, db: Session = Depends(get_db)):
+    """Морской бой: свой флот перед началом партии. {"ships": [[клетки], …]} — своя расстановка, {"random": 1} — случайная
+    (без «ready» — только показать, с «ready»: 1 — готов играть)."""
+    user = current_user(request, db)
+    g = db.get(m.ChatGame, game_id)
+    if not user or not g or g.kind != "sea" or user.id not in (g.a_id, g.b_id):
+        return json_error("Игра не найдена", 404)
+    st = _load(g)
+    if sea_ready(st) or g.winner is not None:
+        return json_error("Партия уже идёт — корабли не переставить")
+    side = "a" if user.id == g.a_id else "b"
+    if st["ready"].get(side):
+        return json_error("Вы уже нажали «Готово»")
+    data = await read_payload(request)
+    if data.get("random"):
+        st["ships"][side] = sea_fleet()
+    elif data.get("ships") is not None:
+        ships = valid_fleet(data.get("ships"))
+        if not ships:
+            return json_error("Корабли стоят неправильно: нужны все корабли, прямые и не касаясь друг друга")
+        st["ships"][side] = ships
+    if data.get("ready"):
+        st["ready"][side] = True
+    _save(g, st)
+    db.commit()
+    return JSONResponse({"ok": True, "ships": st["ships"][side], "started": bool(sea_ready(st))})
 
 
 @router.post("/v3/game/{game_id}/rematch")
@@ -334,6 +401,14 @@ def view(db, g, user):
         d["last_mine"] = last.get("i", -1) if last and last.get("by") != side else -1
         d["again"] = d["my_turn"] and d["last_enemy"] >= 0 and d["enemy"][d["last_enemy"]] in ("h", "s")
         d["fleet"] = len(SEA_FLEET)
+        rd = st.get("ready") or {"a": True, "b": True}
+        d["placing"] = not sea_ready(st) and not d["done"]
+        d["me_ready"] = bool(side) and bool(rd.get(side))
+        d["foe_ready"] = bool(rd.get(foe))
+        d["my_ships"] = json.dumps(st["ships"][side]) if side else "[]"
+        d["sizes"] = list(SEA_FLEET)
+        if d["placing"]:
+            d["my_turn"] = False
     else:
         word, guessed = st["word"], st["guessed"]
         show_all = d["done"] or me == g.a_id

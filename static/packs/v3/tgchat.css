@@ -74,3 +74,40 @@
   .chat-list a.chat .preview { font-size: 14.5px; color: var(--text-2); }
   .chat-list a.chat:active { background: var(--hover); }
 }
+/* игры в чате — на светлой карточке, а не на цветном пузыре */
+.convo .bubble:has(.v3-card) { background: var(--tg-in) !important; color: var(--tg-in-text) !important; padding: 10px 12px; }
+.convo .msg.mine .bubble:has(.v3-card)::after, .convo .msg .bubble:has(.v3-card)::after { background: var(--tg-in); }
+.convo .msg:has(.v3-card) .msg-meta { color: var(--tg-meta-in) !important; }
+.convo .msg:has(.v3-card) { max-width: min(92%, 360px); }
+/* крестики-нолики: аккуратные знаки, рисуются линией */
+.v3-ttt .v3-board { gap: 7px; }
+.v3-ttt .v3-cell { background: color-mix(in srgb, var(--tg-in-text, #2b2520) 6%, var(--tg-in, #fff)); border-radius: 14px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tg-in-text, #2b2520) 10%, transparent); display: flex; align-items: center; justify-content: center; padding: 0; }
+.v3-ttt .v3-cell:not(:disabled) { background: color-mix(in srgb, var(--whale) 8%, var(--tg-in, #fff)); }
+.v3-ttt .v3-cell.win { background: color-mix(in srgb, #4fb06a 22%, var(--tg-in, #fff)); box-shadow: inset 0 0 0 2px #4fb06a; }
+.v3-ttt svg { fill: none; stroke-linecap: round; }
+.v3-ttt .v3-cell svg { width: 64%; height: 64%; }
+.v3-ttt .tt-x { stroke: var(--whale); stroke-width: 5.5; }
+.v3-ttt .tt-o { stroke: #2b6fa5; stroke-width: 5; }
+[data-theme="dark"] .v3-ttt .tt-o { stroke: #7fb3e0; }
+.v3-ttt .v3-cell .tt-x path { stroke-dasharray: 52; animation: tt-draw .3s ease-out both; }
+.v3-ttt .v3-cell .tt-o circle { stroke-dasharray: 70; animation: tt-draw2 .35s ease-out both; }
+@keyframes tt-draw { from { stroke-dashoffset: 52; } to { stroke-dashoffset: 0; } }
+@keyframes tt-draw2 { from { stroke-dashoffset: 70; } to { stroke-dashoffset: 0; } }
+.v3-ttt-who span { display: inline-flex; align-items: center; gap: 4px; }
+.v3-ttt-who svg { width: 16px; height: 16px; flex: none; }
+.v3-ttt-who .tt-x { stroke-width: 6.5; } .v3-ttt-who .tt-o { stroke-width: 6; }
+/* морской бой: кнопки расстановки и окно-редактор */
+.v3-sea-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.sea-ed { display: flex; flex-direction: column; gap: 12px; }
+.sea-grid { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 3px; background: #cfe0ee; padding: 6px; border-radius: 14px; }
+[data-theme="dark"] .sea-grid { background: #1d3a52; }
+.sea-grid button { aspect-ratio: 1; border: 0; border-radius: 6px; background: #eaf2f8; padding: 0; cursor: pointer; transition: background .12s, transform .12s; }
+[data-theme="dark"] .sea-grid button { background: #27496a; }
+.sea-grid button.ship { background: #3f6f86; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18); }
+.sea-grid button:active { transform: scale(.9); }
+.sea-pal { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 40px; align-items: center; }
+.sea-pal button { display: inline-flex; align-items: center; gap: 3px; border: 2px solid var(--border); background: var(--card); border-radius: 12px; padding: 7px 10px; cursor: pointer; font: inherit; color: var(--text); }
+.sea-pal button.on { border-color: var(--whale); background: color-mix(in srgb, var(--whale) 10%, var(--card)); }
+.sea-pal i { width: 13px; height: 13px; border-radius: 3px; background: #3f6f86; display: inline-block; }
+.sea-pal span { font-size: 12px; font-weight: 700; margin-left: 4px; color: var(--text-2); }
+.sea-tools { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }

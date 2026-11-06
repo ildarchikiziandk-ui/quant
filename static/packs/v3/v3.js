@@ -22,6 +22,7 @@
       if (fresh) { delete msg.dataset.v3fx; msg.replaceWith(fresh); fresh.dataset.v3fx = '1'; }
     } catch (e) {}
   }
+  document.addEventListener('v3refresh', e => refreshCard(e.target));  // морской бой (sea.js) и другие просят обновить карточку
   on('[data-v3-vote]', async b => { try { await A.api(`/v3/poll/${b.dataset.v3Vote}/vote`, { option: b.dataset.opt }); refreshCard(b); } catch (e) {} });
   on('[data-v3-close]', async b => { if (!confirm('Закрыть опрос? Голосовать больше будет нельзя.')) return; try { await A.api(`/v3/poll/${b.dataset.v3Close}/close`); refreshCard(b); } catch (e) {} });
   on('[data-v3-move]', async b => { b.disabled = true; try { await A.api(`/v3/ttt/${b.dataset.v3Move}/move`, { cell: b.dataset.cell }); refreshCard(b); } catch (e) { b.disabled = false; } });
@@ -50,7 +51,7 @@
   });
   const GAMES = [['ttt', 'grid', 'Крестики-нолики', 'по очереди, три в ряд'], ['c4', 'layers', 'Четыре в ряд', 'фишки падают вниз, нужно четыре подряд'],
     ['rps', 'wave', 'Камень, ножницы, бумага', 'до двух побед'], ['dice', 'dice', 'Кости', 'у кого больше на двух кубиках'],
-    ['hang', 'type', 'Виселица', 'вы загадываете слово, друг угадывает'], ['sea', 'target', 'Морской бой', 'поле 8×8, флот расставится сам']];
+    ['hang', 'type', 'Виселица', 'вы загадываете слово, друг угадывает'], ['sea', 'target', 'Морской бой', 'поле 8×8, расставь флот сам или случайно']];
   // «+» в переписке: опрос или игра
   on('[data-v3-attach]', b => {
     const u = b.dataset.v3Attach;

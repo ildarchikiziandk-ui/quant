@@ -31,6 +31,18 @@
       {% for r in range(rows) %}{% set i = r * cols + c %}<i class="{{ cells[i] if cells[i] != '.' }}{% if i in line %} win{% endif %}{% if i == last %} last{% endif %}"></i>{% endfor %}</button>{% endfor %}
   </div>
   <div class="v3-card-foot"><span>{% if done %}{{ result() }}{% elif my_turn %}<b>Ваш ход</b> — нажмите на столбец{% else %}Ход соперника…{% endif %}</span>{% if done %}<button type="button" class="v3-link" data-v3-grematch="{{ g.id }}">Сыграть ещё</button>{% endif %}</div>
+{%- elif g.kind == "sea" and placing %}
+  <div class="v3-card-head">{{ icon_svg("target", "i in") }} <span>Морской бой · расстановка</span></div>
+  {% if side and not me_ready %}
+  <div class="tiny v3-sea-cap">Ваш флот — так он стоит сейчас</div>
+  <div class="v3-sea mini" style="--n:{{ n }}">{% for c in mine %}<i class="{{ c }}"></i>{% endfor %}</div>
+  <div class="v3-sea-btns"><button type="button" class="btn sm" data-v3-seaedit="{{ g.id }}" data-ships="{{ my_ships }}" data-sizes="{{ sizes|join(',') }}">{{ icon_svg("edit", "i in") }} Расставить самому</button><button type="button" class="btn soft sm" data-v3-seaready="{{ g.id }}">Готово, играть так</button></div>
+  <div class="v3-card-foot"><span>{% if foe_ready %}Соперник уже готов — ждём вас{% else %}Соперник тоже расставляет корабли{% endif %}</span></div>
+  {% elif side %}
+  <div class="tiny v3-sea-cap">Ваш флот</div>
+  <div class="v3-sea mini" style="--n:{{ n }}">{% for c in mine %}<i class="{{ c }}"></i>{% endfor %}</div>
+  <div class="v3-card-foot"><span>Вы готовы! Ждём, пока соперник расставит корабли…</span></div>
+  {% else %}<div class="v3-card-foot"><span>Игроки расставляют корабли…</span></div>{% endif %}
 {%- elif g.kind == "sea" %}
   <div class="v3-card-head">{{ icon_svg("target", "i in") }} <span>Морской бой · {{ n }}×{{ n }}</span></div>
   <div class="v3-ttt-who"><span>{{ an }}: <b>{{ enemy_left if side == "b" else mine_left }}</b> из {{ fleet }}</span><span>{{ bn }}: <b>{{ enemy_left if side != "b" else mine_left }}</b> из {{ fleet }}</span></div>

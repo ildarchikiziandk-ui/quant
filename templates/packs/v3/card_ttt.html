@@ -1,8 +1,8 @@
 {% set me_x = user and user.id == g.a_id %}
 <div class="v3-card v3-ttt{% if g.winner is none %} v3-live{% endif %}" data-v3-msg="{{ msg.id }}">
   <div class="v3-card-head">{{ icon_svg("grid", "i in") }} <span>Крестики-нолики</span></div>
-  <div class="v3-ttt-who"><span class="x">✕ {{ dname(a) if a else "?" }}</span><span class="o">◯ {{ dname(b) if b else "?" }}</span></div>
-  <div class="v3-board">{% for c in g.board %}<button type="button" class="v3-cell{% if loop.index0 in line %} win{% endif %} {{ c|trim }}" data-v3-move="{{ g.id }}" data-cell="{{ loop.index0 }}"{% if c != " " or g.winner is not none or not user or g.turn != user.id %} disabled{% endif %}>{% if c == "x" %}✕{% elif c == "o" %}◯{% endif %}</button>{% endfor %}</div>
+  <div class="v3-ttt-who"><span class="x"><svg class="tt-x" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 11 29 29M29 11 11 29"/></svg> {{ dname(a) if a else "?" }}</span><span class="o"><svg class="tt-o" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="11"/></svg> {{ dname(b) if b else "?" }}</span></div>
+  <div class="v3-board">{% for c in g.board %}<button type="button" class="v3-cell{% if loop.index0 in line %} win{% endif %} {{ c|trim }}" data-v3-move="{{ g.id }}" data-cell="{{ loop.index0 }}"{% if c != " " or g.winner is not none or not user or g.turn != user.id %} disabled{% endif %}>{% if c == "x" %}<svg class="tt-x" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 11 29 29M29 11 11 29"/></svg>{% elif c == "o" %}<svg class="tt-o" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="11"/></svg>{% endif %}</button>{% endfor %}</div>
   <div class="v3-card-foot">
     {% if g.winner is none %}<span>{% if user and g.turn == user.id %}<b>Ваш ход</b>{% else %}Ход соперника…{% endif %}</span>
     {% elif g.winner == 0 %}<span><b>Ничья!</b></span>
