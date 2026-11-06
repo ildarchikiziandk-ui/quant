@@ -41,8 +41,9 @@ def status_page(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return redirect("/login?next=/plus/status")
+    cur = user.emoji_status or ""  # старые значения (эмодзи текстом, прежние коды) просто не показываем
     return render(request, db, "packs/v3/estatus.html", sidebar=False, groups=GROUPS, total=len(BY_ID),
-                  current=user.emoji_status or "", plus=social.is_plus(user))
+                  current=cur if cur in BY_ID else "", current_img=BY_ID.get(cur, ""), plus=social.is_plus(user))
 
 
 @router.post("/plus/status")

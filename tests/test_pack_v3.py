@@ -1472,6 +1472,7 @@ def test_emoji_status(alice):
     u = s.query(models.User).filter_by(username="alice").first()
     u.is_plus = True
     u.plus_until = datetime.utcnow() + timedelta(days=5)
+    u.emoji_status = "😀"  # старое значение из прежней версии поля
     s.commit()
     s.close()
     assert "Статус у имени" in alice.get("/plus/status").text
