@@ -37,7 +37,7 @@
 {%- if u.is_moderator and not u.is_owner %}{% set _ = roles.append(mod_b) %}{% endif -%}
 {%- if u.is_starred %}{% set _ = roles.append(star_b) %}{% endif -%}
 {%- for r in (roles if full else roles[:1]) %}{{ r }}{% endfor -%}
-{%- if user_is_plus(u) %}{% set st = estatus_img(u) %}{% if st %}<span class="badge estatus" title="{{ brand_plus }}"><img src="{{ st }}" alt="" loading="lazy"></span>{% else %}<span class="badge plus-b" title="{{ brand_plus }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.8 5.1 2.6 7 7.7 7.8-5.1.8-6.9 2.6-7.7 7.7-.8-5.1-2.6-6.9-7.7-7.7 5.1-.8 6.9-2.7 7.7-7.8z"/></svg></span>{% endif %}{% endif -%}
+{%- if user_is_plus(u) %}{% set st = estatus_img(u) %}{% if st %}<span class="badge estatus" data-es="{{ u.username }}" title="{{ brand_plus }}"><img src="{{ st }}" alt="" loading="lazy"></span>{% else %}<span class="badge plus-b" data-es="{{ u.username }}" title="{{ brand_plus }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.8 5.1 2.6 7 7.7 7.8-5.1.8-6.9 2.6-7.7 7.7-.8-5.1-2.6-6.9-7.7-7.7 5.1-.8 6.9-2.7 7.7-7.8z"/></svg></span>{% endif %}{% endif -%}
 {%- endmacro %}
 
 {% macro name(u, link=true) -%}

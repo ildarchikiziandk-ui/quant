@@ -511,3 +511,23 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .badge.estatus { width: 20px; height: 20px; }
 .badge.estatus img { width: 20px; height: 20px; object-fit: contain; display: block; }
 .profile-name .badge.estatus, .profile-name .badge.estatus img { width: 26px; height: 26px; }
+
+/* Статус у имени: нажать на свой значок → маленькое окно выбора (estatus.js) */
+body[data-me] .badge[data-es] { cursor: pointer; }
+.es-pop { position: fixed; z-index: 1300; width: min(340px, calc(100vw - 24px)); background: var(--card); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 18px 44px -16px rgba(0,0,0,.45); display: flex; flex-direction: column; overflow: hidden; transform-origin: top left; animation: es-in .16s ease-out; }
+@keyframes es-in { from { opacity: 0; transform: scale(.92); } }
+.es-pop-h { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 16px; font-weight: 800; }
+.es-pop-h .grow { flex: 1; }
+.es-pop-tabs { display: flex; gap: 4px; padding: 0 10px 8px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--border); }
+.es-pop-tabs button { flex: 0 0 auto; width: 36px; height: 36px; border: 0; border-radius: 12px; background: none; padding: 4px; cursor: pointer; }
+.es-pop-tabs button.on { background: var(--input); }
+.es-pop-tabs img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.es-pop-b { overflow-y: auto; max-height: min(300px, 46vh); padding: 6px 10px 12px; overscroll-behavior: contain; }
+.es-pop-b h4 { font-size: 13px; color: var(--muted); margin: 8px 6px 4px; font-weight: 700; }
+.es-pop-g { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.es-pop-g button { aspect-ratio: 1; border: 0; border-radius: 12px; background: none; padding: 4px; cursor: pointer; transition: transform .1s; }
+.es-pop-g button:active { transform: scale(.85); }
+.es-pop-g button.on { background: color-mix(in srgb, var(--whale) 16%, transparent); }
+.es-pop-g img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.es-pop-note { padding: 10px 16px 14px; font-size: 14px; }
+.es-pop-note img { width: 56px; height: 56px; display: block; margin: 0 auto 6px; }

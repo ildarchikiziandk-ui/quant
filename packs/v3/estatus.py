@@ -1,5 +1,5 @@
 """Статус у имени для Nuvora+ (6.11.2026, просьба владельца): вместо кружка Plus рядом с именем стоит выбранный
-нарисованный стикер. 220 вариантов без подписей — мордочки 12 персонажей Nuvora с разными настроениями и предметы
+нарисованный стикер. 218 вариантов без подписей — мордочки 12 персонажей Nuvora с разными настроениями и предметы
 в том же стиле. Картинки и список рисует `python3 tools/status_art.py` (static/estatus/<id>.webp и index.json).
 Выбор — страница /plus/status (Nuvora+ → «Статус у имени»)."""
 import json
@@ -44,6 +44,17 @@ def status_page(request: Request, db: Session = Depends(get_db)):
     cur = user.emoji_status or ""  # старые значения (эмодзи текстом, прежние коды) просто не показываем
     return render(request, db, "packs/v3/estatus.html", sidebar=False, groups=GROUPS, total=len(BY_ID),
                   current=cur if cur in BY_ID else "", current_img=BY_ID.get(cur, ""), plus=social.is_plus(user))
+
+
+@router.get("/plus/status.json")
+def status_list(request: Request, db: Session = Depends(get_db)):
+    """Для маленького окна выбора: нажать на свой значок у имени → выбрать стикер."""
+    user = current_user(request, db)
+    if not user:
+        return json_error("auth", 401)
+    cur = user.emoji_status or ""
+    return {"ok": True, "plus": social.is_plus(user), "current": cur if cur in BY_ID else "",
+            "groups": [{"title": g["title"], "items": [[it["id"], it["img"], it["title"]] for it in g["items"]]} for g in GROUPS]}
 
 
 @router.post("/plus/status")

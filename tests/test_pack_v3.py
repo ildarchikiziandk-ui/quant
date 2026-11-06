@@ -1479,5 +1479,9 @@ def test_emoji_status(alice):
     assert alice.post("/plus/status", json={"id": "nope"}, headers=J).status_code >= 400
     r = alice.post("/plus/status", json={"id": "s:nuvi-rad"}, headers=J).json()
     assert r["ok"] and r["img"].endswith("nuvi-rad.webp")
+    assert 'data-es="alice"' in alice.get("/profile/alice").text  # нажать на свой значок — окно выбора
+    j = alice.get("/plus/status.json").json()
+    assert j["plus"] and j["current"] == "s:nuvi-rad" and sum(len(g["items"]) for g in j["groups"]) >= 200
+    assert "s:crown" not in estatus.BY_ID  # корона — только у владельцев
     assert "badge estatus" in alice.get("/profile/alice").text
     alice.post("/plus/status", json={"id": ""}, headers=J)
