@@ -106,8 +106,8 @@ SLOTS = {
 }
 
 PREFS = list(seasons.PREFS)
-CSS = ["packs/v3/v3.css"]
-JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js"]
+CSS = ["packs/v3/v3.css", "packs/v3/tgchat.css"]
+JS = ["packs/v3/v3.js", "packs/v3/calls.js", "packs/v3/media.js", "packs/v3/tgchat.js"]
 from services.plus import grandfather_name_colors  # noqa: E402
 JOBS = [grandfather_name_colors, feed.unmute_expired, capsule.capsules_due, account.new_device_alerts, handles_shop.seed_owner_aliases, calls.expire_job, media.expire_chat_media, accounts.seed_job, payments.pending_job, communities.seed_job, growth.referral_job]
 GLOBALS = {

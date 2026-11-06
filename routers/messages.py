@@ -73,7 +73,9 @@ def preview_of(m):
             return SPECIAL.get(k, "Сообщение")
         return m.content[:60]
     if m.image:
-        return "Видеосообщение" if m.is_video_circle else "Фото"
+        if m.is_video_circle:
+            return "Видеосообщение"
+        return "Видео" if m.image.lower().split("?")[0].endswith((".mp4", ".mov", ".webm")) else "Фото"
     if m.voice:
         return "Голосовое сообщение"
     if m.file_url:

@@ -213,7 +213,8 @@
 </div>
 {%- endmacro %}
 
-{% macro chat_video(url) -%}<video class="att att-video" src="{{ url }}" controls playsinline preload="metadata"></video>{%- endmacro %}
+{# видео в чате как в Telegram: первый кадр, круглая кнопка и длительность; по нажатию — звук и управление (static/packs/v3/tgchat.js) #}
+{% macro chat_video(url) -%}<div class="tgv"><video class="att att-video" src="{{ url }}#t=0.1" playsinline preload="metadata" muted></video><button type="button" class="tgv-play" aria-label="Смотреть видео"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></button><span class="tgv-dur">видео</span></div>{%- endmacro %}
 {% macro media_gone(kind) -%}<div class="media-gone">{{ icon("clock", "i in") }} {{ {"photo": "Фото удалено", "video": "Видео удалено", "file": "Файл удалён", "voice": "Голосовое удалено", "circle": "Кружок удалён"}.get(kind, "Вложение удалено") }} с сервера: вложения в чатах хранятся 7 дней</div>{%- endmacro %}
 
 {# меню «⋯» поста: отдаётся по запросу /post/<id>/menu #}

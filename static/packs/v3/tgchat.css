@@ -1,0 +1,76 @@
+/* Чаты «как в Telegram» (6.11.2026): переписка на весь экран, фон с узором, время внутри пузыря,
+   хвостик у последнего сообщения в серии, видео с первым кадром и круглой кнопкой. */
+.chat-page { --tg-bg: #efe6d8; --tg-in: #fffdf9; --tg-in-text: #2b2520; --tg-meta-in: #9a8b78; --tg-meta-out: rgba(255,255,255,.8); }
+[data-theme="dark"] .chat-page, [data-theme="dark"].chat-page, [data-theme="dark"] body.chat-page { --tg-bg: #1b1714; --tg-in: #2c2622; --tg-in-text: #f1e9df; --tg-meta-in: #a3968a; }
+.convo-box {
+  background-color: var(--tg-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23b5562f' stroke-opacity='.09' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M18 40c6-6 16-6 22 0s14 4 18-2'/%3E%3Ccircle cx='120' cy='30' r='8'/%3E%3Cpath d='M100 100l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2z'/%3E%3Cpath d='M30 120c4-8 14-8 18 0 4-8 14-8 18 0-6 10-18 16-18 16s-12-6-18-16z'/%3E%3Cpath d='M128 76c-8 0-14 6-14 12'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+.convo.has-wp .convo-box { background-image: var(--wp); }
+/* пузыри */
+.convo .msg { max-width: min(82%, 520px); margin-top: 8px; }
+.convo .msg.mine + .msg.mine, .convo .msg:not(.mine) + .msg:not(.mine) { margin-top: 2px; }
+.convo .msg:not(.mine) .bubble { background: var(--tg-in); color: var(--tg-in-text); box-shadow: 0 1px 1px rgba(60, 40, 20, .1); }
+.convo .bubble { border-radius: 16px; padding: 7px 11px 7px; font-size: 15.5px; line-height: 1.38; }
+.convo .msg.mine .bubble { border-radius: 16px; box-shadow: 0 1px 1px rgba(60, 40, 20, .14); }
+/* хвостик — только у последнего сообщения серии */
+.convo .msg.mine:not(:has(+ .msg.mine)) .bubble:not(.has-circle):not(.big-emoji) { border-bottom-right-radius: 4px; }
+.convo .msg:not(.mine):not(:has(+ .msg:not(.mine))) .bubble:not(.has-circle):not(.big-emoji) { border-bottom-left-radius: 4px; }
+.convo .msg.mine:not(:has(+ .msg.mine)) .bubble:not(.has-circle):not(.big-emoji):not(:has(.v3-sticker))::after,
+.convo .msg:not(.mine):not(:has(+ .msg:not(.mine))) .bubble:not(.has-circle):not(.big-emoji):not(:has(.v3-sticker))::after {
+  content: ""; position: absolute; bottom: 0; width: 10px; height: 14px; background: inherit; }
+.convo .msg.mine:not(:has(+ .msg.mine)) .bubble::after { right: -6px; clip-path: path("M0 0 C 0 8 2 12 10 14 L 0 14 Z"); }
+.convo .msg:not(.mine):not(:has(+ .msg:not(.mine))) .bubble::after { left: -6px; clip-path: path("M10 0 C 10 8 8 12 0 14 L 10 14 Z"); }
+/* время и галочки внутри пузыря (справа снизу), как в Telegram */
+.convo .msg:not(:has(.msg-reacts)):has(.bubble .txt) .msg-meta { position: absolute; right: 8px; bottom: 3px; padding: 0; font-size: 11px; color: var(--tg-meta-in); pointer-events: none; }
+.convo .msg.mine:not(:has(.msg-reacts)):has(.bubble .txt) .msg-meta { color: var(--tg-meta-out); }
+.convo .msg.mine:not(:has(.msg-reacts)):has(.bubble .txt) .msg-meta .i { color: inherit; }
+.convo .msg:not(:has(.msg-reacts)) .bubble .txt::after { content: ""; display: inline-block; width: 44px; height: 1px; }
+.convo .msg.mine:not(:has(.msg-reacts)) .bubble .txt::after { width: 58px; }
+.convo .msg:not(:has(.bubble .txt)) .msg-meta { align-self: flex-end; background: color-mix(in srgb, var(--tg-bg) 75%, transparent); border-radius: 10px; padding: 1px 7px; margin-top: 2px; }
+.convo .msg:not(.mine):not(:has(.bubble .txt)) .msg-meta { align-self: flex-start; }
+/* день и «новые сообщения» — плашки, как в Telegram */
+.convo .day-sep { position: sticky; top: 6px; z-index: 3; align-self: center; background: color-mix(in srgb, var(--tg-bg) 55%, #6e6254 45%); color: #fff; border-radius: 12px; padding: 3px 11px; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+.convo .unread-sep { align-self: stretch; text-align: center; background: color-mix(in srgb, var(--card) 85%, transparent); color: var(--whale); font-size: 13px; font-weight: 700; padding: 4px; margin: 8px -12px; }
+/* появление нового сообщения */
+@keyframes tg-in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+.convo .msg.tg-new { animation: tg-in .24s cubic-bezier(.2, .9, .3, 1.15); transform-origin: bottom right; }
+.convo .msg.tg-new:not(.mine) { transform-origin: bottom left; }
+@media (prefers-reduced-motion: reduce) { .convo .msg.tg-new { animation: none; } }
+/* видео */
+.tgv { position: relative; display: block; border-radius: 13px; overflow: hidden; background: #2b2520; max-width: 280px; margin: -3px -7px 4px; line-height: 0; }
+.tgv video { display: block; width: 100%; max-height: 360px; min-height: 140px; object-fit: cover; margin: 0 !important; border-radius: 0 !important; }
+.tgv-play { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
+.tgv-play:active { transform: scale(.92); }
+.tgv-play svg { width: 26px; height: 26px; fill: #fff; margin-left: 3px; }
+.tgv-dur { position: absolute; left: 8px; top: 8px; background: rgba(0, 0, 0, .45); color: #fff; font-size: 12px; font-weight: 600; line-height: 1; padding: 4px 7px; border-radius: 9px; }
+.tgv.playing .tgv-play, .tgv.playing .tgv-dur { display: none; }
+.convo .bubble:has(> .tgv:only-child), .convo .bubble:has(> img.att:only-child) { padding: 3px; }
+.convo .bubble:has(> .tgv:only-child) .tgv, .convo .bubble:has(> img.att:only-child) img.att { margin: 0; }
+/* телефон: переписка на весь экран, без карточек */
+@media (max-width: 900px) {
+  .chat-page .main > .alert { display: none; }
+  .chat-page .convo { padding: 0 !important; }
+  .chat-page .convo-head { margin: 0 !important; border-radius: 0; border: 0; border-bottom: 1px solid var(--border); padding: calc(8px + env(safe-area-inset-top)) 10px 8px; position: relative; z-index: 4; }
+  .chat-page .convo-box { border: 0; border-radius: 0; padding: 8px 8px 12px; }
+  .chat-page .convo > .tiny.faint.center { display: none; }
+  .chat-page .convo-input { margin: 0 !important; border-radius: 0; border: 0; border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+}
+/* фото и видео без рамки, время — поверх картинки */
+.convo .bubble:has(> .tgv:only-child), .convo .bubble:has(> img.att:only-child) { padding: 0 !important; background: none !important; box-shadow: none !important; }
+.convo .bubble:has(> .tgv:only-child)::after, .convo .bubble:has(> img.att:only-child)::after { display: none; }
+.convo .bubble:has(> .tgv:only-child) .tgv, .convo .bubble:has(> img.att:only-child) img.att { border-radius: 16px; }
+.convo .msg:not(:has(.msg-reacts)):has(.bubble > .tgv:only-child) .msg-meta,
+.convo .msg:not(:has(.msg-reacts)):has(.bubble > img.att:only-child) .msg-meta { position: absolute; right: 8px; bottom: 8px; margin: 0; background: rgba(0, 0, 0, .45); color: #fff; border-radius: 10px; padding: 2px 7px; pointer-events: none; }
+.convo .msg:has(.bubble > .tgv:only-child) .msg-meta .i, .convo .msg:has(.bubble > img.att:only-child) .msg-meta .i { color: #fff; }
+/* список чатов — ровные строки во всю ширину, как в Telegram */
+@media (max-width: 900px) {
+  .chat-list.card { border-radius: 0; border-left: 0; border-right: 0; margin-left: -8px; margin-right: -8px; width: calc(100% + 16px); max-width: none; box-shadow: none; padding: 0; background: var(--card); }
+  .chat-list a.chat { padding: 9px 14px; gap: 12px; border-bottom: 0; position: relative; }
+  .chat-list a.chat::after { content: ""; position: absolute; left: 76px; right: 0; bottom: 0; height: 1px; background: var(--border); }
+  .chat-list a.chat:last-child::after { display: none; }
+  .chat-list a.chat .av { width: 54px !important; height: 54px !important; }
+  .chat-list a.chat .preview { font-size: 14.5px; color: var(--text-2); }
+  .chat-list a.chat:active { background: var(--hover); }
+}
