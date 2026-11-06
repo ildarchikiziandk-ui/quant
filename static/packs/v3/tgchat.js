@@ -29,3 +29,34 @@
     }).observe(box, { childList: true, subtree: true });
   });
 })();
+
+/* Список чатов всегда свежий: при возврате жестом «назад» (браузер показывает сохранённую страницу),
+   при возвращении в приложение и раз в 20 секунд — подтягиваем новый список, не перезагружая страницу. */
+(function () {
+  'use strict';
+  let busy = false, last = Date.now();
+  async function refreshList() {
+    const list = document.getElementById('chat-list'); if (!list || busy) return;
+    busy = true;
+    try {
+      const r = await fetch(location.pathname + location.search, { cache: 'no-store', credentials: 'same-origin' });
+      if (!r.ok) return;
+      const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+      const fresh = doc.getElementById('chat-list');
+      if (fresh && fresh.innerHTML !== list.innerHTML) {
+        list.innerHTML = fresh.innerHTML;
+        try {  // черновики, как при обычной загрузке (more.js)
+          list.querySelectorAll('.chat[data-uid]').forEach(row => { const d = JSON.parse(localStorage.getItem('nv_draft_' + row.dataset.uid) || '""'); const pv = row.querySelector('.preview');
+            if (d && pv) { pv.textContent = ''; const t = document.createElement('span'); t.className = 'draft-tag'; t.textContent = 'Черновик:'; pv.append(t, ' ' + String(d).slice(0, 80)); pv.classList.add('has-draft'); } });
+        } catch (e) {}
+        const chip = document.querySelector('#chat-tabs .chip.active'); chip && chip.click();
+      }
+      last = Date.now();
+    } catch (e) {} finally { busy = false; }
+  }
+  if (!document.getElementById('chat-list')) return;
+  addEventListener('pageshow', e => { if (e.persisted) refreshList(); });
+  try { if ((performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward') refreshList(); } catch (e) {}
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - last > 3000) refreshList(); });
+  setInterval(() => { if (!document.hidden) refreshList(); }, 20000);
+})();
