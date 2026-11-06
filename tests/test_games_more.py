@@ -45,10 +45,14 @@ def test_sea_battle(alice, bob):
     v = _view(gid, "alice")
     assert "o" not in v["enemy"] and v["mine"].count("o") == len(ships_a)
     html = alice.get(f"/messages/fragment/{last_msg().id}").json()["html"]
-    assert "Морской бой" in html and html.count('class="o') == len(ships_a)  # видны только свои корабли
+    assert "Морской бой" in html and html.count('class="o') == len(ships_a)  # видны только свои корабли (поле расстановки)
     assert bob.get(f"/messages/fragment/{last_msg().id}").json()["html"].count('class="o') == len(ships_b)
     # не свой ход
     assert mv(bob, gid, ships_a[0]).status_code >= 400
+    # с 6.11.2026 сначала расстановка: оба жмут «Готово», корабли остаются как были
+    assert "Расставить самому" in html
+    assert alice.post(f"/v3/game/{gid}/sea/place", json={"ready": 1}, headers=J).json()["ok"]
+    assert bob.post(f"/v3/game/{gid}/sea/place", json={"ready": 1}, headers=J).json()["started"]
     # промах — ход переходит
     miss = next(i for i in range(64) if i not in ships_b)
     r = mv(alice, gid, miss).json()
