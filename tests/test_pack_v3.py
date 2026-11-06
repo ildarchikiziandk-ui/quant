@@ -1462,3 +1462,21 @@ def test_sea_placement(alice, bob):
     assert alice.post(f"/v3/game/{gid}/sea/place", json={"random": 1}, headers=J).status_code >= 400  # уже готова
     assert bob.post(f"/v3/game/{gid}/sea/place", json={"random": 1, "ready": 1}, headers=J).json()["started"]
     assert alice.post(f"/v3/game/{gid}/move", json={"v": "0"}, headers=J).json()["ok"]
+
+
+def test_emoji_status(alice):
+    from packs.v3 import estatus
+    assert len(estatus.BY_ID) >= 200
+    assert alice.post("/plus/status", json={"id": "st:haha"}, headers=J).status_code == 403  # без Plus нельзя
+    s = db()
+    u = s.query(models.User).filter_by(username="alice").first()
+    u.is_plus = True
+    u.plus_until = datetime.utcnow() + timedelta(days=5)
+    s.commit()
+    s.close()
+    assert "Статус у имени" in alice.get("/plus/status").text
+    assert alice.post("/plus/status", json={"id": "nope"}, headers=J).status_code >= 400
+    r = alice.post("/plus/status", json={"id": "st:haha"}, headers=J).json()
+    assert r["ok"] and r["img"].endswith("haha.webp")
+    assert "badge estatus" in alice.get("/profile/alice").text
+    alice.post("/plus/status", json={"id": ""}, headers=J)

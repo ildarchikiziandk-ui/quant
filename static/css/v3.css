@@ -508,3 +508,6 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .badge.plus-b { width: 17px; height: 17px; border-radius: 50%; background: var(--whale); flex: none; }
 .badge.plus-b svg { width: 11px; height: 11px; fill: #fff; }
 [data-theme="dark"] .badge.plus-b svg { fill: #fff; }
+.badge.estatus { width: 20px; height: 20px; }
+.badge.estatus img { width: 20px; height: 20px; object-fit: contain; display: block; }
+.profile-name .badge.estatus, .profile-name .badge.estatus img { width: 26px; height: 26px; }

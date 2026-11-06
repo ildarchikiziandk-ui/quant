@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Статус у имени — {{ brand }}{% endblock %}
+{% block content %}
+<style>
+.es-prev{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800}
+.es-prev img{width:28px;height:28px}
+.es-group{margin-top:14px}.es-group h3{font-size:15px;margin:0 0 8px}
+.es-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px}
+.es-grid button{aspect-ratio:1;border:2px solid transparent;border-radius:14px;background:var(--input);padding:6px;cursor:pointer;transition:transform .12s}
+.es-grid button img{width:100%;height:100%;object-fit:contain;display:block}
+.es-grid button.on{border-color:var(--whale);background:color-mix(in srgb,var(--whale) 12%,var(--card))}
+.es-grid button:active{transform:scale(.9)}
+.es-lock .es-grid button{opacity:.55}
+</style>
+<div class="card">
+  <div class="page-title" style="margin:0">Статус у имени</div>
+  <p class="small muted">Как в Telegram Premium: с {{ brand_plus }} рядом с вашим именем — не кружок, а свой стикер или эмодзи. На выбор {{ total }} вариантов.</p>
+  <div class="es-prev mt">{{ user.name or user.username }} <span id="es-cur">{% if current %}<img src="{{ (groups|map(attribute='items')|sum(start=[])|selectattr('id', 'equalto', current)|first).img }}" alt="">{% endif %}</span></div>
+  {% if plus %}<button class="btn ghost sm mt" id="es-clear" {% if not current %}hidden{% endif %}>Убрать статус</button>
+  {% else %}<p class="small mt">Статус доступен с {{ brand_plus }}. Получить: <a href="/tasks" style="color:var(--link)">задания и розыгрыш недели</a> или промокод на <a href="/plus" style="color:var(--link)">странице {{ brand_plus }}</a>.</p>{% endif %}
+</div>
+<div class="card{% if not plus %} es-lock{% endif %}">
+  {% for g in groups %}<div class="es-group"><h3>{{ g.title }}</h3><div class="es-grid">{% for it in g["items"] %}<button type="button" data-id="{{ it.id }}" title="{{ it.title }}" class="{{ 'on' if it.id == current }}"><img src="{{ it.img }}" alt="" loading="lazy"></button>{% endfor %}</div></div>{% endfor %}
+</div>
+<script>
+(function () {
+  const PLUS = {{ plus|tojson }}, cur = document.getElementById('es-cur'), clr = document.getElementById('es-clear');
+  async function pick(id, btn) {
+    if (!PLUS) { window.toast && toast('Статус у имени — для {{ brand_plus }}'); return; }
+    try { const r = await App.api('/plus/status', { id });
+      document.querySelectorAll('.es-grid button.on').forEach(b => b.classList.remove('on')); if (btn) btn.classList.add('on');
+      cur.innerHTML = r.img ? `<img src="${r.img}" alt="">` : ''; if (clr) clr.hidden = !id;
+      window.toast && toast(id ? 'Статус поставлен ✨' : 'Статус убран'); } catch (e) {}
+  }
+  document.querySelectorAll('.es-grid button').forEach(b => b.onclick = () => pick(b.dataset.id, b));
+  if (clr) clr.onclick = () => pick('', null);
+})();
+</script>
+{% endblock %}

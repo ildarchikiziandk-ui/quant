@@ -14,6 +14,7 @@
 {% endfor %}
 <div class="card mt"><div class="card-title">Как получить?</div>
   <a class="btn block mb" href="/buy">{{ icon("sparkle", "i in") }} {% if v3_pay_on() %}Купить {{ brand_plus }} — от {{ plus_plans[0][1] }} ₽ в месяц{% else %}Покупка — скоро{% endif %}</a>
+  <a class="card row" href="/plus/status" style="gap:12px;align-items:center;margin:0 0 12px"><img src="/static/stickers/nuvi/ura.webp" alt="" style="width:46px;height:46px"><div class="grow"><b>Статус у имени</b><div class="small muted">Свой стикер или эмодзи рядом с именем — больше 200 вариантов</div></div><span class="faint" style="font-size:22px">›</span></a>
   <p class="small muted mb">Активируйте промокод от администрации или выиграйте подписку в еженедельном розыгрыше, выполняя <a href="/tasks" style="color:var(--link)">задания</a>.</p>
   {% if user %}<form method="post" action="/settings/promocode" class="row"><input name="code" placeholder="Промокод" value="{{ request.query_params.get('code', '')|notr }}" required style="margin:0;text-transform:uppercase"><button class="btn">Активировать</button></form>
   {% else %}<a href="/register" class="btn">Создать аккаунт</a>{% endif %}
