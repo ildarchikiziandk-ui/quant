@@ -1,7 +1,8 @@
-"""Статус у имени для Nuvora+ — как эмодзи-статус в Telegram Premium (6.11.2026, просьба владельца):
-вместо кружка Plus рядом с именем стоит выбранный стикер или эмодзи. Больше 200 вариантов:
-все наши стикеры (packs/v3/stickers.py) и подборка эмодзи Twemoji (static/emoji, CC BY 4.0).
+"""Статус у имени для Nuvora+ (6.11.2026, просьба владельца): вместо кружка Plus рядом с именем стоит выбранный
+нарисованный стикер. 220 вариантов без подписей — мордочки 12 персонажей Nuvora с разными настроениями и предметы
+в том же стиле. Картинки и список рисует `python3 tools/status_art.py` (static/estatus/<id>.webp и index.json).
 Выбор — страница /plus/status (Nuvora+ → «Статус у имени»)."""
+import json
 import os
 
 from fastapi import Depends, Request
@@ -11,43 +12,19 @@ from database import get_db
 from deps import current_user, json_error, redirect, render
 from services import social
 
-from . import stickers
 from .common import router, s
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EMOJI = [
-    ("Настроение", "😀 😄 😁 😆 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😎 🤩 🥳 😏 🤔 🤗 🤭 😴 🥱 😤 😡 🥺 😢 😭 😱 🤯 🥶 🥵 🤠 🤓 😈 👻 💀 🤖 👽 🙈 💩"),
-    ("Сердца и знаки", "❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💖 💘 💝 💔 ❤️‍🔥 💯 ✨ ⭐ 🌟 💫 ⚡ 🔥 💥 💎 👑 🏆 🥇 🎯 ✅ ❌ ⚠️ 🔔 🎵 🎶 💤 🆒 🆕"),
-    ("Животные", "🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🦉 🦄 🐝 🦋 🐢 🐍 🦖 🐙 🦀 🐬 🐳 🐋 🦈 🐠"),
-    ("Еда", "🍎 🍓 🍉 🍌 🍒 🥑 🍕 🍔 🍟 🌭 🌮 🍣 🍜 🍩 🍪 🎂 🍰 🍫 🍬 🍭 🍿 ☕ 🧃 🥤 🧋"),
-    ("Природа и погода", "🌸 🌹 🌻 🌷 🍀 🌵 🌲 🍁 🍄 🌈 ☀️ 🌙 🌚 🌝 ⛄ ❄️ 🌊 🌍 🪐 ☁️"),
-    ("Игры и хобби", "🎮 🕹️ 🎲 ♟️ 🧩 🎨 🎸 🎧 🎤 📷 📚 ✏️ 💻 📱 🚀 🛸 🚗 🏍️ ✈️ ⚽ 🏀 🏐 🎾 🏓 🥊 🛹 🏄 🎣"),
-    ("Праздники", "🎉 🎊 🎈 🎁 🎄 🎅 🎆 🎇 🧨 🎃 🪅 🕯️"),
-]
-
-
-def _code(e):
-    cps = [ord(c) for c in e]
-    zwj = 0x200D in cps
-    return "-".join(f"{c:x}" for c in cps if zwj or c != 0xFE0F)
 
 
 def _build():
-    groups, by_id = [], {}
-    for _, title, items in stickers.PACKS:
-        row = [{"id": "st:" + k, "img": stickers.url(k), "title": n} for k, n in items]
-        groups.append({"title": title, "items": row})
-    for title, line in EMOJI:
-        row = []
-        for e in line.split():
-            code = _code(e)
-            if os.path.exists(os.path.join(ROOT, "static", "emoji", code + ".svg")):
-                row.append({"id": "e:" + code, "img": f"/static/emoji/{code}.svg", "title": e})
-        groups.append({"title": title, "items": row})
-    for g in groups:
-        for it in g["items"]:
-            by_id[it["id"]] = it["img"]
-    return groups, by_id
+    try:
+        with open(os.path.join(ROOT, "static", "estatus", "index.json"), encoding="utf-8") as f:
+            idx = json.load(f)
+    except OSError:
+        idx = []
+    groups = [{"title": g["title"], "items": [{"id": "s:" + k, "img": f"/static/estatus/{k}.webp", "title": n} for k, n in g["items"]]} for g in idx]
+    return groups, {it["id"]: it["img"] for g in groups for it in g["items"]}
 
 
 GROUPS, BY_ID = _build()

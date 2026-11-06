@@ -31,7 +31,7 @@ class User(Base):
     website = Column(String, default="")
     work = Column(String(80), default="")  # работа или учёба — показывается в профиле
     birthday = Column(String, default="")
-    emoji_status = Column(String, default="")
+    emoji_status = Column(String, default="")  # статус у имени для Nuvora+: "s:<стикер>" (packs/v3/estatus.py)
     city = Column(String, default="")
     telegram_link = Column(String, default="")
     youtube_link = Column(String, default="")
@@ -39,8 +39,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     is_owner = Column(Boolean, default=False)
     co_owner = Column(Boolean, default=False)  # совладелец: те же права, своя корона; главный владелец — is_owner без co_owner
-    is_team = Column(Boolean, default=False)
-    emoji_status = Column(String(40), default="")  # статус у имени для Nuvora+ (как в Telegram Premium): "st:<стикер>" или "e:<код эмодзи>"  # значок «Команда Nuvora» — выдаёт владелец в админке
+    is_team = Column(Boolean, default=False)  # значок «Команда Nuvora» — выдаёт владелец в админке
     is_starred = Column(Boolean, default=False)
     is_verified_badge = Column(Boolean, default=False)
     is_moderator = Column(Boolean, default=False)

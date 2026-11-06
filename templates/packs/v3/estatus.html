@@ -14,7 +14,7 @@
 </style>
 <div class="card">
   <div class="page-title" style="margin:0">Статус у имени</div>
-  <p class="small muted">Как в Telegram Premium: с {{ brand_plus }} рядом с вашим именем — не кружок, а свой стикер или эмодзи. На выбор {{ total }} вариантов.</p>
+  <p class="small muted">С {{ brand_plus }} рядом с вашим именем — не кружок, а нарисованный стикер на выбор. Их {{ total }}.</p>
   <div class="es-prev mt">{{ user.name or user.username }} <span id="es-cur">{% if current %}<img src="{{ (groups|map(attribute='items')|sum(start=[])|selectattr('id', 'equalto', current)|first).img }}" alt="">{% endif %}</span></div>
   {% if plus %}<button class="btn ghost sm mt" id="es-clear" {% if not current %}hidden{% endif %}>Убрать статус</button>
   {% else %}<p class="small mt">Статус доступен с {{ brand_plus }}. Получить: <a href="/tasks" style="color:var(--link)">задания и розыгрыш недели</a> или промокод на <a href="/plus" style="color:var(--link)">странице {{ brand_plus }}</a>.</p>{% endif %}

@@ -1467,7 +1467,7 @@ def test_sea_placement(alice, bob):
 def test_emoji_status(alice):
     from packs.v3 import estatus
     assert len(estatus.BY_ID) >= 200
-    assert alice.post("/plus/status", json={"id": "st:haha"}, headers=J).status_code == 403  # без Plus нельзя
+    assert alice.post("/plus/status", json={"id": "s:nuvi-rad"}, headers=J).status_code == 403  # без Plus нельзя
     s = db()
     u = s.query(models.User).filter_by(username="alice").first()
     u.is_plus = True
@@ -1476,7 +1476,7 @@ def test_emoji_status(alice):
     s.close()
     assert "Статус у имени" in alice.get("/plus/status").text
     assert alice.post("/plus/status", json={"id": "nope"}, headers=J).status_code >= 400
-    r = alice.post("/plus/status", json={"id": "st:haha"}, headers=J).json()
-    assert r["ok"] and r["img"].endswith("haha.webp")
+    r = alice.post("/plus/status", json={"id": "s:nuvi-rad"}, headers=J).json()
+    assert r["ok"] and r["img"].endswith("nuvi-rad.webp")
     assert "badge estatus" in alice.get("/profile/alice").text
     alice.post("/plus/status", json={"id": ""}, headers=J)
