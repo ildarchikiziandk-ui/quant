@@ -342,17 +342,30 @@
     addEventListener('scroll', upd, { passive: true }); upd();
   });
 
-  // 24. Прослушать пост (синтез речи)
+  // 24. Прослушать пост (синтез речи). Во встроенном браузере приложения Android озвучки нет —
+  // там говорит сам телефон через NuvoraApp.speak (приложение с 7.11.2026). Где озвучить нечем, кнопку прячем.
+  const app = window.NuvoraApp && typeof window.NuvoraApp.speak === 'function' ? window.NuvoraApp : null;
+  const web = !app && window.speechSynthesis && window.SpeechSynthesisUtterance ? window.speechSynthesis : null;
+  if (!app && !web) document.querySelectorAll('[data-tts]').forEach(b => b.remove());
+  let ttsBtn = null;
+  window.__nvTtsDone = ok => { if (ttsBtn) ttsBtn.classList.remove('on'); ttsBtn = null; if (ok === false) toast('Не получилось озвучить — проверьте «Синтез речи» в настройках телефона', true); };
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-tts]'); if (!b) return;
-    if (!window.speechSynthesis) return toast('Озвучка не поддерживается на этом устройстве', true);
-    if (speechSynthesis.speaking) { speechSynthesis.cancel(); b.classList.remove('on'); return; }
+    if (ttsBtn) {  // второе нажатие — стоп
+      const same = ttsBtn === b; ttsBtn.classList.remove('on'); ttsBtn = null;
+      if (app) app.stopSpeak(); else if (web) web.cancel();
+      if (same) return;
+    }
     const t = document.getElementById(b.dataset.tts); if (!t) return;
-    const u = new SpeechSynthesisUtterance(t.innerText.replace(/#/g, ' ')); u.lang = 'ru-RU'; u.rate = 1;
-    const ru = speechSynthesis.getVoices().find(v => /^ru/i.test(v.lang)); if (ru) u.voice = ru;
-    u.onend = () => b.classList.remove('on'); b.classList.add('on'); speechSynthesis.speak(u);
+    const text = t.innerText.replace(/#/g, ' ').trim(); if (!text) return;
+    ttsBtn = b; b.classList.add('on');
+    if (app) { app.speak(text); return; }
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'ru-RU'; u.rate = 1;
+    const ru = web.getVoices().find(v => /^ru/i.test(v.lang)); if (ru) u.voice = ru;
+    u.onend = () => window.__nvTtsDone(true); u.onerror = () => window.__nvTtsDone(true);
+    web.speak(u);
   });
-  addEventListener('pagehide', () => { try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) { /* нет озвучки */ } });
+  addEventListener('pagehide', () => { try { if (app) app.stopSpeak(); else if (web) web.cancel(); } catch (e) { /* нет озвучки */ } });
 
   // 25. Размер текста поста A− / A+ (режим чтения)
   safe('readsize', () => {

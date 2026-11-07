@@ -36,6 +36,9 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import java.util.Locale
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -56,6 +59,9 @@ class MainActivity : AppCompatActivity() {
     private var showingOffline = false
     private val bundle by lazy { BundledAssets(this) }
     private val updater by lazy { Updater(this) }
+    private var tts: TextToSpeech? = null  // озвучка постов: во встроенном браузере Android её нет, берём системную
+    private var ttsReady = false
+    private var ttsPending: String? = null
     private var mainRetries = 0  // повторы загрузки страницы после сбоя сети
 
     private val fileChooser = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -406,7 +412,59 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Мост для сайта: тема (цвет полос под системными панелями) и сохранение картинок, созданных на странице. */
+    private fun ttsSpeak(text: String) {
+        val engine = tts
+        if (engine == null) {
+            ttsPending = text
+            tts = TextToSpeech(this) { status ->
+                ttsReady = status == TextToSpeech.SUCCESS
+                val e = tts ?: return@TextToSpeech
+                if (!ttsReady) { ttsDone(false); return@TextToSpeech }
+                val ru = Locale("ru", "RU")
+                if (e.isLanguageAvailable(ru) >= TextToSpeech.LANG_AVAILABLE) e.language = ru
+                e.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(id: String?) {}
+                    override fun onDone(id: String?) { if (id == "nv-last") ttsDone(true) }
+                    @Deprecated("старый вариант")
+                    override fun onError(id: String?) = ttsDone(false)
+                })
+                ttsPending?.let { ttsSpeak(it) }
+                ttsPending = null
+            }
+            return
+        }
+        if (!ttsReady) { ttsPending = text; return }
+        // длинный текст системная озвучка не берёт целиком — режем по предложениям
+        val parts = text.split(Regex("(?<=[.!?…\\n])\\s+")).flatMap { it.chunked(3500) }.filter { it.isNotBlank() }
+        parts.forEachIndexed { i, s ->
+            engine.speak(s, if (i == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, if (i == parts.lastIndex) "nv-last" else "nv-$i")
+        }
+    }
+
+    override fun onDestroy() {
+        tts?.shutdown()
+        tts = null
+        super.onDestroy()
+    }
+
+    private fun ttsDone(ok: Boolean) {
+        runOnUiThread { web.evaluateJavascript("window.__nvTtsDone&&__nvTtsDone($ok)", null) }
+    }
+
     inner class ThemeBridge {
+        @JavascriptInterface
+        fun speak(text: String) {
+            runOnUiThread { ttsSpeak(text) }
+        }
+
+        @JavascriptInterface
+        fun stopSpeak() {
+            runOnUiThread { tts?.stop() }
+        }
+
+        @JavascriptInterface
+        fun isSpeaking(): Boolean = tts?.isSpeaking == true
+
         @JavascriptInterface
         fun checkUpdate() {
             runOnUiThread { updater.check(manual = true) }

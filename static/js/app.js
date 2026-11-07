@@ -76,11 +76,14 @@
   function toast(text, isError) {
     let box = $('#toasts');
     if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
+    // одно и то же сообщение не складываем стопкой — продлеваем уже показанное
+    const same = [...box.children].find(x => x.textContent === String(text));
+    if (same) { clearTimeout(same._t); same._t = setTimeout(() => same.remove(), 3200); return; }
     const t = document.createElement('div');
     t.className = 'toast' + (isError ? ' error' : '');
     t.textContent = text;
     box.appendChild(t);
-    setTimeout(() => t.remove(), 3200);
+    t._t = setTimeout(() => t.remove(), 3200);
   }
   function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function avatarHtml(u, size = 36) {
