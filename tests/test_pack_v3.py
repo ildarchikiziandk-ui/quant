@@ -1482,6 +1482,6 @@ def test_emoji_status(alice):
     assert 'data-es="alice"' in alice.get("/profile/alice").text  # нажать на свой значок — окно выбора
     j = alice.get("/plus/status.json").json()
     assert j["plus"] and j["current"] == "s:nuvi-rad" and sum(len(g["items"]) for g in j["groups"]) >= 200
-    assert "s:crown" not in estatus.BY_ID  # корона — только у владельцев
+    assert not {"s:crown", "s:crown-silver", "s:star"} & set(estatus.BY_ID)  # похожи на значки владельцев и «Звезду автора»
     assert "badge estatus" in alice.get("/profile/alice").text
     alice.post("/plus/status", json={"id": ""}, headers=J)
