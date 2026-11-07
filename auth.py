@@ -9,7 +9,8 @@ import time
 from datetime import datetime, timedelta
 
 import bcrypt
-from jose import JWTError, jwt
+import jwt  # PyJWT (python-jose заменён 7.11.2026: в нём и в ecdsa есть неисправленные уязвимости)
+from jwt import PyJWTError as JWTError
 from sqlalchemy.orm import Session
 
 import config

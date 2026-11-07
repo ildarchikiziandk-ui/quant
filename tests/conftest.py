@@ -42,7 +42,8 @@ def _fresh_state():
 
 
 def make_client():
-    return TestClient(main.app, base_url="http://testserver")
+    # как настоящий браузер: он всегда присылает Origin (без него запросы с кукой входа отклоняются)
+    return TestClient(main.app, base_url="http://testserver", headers={"Origin": "http://testserver"})
 
 
 def register(client, username, password="secret123", private=False):

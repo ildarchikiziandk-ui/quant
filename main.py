@@ -124,7 +124,14 @@ class LangMiddleware:
 app.add_middleware(LangMiddleware)
 app.add_middleware(TextGZip, minimum_size=1200, compresslevel=5)
 
+from auth import COOKIE_NAME as AUTH_COOKIE  # noqa: E402
+
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+# Заголовок безопасности: скрипты, стили, шрифты и запросы — только с нашего сайта (внешних скриптов у нас нет и не будет);
+# страницу нельзя вставить в чужой сайт; плагины выключены. Картинки и видео — свои, data:/blob: (предпросмотр) и https.
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; "
+       "worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'")
 
 
 def _norm_host(h: str) -> str:
@@ -177,6 +184,10 @@ async def security_middleware(request: Request, call_next):
     # Защита от CSRF: небезопасные запросы с чужого Origin/Referer отклоняются.
     if request.method not in SAFE_METHODS:
         origin = request.headers.get("origin") or request.headers.get("referer")
+        if not origin and request.cookies.get(AUTH_COOKIE) and not path.startswith("/api/"):
+            # браузеры всегда присылают Origin или Referer; если их нет при входе по куке — запрос подделан
+            print(f"[csrf] blocked {request.method} {path}: no origin/referer")
+            return JSONResponse({"ok": False, "error": "Запрос отклонён. Обновите страницу и попробуйте снова."}, status_code=403)
         if origin and origin != "null":
             allowed = {_norm_host(h) for h in (request.headers.get("host", ""), request.headers.get("x-forwarded-host", ""),
                                                urlparse(config.SITE_URL).netloc) if h}
@@ -191,6 +202,9 @@ async def security_middleware(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()")
+    response.headers.setdefault("Content-Security-Policy", CSP)
+    if config.COOKIE_SECURE:  # сайт на https: браузер больше никогда не откроет его по незащищённому http
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
     return response
 
 

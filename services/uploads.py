@@ -23,6 +23,29 @@ FILE_TYPES = {
 
 MAX_PIXELS = 50_000_000  # 50 Мп — больше, чем у любой камеры телефона
 
+def _looks_like(ext, head):
+    """Начало файла совпадает с его типом? Иначе под видом видео или документа можно подсунуть что угодно."""
+    if ext in (".mp4", ".mov", ".m4a"):
+        return head[4:8] in (b"ftyp", b"moov", b"mdat", b"wide", b"free", b"skip")
+    if ext == ".webm":
+        return head[:4] == b"\x1a\x45\xdf\xa3"
+    if ext == ".ogg":
+        return head[:4] == b"OggS"
+    if ext == ".mp3":
+        return head[:3] == b"ID3" or (len(head) > 1 and head[0] == 0xFF and head[1] & 0xE0 == 0xE0)
+    if ext == ".wav":
+        return head[:4] == b"RIFF"
+    if ext == ".pdf":
+        return head[:5] == b"%PDF-"
+    if ext in (".zip", ".docx", ".xlsx", ".pptx"):
+        return head[:2] == b"PK"
+    if ext == ".doc":
+        return head[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    if ext == ".txt":
+        return b"\x00" not in head
+    return True
+
+
 def is_upload(obj) -> bool:
     return obj is not None and hasattr(obj, "filename") and bool(obj.filename)
 
@@ -54,6 +77,8 @@ def save_file(upload, allowed=("image", "video", "audio", "file")):
         return None, f"Файл слишком большой (макс. {limit // (1024 * 1024)} МБ)"
     if not contents:
         return None, "Пустой файл"
+    if mtype != "image" and not _looks_like(ext, contents[:16]):
+        return None, "Файл повреждён или это не тот формат, что указан"
     fname = f"{uuid.uuid4().hex}{ext}"
     fpath = os.path.join(config.UPLOAD_DIR, fname)
     if mtype == "image" and ext != ".gif":

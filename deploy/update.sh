@@ -9,6 +9,17 @@ BRANCH=$(git -C "$APP_DIR" rev-parse --abbrev-ref HEAD)
 git -C "$APP_DIR" fetch -q origin "$BRANCH"
 git -C "$APP_DIR" checkout -q -f -B "$BRANCH" "origin/$BRANCH"
 "$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
+# старые библиотеки с неисправленными дырами (заменены на PyJWT 7.11.2026) — убираем
+"$APP_DIR/venv/bin/pip" uninstall -y -q python-jose ecdsa >/dev/null 2>&1 || true
+# защита (7.11.2026): файлы с ключами читает только сервер; nginx не называет свою версию
+chmod 600 "$APP_DIR/.env" "$APP_DIR/school/.env" 2>/dev/null || true
+if ! grep -q '^SECRET_KEY=.\{20,\}' "$APP_DIR/.env" 2>/dev/null; then
+  echo "ВНИМАНИЕ: в $APP_DIR/.env нет своего SECRET_KEY — сайт работает на старом общеизвестном ключе. Напишите об этом Claude, ключ менять самому нельзя: перестанут открываться сообщения."
+fi
+if command -v nginx >/dev/null && [ ! -f /etc/nginx/conf.d/nuvora-hardening.conf ]; then
+  echo "server_tokens off;" > /etc/nginx/conf.d/nuvora-hardening.conf
+  if nginx -t >/dev/null 2>&1; then systemctl reload nginx || true; else rm -f /etc/nginx/conf.d/nuvora-hardening.conf; fi
+fi
 chown -R nuvora:nuvora "$APP_DIR"
 # ретранслятор для звонков: ставится один раз, при следующих обновлениях пропускается
 if ! grep -q '^TURN_SECRET=.' "$APP_DIR/.env" 2>/dev/null; then
