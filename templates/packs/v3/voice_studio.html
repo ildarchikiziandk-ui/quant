@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Студия голоса — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0"><a href="/admin/tts" style="color:inherit">{{ icon("mic", "i in") }}</a> Студия голоса</div><span class="small muted"><b id="vs-done">{{ recorded|length }}</b> из {{ phrases|length }}</span></div>
+<div class="card small">
+  <b>Как записывать:</b> в тихой комнате, телефон держите в 20–30 см ото рта, читайте спокойно и чётко, как диктор. Нажмите «Запись», прочитайте фразу, нажмите «Стоп» — запись сохранится сама. Можно перезаписать любую.
+  Чем больше фраз — тем похожее голос; хватит и 60–100, лучше все {{ phrases|length }}.
+  <div class="mt"><a class="btn soft sm" href="/admin/voice/dataset.zip">{{ icon("download", "i in") }} Скачать записи</a></div>
+</div>
+<div class="card vs-card">
+  <div class="vs-num">Фраза <b id="vs-n">1</b> из {{ phrases|length }} <span id="vs-ok" class="vs-ok" hidden>✓ записана</span></div>
+  <div class="vs-text" id="vs-text"></div>
+  <div class="vs-meter"><i id="vs-lvl"></i></div>
+  <div class="row wrap vs-btns">
+    <button class="btn soft" id="vs-prev">‹ Назад</button>
+    <button class="btn" id="vs-rec">{{ icon("mic", "i in") }} Запись</button>
+    <button class="btn soft" id="vs-play" disabled>{{ icon("play", "i in") }} Послушать</button>
+    <button class="btn soft" id="vs-next">Дальше ›</button>
+  </div>
+  <div class="vs-dots" id="vs-dots">{% for p in phrases %}<button type="button" data-n="{{ loop.index0 }}" class="{{ 'on' if loop.index0 in recorded }}" title="{{ loop.index }}"></button>{% endfor %}</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const P = {{ phrases|tojson }}, done = new Set({{ recorded|tojson }});
+  let n = 0; while (done.has(n) && n < P.length - 1) n++;
+  const $ = id => document.getElementById(id), rec = $('vs-rec'), play = $('vs-play');
+  let mr = null, chunks = [], stream = null, raf = 0, audio = null;
+  function show() { $('vs-n').textContent = n + 1; $('vs-text').textContent = P[n]; $('vs-ok').hidden = !done.has(n); play.disabled = !done.has(n);
+    document.querySelectorAll('#vs-dots button').forEach((b, k) => { b.classList.toggle('on', done.has(k)); b.classList.toggle('cur', k === n); }); $('vs-done').textContent = done.size; }
+  async function start() {
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } }); }
+    catch (e) { App.toast('Разрешите доступ к микрофону', true); return; }
+    const mime = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+    mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : {}); chunks = [];
+    mr.ondataavailable = e => e.data.size && chunks.push(e.data); mr.onstop = save; mr.start();
+    rec.classList.add('danger'); rec.innerHTML = '■ Стоп';
+    const ctx = new AudioContext(), an = ctx.createAnalyser(); ctx.createMediaStreamSource(stream).connect(an); const buf = new Uint8Array(an.fftSize);
+    const tick = () => { an.getByteTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v - 128)); $('vs-lvl').style.width = Math.min(100, m / 1.28) + '%'; raf = requestAnimationFrame(tick); }; tick();
+  }
+  function stop() { mr && mr.state === 'recording' && mr.stop(); stream && stream.getTracks().forEach(t => t.stop()); cancelAnimationFrame(raf); $('vs-lvl').style.width = '0';
+    rec.classList.remove('danger'); rec.innerHTML = window.ICON ? ICON('mic', 'i in') + ' Запись' : 'Запись'; }
+  async function save() {
+    const type = (mr.mimeType || 'audio/webm').split(';')[0]; const blob = new Blob(chunks, { type });
+    if (blob.size < 2000) { App.toast('Слишком коротко — попробуйте ещё раз', true); return; }
+    const fd = new FormData(); fd.append('audio', blob, 'rec');
+    try { const r = await App.api(`/admin/voice/rec/${n}`, fd); done.add(n); App.toast('Сохранено'); if (n < P.length - 1) n++; show(); } catch (e) {}
+  }
+  rec.onclick = () => (mr && mr.state === 'recording') ? stop() : start();
+  play.onclick = () => { audio && audio.pause(); audio = new Audio(`/admin/voice/rec/${n}?t=${Date.now()}`); audio.play(); };
+  $('vs-prev').onclick = () => { if (n > 0) { n--; show(); } };
+  $('vs-next').onclick = () => { if (n < P.length - 1) { n++; show(); } };
+  document.querySelectorAll('#vs-dots button').forEach(b => b.onclick = () => { n = +b.dataset.n; show(); });
+  show();
+})();
+</script>
+{% endblock %}

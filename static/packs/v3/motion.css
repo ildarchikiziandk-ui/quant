@@ -154,3 +154,17 @@ article.post:has(.menu.open), .card:has(.menu.open), .ntile:has(.menu.open) { co
 .adm-online span { max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sc-pv:has(.sc-pv-poll:not([hidden])) .sc-pv-link { bottom: auto; top: 12px; }
 .sc-pv-poll[hidden], .sc-pv-link[hidden] { display: none !important; }
+
+/* ---------- озвучка и студия голоса (7.11.2026) ---------- */
+.tts-v { align-items: center; } .tts-v .btn { margin-left: auto; flex: none; }
+.vs-card { text-align: center; }
+.vs-num { font-size: 13px; color: var(--text-2); }
+.vs-ok { color: #3c9a5f; font-weight: 700; margin-left: 6px; }
+.vs-text { font-size: 22px; font-weight: 700; line-height: 1.35; margin: 18px 4px; min-height: 90px; display: grid; place-items: center; }
+.vs-meter { height: 6px; border-radius: 3px; background: var(--input); overflow: hidden; margin: 0 auto 14px; max-width: 320px; }
+.vs-meter i { display: block; height: 100%; width: 0; background: var(--whale); transition: width .08s; }
+.vs-btns { justify-content: center; gap: 8px; }
+.vs-dots { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 16px; }
+.vs-dots button { width: 12px; height: 12px; border-radius: 50%; border: 0; padding: 0; background: var(--input); cursor: pointer; }
+.vs-dots button.on { background: #3c9a5f; } .vs-dots button.cur { outline: 2px solid var(--whale); outline-offset: 1px; }
+.act.tts-loading .i, [data-tts].tts-loading .i { animation: spin .8s linear infinite; }

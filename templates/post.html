@@ -43,7 +43,7 @@
 {%- set tid = post.repost_id if (post.is_repost and not post.original_comment and originals.get(post.repost_id)) else post.id %}
 {%- set tauthor = (originals.get(post.repost_id).author if tid != post.id else post.author) %}
 <div class="post-tools" style="padding:0 6px 8px">
-  <button type="button" class="btn ghost sm" data-tts="text-{{ tid }}" title="Прочитать пост вслух">{{ icon("volume", "i in") }} Прослушать</button>
+  <button type="button" class="btn ghost sm" data-tts="text-{{ tid }}"{% if user and tts_on() %} data-tts-url="/tts/post/{{ tid }}"{% endif %} title="Прочитать пост вслух">{{ icon("volume", "i in") }} Прослушать</button>
   <button type="button" class="btn ghost sm" data-readsize="-" title="Мельче">A−</button>
   <button type="button" class="btn ghost sm" data-readsize="+" title="Крупнее">A+</button>
   <button type="button" class="btn ghost sm" data-quote-img="text-{{ tid }}" data-author="{{ (tauthor.name or tauthor.username) if tauthor else '' }}" title="Поделиться текстом как картинкой">{{ icon("image", "i in") }} Картинкой</button>

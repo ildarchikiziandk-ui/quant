@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Озвучка — админ-панель{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0"><a href="/admin" style="color:inherit">{{ icon("shield", "i in") }}</a> Озвучка постов</div></div>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Кнопка «Прослушать» у постов читает текст голосом, который рисует наш сервер. Работает в любом браузере и в любом приложении, даже в старом.</p>
+  {% if voices %}
+  <form method="post" action="/admin/tts">
+    {% for v in voices %}<label class="check tts-v"><input type="radio" name="voice" value="{{ v.id }}" {% if v.id == current %}checked{% endif %}>
+      <span><b>{{ v.name }}</b><small>Лицензия: {{ v.license }}{% if v.nc %} — только для некоммерческих сайтов, у нас лучше не ставить{% endif %}</small></span>
+      <button type="button" class="btn soft sm" data-sample="{{ v.id }}">{{ icon("volume", "i in") }} Пример</button></label>{% endfor %}
+    <label class="check mt"><input type="checkbox" name="on" value="1" {% if on %}checked{% endif %}><span><b>Озвучка включена</b><small>Выключите — кнопка «Прослушать» пропадёт у всех</small></span></label>
+    <button class="btn mt">Сохранить</button>
+  </form>
+  {% else %}
+  <div class="alert">Голоса ещё не установлены. На сервере выполните одну команду:<pre style="white-space:pre-wrap;margin:8px 0 0">bash /opt/nuvora/deploy/set-tts.sh</pre></div>
+  {% endif %}
+</div>
+{% if founder %}<div class="card row wrap" style="justify-content:space-between;align-items:center;gap:10px">
+  <div><div class="card-title" style="margin:0">{{ icon("mic", "i in") }} Свой голос</div><div class="small muted">Прочитайте фразы в «Студии голоса» — по записям обучим озвучку вашим голосом. Записано {{ done }} из {{ total }}.</div></div>
+  <a class="btn soft" href="/admin/voice">Открыть студию</a></div>{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+let au = null;
+document.querySelectorAll('[data-sample]').forEach(b => b.onclick = e => { e.preventDefault(); au && au.pause(); b.disabled = true;
+  au = new Audio(`/admin/tts/sample/${b.dataset.sample}`); au.oncanplay = () => { b.disabled = false; }; au.onerror = () => { b.disabled = false; App.toast('Не получилось', true); }; au.play().catch(() => { b.disabled = false; }); });
+</script>
+{% endblock %}

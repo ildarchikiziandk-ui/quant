@@ -342,30 +342,37 @@
     addEventListener('scroll', upd, { passive: true }); upd();
   });
 
-  // 24. Прослушать пост (синтез речи). Во встроенном браузере приложения Android озвучки нет —
-  // там говорит сам телефон через NuvoraApp.speak (приложение с 7.11.2026). Где озвучить нечем, кнопку прячем.
+  // 24. Прослушать пост. Главный способ (7.11.2026) — голос с нашего сервера (data-tts-url, services/tts.py): работает
+  // везде, в том числе в старом приложении. Если сервер озвучку не умеет — голос телефона (NuvoraApp.speak) или браузера.
   const app = window.NuvoraApp && typeof window.NuvoraApp.speak === 'function' ? window.NuvoraApp : null;
   const web = !app && window.speechSynthesis && window.SpeechSynthesisUtterance ? window.speechSynthesis : null;
-  if (!app && !web) document.querySelectorAll('[data-tts]').forEach(b => b.remove());
-  let ttsBtn = null;
+  document.querySelectorAll('[data-tts]').forEach(b => { if (!b.dataset.ttsUrl && !app && !web) b.remove(); });
+  let ttsBtn = null, ttsAudio = null;
+  const ttsStop = () => { if (ttsAudio) { ttsAudio.pause(); ttsAudio = null; } if (app) app.stopSpeak(); else if (web) web.cancel(); if (ttsBtn) ttsBtn.classList.remove('on', 'tts-loading'); ttsBtn = null; };
   window.__nvTtsDone = ok => { if (ttsBtn) ttsBtn.classList.remove('on'); ttsBtn = null; if (ok === false) toast('Не получилось озвучить — проверьте «Синтез речи» в настройках телефона', true); };
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-tts]'); if (!b) return;
-    if (ttsBtn) {  // второе нажатие — стоп
-      const same = ttsBtn === b; ttsBtn.classList.remove('on'); ttsBtn = null;
-      if (app) app.stopSpeak(); else if (web) web.cancel();
-      if (same) return;
-    }
-    const t = document.getElementById(b.dataset.tts); if (!t) return;
-    const text = t.innerText.replace(/#/g, ' ').trim(); if (!text) return;
+    if (ttsBtn) { const same = ttsBtn === b; ttsStop(); if (same) return; }
     ttsBtn = b; b.classList.add('on');
+    if (b.dataset.ttsUrl) {
+      b.classList.add('tts-loading');
+      const a = new Audio(b.dataset.ttsUrl); ttsAudio = a;
+      a.onplaying = () => b.classList.remove('tts-loading');
+      a.onended = () => { if (ttsAudio === a) { ttsAudio = null; b.classList.remove('on'); ttsBtn = null; } };
+      a.onerror = async () => { if (ttsAudio !== a) return; ttsStop();
+        try { const r = await fetch(b.dataset.ttsUrl, { headers: { 'X-Requested-With': 'fetch' } }); const j = await r.json(); toast(j.error || 'Не получилось озвучить', true); } catch (er) { toast('Не получилось озвучить', true); } };
+      a.play().catch(() => {});
+      return;
+    }
+    const t = document.getElementById(b.dataset.tts); const text = t ? t.innerText.replace(/#/g, ' ').trim() : '';
+    if (!text) { ttsStop(); return; }
     if (app) { app.speak(text); return; }
     const u = new SpeechSynthesisUtterance(text); u.lang = 'ru-RU'; u.rate = 1;
     const ru = web.getVoices().find(v => /^ru/i.test(v.lang)); if (ru) u.voice = ru;
     u.onend = () => window.__nvTtsDone(true); u.onerror = () => window.__nvTtsDone(true);
     web.speak(u);
   });
-  addEventListener('pagehide', () => { try { if (app) app.stopSpeak(); else if (web) web.cancel(); } catch (e) { /* нет озвучки */ } });
+  addEventListener('pagehide', () => { try { ttsStop(); } catch (e) { /* нет озвучки */ } });
 
   // 25. Размер текста поста A− / A+ (режим чтения)
   safe('readsize', () => {
