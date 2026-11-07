@@ -20,6 +20,18 @@ def hit(key: str, limit: int, window: int) -> bool:
         return True
 
 
+def count(key: str, window: int) -> int:
+    """Сколько попыток было за последние window секунд (ничего не добавляет)."""
+    now = time.monotonic()
+    with _lock:
+        q = _hits.get(key)
+        if not q:
+            return 0
+        while q and now - q[0] > window:
+            q.popleft()
+        return len(q)
+
+
 def reset(key: str = None):
     with _lock:
         if key is None:

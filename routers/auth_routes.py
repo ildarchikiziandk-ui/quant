@@ -53,6 +53,9 @@ def validate_email(e):
     return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", e or "") is not None
 
 
+ACCOUNT_FAILS = 40  # неверных паролей на один аккаунт за час (со всех адресов вместе)
+
+
 def _client_ip(request: Request):
     # адрес клиента берём от uvicorn (--proxy-headers доверяет только нашему nginx); заголовок X-Forwarded-For
     # целиком подделывается клиентом, поэтому по нему лимиты не считаем
@@ -105,16 +108,22 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
                 user = alt
                 break
     if not user:
-        print(f"[login] no such user ident={ident!r} ip={ip}")
+        print(f"[login] no such user ip={ip} ident={ident!r}")
         return render(request, db, "login.html", sidebar=False, username=ident, next=next,
                       error="Аккаунт с таким логином или email не найден. Вводите именно логин (тот, что после @), а не имя.")
+    if ratelimit.count(f"loginfail:{user.id}", 3600) >= ACCOUNT_FAILS:
+        # подбор пароля с разных адресов: лимит на сам аккаунт, войти можно через час или по «Забыли пароль?»
+        print(f"[login] account-locked ip={ip} user={user.username}")
+        return render(request, db, "login.html", sidebar=False, username=ident, next=next,
+                      error="Слишком много неверных паролей для этого аккаунта. Подождите час или нажмите «Забыли пароль?».")
     ok = auth.verify_password(password, user.password)
     if not ok and password != password.strip():
         # телефонные клавиатуры иногда добавляют пробел в конце
         ok = auth.verify_password(password.strip(), user.password)
         password = password.strip() if ok else password
     if not ok:
-        print(f"[login] wrong password user={user.username} ip={ip}")
+        ratelimit.hit(f"loginfail:{user.id}", 10 ** 6, 3600)
+        print(f"[login] wrong password ip={ip} user={user.username}")
         return render(request, db, "login.html", sidebar=False, username=ident, next=next,
                       error="Неверный пароль. Проверьте раскладку и Caps Lock или нажмите «Забыли пароль?».")
     print(f"[login] ok user={user.username} ip={ip} ua={request.headers.get('user-agent', '')[:80]!r}")

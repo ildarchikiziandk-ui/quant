@@ -38,3 +38,23 @@ def test_admin_closed_for_regular_user():
         for cl in (c, anon):
             r = cl.get(p)  # переходим по всем переадресациям: в конце не должно оказаться страницы админки
             assert r.status_code >= 400 or not r.url.path.startswith("/admin"), (p, r.status_code, r.url.path)
+
+
+def test_account_lock_after_many_wrong_passwords():
+    """Подбор пароля с разных адресов: после 40 неверных паролей за час аккаунт временно не пускает даже с верным."""
+    from routers import auth_routes
+    from services import ratelimit
+    import models
+    from database import SessionLocal
+    register(make_client(), "dave")
+    s = SessionLocal()
+    uid = s.query(models.User).filter_by(username="dave").first().id
+    s.close()
+    for _ in range(auth_routes.ACCOUNT_FAILS):
+        ratelimit.hit(f"loginfail:{uid}", 10 ** 6, 3600)
+    c = make_client()
+    r = c.post("/login", data={"username": "dave", "password": "secret123"})
+    assert "Слишком много неверных паролей" in r.text
+    ratelimit.reset(f"loginfail:{uid}")
+    r = c.post("/login", data={"username": "dave", "password": "secret123"}, follow_redirects=False)
+    assert r.status_code == 303
