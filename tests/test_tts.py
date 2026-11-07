@@ -70,3 +70,25 @@ def test_admin_tts_and_studio(voice):
     assert eve.post("/admin/voice/rec/1", files={"audio": ("rec", b"0" * 3000, "audio/webm")}, headers=J).status_code == 403
     owner.post("/admin/tts", data={"voice": "ru_RU-irina-medium"})  # выключить
     assert not tts.enabled()
+
+
+def test_voice_api_for_colab(voice, monkeypatch):
+    import config
+    monkeypatch.setattr(config, "NUVA_UPLOAD_CODE", "k" * 24)
+    owner = register(make_client(), "zara")
+    s = SessionLocal()
+    s.query(models.User).filter_by(username="zara").first().is_owner = True
+    s.commit()
+    s.close()
+    owner.post("/admin/voice/rec/3", files={"audio": ("rec", b"\x1a\x45\xdf\xa3" + b"0" * 3000, "audio/webm")}, headers=J)
+    c = make_client()
+    assert c.get("/api/voice/dataset", headers={"x-upload-code": "wrong"}).status_code == 403
+    z = c.get("/api/voice/dataset", headers={"x-upload-code": "k" * 24})
+    assert z.status_code == 200 and z.content[:2] == b"PK"
+    H = {"x-upload-code": "k" * 24}
+    assert c.post("/api/voice-model/upload?kind=json", content=b'{"audio": {"sample_rate": 22050}}', headers=H).json()["ok"]
+    assert c.post("/api/voice-model/upload?kind=onnx&part=0&total=2", content=b"\x08\x07" + b"m" * 100, headers=H).json()["done"] is False
+    r = c.post("/api/voice-model/upload?kind=onnx&part=1&total=2", content=b"m" * 100, headers=H).json()
+    assert r["done"] and os.path.exists(os.path.join(tts.VOICES, "nuvora-custom.onnx"))
+    assert tts.current() == "nuvora-custom"
+    assert c.post("/api/voice-model/upload?kind=onnx&part=0&total=1", content=b"<html>", headers=H).status_code == 400

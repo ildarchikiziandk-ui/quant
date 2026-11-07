@@ -164,3 +164,64 @@ def voice_dataset(request: Request, db: Session = Depends(get_db)):
         for n, f in sorted(rec.items()):
             z.write(os.path.join(STUDIO, f), f"wavs/{f}")
     return Response(buf.getvalue(), media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="nuvora-voice.zip"'})
+
+
+# ---------------------------------------------------------------- связь с блокнотом Colab (tools/voice_finetune.ipynb)
+# Тот же код загрузки, что у Нувы: NUVA_UPLOAD_CODE из .env (выдаёт deploy/nuva-upload-code.sh).
+def _code_ok(request):
+    from .nuva_upload import _ok
+    return _ok(request)
+
+
+@router.get("/api/voice/dataset")
+def api_voice_dataset(request: Request, db: Session = Depends(get_db)):
+    if not _code_ok(request):
+        return JSONResponse({"ok": False, "error": "Неверный код загрузки"}, status_code=403)
+    rec = _recorded()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("metadata.csv", "\n".join(f"{n:03d}|{PHRASES[n]}" for n in sorted(rec)) + "\n")
+        for n, f in sorted(rec.items()):
+            z.write(os.path.join(STUDIO, f), f"wavs/{f}")
+    return Response(buf.getvalue(), media_type="application/zip")
+
+
+@router.post("/api/voice-model/upload")
+async def api_voice_model(request: Request, kind: str = "onnx", part: int = 0, total: int = 1, db: Session = Depends(get_db)):
+    """Готовый свой голос: kind=json — настройки (один запрос), kind=onnx — модель частями по 40 МБ."""
+    if not _code_ok(request):
+        return JSONResponse({"ok": False, "error": "Неверный код загрузки"}, status_code=403)
+    os.makedirs(tts.VOICES, exist_ok=True)
+    data = await request.body()
+    base = os.path.join(tts.VOICES, "nuvora-custom.onnx")
+    if kind == "json":
+        import json as _json
+        try:
+            cfg = _json.loads(data.decode("utf-8"))
+            assert isinstance(cfg, dict) and "audio" in cfg
+        except Exception:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": "Это не настройки голоса"}, status_code=400)
+        with open(base + ".json.part", "wb") as f:
+            f.write(data)
+        return JSONResponse({"ok": True})
+    if not (0 <= part < total <= 16) or not data or len(data) > 50 * 1024 * 1024:
+        return JSONResponse({"ok": False, "error": "Неверная часть"}, status_code=400)
+    tmp = base + ".part"
+    if part == 0 and os.path.exists(tmp):
+        os.remove(tmp)
+    if part > 0 and not os.path.exists(tmp):
+        return JSONResponse({"ok": False, "error": "Начните с первой части"}, status_code=400)
+    with open(tmp, "ab") as f:
+        f.write(data)
+    if part < total - 1:
+        return JSONResponse({"ok": True, "done": False})
+    with open(tmp, "rb") as f:
+        head = f.read(2)
+    if head[:1] != b"\x08" or not os.path.exists(base + ".json.part"):  # у файла ONNX первым идёт номер версии (байт 0x08)
+        os.remove(tmp)
+        return JSONResponse({"ok": False, "error": "Это не модель голоса или не пришли настройки"}, status_code=400)
+    os.replace(base + ".json.part", base + ".json")
+    os.replace(tmp, base)
+    tts._loaded.clear()  # перечитать голос
+    site.put(db, "tts_voice", "nuvora-custom")
+    return JSONResponse({"ok": True, "done": True, "size": os.path.getsize(base)})
