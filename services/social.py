@@ -51,6 +51,16 @@ def can_mod(user):
     return bool(user and (user.is_owner or user.is_moderator))
 
 
+def can_mod_user(user, target):
+    """Может ли user как модератор трогать посты, комментарии и истории target.
+    Владельцы — всех; модератор — обычных людей, но не владельцев и не других модераторов."""
+    if not can_mod(user):
+        return False
+    if target is None or user.is_owner or target.id == user.id:
+        return True
+    return not (target.is_owner or target.is_moderator)
+
+
 ONLINE_SECONDS = 120  # «в сети» — если был активен последние 2 минуты и не закрыл приложение
 
 

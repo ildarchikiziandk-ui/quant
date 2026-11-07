@@ -54,6 +54,20 @@ def test_login_logout_and_legacy_password(anon, alice):
     assert u.password.startswith("$2"), "legacy hash should be upgraded"
     s.close()
     assert anon.get("/settings").status_code == 200
+    # миграция заворачивает голый sha256 в bcrypt — вход по старому паролю остаётся
+    import migrations
+    s.close()
+    s = db()
+    u = s.query(models.User).filter_by(username="alice").first()
+    u.password = hashlib.sha256(b"oldpass2").hexdigest()
+    s.commit()
+    assert migrations.wrap_legacy_passwords() == 1
+    s.refresh(u)
+    assert u.password.startswith("bcsha$") and hashlib.sha256(b"oldpass2").hexdigest() not in u.password
+    assert make_client().post("/login", data={"username": "alice", "password": "oldpass2"}, follow_redirects=False).status_code == 303
+    s.refresh(u)
+    assert u.password.startswith("$2")
+    s.close()
     bad = make_client().post("/login", data={"username": "alice", "password": "nope"})
     assert "Неверный пароль" in bad.text
     anon.post("/logout")

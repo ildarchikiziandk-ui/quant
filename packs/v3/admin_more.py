@@ -15,6 +15,7 @@ import config
 import models
 from database import engine, get_db
 from deps import log_mod, redirect, render
+from services import social
 from routers.posts import purge_post
 
 from . import media
@@ -58,6 +59,8 @@ def post_action(pid: int, act: str, request: Request, db: Session = Depends(get_
     p = db.get(models.Post, pid)
     if not me or not p:
         return redirect("/admin/posts")
+    if not social.can_mod_user(me, p.author):
+        return redirect("/admin/posts?ok=" + quote("Посты владельцев и модераторов может трогать только владелец"))
     if act == "delete":
         log_mod(db, me, "admin_post_delete", p.author.username if p.author else "", (p.content or "")[:150])
         purge_post(db, p)

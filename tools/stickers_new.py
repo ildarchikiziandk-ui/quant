@@ -136,7 +136,7 @@ PACKS = [
 def page():
     items = "".join(f'<div class="s" id="{k}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">'
                     f'<g filter="url(#o)"><g transform="translate(20 26) scale(.9)">{svg}</g></g></svg></div>' for _, _, items in PACKS for k, _, svg in items)
-    fonts = "/home/user/quant/static/fonts/"
+    fonts = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "fonts") + "/"
     return f'''<!doctype html><meta charset=utf-8><style>
 @font-face{{font-family:Unbounded;font-weight:200 900;src:url({fonts}unbounded-cyrillic-wght-normal.woff2) format("woff2");unicode-range:U+0400-045F}}
 @font-face{{font-family:Unbounded;font-weight:200 900;src:url({fonts}unbounded-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F}}

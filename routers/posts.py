@@ -123,7 +123,7 @@ def post_page(post_id: int, request: Request, sort: str = "old", db: Session = D
 def post_stats(post_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     post = _get_post(db, post_id)
-    if not user or not post or (post.user_id != user.id and not social.can_mod(user)):
+    if not user or not post or (post.user_id != user.id and not social.can_mod_user(user, post.author)):
         return redirect("/")
     reposts = db.query(models.Post).filter(models.Post.repost_id == post.id).count()
     bookmarks = db.query(models.Bookmark).filter(models.Bookmark.post_id == post.id).count()
@@ -324,7 +324,7 @@ async def delete_post(post_id: int, request: Request, db: Session = Depends(get_
     if not post:
         return json_error("not found", 404)
     on_my_wall = post.wall_owner_id == user.id  # запись на моей стене — могу удалить
-    if post.user_id != user.id and not social.can_mod(user) and not on_my_wall:
+    if post.user_id != user.id and not social.can_mod_user(user, post.author) and not on_my_wall:
         return json_error("forbidden", 403)
     if post.user_id != user.id and not on_my_wall:
         from deps import log_mod
@@ -502,7 +502,7 @@ def delete_comment(comment_id: int, request: Request, db: Session = Depends(get_
     if not c:
         return json_error("not found", 404)
     post = _get_post(db, c.post_id)
-    if c.user_id != user.id and not social.can_mod(user) and not (post and post.user_id == user.id):
+    if c.user_id != user.id and not social.can_mod_user(user, c.author) and not (post and post.user_id == user.id):
         return json_error("forbidden", 403)
     if c.user_id == user.id and c.created_at and datetime.utcnow() - c.created_at < timedelta(days=1):
         gamification.add_points(user, db, -1)
@@ -545,7 +545,7 @@ def like_comment(comment_id: int, request: Request, db: Session = Depends(get_db
 def pin_comment(post_id: int, comment_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     post = _get_post(db, post_id)
-    if not user or not post or (post.user_id != user.id and not social.can_mod(user)):
+    if not user or not post or (post.user_id != user.id and not social.can_mod_user(user, post.author)):
         return json_error("forbidden", 403)
     c = db.get(models.Comment, comment_id)
     if not c or c.post_id != post_id:

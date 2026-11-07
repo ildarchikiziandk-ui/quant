@@ -159,7 +159,7 @@ def comment_hide(comment_id: int, request: Request, db: Session = Depends(get_db
     user = current_user(request, db)
     c = db.get(models.Comment, comment_id)
     post = _get_post(db, c.post_id) if c else None
-    if not user or not c or not post or (post.user_id != user.id and not social.can_mod(user)):
+    if not user or not c or not post or (post.user_id != user.id and not social.can_mod_user(user, c.author)):
         return json_error("forbidden", 403)
     c.is_hidden = not c.is_hidden
     db.commit()

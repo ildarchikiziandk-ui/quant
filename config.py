@@ -58,10 +58,30 @@ DATABASE_URL = env("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'quant.db
 UPLOAD_DIR = env("UPLOAD_DIR", os.path.join(BASE_DIR, "uploads"))
 
 # --- Безопасность --------------------------------------------------------
-_LEGACY_SECRET = "quant_secret_key_2024"
-SECRET_KEY = env("SECRET_KEY") or _LEGACY_SECRET
-if SECRET_KEY == _LEGACY_SECRET:
-    print("[config] ВНИМАНИЕ: SECRET_KEY не задан, используется старый ключ. Задайте SECRET_KEY в .env!")
+def _own_secret():
+    """SECRET_KEY не задан в .env: свой случайный ключ в файле .secret_key рядом с сайтом (создаётся один раз).
+    Раньше тут был общий запасной ключ от старого проекта — его знал любой, кто видел код."""
+    path = os.path.join(BASE_DIR, ".secret_key")
+    try:
+        with open(path, encoding="utf-8") as f:
+            key = f.read().strip()
+        if len(key) >= 32:
+            return key
+    except OSError:
+        pass
+    import secrets as _s
+    key = _s.token_urlsafe(48)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(key)
+    except OSError:
+        pass
+    print("[config] ВНИМАНИЕ: SECRET_KEY не задан в .env — создан свой ключ в .secret_key. Лучше вписать SECRET_KEY в .env.")
+    return key
+
+
+SECRET_KEY = env("SECRET_KEY") or _own_secret()
 TOKEN_DAYS = int(env("TOKEN_DAYS", "30"))
 # короткий домен для ссылок (nvurl.ru/123 → пост 123, nvurl.ru/@rubl → профиль); пусто — выключено
 SHORT_DOMAIN = env("SHORT_DOMAIN", "").strip().lower().removeprefix("https://").removeprefix("http://").strip("/")

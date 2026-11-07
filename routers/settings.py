@@ -15,7 +15,7 @@ from database import get_db
 from deps import current_user, json_error, login_redirect, redirect, render
 from routers.auth_routes import validate_password, validate_username
 from routers.posts import purge_post, read_payload, wants_json
-from services import extras, gamification, places, prefs, recommend, social, timezones
+from services import extras, gamification, places, prefs, ratelimit, recommend, social, timezones
 from services.uploads import delete_file, save_file
 
 router = APIRouter()
@@ -321,17 +321,32 @@ async def activate_promo(request: Request, db: Session = Depends(get_db)):
         return login_redirect(request)
     form = await request.form()
     code = (form.get("code") or form.get("promocode") or "").upper().strip()
+    ip = request.client.host if request.client else "?"
+    # перебор кодов сертификатов: не больше 10 попыток за 10 минут с человека и с адреса
+    if not ratelimit.hit(f"promo:{user.id}", 10, 600) or not ratelimit.hit(f"promo-ip:{ip}", 20, 600):
+        return _settings(request, db, user, "plus", error="Слишком много попыток. Подождите 10 минут.")
     promo = db.query(models.Promocode).filter_by(code=code, is_active=True).first()
     if not promo or (promo.uses or 0) >= (promo.max_uses or 1):
         return _settings(request, db, user, "plus", error="Промокод не найден или исчерпан")
-    used_key = f"promo:{promo.id}"
-    if db.query(models.Notification).filter_by(user_id=user.id, type="promo", text=used_key).first():
+    if db.query(models.PromoUse).filter_by(user_id=user.id, promo_id=promo.id).first() or \
+            db.query(models.Notification).filter_by(user_id=user.id, type="promo", text=f"promo:{promo.id}").first():
         return _settings(request, db, user, "plus", error="Вы уже активировали этот промокод")
-    promo.uses = (promo.uses or 0) + 1
+    # одной командой «занимаем» активацию: два одновременных запроса не превысят лимит
+    took = db.query(models.Promocode).filter(models.Promocode.id == promo.id, models.Promocode.uses < models.Promocode.max_uses).update(
+        {models.Promocode.uses: models.Promocode.uses + 1}, synchronize_session=False)
+    if not took:
+        db.rollback()
+        return _settings(request, db, user, "plus", error="Промокод не найден или исчерпан")
+    db.add(models.PromoUse(user_id=user.id, promo_id=promo.id))
+    try:
+        db.flush()
+    except Exception:  # noqa: BLE001 — второй одновременный запрос того же человека
+        db.rollback()
+        return _settings(request, db, user, "plus", error="Вы уже активировали этот промокод")
+    db.refresh(promo)
     if promo.uses >= promo.max_uses:
         promo.is_active = False
     gamification.grant_plus(user, promo.days or 30)
-    db.add(models.Notification(user_id=user.id, type="promo", text=used_key, is_read=True))
     db.commit()
     return _settings(request, db, user, "plus", success=f"{config.BRAND_PLUS} активирован на {promo.days} дней!")
 

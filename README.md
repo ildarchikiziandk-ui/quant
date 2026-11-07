@@ -1,7 +1,7 @@
 # ✦ Nuvora
 
 Социальная сеть на FastAPI: лента, истории, мессенджер, группы и геймификация.
-Раньше проект назывался **Quant**. Имя бренда задаётся одной переменной `BRAND_NAME`: её подставляют все страницы, письма, push-уведомления и PWA-манифест.
+Имя бренда задаётся одной переменной `BRAND_NAME`: её подставляют все страницы, письма, push-уведомления и PWA-манифест.
 
 ## Быстрый старт
 
@@ -224,15 +224,15 @@ pip install numpy scipy && python tools/train_moderation.py train.tsv dev.tsv
 ## Бесплатный хостинг с доменом DuckDNS
 
 1. Возьмите бесплатный сервер: Oracle Cloud Always Free (Ubuntu 22.04/24.04), откройте в нём порты 80 и 443. Подойдёт и свой компьютер дома, если пробросить эти порты на роутере.
-2. На [duckdns.org](https://www.duckdns.org) войдите, создайте поддомен (например, `quantru`) и скопируйте токен.
+2. На [duckdns.org](https://www.duckdns.org) войдите, создайте поддомен (например, `mynuvora`) и скопируйте токен.
 3. На сервере:
    ```bash
    git clone -b ildarrr https://github.com/ildarchikiziandk-ui/quant.git
-   sudo bash quant/deploy/install.sh quantru ВАШ_ТОКЕН      # DuckDNS
+   sudo bash quant/deploy/install.sh mynuvora ВАШ_ТОКЕН      # DuckDNS
    sudo bash quant/deploy/install.sh nvra.ru                # или свой домен (A-записи @ и www → IP сервера)
    ```
    Скрипт привяжет домен к IP сервера (и будет обновлять его каждые 5 минут), установит приложение в `/opt/nuvora`, создаст `.env` со случайным `SECRET_KEY`, запустит службу `nuvora` и поднимет HTTPS через nginx и Let's Encrypt.
-4. Сайт будет доступен на `https://quantru.duckdns.org`.
+4. Сайт будет доступен на `https://mynuvora.duckdns.org`.
 
 Обновление: `sudo bash /opt/nuvora/deploy/update.sh`. Бэкап: `sudo bash /opt/nuvora/deploy/backup.sh`. Логи: `journalctl -u nuvora -f`.
 

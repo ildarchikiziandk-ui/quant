@@ -542,8 +542,9 @@ def _safe_link(url):
     url = s(url).strip()[:300]
     if not url:
         return ""
-    if url.startswith("/") and not url.startswith("//"):
-        return url
+    if url.startswith("/"):
+        from deps import safe_next
+        return url if safe_next(url) == url else None
     return url if re.match(r"^https?://[^\s/]+\.[^\s]+$", url) else None
 
 

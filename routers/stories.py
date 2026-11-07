@@ -238,7 +238,7 @@ def story_viewers(story_id: int, request: Request, db: Session = Depends(get_db)
 def delete_story(story_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     s = _story(db, story_id)
-    if not user or not s or (s.user_id != user.id and not social.can_mod(user)):
+    if not user or not s or (s.user_id != user.id and not social.can_mod_user(user, s.author)):
         return json_error("forbidden", 403)
     delete_file(s.media_url)
     for model in (models.StoryView, models.StoryReaction, models.StoryHighlightItem):

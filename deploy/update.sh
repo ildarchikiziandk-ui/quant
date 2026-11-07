@@ -2,6 +2,11 @@
 # Обновить Nuvora до последней версии ветки и перезапустить.
 set -euo pipefail
 APP_DIR=/opt/nuvora
+# без своего SECRET_KEY новая версия не запустится со старыми данными (запасного ключа от Quant больше нет) — не обновляем
+if ! grep -q '^SECRET_KEY=.\{20,\}' "$APP_DIR/.env" 2>/dev/null; then
+  echo "СТОП: в $APP_DIR/.env нет SECRET_KEY. Сайт не обновлён и работает как раньше. Пришлите этот вывод Claude, сам ключ не вписывайте."
+  exit 1
+fi
 git config --global --get-all safe.directory 2>/dev/null | grep -qx "$APP_DIR" || git config --global --add safe.directory "$APP_DIR"
 bash "$APP_DIR/deploy/backup.sh" || echo "Бэкап не удался — продолжаю обновление"
 BRANCH=$(git -C "$APP_DIR" rev-parse --abbrev-ref HEAD)
@@ -13,9 +18,6 @@ git -C "$APP_DIR" checkout -q -f -B "$BRANCH" "origin/$BRANCH"
 "$APP_DIR/venv/bin/pip" uninstall -y -q python-jose ecdsa >/dev/null 2>&1 || true
 # защита (7.11.2026): файлы с ключами читает только сервер; nginx не называет свою версию
 chmod 600 "$APP_DIR/.env" "$APP_DIR/school/.env" 2>/dev/null || true
-if ! grep -q '^SECRET_KEY=.\{20,\}' "$APP_DIR/.env" 2>/dev/null; then
-  echo "ВНИМАНИЕ: в $APP_DIR/.env нет своего SECRET_KEY — сайт работает на старом общеизвестном ключе. Напишите об этом Claude, ключ менять самому нельзя: перестанут открываться сообщения."
-fi
 if command -v nginx >/dev/null && [ ! -f /etc/nginx/conf.d/nuvora-hardening.conf ]; then
   echo "server_tokens off;" > /etc/nginx/conf.d/nuvora-hardening.conf
   if nginx -t >/dev/null 2>&1; then systemctl reload nginx || true; else rm -f /etc/nginx/conf.d/nuvora-hardening.conf; fi

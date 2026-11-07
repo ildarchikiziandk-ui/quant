@@ -11,6 +11,7 @@ OLD="${1:?Укажите папку со старыми файлами, напр
 OLD_ENV="$OLD/.env"; [ -f "$OLD_ENV" ] || OLD_ENV="$OLD/env.txt"
 [ -f "$OLD/quant.db" ] || { echo "В папке $OLD нет quant.db"; exit 1; }
 [ -f "$OLD_ENV" ] || { echo "В папке $OLD нет .env (или env.txt) — без старого ключа не откроются переписки"; exit 1; }
+grep -qE '^SECRET_KEY=.{8,}' "$OLD_ENV" || { echo "В старом $OLD_ENV нет SECRET_KEY — пришлите этот вывод Claude, объединять так нельзя"; exit 1; }
 STAMP=$(date +%Y%m%d-%H%M)
 echo "==> Проверяю старые базы (копия снималась с работающего сервера)"
 command -v sqlite3 >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq sqlite3 >/dev/null 2>&1 || true

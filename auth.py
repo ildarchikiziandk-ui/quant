@@ -1,4 +1,4 @@
-"""Аутентификация: хэширование паролей (bcrypt с прозрачным апгрейдом старых sha256),
+"""Аутентификация: хэширование паролей (bcrypt; старые sha256 времён Quant завёрнуты в bcrypt и переводятся при входе),
 JWT-токены с привязкой к сессии, 2FA (TOTP) и шифрование сообщений."""
 import base64
 import hashlib
@@ -25,23 +25,34 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode()[:72], bcrypt.gensalt()).decode()
 
 
+# Пароли времён Quant хранились как голый sha256 (без соли — по утёкшей базе их легко подобрать).
+# Миграция заворачивает их в bcrypt: «bcsha$» + bcrypt(sha256(пароль)); при входе пароль переводится в обычный bcrypt.
+WRAPPED = "bcsha$"
+
+
 def _is_legacy_hash(hashed: str) -> bool:
     return bool(hashed) and len(hashed) == 64 and all(c in "0123456789abcdef" for c in hashed)
+
+
+def wrap_legacy(hashed: str) -> str:
+    return WRAPPED + bcrypt.hashpw(hashed.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     if not hashed:
         return False
-    if _is_legacy_hash(hashed):
-        return hmac.compare_digest(hashlib.sha256(plain.encode()).hexdigest(), hashed)
     try:
+        if hashed.startswith(WRAPPED):
+            return bcrypt.checkpw(hashlib.sha256(plain.encode()).hexdigest().encode(), hashed[len(WRAPPED):].encode())
+        if _is_legacy_hash(hashed):  # ещё не завёрнутый (база только что вернулась из старой копии)
+            return hmac.compare_digest(hashlib.sha256(plain.encode()).hexdigest(), hashed)
         return bcrypt.checkpw(plain.encode()[:72], hashed.encode())
     except ValueError:
         return False
 
 
 def needs_rehash(hashed: str) -> bool:
-    return _is_legacy_hash(hashed)
+    return _is_legacy_hash(hashed) or bool(hashed) and hashed.startswith(WRAPPED)
 
 
 # --- Токены и сессии -------------------------------------------------------

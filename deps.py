@@ -194,7 +194,9 @@ def blocked_page(request: Request, db: Session, user):
 
 
 def safe_next(url: str) -> str:
-    if url and url.startswith("/") and not url.startswith("//"):
+    """Переход после входа — только на страницу своего сайта. «//сайт» и «/\\сайт» браузер открывает как чужой сайт."""
+    if url and url.startswith("/") and not url.startswith(("//", "/\\")) and "\\" not in url \
+            and not any(ord(c) < 32 for c in url):
         return url
     return "/"
 

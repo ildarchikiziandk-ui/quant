@@ -12,6 +12,8 @@ import models
 from database import get_db
 from deps import log_mod, redirect, render
 
+from services import social
+
 from . import site
 from .admin_plus import _owner, _staff, action
 from .common import router, s
@@ -139,6 +141,8 @@ def comment_action(cid: int, act: str, request: Request, db: Session = Depends(g
     c = db.get(models.Comment, cid)
     back = request.headers.get("referer") or "/admin/comments"
     if not me or not c or act not in ("delete", "hide", "show"):
+        return redirect("/admin/comments")
+    if not social.can_mod_user(me, c.author):
         return redirect("/admin/comments")
     if act == "delete":
         ids, frontier = [c.id], [c.id]

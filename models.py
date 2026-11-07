@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -423,6 +423,18 @@ class Promocode(Base):
     is_active = Column(Boolean, default=True)
     note = Column(String, default="")  # кому — для подарочного сертификата
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PromoUse(Base):
+    """Кто какой промокод уже активировал (7.11.2026). Раньше отметкой было уведомление — его можно было удалить
+    и активировать тот же промокод снова."""
+    __tablename__ = "promo_uses"
+    __table_args__ = (UniqueConstraint("user_id", "promo_id", name="uq_promo_use"),)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    promo_id = Column(Integer, ForeignKey("promocodes.id"), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class Story(Base):
     __tablename__ = "stories"

@@ -180,6 +180,19 @@ def run():
             conn.exec_driver_sql("DROP TABLE IF EXISTS v3_phone_checks")
     except Exception as e:
         print(f"[migrations] v3_phone_checks: {e}")
+    try:  # отметки об использованных промокодах раньше лежали в уведомлениях — переносим в promo_uses
+        with engine.begin() as conn:
+            conn.exec_driver_sql("INSERT OR IGNORE INTO promo_uses (user_id, promo_id, created_at) "
+                                 "SELECT user_id, CAST(substr(text, 7) AS INTEGER), created_at FROM notifications "
+                                 "WHERE type = 'promo' AND text LIKE 'promo:%'")
+    except Exception as e:
+        print(f"[migrations] promo_uses: {e}")
+    try:
+        n = wrap_legacy_passwords()
+        if n:
+            print(f"[migrations] старых паролей Quant завёрнуто в bcrypt: {n}")
+    except Exception as e:
+        print(f"[migrations] старые пароли: {e}")
     try:
         n = encrypt_existing_messages()
         if n:
@@ -192,6 +205,19 @@ def run():
         seed(db)
     finally:
         db.close()
+
+
+def wrap_legacy_passwords():
+    """Голые sha256-пароли времён Quant → bcrypt(sha256): по утёкшей базе их уже не подобрать, а вход у людей не ломается."""
+    import auth
+    from sqlalchemy import text
+    n = 0
+    with engine.begin() as conn:
+        for uid, pw in conn.execute(text("SELECT id, password FROM users WHERE length(password) = 64")).fetchall():
+            if auth._is_legacy_hash(pw or ""):
+                conn.execute(text("UPDATE users SET password = :p WHERE id = :i"), {"p": auth.wrap_legacy(pw), "i": uid})
+                n += 1
+    return n
 
 
 def encrypt_existing_messages(batch=500):

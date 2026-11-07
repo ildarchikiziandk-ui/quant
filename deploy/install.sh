@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Установка Nuvora на чистый сервер Ubuntu 22.04/24.04 (или Debian 12).
 # Свой домен:      sudo bash deploy/install.sh nvra.ru
-# Домен DuckDNS:   sudo bash deploy/install.sh quantru <токен-duckdns>
+# Домен DuckDNS:   sudo bash deploy/install.sh mynuvora <токен-duckdns>
 # Другая ветка:    BRANCH=main sudo -E bash deploy/install.sh nvra.ru
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1  # не перезапускать ssh во время установки
