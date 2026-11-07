@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Истории — админ-панель{% endblock %}
+{% block layout_class %}wide{% endblock %}
+{% block content %}
+<div class="page-head"><div class="page-title" style="margin:0"><a href="/admin" style="color:inherit">{{ icon("shield", "i in") }}</a> Истории сейчас</div><span class="small muted">{{ items|length }}</span></div>
+<div class="card">
+  {% if items %}<div class="sa-grid">{% for s in items %}
+    <div class="sa-item" style="background:{{ s.bg_color or '#18181b' }}" id="as-{{ s.id }}">
+      {% if s.media_type == "video" and s.media_url %}<video src="{{ s.media_url }}#t=0.1" muted playsinline preload="metadata"></video>{% elif s.media_url %}<img src="{{ s.media_url }}" alt="" loading="lazy">{% endif %}
+      {% if s.text_overlay %}<span class="sa-t">{{ s.text_overlay }}</span>{% endif %}
+      <a class="sa-d" href="/stories/{{ s.author.username if s.author else '' }}" style="color:#fff">@{{ s.author.username if s.author else '?' }}</a>
+      {% if s.audience == "close" %}<span class="sa-live" style="background:#22c55e">близкие</span>{% endif %}
+      {% if can(s) %}<button type="button" data-sdel="{{ s.id }}" style="color:#c8281e">Удалить</button>{% endif %}
+    </div>{% endfor %}</div>
+  {% else %}<p class="center muted">Сейчас историй нет.</p>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-sdel]').forEach(b => b.onclick = async () => { if (!confirm('Удалить эту историю?')) return;
+  try { await App.api(`/stories/${b.dataset.sdel}/delete`); document.getElementById('as-' + b.dataset.sdel).remove(); App.toast('История удалена'); } catch (e) {} });
+</script>
+{% endblock %}

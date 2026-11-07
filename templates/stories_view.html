@@ -13,7 +13,7 @@
       <button class="icon-btn" id="s-pause" title="Пауза">{{ icon("pause", "i in") }}</button>
       {% if user and user.id == story_user.id %}
       <div class="menu-wrap" style="margin-left:0"><button class="icon-btn" data-menu>{{ icon("more") }}</button>
-        <div class="menu"><button id="s-viewers">{{ icon("eye") }} Кто смотрел</button><button id="s-hl">{{ icon("sparkle", "i in") }} В актуальное</button>{% if highlight is defined and highlight %}<form method="post" action="/highlights/{{ highlight.id }}/delete"><button class="danger">{{ icon("trash") }} Удалить подборку</button></form>{% endif %}<button class="danger" id="s-del">{{ icon("trash") }} Удалить историю</button></div></div>
+        <div class="menu"><button id="s-viewers">{{ icon("eye") }} Кто смотрел</button><a href="/stories/archive">{{ icon("archive", "i in") }} Архив историй</a><a href="/stories/create">{{ icon("plus", "i in") }} Новая история</a><button id="s-hl">{{ icon("sparkle", "i in") }} В актуальное</button>{% if highlight is defined and highlight %}<form method="post" action="/highlights/{{ highlight.id }}/delete"><button class="danger">{{ icon("trash") }} Удалить подборку</button></form>{% endif %}<button class="danger" id="s-del">{{ icon("trash") }} Удалить историю</button></div></div>
       {% endif %}
       <a href="/" class="icon-btn" title="Закрыть">{{ icon("x", "i in") }}</a>
     </div>
@@ -21,7 +21,14 @@
     <div class="story-media hidden" data-i="{{ loop.index0 }}" data-id="{{ s.id }}" data-type="{{ s.media_type }}" data-ago="{{ s.created_at|ago }}" style="{% if not s.media_url %}background:{{ s.bg_color or '#18181b' }}{% endif %}">
       {% if s.media_type == 'video' %}<video src="{{ s.media_url }}" playsinline preload="metadata"></video>
       {% elif s.media_url %}<img src="{{ s.media_url }}" alt="">{% endif %}
-      {% if s.text_overlay %}<div class="story-text {% if s.media_url %}over{% endif %}">{{ s.text_overlay }}</div>{% endif %}
+      {% set ex = (extras|default({})).get(s.id, {}) %}{% set stl = ex.get("style") %}
+      {% if s.text_overlay %}{% if stl %}<div class="story-text st p-{{ stl.p }}{% if stl.b %} plate{% endif %}" style="color:{{ stl.c }};font-family:{{ {'onest':'Onest, sans-serif','unb':'Unbounded, sans-serif','serif':'Georgia, serif','mono':'Courier New, monospace'}[stl.f] }};font-size:{{ {'s':'17px','m':'24px','l':'34px'}[stl.s] }}">{{ s.text_overlay|rich }}</div>
+      {% else %}<div class="story-text {% if s.media_url %}over{% endif %}">{{ s.text_overlay|rich }}</div>{% endif %}{% endif %}
+      {% if ex.get("poll") %}{% set ps = (polls|default({})).get(s.id, {"a": 0, "b": 0, "mine": None}) %}{% set tot = ps.a + ps.b %}
+      <div class="story-poll" data-poll="{{ s.id }}" data-voted="{{ 1 if ps.mine is not none or (user and user.id == story_user.id) else 0 }}"><b>{{ ex.poll.q }}</b>
+        <div class="sp-opts">{% for k, label in [(0, ex.poll.a), (1, ex.poll.b)] %}{% set n = ps.a if k == 0 else ps.b %}<button type="button" data-choice="{{ k }}" class="{{ 'mine' if ps.mine == k }}"><i style="width:{{ ((n * 100 / tot) if tot and (ps.mine is not none or (user and user.id == story_user.id)) else 0)|round }}%"></i><span>{{ label }}</span>{% if ps.mine is not none or (user and user.id == story_user.id) %}<em>{{ ((n * 100 / tot) if tot else 0)|round|int }}%</em>{% endif %}</button>{% endfor %}</div>
+        {% if user and user.id == story_user.id %}<div class="sp-total">Проголосовали: {{ tot }}</div>{% endif %}</div>{% endif %}
+      {% if ex.get("link") %}<a class="story-link" href="{{ ex.link.url }}"{% if ex.link.url.startswith("http") %} target="_blank" rel="noopener nofollow ugc"{% endif %}>🔗 {{ ex.link.label }}</a>{% endif %}
       {% if s.audience == 'close' %}<span class="tag-pill" style="position:absolute;top:70px;left:14px;background:#22c55e;color:#fff">{{ icon("star", "i in") }} близкие</span>{% endif %}
     </div>
     {% endfor %}
@@ -69,6 +76,20 @@ document.getElementById('s-del')?.addEventListener('click',async()=>{ if(!confir
 document.getElementById('s-hl')?.addEventListener('click',async()=>{ pause(true); const t=prompt('Название подборки «Актуальное»','Актуальное'); if(t===null){pause(false);return;} await App.api(`/stories/${items[i].dataset.id}/highlight`,{title:t}); App.toast('Добавлено в «'+t+'»'); pause(false); });
 document.getElementById('s-viewers')?.addEventListener('click',async()=>{ pause(true); const r=await App.get(`/stories/${items[i].dataset.id}/viewers`);
   App.modal('Просмотры · '+r.count, r.users.map(u=>`<a class="user-row" href="/profile/${App.esc(u.username)}">${App.avatarHtml(u,36)}<div class="info"><b>${App.esc(u.name)}</b><div class="bio">@${App.esc(u.username)}</div></div><span class="rx ${u.reaction==='🐋'?'rx-whale':'rx-heart'}">${u.reaction==='🐋'?ICON('whale-fill','i'):u.reaction?ICON('heart-fill','i'):''}</span></a>`).join('')||'<div class="empty">Пока никто не смотрел</div>'); });
+// опрос: голос и проценты
+document.querySelectorAll('.story-poll').forEach(pl => pl.querySelectorAll('button').forEach(b => b.onclick = async ev => { ev.stopPropagation();
+  if (pl.dataset.voted === '1') return; pl.dataset.voted = '1';
+  try { const r = await App.api(`/stories/${pl.dataset.poll}/vote`, { choice: b.dataset.choice }); const tot = (r.a + r.b) || 1;
+    pl.querySelectorAll('button').forEach((x, k) => { const n = k ? r.b : r.a; x.classList.toggle('mine', r.mine === k); x.querySelector('i').style.width = Math.round(n * 100 / tot) + '%';
+      let em = x.querySelector('em'); if (!em) { em = document.createElement('em'); x.appendChild(em); } em.textContent = Math.round(n * 100 / tot) + '%'; });
+  } catch (e) { pl.dataset.voted = '0'; } }));
+document.querySelectorAll('.story-link, .story-text a').forEach(a => a.addEventListener('click', ev => ev.stopPropagation()));
+// зажать палец на истории — пауза, отпустить — дальше (как в других приложениях)
+(function(){ const fr = document.getElementById('frame'); let hold = null, held = false;
+  fr.addEventListener('pointerdown', ev => { if (ev.target.closest('button,a,input,.story-poll')) return; held = false; hold = setTimeout(() => { held = true; if (!paused) pause(true); }, 260); });
+  const up = () => { clearTimeout(hold); if (held) { pause(false); setTimeout(() => { held = false; }, 60); } };
+  fr.addEventListener('pointerup', up); fr.addEventListener('pointercancel', up); fr.addEventListener('pointerleave', up);
+  fr.addEventListener('click', ev => { if (held) { ev.stopPropagation(); ev.preventDefault(); } }, true); })();
 show(i);
 })();
 </script>

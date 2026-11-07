@@ -220,3 +220,14 @@ def export_users(request: Request, db: Session = Depends(get_db)):
     db.commit()
     return Response("﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="nuvora-users-{datetime.utcnow():%Y-%m-%d}.csv"'})
+
+
+# ---------------------------------------------------------------- истории (7.11.2026): что сейчас висит, удалить нарушение
+@router.get("/admin/stories")
+def admin_stories(request: Request, db: Session = Depends(get_db)):
+    me = _staff(request, db)
+    if not me:
+        return redirect("/")
+    now = datetime.utcnow()
+    items = db.query(models.Story).filter(models.Story.expires_at > now).order_by(models.Story.created_at.desc()).limit(200).all()
+    return render(request, db, "packs/v3/admin_stories.html", items=items, can=lambda s: social.can_mod_user(me, s.author))

@@ -467,8 +467,11 @@ def purge_user(db, user):
         db.query(models.CommentLike).filter(models.CommentLike.comment_id.in_(my_comments)).delete(synchronize_session=False)
         db.query(models.Comment).filter(models.Comment.parent_id.in_(my_comments)).update({"parent_id": None}, synchronize_session=False)
         db.query(models.Comment).filter(models.Comment.id.in_(my_comments)).delete(synchronize_session=False)
+    from routers.stories import media_in_use
     for s in db.query(models.Story).filter_by(user_id=uid).all():
-        delete_file(s.media_url)
+        if not media_in_use(db, s.media_url, s.id):  # общий файл (пост в истории, «поделиться снова») не трогаем
+            delete_file(s.media_url)
+        db.query(models.StoryVote).filter_by(story_id=s.id).delete()
         db.query(models.StoryView).filter_by(story_id=s.id).delete()
         db.query(models.StoryReaction).filter_by(story_id=s.id).delete()
         db.query(models.StoryHighlightItem).filter_by(story_id=s.id).delete()

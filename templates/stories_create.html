@@ -2,27 +2,65 @@
 {% from "partials/icons.html" import icon %}
 {% block title %}Новая история — {{ brand }}{% endblock %}
 {% block content %}
-<div class="page-title">{{ icon("camera", "i in") }} Новая история</div><div class="page-sub">Исчезнет через 24 часа. Можно сохранить в «Актуальное» в профиле.</div>
+<div class="page-head"><div><div class="page-title" style="margin:0">{{ icon("camera", "i in") }} Новая история</div><div class="page-sub">Исчезнет в срок, который выберете. Все ваши истории — в <a href="/stories/archive" style="color:var(--link)">архиве</a>.</div></div></div>
 {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
-<form class="card" method="post" action="/stories/create" enctype="multipart/form-data" id="sform">
-  <div id="spv" style="aspect-ratio:9/16;max-height:420px;margin:0 auto 14px;border-radius:16px;overflow:hidden;background:{{ bg_colors[0] }};display:flex;align-items:center;justify-content:center;position:relative;max-width:240px">
-    <span id="spv-text" style="color:#fff;font-weight:800;font-size:18px;text-align:center;padding:14px;position:relative;z-index:2;text-shadow:0 2px 8px rgba(0,0,0,.4)">Ваш текст</span>
+<form class="card sc-form" method="post" action="/stories/create" enctype="multipart/form-data" id="sform">
+  <div id="spv" class="sc-pv" style="background:{{ bg_colors[0] }}">
+    <span id="spv-text" class="sc-pv-text p-center">Ваш текст</span>
+    <div id="spv-poll" class="sc-pv-poll" hidden><b></b><div><span></span><span></span></div></div>
+    <span id="spv-link" class="sc-pv-link" hidden></span>
   </div>
+
   <label class="field"><span>Фото или видео (необязательно)</span><input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" id="smedia"></label>
-  <label class="field"><span>Текст</span><input name="text_overlay" maxlength="300" id="stext" placeholder="Подпись или текст истории"></label>
-  <div class="field"><span class="small muted" style="font-weight:600">Фон для текстовой истории</span>
-    <div class="row mt">{% for c in bg_colors %}<label style="cursor:pointer"><input type="radio" name="bg_color" value="{{ c }}" class="hidden" {% if loop.first %}checked{% endif %}><span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:{{ c }};border:3px solid var(--card);box-shadow:0 0 0 1px var(--border)"></span></label>{% endfor %}</div></div>
-  <label class="field"><span>Кто увидит</span><select name="audience"><option value="all">Все, кому разрешено настройками</option><option value="close">{{ icon("star", "i in") }} Только близкие друзья</option></select></label>
-  <label class="field"><span>Сколько висит</span><select name="duration"><option value="24">24 часа</option><option value="48"{% if not user_is_plus(user) %} disabled{% endif %}>48 часов{% if not user_is_plus(user) %} — с {{ brand_plus }}{% endif %}</option></select></label>
+  <label class="field"><span>Текст</span><input name="text_overlay" maxlength="300" id="stext" placeholder="Подпись или текст истории. @логин — отметить друга"></label>
+
+  <div class="sc-row"><span class="sc-lbl">Фон</span>
+    <div class="sc-swatches">{% for c in bg_colors %}<label><input type="radio" name="bg_color" value="{{ c }}" {% if loop.first %}checked{% endif %}><i style="background:{{ c }}"></i></label>{% endfor %}</div></div>
+  <div class="sc-row"><span class="sc-lbl">Цвет текста</span>
+    <div class="sc-swatches">{% for c in text_colors %}<label><input type="radio" name="tcolor" value="{{ c }}" {% if loop.first %}checked{% endif %}><i style="background:{{ c }}"></i></label>{% endfor %}</div></div>
+  <div class="sc-row"><span class="sc-lbl">Шрифт</span>
+    <div class="sc-seg">{% for k, l in fonts.items() %}<label><input type="radio" name="font" value="{{ k }}" {% if loop.first %}checked{% endif %}><span class="sf-{{ k }}">{{ l }}</span></label>{% endfor %}</div></div>
+  <div class="sc-row"><span class="sc-lbl">Размер и место</span>
+    <div class="sc-seg">{% for k, l in [("s","Мелкий"),("m","Средний"),("l","Крупный")] %}<label><input type="radio" name="tsize" value="{{ k }}" {% if k == "m" %}checked{% endif %}><span>{{ l }}</span></label>{% endfor %}</div>
+    <div class="sc-seg mt">{% for k, l in [("top","Вверху"),("center","По центру"),("bottom","Внизу")] %}<label><input type="radio" name="tpos" value="{{ k }}" {% if k == "center" %}checked{% endif %}><span>{{ l }}</span></label>{% endfor %}</div>
+    <label class="check mt"><input type="checkbox" name="plate" value="1" id="splate"><span><b>Текст на плашке</b><small>Тёмная подложка — читается на любом фото</small></span></label></div>
+
+  <details class="sc-more"><summary>{{ icon("link", "i in") }} Кнопка-ссылка</summary>
+    <label class="field"><span>Адрес</span><input name="link_url" id="slink" maxlength="300" placeholder="nvurl.ru/123 или https://…" inputmode="url"></label>
+    <label class="field"><span>Надпись на кнопке</span><input name="link_label" id="slinkl" maxlength="30" placeholder="Открыть ссылку"></label></details>
+  <details class="sc-more"><summary>{{ icon("chart", "i in") }} Опрос</summary>
+    <label class="field"><span>Вопрос</span><input name="poll_q" id="spq" maxlength="80" placeholder="Что выбрать?"></label>
+    <div class="sc-2"><label class="field"><span>Вариант 1</span><input name="poll_a" id="spa" maxlength="30" placeholder="Да"></label>
+      <label class="field"><span>Вариант 2</span><input name="poll_b" id="spb" maxlength="30" placeholder="Нет"></label></div></details>
+
+  <div class="sc-2">
+    <label class="field"><span>Кто увидит</span><select name="audience"><option value="all">Все, кому разрешено</option><option value="close">Только близкие друзья</option></select></label>
+    <label class="field"><span>Сколько висит</span><select name="duration"><option value="6">6 часов</option><option value="12">12 часов</option><option value="24" selected>24 часа</option><option value="48"{% if not user_is_plus(user) %} disabled{% endif %}>48 часов{% if not user_is_plus(user) %} — с {{ brand_plus }}{% endif %}</option></select></label>
+  </div>
   <button class="btn block">Опубликовать историю</button>
 </form>
 {% endblock %}
 {% block scripts %}
 <script>
-const pv=document.getElementById('spv'), t=document.getElementById('spv-text');
-document.getElementById('stext').addEventListener('input',e=>t.textContent=e.target.value||'Ваш текст');
-document.querySelectorAll('[name=bg_color]').forEach(r=>r.addEventListener('change',()=>pv.style.background=r.value));
-document.getElementById('smedia').addEventListener('change',e=>{ const f=e.target.files[0]; pv.querySelector('img,video')?.remove(); if(!f) return; const u=URL.createObjectURL(f);
-  const el=document.createElement(f.type.startsWith('video')?'video':'img'); el.src=u; el.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover'; if(el.tagName==='VIDEO'){el.muted=true;el.autoplay=true;el.loop=true;} pv.prepend(el); });
+(function () {
+  const f = document.getElementById('sform'), pv = document.getElementById('spv'), t = document.getElementById('spv-text');
+  const poll = document.getElementById('spv-poll'), link = document.getElementById('spv-link');
+  const val = n => (f.querySelector(`[name=${n}]:checked`) || {}).value;
+  const FONT = { onest: 'Onest, sans-serif', unb: 'Unbounded, sans-serif', serif: 'Georgia, "Times New Roman", serif', mono: '"Courier New", monospace' };
+  const SIZE = { s: '15px', m: '20px', l: '28px' };
+  function upd() {
+    t.textContent = document.getElementById('stext').value || 'Ваш текст';
+    pv.style.background = val('bg_color');
+    t.style.color = val('tcolor'); t.style.fontFamily = FONT[val('font')]; t.style.fontSize = SIZE[val('tsize')];
+    t.className = 'sc-pv-text p-' + val('tpos') + (document.getElementById('splate').checked ? ' plate' : '');
+    const q = document.getElementById('spq').value.trim(), a = document.getElementById('spa').value.trim(), b = document.getElementById('spb').value.trim();
+    poll.hidden = !(q && a && b); if (!poll.hidden) { poll.querySelector('b').textContent = q; const s = poll.querySelectorAll('span'); s[0].textContent = a; s[1].textContent = b; }
+    const lu = document.getElementById('slink').value.trim(); link.hidden = !lu; link.textContent = '🔗 ' + (document.getElementById('slinkl').value.trim() || 'Открыть ссылку');
+  }
+  f.addEventListener('input', upd); f.addEventListener('change', upd); upd();
+  document.getElementById('smedia').addEventListener('change', e => { const file = e.target.files[0]; pv.querySelector('img,video')?.remove(); if (!file) return; const u = URL.createObjectURL(file);
+    const el = document.createElement(file.type.startsWith('video') ? 'video' : 'img'); el.src = u; el.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
+    if (el.tagName === 'VIDEO') { el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true; } pv.prepend(el); });
+})();
 </script>
 {% endblock %}

@@ -83,6 +83,7 @@
     <form method="post" action="/admin/u/{{ t.username }}/delete-posts" onsubmit="return confirm('Удалить все посты?')"><button class="btn ghost sm danger">Удалить все посты</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/delete-comments" onsubmit="return confirm('Удалить все комментарии?')"><button class="btn ghost sm danger">Удалить все комментарии</button></form>
     <form method="post" action="/admin/u/{{ t.username }}/delete-stories" onsubmit="return confirm('Удалить все истории?')"><button class="btn ghost sm danger">Удалить истории</button></form>
+    {% for a, l in [("reset-avatar","Сбросить фото"),("reset-cover","Сбросить обложку"),("reset-bio","Очистить описание"),("reset-name","Имя = логин"),("reset-status","Убрать статус")] %}<form method="post" action="/admin/u/{{ t.username }}/{{ a }}" onsubmit="return confirm('{{ l }}?')"><button class="btn ghost sm">{{ l }}</button></form>{% endfor %}
     {% if not t.is_owner %}<form method="post" action="/admin/delete-user/{{ t.username }}" onsubmit="return confirm('Удалить аккаунт @{{ t.username }} со всеми данными? Это навсегда.')"><button class="btn danger sm">Удалить аккаунт</button></form>{% endif %}
   </div>
   {% if posts %}<div class="pref-group">Последние посты</div>{% for p in posts %}<a class="row small" href="/post/{{ p.id }}" style="padding:4px 0;gap:8px"><span class="grow ellipsis">{{ (p.content or "медиа")[:90] }}</span><span class="faint tiny">{{ p.created_at|ago }}</span></a>{% endfor %}{% endif %}

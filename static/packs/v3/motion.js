@@ -1,5 +1,11 @@
 /* Лёгкие анимации (7.11.2026, motion.css): фото проявляются после загрузки, счётчики подпрыгивают,
    у лайка — искорка. Ничего не делает при «Уменьшить движение». */
+// «В свою историю» из меню поста (работает всегда, даже без анимаций)
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act="to-story"]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation(); b.disabled = true;
+  try { const r = await App.api(`/post/${b.dataset.id}/to-story`); App.toast('Пост в вашей истории ✨'); setTimeout(() => { location.href = r.url; }, 600); } catch (err) { b.disabled = false; }
+}, true);
 (function () {
   const root = document.documentElement;
   if (root.classList.contains('p-reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches) return;

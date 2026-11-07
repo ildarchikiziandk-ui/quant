@@ -16,7 +16,8 @@
     </div>
       <div class="pv-id">
     {% set pn = has_name_color(pu) %}<div class="profile-name"><span{% if pn %} class="plus-name" style="--pg:{{ name_bg(pu) }}"{% endif %}>{{ pu.name or pu.username }}</span>{{ badges(pu, full=true) }}</div>
-    <div class="row small muted" style="gap:8px"><span data-copy-username="{{ pu.username }}" title="Нажмите, чтобы скопировать" style="cursor:copy">@{{ pu.username }}</span>{% for h in v3_aliases(pu) %}<span class="faint">· @{{ h }}</span>{% endfor %}{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
+    <div class="p-handles small muted"><span data-copy-username="{{ pu.username }}" title="Нажмите, чтобы скопировать" style="cursor:copy">@{{ pu.username }}</span>{% for h in v3_aliases(pu) %}<span class="p-alias" data-copy-username="{{ h }}" title="Дополнительный логин — нажмите, чтобы скопировать">@{{ h }}</span>{% endfor %}</div>
+    <div class="row small muted p-meta" style="gap:8px">{% if rel.follows_me %}<span class="follows-you">Подписан(а) на вас</span>{% endif %}{% if pu.is_private %}<span title="Закрытый профиль">{{ icon("lock") }}</span>{% endif %}
       {% if is_online(pu) %}<span class="online-txt"><i></i>онлайн</span>{% elif pu.last_seen and pu.show_online is not sameas false %}<span class="faint">был(а) {{ pu.last_seen|ago }}</span>{% endif %}</div>
     <div class="profile-stats tiles">
       <span><b>{{ stats.posts }}</b> <span class="muted">постов</span></span>

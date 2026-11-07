@@ -258,9 +258,41 @@ def _del_stories(db, me, t, f):
         db.query(models.StoryView).filter_by(story_id=st.id).delete()
         db.query(models.StoryReaction).filter_by(story_id=st.id).delete()
         db.query(models.StoryHighlightItem).filter_by(story_id=st.id).delete()
+        db.query(models.StoryVote).filter_by(story_id=st.id).delete()
         db.delete(st)
         n += 1
     return f"Удалено историй: {n}", False
+
+
+# сброс того, что человек выставил в профиль с нарушением (7.11.2026)
+@action("reset-avatar")
+def _reset_avatar(db, me, t, f):
+    t.avatar = ""
+    return "Фото профиля сброшено", False
+
+
+@action("reset-cover")
+def _reset_cover(db, me, t, f):
+    t.cover = ""
+    return "Обложка сброшена", False
+
+
+@action("reset-bio")
+def _reset_bio(db, me, t, f):
+    t.bio, t.website = "", ""
+    return "Описание и ссылка очищены", False
+
+
+@action("reset-name")
+def _reset_name(db, me, t, f):
+    t.name = t.username
+    return "Имя заменено на логин", False
+
+
+@action("reset-status")
+def _reset_status(db, me, t, f):
+    t.emoji_status = ""
+    return "Статус у имени убран", False
 
 
 @action("block")

@@ -72,3 +72,85 @@ article.post { content-visibility: auto; contain-intrinsic-size: auto 420px; }
 @keyframes nv-sheet { from { opacity: .4; transform: translateY(40px); } }
 @keyframes nv-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
 @keyframes nv-burst { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+
+/* ---------- комментарии на телефоне (7.11.2026) ---------- */
+.cmt-reply { margin-left: calc(var(--d, 1) * 34px); }
+@media (max-width: 600px) { .cmt-reply { margin-left: calc(var(--d, 1) * 14px); } }
+.cmt-row .grow { min-width: 0; }
+.cmt-row .row.tiny { flex-wrap: wrap; }
+.cmt-more { display: contents; }
+.cmt-more > summary { list-style: none; cursor: pointer; padding: 3px 8px; }
+.cmt-more > summary::-webkit-details-marker { display: none; }
+.cmt-more > summary .i { width: 16px; height: 16px; }
+.cmt-more[open] > summary { background: var(--input); border-radius: 999px; }
+.cmt-more-row { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 2px; padding-top: 2px; animation: nv-row .22s cubic-bezier(.2, .8, .2, 1); }
+
+/* ---------- админ-панель на телефоне (7.11.2026): кнопки разделов — сеткой плиток, а не строкой за край ---------- */
+@media (max-width: 640px) {
+  .admin-head { flex-wrap: wrap !important; }
+  .admin-head > .row { flex-shrink: 1 !important; width: 100%; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px !important; }
+  .admin-head > .row .btn { width: 100%; justify-content: center; padding: 9px 4px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-head > .row .btn .i { flex: none; }
+  .layout.wide .main table { display: block; overflow-x: auto; max-width: 100%; }
+  .layout.wide .main .card { min-width: 0; }
+}
+
+/* ---------- профиль: все логины одной строкой (7.11.2026) ---------- */
+.p-handles { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; white-space: nowrap; max-width: 100%; }
+.p-handles::-webkit-scrollbar { display: none; }
+.p-handles > span { flex: none; }
+.p-alias { padding: 1px 8px; border-radius: 999px; background: var(--input); font-size: .92em; cursor: copy; }
+.p-meta { flex-wrap: wrap; row-gap: 2px; margin-top: 2px; }
+.p-meta:empty { display: none; }
+
+/* ---------- меню «⋯» не обрезается краями поста и профиля (7.11.2026) ---------- */
+article.post:has(.menu.open), .card:has(.menu.open), .ntile:has(.menu.open) { content-visibility: visible !important; overflow: visible !important; position: relative; z-index: 60; }
+
+/* ---------- истории: создание и показ (7.11.2026) ---------- */
+.sc-pv { aspect-ratio: 9/16; max-height: 420px; max-width: 240px; margin: 0 auto 14px; border-radius: 18px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.sc-pv-text, .story-text.st { position: absolute; left: 14px; right: 14px; text-align: center; font-weight: 800; line-height: 1.25; z-index: 2; text-shadow: 0 2px 8px rgba(0,0,0,.35); overflow-wrap: anywhere; }
+.sc-pv-text.p-top, .story-text.st.p-top { top: 18%; bottom: auto; transform: none; }
+.sc-pv-text.p-center, .story-text.st.p-center { top: 50%; bottom: auto; transform: translateY(-50%); }
+.sc-pv-text.p-bottom, .story-text.st.p-bottom { top: auto; bottom: 22%; transform: none; }
+.sc-pv-text.plate, .story-text.st.plate { background: rgba(0,0,0,.5); border-radius: 14px; padding: 8px 12px; text-shadow: none; left: 18px; right: 18px; }
+.sc-pv-poll, .story-poll { position: absolute; left: 16px; right: 16px; bottom: 9%; z-index: 7; background: rgba(255,255,255,.94); color: #1f1d1a; border-radius: 18px; padding: 10px; text-align: center; box-shadow: 0 10px 24px -10px rgba(0,0,0,.5); }
+.sc-pv-poll b, .story-poll b { display: block; font-size: 14px; margin-bottom: 8px; }
+.sc-pv-poll div, .story-poll .sp-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sc-pv-poll span { background: #f1ebe2; border-radius: 12px; padding: 8px 4px; font-weight: 700; font-size: 13px; }
+.story-poll button { position: relative; overflow: hidden; border: 0; border-radius: 12px; padding: 10px 6px; background: #f1ebe2; font: 700 14px inherit; font-family: inherit; color: #1f1d1a; cursor: pointer; }
+.story-poll button i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: color-mix(in srgb, var(--whale) 28%, transparent); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+.story-poll button span { position: relative; } .story-poll button em { position: relative; font-style: normal; font-weight: 800; margin-left: 4px; }
+.story-poll button.mine { box-shadow: inset 0 0 0 2px var(--whale); }
+.story-poll .sp-total { font-size: 11.5px; opacity: .65; margin-top: 6px; }
+.sc-pv-link, .story-link { position: absolute; left: 50%; transform: translateX(-50%); bottom: 4%; z-index: 7; background: #fff; color: #1f1d1a; border-radius: 999px; padding: 9px 16px; font-weight: 800; font-size: 13.5px; white-space: nowrap; max-width: 86%; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 8px 20px -8px rgba(0,0,0,.5); text-decoration: none; }
+.story-media:has(.story-poll) .story-link { bottom: auto; top: 76px; }
+.story-text a { color: inherit; text-decoration: underline; position: relative; z-index: 7; }
+.story-media .sc-pv-poll { display: none; }
+.sc-row { margin: 12px 0; } .sc-lbl { display: block; font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
+.sc-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.sc-swatches input, .sc-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.sc-swatches i { display: block; width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--border); cursor: pointer; transition: transform .15s; }
+.sc-swatches input:checked + i { box-shadow: 0 0 0 2.5px var(--whale); transform: scale(1.08); }
+.sc-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.sc-seg span { display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--input); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.sc-seg input:checked + span { background: var(--whale); color: #fff; }
+.sf-onest { font-family: Onest, sans-serif; } .sf-unb { font-family: Unbounded, sans-serif; } .sf-serif { font-family: Georgia, serif; } .sf-mono { font-family: "Courier New", monospace; }
+.sc-more { border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; margin: 10px 0; }
+.sc-more summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 6px; }
+.sc-more summary::-webkit-details-marker { display: none; }
+.sc-more[open] summary { margin-bottom: 8px; }
+.sc-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 420px) { .sc-2 { grid-template-columns: 1fr; } }
+/* архив историй */
+.sa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.sa-item { position: relative; aspect-ratio: 9/16; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #fff; text-align: center; font-weight: 800; font-size: 12px; padding: 8px; }
+.sa-item img, .sa-item video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sa-item .sa-t { position: relative; text-shadow: 0 1px 6px rgba(0,0,0,.5); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+.sa-item .sa-d { position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,.55); border-radius: 8px; padding: 2px 6px; font-size: 10.5px; font-weight: 700; }
+.sa-item .sa-live { position: absolute; right: 6px; top: 6px; background: #3c9a5f; border-radius: 8px; padding: 2px 6px; font-size: 10.5px; }
+.sa-item button { position: absolute; left: 6px; right: 6px; bottom: 6px; border: 0; border-radius: 10px; padding: 7px 4px; background: rgba(255,255,255,.92); color: #1f1d1a; font: 700 12px inherit; font-family: inherit; cursor: pointer; }
+.adm-online { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.adm-online a { flex: none; width: 56px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: inherit; font-size: 11.5px; text-align: center; }
+.adm-online span { max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-pv:has(.sc-pv-poll:not([hidden])) .sc-pv-link { bottom: auto; top: 12px; }
+.sc-pv-poll[hidden], .sc-pv-link[hidden] { display: none !important; }

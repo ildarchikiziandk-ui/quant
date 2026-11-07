@@ -850,7 +850,7 @@ def test_gift_in_chat(alice, bob):
     m = last_msg()
     assert m.content.startswith("[[v3:gift:")
     page = bob.get("/messages/alice").text
-    assert "Подарок для вас" in page and "/static/gifts/rose.svg" in page and "Тебе!" in page
+    assert "Вам подарок" in page and "/static/gifts/rose.svg" in page and "Тебе!" in page
     assert "Подарок" in bob.get("/messages").text  # в списке чатов — понятная подпись
     # анонимный подарок в чат не попадает
     alice.post("/gifts/bob/send", data={"gift": "heart", "anonymous": "1"}, headers=J)

@@ -118,6 +118,7 @@ class User(Base):
 class Post(Base):
     __tablename__ = "posts"
     id = Column(Integer, primary_key=True, index=True)
+    hide_likes = Column(Boolean, default=False)  # автор скрыл число лайков от других (7.11.2026)
     content = Column(Text)
     image = Column(String, default="")
     media_type = Column(String, default="")
@@ -382,6 +383,17 @@ class UserSticker(Base):
     user = relationship("User", back_populates="stickers")
     pack = relationship("StickerPack")
 
+class StoryVote(Base):
+    """Голос в опросе внутри истории (7.11.2026)."""
+    __tablename__ = "story_votes"
+    __table_args__ = (UniqueConstraint("story_id", "user_id", name="uq_story_vote"),)
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey("stories.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    choice = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class StoryReaction(Base):
     __tablename__ = "story_reactions"
     id = Column(Integer, primary_key=True, index=True)
@@ -446,6 +458,7 @@ class Story(Base):
     music_url = Column(String, default="")
     audience = Column(String, default="all")
     bg_color = Column(String, default="")
+    extra = Column(Text, default="")  # JSON (7.11.2026): оформление текста, ссылка, опрос, пост-источник
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     author = relationship("User")

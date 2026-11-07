@@ -405,13 +405,21 @@ html.in-pwa .mobile-top { padding-top: env(safe-area-inset-top); }
 .v3-sea-cap { opacity: .75; font-weight: 600; text-align: center; }
 
 /* подарок в переписке */
-.v3-gift { color: inherit; text-decoration: none; }
-.v3-gift-body { display: flex; align-items: center; gap: 12px; }
-.v3-gift-body img { width: 84px; height: 84px; flex: none; filter: drop-shadow(0 6px 12px rgba(0,0,0,.18)); animation: v3gift .9s cubic-bezier(.2,1.4,.4,1) both; }
-.v3-gift-body b { font-size: 16px; }
-.v3-gift-msg { font-size: 14px; margin: 2px 0; overflow-wrap: anywhere; }
-@keyframes v3gift { from { transform: scale(.4) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .v3-gift-body img { animation: none; } }
+.v3-gift { color: inherit; text-decoration: none; display: flex !important; flex-direction: column; align-items: center; text-align: center; gap: 4px; width: 236px; max-width: 100%; padding: 12px 14px 14px !important; }
+.v3-gift-top { align-self: stretch; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+.v3-gift-top .i { width: 16px; height: 16px; color: var(--whale); }
+.v3-gift-tag { margin-left: auto; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: color-mix(in srgb, var(--whale) 14%, transparent); color: var(--whale); }
+.v3-gift.k-limited .v3-gift-tag { background: color-mix(in srgb, #7a5ab8 15%, transparent); color: #7a5ab8; }
+.v3-gift.k-founder .v3-gift-tag, .v3-gift.k-premium .v3-gift-tag { background: color-mix(in srgb, #d9952b 18%, transparent); color: #b5761a; }
+.v3-gift-pic { width: 128px; height: 128px; margin: 6px 0 2px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--whale) 9%, var(--card-2)); }
+.v3-gift.k-premium .v3-gift-pic, .v3-gift.k-founder .v3-gift-pic { background: color-mix(in srgb, #f0c24a 18%, var(--card-2)); }
+.v3-gift.k-limited .v3-gift-pic { background: color-mix(in srgb, #7a5ab8 12%, var(--card-2)); }
+.v3-gift-pic img { width: 100px !important; height: 100px !important; max-width: none !important; border-radius: 0 !important; filter: drop-shadow(0 6px 10px rgba(0,0,0,.16)); animation: v3gift .9s cubic-bezier(.2,1.4,.4,1) both; }
+.v3-gift-name { font-size: 17px; font-weight: 800; }
+.v3-gift-msg { font-size: 14.5px; line-height: 1.35; padding: 7px 12px; margin: 2px 0; border-radius: 14px; background: var(--card-2); overflow-wrap: anywhere; max-width: 100%; }
+.v3-gift-msg img, .v3-gift-msg .emj { width: 1.25em !important; height: 1.25em !important; vertical-align: -.25em; display: inline !important; }
+.v3-gift-from { font-size: 12.5px; color: var(--text-2); }
+@media (prefers-reduced-motion: reduce) { .v3-gift-pic img { animation: none; } }
 .v3-giftpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; max-height: 46vh; overflow-y: auto; }
 .v3-giftpick button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 2px solid var(--border); background: var(--card-2); color: var(--text); cursor: pointer; font: inherit; }
 .v3-giftpick button img { width: 48px; height: 48px; }

@@ -205,7 +205,7 @@ async def create_post(request: Request, db: Session = Depends(get_db)):
     post = models.Post(content=content, user_id=user.id, community_id=community.id if community else None,
                        wall_owner_id=wall.id if wall else None, image=saved[0][0] if saved else "", media_type=saved[0][1] if saved else "",
                        is_long=len(content) > 500, scheduled_at=scheduled, visibility=visibility,
-                       comments_disabled=bool(form.get("comments_disabled")),
+                       comments_disabled=bool(form.get("comments_disabled")), hide_likes=bool(form.get("hide_likes")),
                        mood=form.get("mood") if form.get("mood") in extras.MOOD_BY else "",
                        location=(form.get("location") or "").strip()[:60],
                        bg=form.get("bg") if form.get("bg") in allowed_bg and len(content) <= 220 and not saved else "",
@@ -283,6 +283,8 @@ async def edit_post(post_id: int, request: Request, db: Session = Depends(get_db
     post.edited_at = datetime.utcnow()
     if "comments_disabled" in data:
         post.comments_disabled = bool(data.get("comments_disabled"))
+    if "hide_likes" in data:
+        post.hide_likes = bool(data.get("hide_likes"))
     update_trends(db, post.content)
     moderation.review(db, "post", post, user, post.content)
     db.commit()
@@ -436,7 +438,7 @@ def post_likers(post_id: int, request: Request, db: Session = Depends(get_db)):
     post = _get_post(db, post_id)
     if not social.can_view_post(db, user, post):
         return json_error("not found", 404)
-    if post.author.hide_likes and (not user or user.id != post.user_id):
+    if (post.author.hide_likes or post.hide_likes) and (not user or user.id != post.user_id):
         return JSONResponse({"ok": True, "users": [], "hidden": True})
     users = db.query(models.User).join(models.Like, models.Like.user_id == models.User.id).filter(models.Like.post_id == post_id).limit(100).all()
     return JSONResponse({"ok": True, "users": [{"username": u.username, "name": u.name or u.username, "avatar": u.avatar or ""} for u in users]})

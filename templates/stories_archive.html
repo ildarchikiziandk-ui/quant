@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Архив историй — {{ brand }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="page-title" style="margin:0">{{ icon("archive", "i in") }} Архив историй</div><div class="page-sub">Все ваши истории — их видите только вы. Любую можно выложить снова на 24 часа.</div></div>
+  <a class="btn sm" href="/stories/create">{{ icon("plus", "i in") }} Новая</a></div>
+<div class="card">
+  {% if items %}<div class="sa-grid">{% for s in items %}
+    <div class="sa-item" style="background:{{ s.bg_color or '#18181b' }}">
+      {% if s.media_type == "video" and s.media_url %}<video src="{{ s.media_url }}#t=0.1" muted playsinline preload="metadata"></video>{% elif s.media_url %}<img src="{{ s.media_url }}" alt="" loading="lazy">{% endif %}
+      {% if s.text_overlay %}<span class="sa-t">{{ s.text_overlay }}</span>{% endif %}
+      <span class="sa-d">{{ s.created_at.strftime("%d.%m") }}</span>{% if s.expires_at and s.expires_at > now %}<span class="sa-live">сейчас</span>{% endif %}
+      <button type="button" data-again="{{ s.id }}">Поделиться снова</button>
+    </div>{% endfor %}</div>
+  {% else %}<p class="center muted">Пока ни одной истории. <a href="/stories/create" style="color:var(--link)">Выложить первую</a></p>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-again]').forEach(b => b.onclick = async () => { b.disabled = true;
+  try { const r = await App.api(`/stories/${b.dataset.again}/again`); App.toast('История снова в ленте ✨'); setTimeout(() => location.href = r.url, 500); } catch (e) { b.disabled = false; } });
+</script>
+{% endblock %}

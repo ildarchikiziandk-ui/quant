@@ -169,7 +169,7 @@
         {{ post_inner(main, user, st, can_mod, full) }}
       {%- endif %}
       <div class="post-actions">
-        {%- set hide = main.author.hide_likes and not (user and user.id == main.user_id) %}
+        {%- set hide = (main.author.hide_likes or main.hide_likes) and not (user and user.id == main.user_id) %}
         <button class="act like {% if main.id in st.liked %}on{% endif %}" data-act="like" data-id="{{ main.id }}" title="Нравится">{{ icon("heart", "i off-ico") }}{{ icon("heart-fill", "i on-ico") }}<span class="n">{% if not hide and main.likes %}{{ main.likes|length }}{% endif %}</span></button>
         <button class="act whale {% if main.id in st.whaled %}on{% endif %}" data-act="whale" data-id="{{ main.id }}" title="Кит — суперлайк">{{ icon("whale", "i off-ico") }}{{ icon("whale-fill", "i on-ico") }}<span class="n">{{ main.whales|length or "" }}</span></button>
         <a class="act" href="/post/{{ main.id }}#comments" title="Комментарии">{{ icon("comment") }}<span>{{ main.comments|length or "" }}</span></a>
@@ -235,6 +235,7 @@
             <a href="https://vk.com/share.php?url={{ (site_url ~ '/post/' ~ main.id ~ ('?from=' ~ user.username if user else ''))|urlencode }}" target="_blank" rel="noopener">ВКонтакте</a>
             <a href="/post/{{ main.id }}/qr">{{ icon("qr", "i in") }} QR-код поста</a>
             {%- if user %}<button data-act="send-post" data-id="{{ main.id }}">{{ icon("inbox", "i in") }} Отправить в чат</button>
+            {%- if (main.visibility or "all") == "all" or main.user_id == user.id %}<button data-act="to-story" data-id="{{ main.id }}">{{ icon("camera", "i in") }} В свою историю</button>{% endif %}
             <button data-act="remind" data-id="{{ main.id }}">{{ icon("alarm", "i in") }} Напомнить завтра</button>{% endif %}
             {% for _s in pack_slot("post_menu") %}{% include _s %}{% endfor %}
             {%- if user and user.id == main.user_id %}
@@ -260,7 +261,7 @@
 {%- set pic = items[0].media_url if items and items[0].media_type != "video" else (main.image if main.image and main.media_type != "video" else None) -%}
 {%- set vid = (items[0].media_url if items and items[0].media_type == "video" else None) or (main.image if main.image and main.media_type == "video" else None) -%}
 {%- set text = (main.content or "")|striptags|replace("**", "")|replace("__", "")|trim -%}
-{%- set hide = main.author.hide_likes and not (user and user.id == main.user_id) -%}
+{%- set hide = (main.author.hide_likes or main.hide_likes) and not (user and user.id == main.user_id) -%}
 <a href="/post/{{ main.id }}" class="ntile{% if (pic or vid) and not main.content_warning %} photo{% else %} note n{{ i % 4 }}{% endif %}" id="post-{{ p.id }}">
   {%- if main.wall_owner_id and main.wall_owner and main.wall_owner_id != main.user_id %}<span class="ntag">{{ icon("forward", "i in") }} {{ main.author.name or main.author.username }} на стене у {{ main.wall_owner.name or main.wall_owner.username }}</span>{% endif %}
   {%- if pinned or p.is_repost %}<span class="ntag">{% if pinned %}{{ icon("pin", "i in") }} закреплён{% else %}{{ icon("repost", "i in") }} репост{% endif %}</span>{% endif %}

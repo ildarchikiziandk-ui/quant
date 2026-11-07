@@ -86,7 +86,9 @@ def admin_page(request: Request, tab: str = "dashboard", q: str = "", db: Sessio
                | {"all": db.query(models.ModerationFlag).count()},
                mod_cfg={"enabled": config.MODERATION_ENABLED, "flag": config.MOD_FLAG_THRESHOLD, "hold": config.MOD_HOLD_THRESHOLD},
                is_owner=user.is_owner)
-    return render(request, db, "admin.html", sidebar=False, **ctx)
+    online_users = (db.query(models.User).filter(models.User.last_seen > datetime.utcnow() - timedelta(minutes=2)).order_by(models.User.last_seen.desc()).limit(40).all()
+                    if tab == "dashboard" else [])
+    return render(request, db, "admin.html", online_users=online_users, sidebar=False, **ctx)
 
 
 @router.post("/admin/block/{username}")

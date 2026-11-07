@@ -5,7 +5,7 @@
 <meta property="og:title" content="{{ post.author.name or post.author.username }} в {{ brand }}"><meta property="og:description" content="{{ (post.content or 'Фото и видео в ' ~ brand)[:200] }}"><meta name="description" content="{{ (post.content or '')[:160] }}">
 <meta property="og:image" content="{{ site_url }}{% if post.image and post.media_type == 'image' %}{{ post.image }}{% else %}/og/post/{{ post.id }}.png{% endif %}"><meta name="twitter:card" content="summary_large_image"><link rel="canonical" href="{{ site_url }}/post/{{ post.id }}">{% endblock %}
 {% macro comment_item(c, depth=0) %}
-<div class="row" id="comment-{{ c.id }}" style="align-items:flex-start;gap:10px;padding:10px 0;{% if depth %}margin-left:{{ [depth, 3]|min * 34 }}px;{% endif %}">
+<div class="row cmt-row{% if depth %} cmt-reply{% endif %}" id="comment-{{ c.id }}" style="align-items:flex-start;gap:10px;padding:10px 0;--d:{{ [depth, 3]|min }}">
   {% if c.author %}<a href="/profile/{{ c.author.username }}">{{ avatar(c.author, 34 if not depth else 28) }}</a>{% endif %}
   <div class="grow">
     <div style="background:var(--input);border-radius:14px;padding:8px 12px;{% if c.is_pinned %}border:1.5px solid var(--brand);{% endif %}">
@@ -18,11 +18,12 @@
       {% set nl = c.comment_likes|length %}
       <button class="act like {% if c.id in liked_comments %}on{% endif %}" data-act="comment-like" data-id="{{ c.id }}" style="padding:3px 8px">{{ icon("heart") }}<span class="n">{{ nl if nl else "" }}</span></button>
       {% if user and not post.comments_disabled %}<button class="act" data-act="reply" data-id="{{ c.id }}" data-user="{{ c.author.username if c.author else '' }}" style="padding:3px 8px">Ответить</button>{% endif %}
-      {% if user and user.id == post.user_id %}<button class="act" data-act="comment-pin" data-id="{{ c.id }}" data-post="{{ post.id }}" style="padding:3px 8px">{% if c.is_pinned %}Открепить{% else %}Закрепить{% endif %}</button>{% endif %}
+      {% set more %}{% if user and user.id == post.user_id %}<button class="act" data-act="comment-pin" data-id="{{ c.id }}" data-post="{{ post.id }}" style="padding:3px 8px">{% if c.is_pinned %}Открепить{% else %}Закрепить{% endif %}</button>{% endif %}
       {% if user and user.id == c.user_id %}<button class="act" data-act="comment-edit" data-id="{{ c.id }}" style="padding:3px 8px">Изменить</button>{% endif %}
       {% if user and (user.id == post.user_id or can_mod) and user.id != c.user_id %}<button class="act" data-act="toggle" data-url="/comment/{{ c.id }}/hide" data-reload="1" data-msg="Готово" style="padding:3px 8px">{% if c.is_hidden %}Показать{% else %}Скрыть{% endif %}</button>{% endif %}
       {% if user and user.id != c.user_id %}<button class="act" data-act="toggle" data-url="/comment/{{ c.id }}/report" data-msg="Жалоба отправлена модераторам" style="padding:3px 8px">Пожаловаться</button>{% endif %}
-      {% if user and (user.id == c.user_id or user.id == post.user_id or can_mod) %}<button class="act" data-act="comment-delete" data-id="{{ c.id }}" style="padding:3px 8px;color:var(--danger)">Удалить</button>{% endif %}
+      {% if user and (user.id == c.user_id or user.id == post.user_id or can_mod) %}<button class="act" data-act="comment-delete" data-id="{{ c.id }}" style="padding:3px 8px;color:var(--danger)">Удалить</button>{% endif %}{% endset %}
+      {% if more|trim %}<details class="cmt-more"><summary class="act" aria-label="Ещё действия">{{ icon("more", "i") }}</summary><div class="cmt-more-row">{{ more }}</div></details>{% endif %}
       {% if children.get(c.id) %}<button class="thread-toggle" data-thread="{{ c.id }}">Свернуть ответы ({{ children.get(c.id)|length }})</button>{% endif %}
     </div>
   </div>
@@ -53,7 +54,7 @@
 <div class="row small muted" style="padding:0 6px 10px;gap:14px">
   <span>{{ post.created_at|lt("%d.%m.%Y, %H:%M") }}</span>
   <span>{{ icon("eye", "i in") }} {{ post.views or 0 }}</span>
-  {% if not post.author.hide_likes or (user and user.id == post.user_id) %}<button class="act" data-act="likers" data-id="{{ post.id }}" style="padding:2px 6px">Кому понравилось</button>{% endif %}
+  {% if not (post.author.hide_likes or post.hide_likes) or (user and user.id == post.user_id) %}<button class="act" data-act="likers" data-id="{{ post.id }}" style="padding:2px 6px">Кому понравилось</button>{% endif %}
 </div>
 <div class="card" id="comments">
   <div class="card-title" style="flex-wrap:wrap;row-gap:6px">{{ icon("chat", "i in") }} Комментарии · {{ comment_count }}
