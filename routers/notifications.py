@@ -28,7 +28,8 @@ def notifs_page(request: Request, f: str = "all", db: Session = Depends(get_db))
     types = FILTERS.get(f)
     if types:
         q = q.filter(models.Notification.type.in_(types))
-    notifs = q.order_by(models.Notification.created_at.desc()).limit(150).all()
+    from sqlalchemy.orm import joinedload
+    notifs = q.options(joinedload(models.Notification.from_user)).order_by(models.Notification.created_at.desc()).limit(150).all()
     unread_ids = {n.id for n in notifs if not n.is_read}
     if unread_ids:
         db.query(models.Notification).filter(models.Notification.id.in_(unread_ids)).update({"is_read": True}, synchronize_session=False)

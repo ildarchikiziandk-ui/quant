@@ -498,10 +498,10 @@ img.post-img, .post-media img, .post-media video, .media-grid img, .media-grid v
 .season-splash .ss-count span { font-size: 30px; font-weight: 800; color: var(--text); animation: none; }
 .ny-garland { position: fixed; left: 0; right: 0; top: 0; height: 14px; z-index: 960; display: flex; justify-content: space-around; pointer-events: none;
   background: radial-gradient(ellipse at 50% -40%, transparent 60%, rgba(60,50,40,.35) 62%, transparent 66%) 0 0/calc(100% / 24) 14px repeat-x; }
-.ny-garland i { width: 7px; height: 10px; border-radius: 50% 50% 45% 45%; margin-top: 5px; animation: ny-blink 2.4s ease-in-out infinite; }
-.ny-garland i:nth-child(4n+1) { background: #e8443a; } .ny-garland i:nth-child(4n+2) { background: #f0c24a; animation-delay: .6s; }
-.ny-garland i:nth-child(4n+3) { background: #4fb06a; animation-delay: 1.2s; } .ny-garland i:nth-child(4n) { background: #4a90e2; animation-delay: 1.8s; }
-@keyframes ny-blink { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); } 50% { opacity: .35; } }
+.ny-garland i { width: 7px; height: 10px; border-radius: 50% 50% 45% 45%; margin-top: 5px; animation: ny-blink 2.4s ease-in-out infinite; will-change: opacity; }
+.ny-garland i:nth-child(4n+1) { background: #e8443a; box-shadow: 0 0 5px #e8443a; } .ny-garland i:nth-child(4n+2) { background: #f0c24a; box-shadow: 0 0 5px #f0c24a; animation-delay: .6s; }
+.ny-garland i:nth-child(4n+3) { background: #4fb06a; box-shadow: 0 0 5px #4fb06a; animation-delay: 1.2s; } .ny-garland i:nth-child(4n) { background: #4a90e2; box-shadow: 0 0 5px #4a90e2; animation-delay: 1.8s; }
+@keyframes ny-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }  /* только прозрачность — без перерисовки свечения на каждом кадре */
 @media (prefers-reduced-motion: reduce) { .ny-garland i { animation: none; } }
 
 /* значок Nuvora+ у имени — маленький кружок со звёздочкой (6.11.2026, вместо плашки «PLUS») */

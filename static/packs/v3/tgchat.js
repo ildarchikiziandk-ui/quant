@@ -44,6 +44,7 @@
       const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
       const fresh = doc.getElementById('chat-list');
       if (fresh && fresh.innerHTML !== list.innerHTML) {
+        list.classList.add('nv-quiet');  // тихое обновление — строки не «въезжают» заново
         list.innerHTML = fresh.innerHTML;
         try {  // черновики, как при обычной загрузке (more.js)
           list.querySelectorAll('.chat[data-uid]').forEach(row => { const d = JSON.parse(localStorage.getItem('nv_draft_' + row.dataset.uid) || '""'); const pv = row.querySelector('.preview');
@@ -58,5 +59,8 @@
   addEventListener('pageshow', e => { if (e.persisted) refreshList(); });
   try { if ((performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward') refreshList(); } catch (e) {}
   document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - last > 3000) refreshList(); });
-  setInterval(() => { if (!document.hidden) refreshList(); }, 20000);
+  // пока листают список — не перерисовываем его (иначе дёрнется под пальцем), обновим чуть позже
+  let scrolledAt = 0; addEventListener('scroll', () => { scrolledAt = Date.now(); }, { passive: true, capture: true });
+  const calm = () => { if (document.hidden) return; if (Date.now() - scrolledAt < 1500) return setTimeout(calm, 1500); refreshList(); };
+  setInterval(calm, 20000);
 })();
