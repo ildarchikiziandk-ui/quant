@@ -11,6 +11,7 @@
 </div>
 
 {% if tab == "dashboard" %}
+{% if user.is_owner %}<div class="card row wrap" style="justify-content:space-between;align-items:center;gap:10px"><div><div class="card-title" style="margin:0">🎉 Ивенты</div><div class="small muted">Адвент, двойные искры, валентинки, Масленица, турнир, дни рождения — и ваш день рождения</div></div><a class="btn soft" href="/admin/events">Открыть</a></div>{% endif %}
 {% if user.is_owner %}<div class="card row wrap" style="justify-content:space-between;align-items:center;gap:10px"><div><div class="card-title" style="margin:0">{{ icon("sparkle", "i in") }} Праздники</div><div class="small muted">Снег, День матери, Новый год и ёлка — включить или выключить</div></div><a class="btn soft" href="/admin/seasons">Открыть</a></div>{% endif %}
 {% if user.is_owner %}<div class="card row wrap" style="justify-content:space-between;align-items:center;gap:10px"><div><div class="card-title" style="margin:0">{{ icon("map", "i in") }} Расписание транспорта</div><div class="small muted">Маршрутки и автобусы, таблички для остановок с QR-кодом</div></div><a class="btn soft" href="/admin/transport">Открыть</a></div>{% endif %}
 {% if user.is_owner and not user.co_owner %}<div class="card row wrap" style="justify-content:space-between;align-items:center;gap:10px"><div><div class="card-title" style="margin:0">{{ icon("download", "i in") }} Копия сайта</div><div class="small muted">Скачайте базу и фото себе на компьютер — на случай аварии у хостинга</div></div><a class="btn" href="/admin/backup">Скачать копию</a></div>{% endif %}

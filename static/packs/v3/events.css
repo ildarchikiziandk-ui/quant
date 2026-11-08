@@ -1,0 +1,51 @@
+/* Ивенты и праздники (packs/v3/events.py). Анимации — только transform/opacity. */
+.ev-hero{display:flex;gap:14px;align-items:center}
+.ev-hero-emo{font-size:46px;line-height:1;width:64px;height:64px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:20px;flex:none}
+.ev-row{display:flex;gap:12px;align-items:flex-start}
+.ev-row.on{border-color:var(--whale)}
+.ev-emo{font-size:30px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:16px;background:var(--accent-soft);flex:none}
+.ev-now{background:var(--whale);color:#fff}
+.ev-banners{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.ev-banner{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:18px;background:var(--accent-soft);border:1px solid var(--border);color:inherit;text-decoration:none}
+.ev-banner .grow{display:flex;flex-direction:column;min-width:0}
+.ev-banner .tiny{opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-b-emo{font-size:28px;flex:none;animation:ev-bob 2.4s ease-in-out infinite}
+.ev-b-go{font-size:24px;opacity:.5}
+.ev-b-x2{background:#fff3d6}
+@keyframes ev-bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-6deg)}}
+.ev-lb{padding:8px 0;border-top:1px solid var(--border);color:inherit;text-decoration:none}
+.ev-place{width:30px;text-align:center;font-weight:800}
+.ev-place.top{font-size:20px}
+/* заставка */
+.ev-splash{position:fixed;inset:0;z-index:9000;background:rgba(30,24,20,.45);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .3s}
+.ev-splash.show{opacity:1}
+.ev-splash-card{background:var(--card,#fff);border-radius:28px;padding:28px 22px;max-width:360px;width:100%;text-align:center;transform:scale(.85);transition:transform .35s cubic-bezier(.2,1.4,.4,1)}
+.ev-splash.show .ev-splash-card{transform:scale(1)}
+.ev-splash-emo{font-size:84px;line-height:1.1;animation:ev-bob 2s ease-in-out infinite}
+.ev-ribbon{width:110px;height:110px}
+.ev-splash-t{font-family:var(--font-display,inherit);font-weight:800;font-size:22px;margin-top:8px}
+.ev-splash-s{font-size:14px;opacity:.75;margin-top:6px}
+/* адвент */
+.adv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-bottom:12px}
+.adv-cell{aspect-ratio:1;border-radius:16px;border:2px dashed #d6c6b2;background:#fffaf2;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#8a6f55;padding:4px;cursor:default;position:relative}
+.adv-cell.today{background:#c8281e;color:#fff;border:2px solid #f0c24a;cursor:pointer;animation:ev-pulse 1.6s ease-in-out infinite}
+.adv-cell.got{background:#2f7a4a;color:#fff;border:2px solid #2f7a4a}
+.adv-cell.past{opacity:.45}
+.adv-p{font-size:9px;font-weight:600;line-height:1.1;text-align:center}
+.adv-star{position:absolute;top:3px;right:6px;font-size:11px;color:#f0c24a}
+@keyframes ev-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+/* Масленица */
+.mas-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.mas-blin{font-size:30px;line-height:1.3;color:#d6c6b2}
+.mas-day.today .mas-blin{transform:scale(1.15)}
+.mas-day .tiny{font-size:10px;line-height:1.15}
+/* летящие золотые снежинки «Первого снега» */
+.ev-flake{position:fixed;top:-60px;z-index:8000;font-size:34px;color:#f0b400;text-shadow:0 0 10px rgba(240,180,0,.6);cursor:pointer;user-select:none;will-change:transform;padding:8px}
+.ev-flake.caught{transition:transform .35s,opacity .35s;opacity:0;transform:scale(2)!important}
+/* 1 апреля: рыбки вместо лайков, кит плавает */
+.ev-apr1 .act.like .i{display:none}
+.ev-apr1 .act.like::before{content:"🐟";font-size:18px;filter:grayscale(.6)}
+.ev-apr1 .act.like.on::before{filter:none}
+.ev-whale{position:fixed;z-index:7000;width:70px;height:70px;pointer-events:none;will-change:transform}
+/* салют и конфетти */
+.ev-canvas{position:fixed;inset:0;z-index:8500;pointer-events:none}

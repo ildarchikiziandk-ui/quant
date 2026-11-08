@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Адвент-календарь — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card ev-hero adv-hero"><div class="ev-hero-emo">🎄</div><div><div class="page-title" style="margin:0">Адвент-календарь</div><div class="small muted">Каждый день декабря открывается одно окошко с подарком. Не пропускайте — вчерашние окошки уже не открыть!</div></div></div>
+<div class="adv-grid">
+  {% for d in days %}
+  <button class="adv-cell{% if d.got %} got{% elif d.today %} today{% elif d.past %} past{% endif %}" {% if d.today and not d.got %}data-adv-open{% else %}disabled{% endif %} title="{{ d.prize }}">
+    <span class="adv-n">{{ d.n }}</span>{% if d.got %}<span class="adv-p">{{ d.prize }}</span>{% elif d.n in (7, 14, 21, 31) %}<span class="adv-star">★</span>{% endif %}
+  </button>
+  {% endfor %}
+</div>
+<p class="tiny muted center mt">★ — особые окошки: 7, 14 и 21 декабря — день Nuvora+, 31 декабря — 3 дня Nuvora+.</p>
+{% endblock %}

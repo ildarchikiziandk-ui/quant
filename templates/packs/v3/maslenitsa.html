@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Масленица — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card ev-hero"><div class="ev-hero-emo">🥞</div><div><div class="page-title" style="margin:0">Масленица</div><div class="small muted">{{ start.day }} {{ months[start.month] }} – {{ end.day }} {{ months[end.month] }}. Каждый день выполните любое <a href="/tasks">задание дня</a> и испеките блин. Соберите все 7 — неделя Nuvora+ в подарок!</div></div></div>
+<div class="card">
+  <div class="mas-row">{% for n in names %}<div class="mas-day{% if loop.index0 < got %} got{% endif %}{% if loop.index0 == idx %} today{% endif %}"><div class="mas-blin">{{ "🥞" if loop.index0 < got else "◯" }}</div><div class="tiny">{{ n }}</div></div>{% endfor %}</div>
+  <div class="center mt">{% if not user %}<a class="btn" href="/login">Войти</a>{% elif idx < 0 %}<span class="muted small">Масленица ещё не началась</span>{% elif today_done %}<span class="btn soft" aria-disabled="true">Сегодняшний блин уже ваш 🥞</span>{% else %}<button class="btn" data-ev-blin>🥞 Испечь блин</button>{% endif %}</div>
+  <p class="tiny muted center mt">Блинов: {{ got }} из 7</p>
+</div>
+{% endblock %}

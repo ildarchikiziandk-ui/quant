@@ -332,3 +332,27 @@ class YolkaBall(Base):
     year = Column(Integer, default=2027)  # какой Новый год встречаем
     hidden = Column(Boolean, default=False)  # скрыт модератором
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class EventClaim(Base):
+    """Получено в ивенте (packs/v3/events.py): подарок, окошко адвента, блин — один раз на (человек, ивент, отметка)."""
+    __tablename__ = "v3_event_claims"
+    __table_args__ = (UniqueConstraint("user_id", "key", "tag", name="uq_event_claim"),)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    key = Column(String(20), index=True)
+    tag = Column(String(20), default="")  # год, «2026-12-05», «2027-d3», «2027-prize»
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Valentine(Base):
+    """Валентинка ко Дню святого Валентина; anon — получатель видит «от тайного поклонника»."""
+    __tablename__ = "v3_valentines"
+    id = Column(Integer, primary_key=True)
+    from_id = Column(Integer, ForeignKey("users.id"), index=True)
+    to_id = Column(Integer, ForeignKey("users.id"), index=True)
+    card = Column(String(10), default="pink")
+    text = Column(String(220), default="")
+    anon = Column(Boolean, default=False)
+    seen = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

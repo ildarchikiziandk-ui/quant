@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Праздники и ивенты — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card ev-hero"><div class="ev-hero-emo">🎉</div><div><div class="page-title" style="margin:0">Праздники и ивенты</div><div class="small muted">Подарки, конкурсы и сюрпризы Nuvora круглый год</div></div></div>
+{% for r in rows %}
+<div class="card ev-row{% if r.on %} on{% endif %}">
+  <div class="ev-emo">{{ r.emo }}</div>
+  <div class="grow">
+    <div class="row wrap" style="gap:6px;align-items:center"><b>{{ r.title }}</b>{% if r.on %}<span class="tag-pill ev-now">идёт сейчас</span>{% endif %}</div>
+    <div class="tiny muted">{{ r.when }}</div>
+    <div class="small mt-s">{{ r.what }}</div>
+    {% if r.on or (user and user.is_owner) %}<div class="row wrap mt-s" style="gap:8px">
+      {% if r.gift and r.key != "snow1" %}{% if r.got %}<span class="btn soft sm" aria-disabled="true">{{ icon("check", "i in") }} Получено</span>{% elif user %}<button class="btn sm" data-ev-gift="{{ r.key }}">{{ icon("gift", "i in") }} Забрать: {{ r.gift }}</button>{% endif %}{% endif %}
+      {% if r.link != "/prazdniki" %}<a class="btn soft sm" href="{{ r.link }}">Открыть</a>{% endif %}
+    </div>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

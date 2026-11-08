@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Турнир к 23 февраля — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card ev-hero"><div class="ev-hero-emo">🛡️</div><div><div class="page-title" style="margin:0">Турнир к 23 февраля</div><div class="small muted">{{ start.day }}–{{ end.day }} {{ months[end.month] }}: побеждайте друзей в играх в чате — морской бой, крестики-нолики, четыре в ряд, кости. Тройка лучших получает неделю Nuvora+!</div></div></div>
+<div class="card">
+  <div class="card-title">{{ icon("trophy", "i in") }} Таблица лидеров</div>
+  {% for r in rows %}
+  <div class="row ev-lb" style="gap:10px;align-items:center">
+    <span class="ev-place{% if loop.index <= 3 %} top{% endif %}">{{ ["🥇","🥈","🥉"][loop.index0] if loop.index <= 3 else loop.index }}</span>
+    <a class="grow" href="/profile/{{ r.u.username }}"><b>{{ r.u.name or r.u.username }}</b> <span class="tiny muted">@{{ r.u.username }}</span></a>
+    <b>{{ r.n }}</b><span class="tiny muted">побед</span>
+    {% if owner and loop.index <= 3 %}{% if r.u.id in awarded %}<span class="tag-pill">награждён</span>{% else %}<form method="post" action="/turnir/award/{{ r.u.id }}" style="margin:0"><button class="btn sm">Наградить</button></form>{% endif %}{% endif %}
+  </div>
+  {% else %}<div class="muted small">Пока никто не победил — <a href="/messages">позовите друга в игру</a>!</div>{% endfor %}
+</div>
+{% endblock %}

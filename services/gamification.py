@@ -22,6 +22,10 @@ def add_points(user, db, points):
         return
     from services import plus
     points = plus.points(user, points)
+    if points > 0:
+        from packs.v3 import events  # двойные искры по выходным (ивент x2)
+        if events.double_now():
+            points *= 2
     user.daily_points = (user.daily_points or 0) + points
     user.weekly_points = (user.weekly_points or 0) + points
     user.total_points = (user.total_points or 0) + points

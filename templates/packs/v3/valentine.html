@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Валентинки — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card ev-hero val-hero"><div class="ev-hero-emo">💌</div><div><div class="page-title" style="margin:0">Валентинки</div><div class="small muted">Отправьте валентинку другу — можно анонимно, тогда он увидит «от тайного поклонника»</div></div></div>
+<form class="card" id="val-form" onsubmit="return false">
+  <label class="field"><span>Кому (логин)</span><input name="to" value="{{ to }}" placeholder="@логин" maxlength="40" required autocomplete="off"></label>
+  <div class="card-title">Открытка</div>
+  <div class="md-cards">{% for k, v in cards.items() %}<label><input type="radio" name="card" value="{{ k }}" {% if loop.first %}checked{% endif %}><span class="val-sw" style="background:rgb{{ v[1] }};color:rgb{{ v[2] }}">♥</span><div class="tiny center mt-s">{{ v[0] }}</div></label>{% endfor %}</div>
+  <label class="field mt"><span>Пожелание</span><textarea name="text" rows="3" maxlength="200">Ты делаешь мои дни теплее ♥</textarea></label>
+  <label class="row" style="gap:8px;align-items:center"><input type="checkbox" name="anon" value="1" style="width:auto;margin:0"> Отправить анонимно</label>
+  <img class="md-prev mt" id="val-prev" alt="Валентинка">
+  <button class="btn block mt" id="val-send">{{ icon("send", "i in") }} Отправить валентинку</button>
+  <p class="tiny muted center mt-s">Отправлено вами: {{ sent }}</p>
+</form>
+<div class="card">
+  <div class="card-title">{{ icon("heart", "i in") }} Мне прислали</div>
+  {% if inbox %}<div class="val-inbox">{% for v in inbox %}<figure><img src="/valentine/{{ v.id }}.png" alt="Валентинка" loading="lazy"><figcaption class="tiny muted">{% if v.anon %}от тайного поклонника{% elif senders.get(v.from_id) %}от <a href="/profile/{{ senders[v.from_id].username }}">@{{ senders[v.from_id].username }}</a>{% endif %}</figcaption></figure>{% endfor %}</div>
+  {% else %}<div class="small muted">Пока пусто — но 14 февраля ещё не закончилось 😉</div>{% endif %}
+</div>
+<style>.md-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.md-cards label{cursor:pointer}.md-cards input{display:none}
+.val-sw{display:flex;align-items:center;justify-content:center;height:70px;border-radius:14px;font-size:34px;border:3px solid transparent}.md-cards input:checked+.val-sw{border-color:var(--whale)}
+.md-prev{width:100%;max-width:360px;border-radius:18px;display:block;margin-left:auto;margin-right:auto;box-shadow:0 14px 34px -18px rgba(0,0,0,.35)}
+.val-inbox{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.val-inbox img{width:100%;border-radius:12px;display:block}.val-inbox figure{margin:0}</style>
+{% endblock %}

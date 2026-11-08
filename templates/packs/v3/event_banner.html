@@ -1,0 +1,15 @@
+{# Плашка идущих ивентов над лентой (packs/v3/events.py) #}
+<div class="ev-banners">
+{% for k in EV.on %}{% set I = EV.info[k] %}
+  <a class="ev-banner ev-b-{{ k }}" href="{{ '/tasks' if k == 'x2' else I[4] }}"><span class="ev-b-emo">{{ I[1] }}</span><span class="grow"><b>{{ "Сегодня двойные искры!" if k == "x2" else I[0] }}</b><span class="tiny">{{ I[3] }}</span></span><span class="ev-b-go">›</span></a>
+{% endfor %}
+</div>
+{% if EV.splash %}{% set k = EV.splash[0] %}{% set I = EV.info[k] %}
+<div class="ev-splash" id="ev-splash" data-key="{{ k }}" hidden><div class="ev-splash-card">
+  {% if k == "may9" %}<svg class="ev-ribbon" viewBox="0 0 120 120" aria-hidden="true"><defs><pattern id="gr" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="20" height="20" fill="#f08a1c"/><rect x="0" width="4" height="20" fill="#1b1b1b"/><rect x="8" width="4" height="20" fill="#1b1b1b"/><rect x="16" width="4" height="20" fill="#1b1b1b"/></pattern></defs><path d="M60 22c-22 0-30 22-18 38L22 108l16-4 6 14 22-46c14-16 6-50-6-50zM60 22c22 0 30 22 18 38l20 48-16-4-6 14-22-46" fill="url(#gr)" stroke="#1b1b1b" stroke-width="2"/></svg>
+  {% else %}<div class="ev-splash-emo">{{ I[1] }}</div>{% endif %}
+  <div class="ev-splash-t">{{ "С Днём Победы!" if k == "may9" else "С Днём России!" if k == "jun12" else "С 8 Марта!" if k == "mar8" else "Nuvora 🎂 сегодня день рождения!" if k == "bday" else "Сегодня день рождения у создателя Nuvora!" if k == "owner_bday" else I[0] }}</div>
+  <div class="ev-splash-s">{{ I[3] }}</div>
+  {% if k != "may9" %}<a class="btn mt" href="{{ I[4] }}">Подробнее</a>{% endif %}
+</div></div>
+{% endif %}

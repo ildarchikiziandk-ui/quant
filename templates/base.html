@@ -31,7 +31,7 @@
 <link rel="preload" href="/static/fonts/onest-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/static/fonts/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 {% for c in pack_css %}<link rel="stylesheet" href="/static/{{ c }}?v={{ static_v }}">{% endfor %}
 </head>
-<body class="{% block body_class %}{% endblock %}"{% if user %} data-me="{{ user.username }}"{% endif %}>
+{% set EV = events_state() %}<body class="{% block body_class %}{% endblock %}{% for k in EV.on %} ev-{{ k }}{% endfor %}"{% if user %} data-me="{{ user.username }}"{% endif %} data-ev="{{ EV.on|join(" ") }}">
 <a class="skip-link" href="#main">Перейти к содержимому</a>
 <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18181b"/><stop offset="1" stop-color="#18181b"/></linearGradient></defs></svg>
 {% block body %}
@@ -91,6 +91,7 @@ c.innerHTML=(d?'<span>'+d+'</span> '+w(d,'день','дня','дней')+' ':'')
     <a href="/events" class="nav-item"><span class="ico">{{ icon("calendar") }}</span><span class="nav-label">Мероприятия</span></a>
     <a href="/bookmarks" class="nav-item"><span class="ico">{{ icon("bookmark") }}</span><span class="nav-label">Закладки</span></a>
     <a href="/tasks" class="nav-item"><span class="ico">{{ icon("target") }}</span><span class="nav-label">Задания</span></a>
+    <a href="/prazdniki" class="nav-item"><span class="ico">{{ icon("party") }}</span><span class="nav-label">Праздники</span></a>
     <a href="/profile/{{ user.username }}" class="nav-item"><span class="ico">{{ icon("user") }}</span><span class="nav-label">Профиль</span></a>
     <div class="nav-sep"></div>
     {% if can_mod %}<a href="/admin" class="nav-item"><span class="ico">{{ icon("shield") }}</span><span class="nav-label">Админ-панель</span></a>{% endif %}
@@ -124,6 +125,7 @@ c.innerHTML=(d?'<span>'+d+'</span> '+w(d,'день','дня','дней')+' ':'')
     {% if user and user.is_blocked and user.blocked_until and user.blocked_until > now %}<div class="alert error">Ваш аккаунт ограничен до {{ user.blocked_until|lt }}. <a href="/special-request" style="text-decoration:underline">Подать апелляцию</a></div>{% endif %}
     {% if user and not user.pd_consent_at and request.url.path not in ("/consent", "/privacy") %}<div class="alert info small row" style="gap:10px;flex-wrap:wrap"><span class="grow">По закону № 152-ФЗ нам нужно ваше отдельное <a href="/consent" style="text-decoration:underline">согласие на обработку персональных данных</a>. Подробнее — в <a href="/privacy" style="text-decoration:underline">политике конфиденциальности</a>.</span><form method="post" action="/consent/accept" style="margin:0"><button class="btn sm">Даю согласие</button></form></div>{% endif %}
     {% if user and user.pd_consent_at and not user.public_consent_at and request.url.path not in ("/consent/public", "/privacy") %}<div class="alert info small row" style="gap:10px;flex-wrap:wrap"><span class="grow">Мы обновили документы: по закону (ст. 10.1 152-ФЗ) показывать ваш профиль и посты другим можно только с отдельного <a href="/consent/public" style="text-decoration:underline">согласия на распространение</a>. Что именно видно — по-прежнему решаете вы в настройках приватности.</span><form method="post" action="/consent/public/accept" style="margin:0"><button class="btn sm">Даю согласие</button></form></div>{% endif %}
+    {% if request.url.path == "/" and EV.on %}{% include "packs/v3/event_banner.html" %}{% endif %}
     {% block content %}{% endblock %}
   </main>
 

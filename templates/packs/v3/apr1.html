@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}1 апреля — {{ brand }}{% endblock %}
+{% block content %}
+<div class="card ev-hero"><div class="ev-hero-emo">🐟</div><div><div class="page-title" style="margin:0">День смеха</div><div class="small muted">Сегодня лайки — рыбки, а по экрану плавает кит. Выложите самый смешной пост с <b>#первоеапреля</b> — лучшие соберутся здесь!</div></div></div>
+<div class="row mb"><a class="btn" href="/create?text=%23первоеапреля%20">{{ icon("plus", "i in") }} Мой пост #первоеапреля</a></div>
+<div class="card"><div class="card-title">{{ icon("trophy", "i in") }} Самые смешные</div>
+{% for p in posts %}<a class="row ev-lb" style="gap:10px" href="/post/{{ p.id }}"><span class="ev-place{% if loop.index <= 3 %} top{% endif %}">{{ loop.index }}</span><span class="grow small">{{ (p.content or "")[:120] }}</span><span class="tiny">🐟 {{ p.likes|length }}</span></a>
+{% else %}<div class="small muted">Пока никто не пошутил — будьте первым!</div>{% endfor %}</div>
+{% endblock %}
